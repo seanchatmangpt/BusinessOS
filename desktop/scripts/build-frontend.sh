@@ -38,5 +38,14 @@ rm -rf "$RENDERER_DIR"/*
 echo "Copying build to renderer..."
 cp -r build/* "$RENDERER_DIR/"
 
+# Fix absolute paths for Electron file:// protocol
+echo "Fixing paths for Electron..."
+# Replace /_app/ with ./_app/ in index.html
+sed -i '' 's|"/_app/|"./_app/|g' "$RENDERER_DIR/index.html"
+sed -i '' "s|'/_app/|'./_app/|g" "$RENDERER_DIR/index.html"
+# Also fix any absolute paths to assets
+sed -i '' 's|href="/_|href="./_|g' "$RENDERER_DIR/index.html"
+sed -i '' 's|src="/_|src="./_|g' "$RENDERER_DIR/index.html"
+
 echo "Frontend build complete!"
 echo "Output: $RENDERER_DIR"

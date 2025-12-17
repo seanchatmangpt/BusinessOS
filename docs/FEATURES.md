@@ -9,13 +9,14 @@ This document provides detailed information about all features in Business OS.
 ## Table of Contents
 
 1. [Document Editor](#document-editor)
-2. [Desktop Mode](#desktop-mode)
-3. [Clients System](#clients-system)
-4. [AI Chat](#ai-chat)
-5. [AI Settings](#ai-settings)
-6. [Context System](#context-system)
-7. [Projects & Tasks](#projects--tasks)
-8. [Artifacts](#artifacts)
+2. [Desktop App](#desktop-app)
+3. [Desktop Mode (UI)](#desktop-mode-ui)
+4. [Clients System](#clients-system)
+5. [AI Chat](#ai-chat)
+6. [AI Settings](#ai-settings)
+7. [Context System](#context-system)
+8. [Projects & Tasks](#projects--tasks)
+9. [Artifacts](#artifacts)
 
 ---
 
@@ -100,7 +101,68 @@ Documents can be viewed in three modes:
 
 ---
 
-## Desktop Mode
+## Desktop App
+
+Business OS can run as a standalone desktop application using Electron Forge.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Self-contained** | Includes both frontend and backend |
+| **Offline capable** | Works without internet (with local AI) |
+| **Native feel** | Native window chrome, menus, shortcuts |
+| **Auto-updates** | Automatic update checking and installation |
+| **Cross-platform** | macOS, Windows, Linux support |
+
+### Building the Desktop App
+
+```bash
+# Build frontend
+cd frontend && npm run build
+
+# Copy to desktop renderer
+cp -r build/* ../desktop/src/renderer/
+
+# Build Go backend
+cd desktop/backend-go
+go build -o server cmd/server/main.go
+
+# Run desktop app (development)
+cd desktop
+npm start
+
+# Package for distribution
+npm run make
+```
+
+### Output Formats
+
+| Platform | Format | Location |
+|----------|--------|----------|
+| macOS | `.dmg` | `desktop/out/make/` |
+| Windows | `.exe` (Squirrel) | `desktop/out/make/` |
+| Linux | `.deb` | `desktop/out/make/` |
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Electron Desktop App                          │
+│  ┌────────────────────────┐  ┌────────────────────────────────┐ │
+│  │   Renderer Process     │  │      Main Process              │ │
+│  │   (SvelteKit Build)    │  │  ┌───────────────────────┐     │ │
+│  │   - Business OS UI     │──│──│   Go Backend Server   │     │ │
+│  │   - Desktop mode       │  │  │   - REST API          │     │ │
+│  │   - All features       │  │  │   - AI integration    │     │ │
+│  └────────────────────────┘  │  └───────────────────────┘     │ │
+│                              └────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Desktop Mode (UI)
 
 A multi-window interface for power users who want to work with multiple pages simultaneously.
 
@@ -449,28 +511,43 @@ The chat interface includes an artifacts panel:
 
 ---
 
-## Database Migrations
+## Database Schema
 
-Recent migrations added:
+The database schema is managed in `desktop/backend-go/internal/database/schema.sql`.
 
-1. **`add_context_document_fields.py`**
-   - `blocks` (JSONB) - Document block content
-   - `cover_image` (VARCHAR) - Cover image URL
-   - `icon` (VARCHAR) - Document icon
-   - `parent_id` (UUID) - Parent context reference
-   - `is_template` (BOOLEAN) - Template flag
-   - `is_archived` (BOOLEAN) - Archive status
-   - `last_edited_at` (TIMESTAMP) - Last edit time
-   - `word_count` (INTEGER) - Word count cache
-   - `is_public` (BOOLEAN) - Public sharing flag
-   - `share_id` (VARCHAR) - Unique share identifier
-   - `property_schema` (JSONB) - Property definitions
-   - `properties` (JSONB) - Property values
-   - `client_id` (UUID) - Client association
+### Key Tables
 
-2. **`add_clients_tables.py`**
-   - Full clients table with all fields
-   - Foreign key relationships
+**Contexts (Documents)**
+- `blocks` (JSONB) - Document block content
+- `cover_image` (VARCHAR) - Cover image URL
+- `icon` (VARCHAR) - Document icon
+- `parent_id` (UUID) - Parent context reference
+- `is_template` (BOOLEAN) - Template flag
+- `is_archived` (BOOLEAN) - Archive status
+- `last_edited_at` (TIMESTAMP) - Last edit time
+- `word_count` (INTEGER) - Word count cache
+- `is_public` (BOOLEAN) - Public sharing flag
+- `share_id` (VARCHAR) - Unique share identifier
+- `property_schema` (JSONB) - Property definitions
+- `properties` (JSONB) - Property values
+- `client_id` (UUID) - Client association
+
+**Clients (CRM)**
+- Full client profiles with contacts, deals, interactions
+- Foreign key relationships to projects and contexts
+
+### Modifying Schema
+
+```bash
+# Edit schema
+vim desktop/backend-go/internal/database/schema.sql
+
+# Apply to database
+psql business_os < desktop/backend-go/internal/database/schema.sql
+
+# Regenerate Go code
+cd desktop/backend-go && sqlc generate
+```
 
 ---
 

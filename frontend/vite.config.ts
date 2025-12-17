@@ -4,6 +4,13 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [sveltekit(), tailwindcss()],
+	ssr: {
+		// Force these CommonJS modules to be bundled for SSR
+		noExternal: ['ms']
+	},
+	optimizeDeps: {
+		include: ['ms']
+	},
 	server: {
 		proxy: {
 			// Proxy specific backend API routes to FastAPI

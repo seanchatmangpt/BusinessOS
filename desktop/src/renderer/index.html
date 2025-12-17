@@ -1,64 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:*;">
-  <title>BusinessOS</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .loading {
-      text-align: center;
-    }
-    .loading h1 {
-      font-size: 24px;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 8px;
-    }
-    .loading p {
-      font-size: 14px;
-      color: #6b7280;
-    }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #e5e7eb;
-      border-top-color: #1f2937;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <div class="loading">
-    <div class="spinner"></div>
-    <h1>BusinessOS</h1>
-    <p>Loading application...</p>
-  </div>
-  <script>
-    // This is a placeholder page
-    // In production, this will be replaced by the SvelteKit static build
-    // In development, the app loads from http://localhost:5173
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		
+		<link rel="modulepreload" href="./_app/immutable/entry/start.DnCPUMME.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/70hdIijO.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/gEhEz2MI.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/B8EIheeR.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/Bv4vBFaR.js">
+		<link rel="modulepreload" href="./_app/immutable/entry/app.DGupAF87.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/D62jLwVE.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/SR0OpFSe.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/BsxYy-AI.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/BSIKIpdF.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/DWekm16S.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/DdNl1Rvo.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/Ci92sFka.js">
+		<link rel="modulepreload" href="./_app/immutable/chunks/QWDW2laJ.js">
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_njti9o = {
+						base: ""
+					};
 
-    // Check if we're in Electron
-    if (window.electron) {
-      console.log('Running in Electron');
-      window.electron.getVersion().then(v => console.log('Version:', v));
-    }
-  </script>
-</body>
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("./_app/immutable/entry/start.DnCPUMME.js"),
+						import("./_app/immutable/entry/app.DGupAF87.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+	</body>
 </html>

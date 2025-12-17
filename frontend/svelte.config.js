@@ -21,7 +21,15 @@ const config = {
 					precompress: false,
 					strict: false
 				})
-			: adapterAuto()
+			: adapterAuto(),
+		// For Electron builds, disable all prerendering (pure SPA)
+		prerender: isElectronBuild
+			? { entries: [] }
+			: undefined,
+		// For Electron builds, use relative paths (file:// protocol compatibility)
+		paths: isElectronBuild
+			? { relative: true }
+			: undefined
 	}
 };
 

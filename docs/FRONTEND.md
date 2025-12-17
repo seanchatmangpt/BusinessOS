@@ -2,11 +2,18 @@
 
 **Business OS Frontend — SvelteKit 2.0 + Svelte 5**
 
+> Last Updated: December 18, 2025
+
 ---
 
 ## Overview
 
 The Business OS frontend is a modern, reactive web application built with SvelteKit 2.0 and Svelte 5 Runes. It features a unique dual-mode interface: a traditional web app layout and a macOS-inspired desktop environment with window management.
+
+The frontend can run in multiple modes:
+- **Web Mode**: Deployed to Vercel, connects to Cloud Run backend
+- **Desktop Mode**: Bundled in Electron app, connects to embedded Go backend
+- **Development**: Local dev server with hot reload
 
 ---
 
@@ -810,6 +817,39 @@ npm run preview  # Preview production build
 ```bash
 npm run check
 ```
+
+### Building for Desktop App
+
+When bundling for the Electron desktop app:
+
+```bash
+# Build production frontend
+cd frontend
+npm run build
+
+# Copy build output to desktop renderer
+cp -r build/* ../desktop/src/renderer/
+```
+
+The desktop app serves the built frontend from local files instead of making network requests to Vercel.
+
+---
+
+## Deployment
+
+### Web Deployment (Vercel)
+
+1. Connect repository to Vercel
+2. Set root directory to `frontend`
+3. Configure environment variables:
+   - `VITE_API_URL`: Backend API URL (Cloud Run)
+
+### Desktop App Integration
+
+The frontend is embedded in the Electron desktop app:
+- Built files are copied to `desktop/src/renderer/`
+- API calls go to `http://localhost:8000/api` (embedded backend)
+- See [DEPLOYMENT.md](./DEPLOYMENT.md) for full deployment guide
 
 ---
 

@@ -11,6 +11,7 @@ build/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Python
 __pycache__/
@@ -38,6 +39,12 @@ logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Desktop artifacts
+*.dmg
+desktop/src/renderer/_app/
+**/downloads/
+**/uploads/
 
 # Testing
 coverage/

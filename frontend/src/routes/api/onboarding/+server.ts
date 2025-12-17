@@ -1,6 +1,5 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { auth } from '$lib/server/auth';
 import { pool } from '$lib/server/db';
 
 interface OnboardingData {

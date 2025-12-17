@@ -13,7 +13,7 @@ const config: ForgeConfig = {
     asar: true,
     icon: './resources/icons/icon',
     appBundleId: 'com.businessos.desktop',
-    appCopyright: 'Copyright © 2024 BusinessOS',
+    appCopyright: 'Copyright © 2025 BusinessOS',
     extraResource: [
       './resources/bin'
     ],

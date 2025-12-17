@@ -45,15 +45,16 @@ export async function createMainWindow(): Promise<BrowserWindow> {
 
   // Load the app
   if (isDev) {
-    // In development, load from the SvelteKit dev server (port 5173)
-    // The SvelteKit dev server should be running
-    const devUrl = 'http://localhost:5173';
+    // In development, load from the SvelteKit dev server (port 5174)
+    // Run `npm run dev` in the frontend directory first
+    const devUrl = 'http://localhost:5174';
     console.log(`Loading from ${devUrl}`);
     await mainWindow.loadURL(devUrl);
   } else {
-    // In production, load the static build from renderer directory
-    const indexPath = path.join(__dirname, '../renderer/index.html');
-    await mainWindow.loadFile(indexPath);
+    // In production, use the custom app:// protocol to serve files
+    // This allows SvelteKit's router to work correctly
+    console.log('Loading production app via app:// protocol');
+    await mainWindow.loadURL('app://localhost/');
   }
 
   // Show window when ready

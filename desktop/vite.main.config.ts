@@ -13,7 +13,7 @@ export default defineConfig({
       external: [
         'electron',
         'better-sqlite3',
-        'electron-updater',
+        'electron-store',
       ],
     },
   },

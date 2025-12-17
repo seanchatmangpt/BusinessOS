@@ -1,38 +1,45 @@
 # Business OS - Architecture Documentation
 
-> Generated: December 10, 2025
+> Generated: December 18, 2025
 
 ## Overview
 
-**Business OS** is a personal command center / internal operations platform. It's a full-stack application with:
-- **Backend**: Python FastAPI with async PostgreSQL
-- **Frontend**: SvelteKit 5 with TailwindCSS 4
-- **Auth**: Better Auth (cookie-based sessions)
-- **AI**: Ollama integration (local or cloud) with MCP (Model Context Protocol) support
+**Business OS** is a personal command center / internal operations platform. It's a full-stack application with three deployment modes:
+
+- **Web Mode**: SvelteKit frontend + Go backend deployed separately (Vercel + Cloud Run)
+- **Desktop Mode**: Electron app bundling both frontend and backend
+- **Development**: Local development with hot reload
 
 ---
 
 ## Tech Stack
 
-### Backend (`/backend`)
+### Backend (`/desktop/backend-go`)
 | Component | Technology |
 |-----------|------------|
-| Framework | FastAPI 0.124 |
-| Database | PostgreSQL + asyncpg |
-| ORM | SQLAlchemy 2.0 (async) |
-| Migrations | Alembic |
-| Task Queue | Celery + Redis |
-| AI/LLM | Ollama (local/cloud), MCP |
-| Memory | Supermemory API |
+| Language | Go 1.21+ |
+| Framework | Gin Gonic v1.9+ |
+| Database | PostgreSQL + pgx/v5 |
+| SQL | SQLC (type-safe code generation) |
+| Config | Viper |
+| Auth | Better Auth (cookie-based, frontend-driven) |
 
 ### Frontend (`/frontend`)
 | Component | Technology |
 |-----------|------------|
-| Framework | SvelteKit 2.48 / Svelte 5 |
+| Framework | SvelteKit 2.0 / Svelte 5 |
 | Styling | TailwindCSS 4 |
 | UI Components | bits-ui |
 | Auth Client | better-auth/svelte |
-| AI SDK | @ai-sdk/svelte, ai |
+| AI SDK | @ai-sdk/svelte |
+
+### Desktop (`/desktop`)
+| Component | Technology |
+|-----------|------------|
+| Framework | Electron Forge |
+| Bundler | Vite |
+| Backend | Embedded Go binary |
+| Frontend | SvelteKit (built) |
 
 ---
 
@@ -40,106 +47,162 @@
 
 ```
 BusinessOS/
-├── backend/
-│   ├── app/
-│   │   ├── main.py           # FastAPI app entry point
-│   │   ├── config.py         # Pydantic settings
-│   │   ├── database.py       # SQLAlchemy async setup
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── routers/          # API route handlers
-│   │   ├── schemas/          # Pydantic schemas
-│   │   ├── services/         # Business logic (Ollama, MCP)
-│   │   └── utils/            # Auth utilities
-│   ├── alembic/              # Database migrations
-│   ├── requirements.txt
-│   └── .env.example
-│
-├── frontend/
+├── desktop/                    # Electron desktop app
+│   ├── backend-go/             # Go backend (embedded in desktop)
+│   │   ├── cmd/server/         # Server entry point
+│   │   ├── internal/
+│   │   │   ├── config/         # Configuration (Viper)
+│   │   │   ├── database/       # PostgreSQL + SQLC
+│   │   │   │   ├── schema.sql  # Database schema
+│   │   │   │   ├── queries/    # SQLC query files
+│   │   │   │   └── sqlc/       # Generated Go code
+│   │   │   ├── handlers/       # HTTP handlers (22 files)
+│   │   │   ├── middleware/     # Auth, CORS
+│   │   │   ├── services/       # LLM, Google Calendar, etc.
+│   │   │   ├── agents/         # Multi-agent system
+│   │   │   ├── prompts/        # AI system prompts
+│   │   │   └── tools/          # Artifact tools
+│   │   ├── go.mod
+│   │   └── sqlc.yaml
 │   ├── src/
-│   │   ├── routes/           # SvelteKit pages
-│   │   │   ├── (app)/        # Authenticated routes
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── chat/
-│   │   │   │   ├── tasks/
-│   │   │   │   ├── projects/
-│   │   │   │   ├── team/
-│   │   │   │   ├── contexts/
-│   │   │   │   └── daily/
+│   │   ├── main/               # Electron main process
+│   │   ├── preload/            # Preload scripts
+│   │   └── renderer/           # Built frontend (production)
+│   ├── scripts/                # Build scripts
+│   ├── forge.config.ts         # Electron Forge config
+│   └── package.json
+│
+├── frontend/                   # SvelteKit frontend
+│   ├── src/
+│   │   ├── routes/             # SvelteKit pages
+│   │   │   ├── (app)/          # Authenticated routes
 │   │   │   ├── login/
 │   │   │   ├── register/
 │   │   │   └── api/
 │   │   └── lib/
-│   │       ├── components/   # Svelte components
-│   │       ├── stores/       # Svelte stores
-│   │       ├── auth-client.ts
-│   │       └── server/
+│   │       ├── api/            # API client (1600+ lines)
+│   │       ├── components/     # 75+ Svelte components
+│   │       ├── stores/         # State management
+│   │       └── server/         # Server-side auth
 │   ├── package.json
 │   └── svelte.config.js
 │
-└── docs/                     # This documentation
+└── docs/                       # Documentation
+```
+
+---
+
+## Deployment Modes
+
+### 1. Web Deployment (Production)
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│     Vercel      │────▶│   Cloud Run     │────▶│   Cloud SQL     │
+│   (Frontend)    │     │   (Go Backend)  │     │  (PostgreSQL)   │
+│   SvelteKit     │     │   Port 8080     │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+- **Frontend**: Deployed to Vercel
+- **Backend**: Deployed to Google Cloud Run
+- **Database**: Google Cloud SQL (PostgreSQL)
+
+### 2. Desktop App (Electron)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Electron Desktop App                          │
+│  ┌────────────────────────┐  ┌────────────────────────────────┐ │
+│  │   Renderer Process     │  │      Main Process              │ │
+│  │   (SvelteKit Build)    │  │  ┌───────────────────────┐     │ │
+│  │   - Desktop UI         │──│──│   Embedded Go Backend │     │ │
+│  │   - Window management  │  │  │   - API server        │     │ │
+│  │   - macOS-like UX      │  │  │   - SQLite/PostgreSQL │     │ │
+│  └────────────────────────┘  │  └───────────────────────┘     │ │
+│                              └────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+- Self-contained application
+- Backend runs as subprocess
+- Frontend served from local files
+
+### 3. Development Mode
+
+```bash
+# Terminal 1: Backend
+cd desktop/backend-go
+go run cmd/server/main.go
+
+# Terminal 2: Frontend
+cd frontend
+npm run dev
 ```
 
 ---
 
 ## Backend Architecture
 
-### API Routers (`/backend/app/routers/`)
+### API Routers (`/desktop/backend-go/internal/handlers/`)
 
 | Router | Prefix | Purpose |
 |--------|--------|---------|
-| `chat.py` | `/api/chat` | AI conversations, streaming responses |
-| `dashboard.py` | `/api/dashboard` | Focus items, tasks, summary data |
-| `projects.py` | `/api/projects` | Project CRUD |
-| `contexts.py` | `/api/contexts` | Context profiles (people, businesses) |
-| `team.py` | `/api/team` | Team member management |
-| `mcp.py` | `/api/mcp` | MCP tool listing/execution |
+| `chat.go` | `/api/chat` | AI conversations, streaming |
+| `contexts.go` | `/api/contexts` | Documents with blocks |
+| `projects.go` | `/api/projects` | Project management |
+| `clients.go` | `/api/clients` | CRM functionality |
+| `deals.go` | `/api/deals` | Sales pipeline |
+| `team.go` | `/api/team` | Team management |
+| `nodes.go` | `/api/nodes` | Business structure |
+| `dashboard.go` | `/api/dashboard` | Dashboard & tasks |
+| `calendar.go` | `/api/calendar` | Calendar events |
+| `ai_config.go` | `/api/ai` | AI provider config |
+| `usage.go` | `/api/usage` | Usage analytics |
+| `voice_notes.go` | `/api/voice-notes` | Voice transcription |
 
-### Data Models (`/backend/app/models/`)
+### Database (SQLC)
 
-| Model | Description |
-|-------|-------------|
-| `Conversation` | Chat conversations with messages |
-| `Message` | Individual chat messages (user/assistant) |
-| `Project` | Projects with status, priority, metadata |
-| `ProjectNote` | Notes attached to projects |
-| `Task` | Tasks with due dates, priorities |
-| `FocusItem` | Daily focus items |
-| `Context` | Context profiles (system prompts, content) |
-| `TeamMember` | Team members with activities |
-| `Artifact` | Generated artifacts (code, docs) |
-| `Node` | Graph nodes with metrics |
-| `DailyLog` | Daily log entries |
+27 tables organized into domains:
 
-**Note**: User model is managed by Better Auth (external `user` and `session` tables).
+**Core Tables**
+- `contexts` - Documents with blocks, properties, sharing
+- `conversations` - Chat conversations
+- `messages` - Chat messages with metadata
+- `projects` - Project management
+- `tasks` - Task management
+- `artifacts` - AI-generated content
+- `nodes` - Business structure hierarchy
 
-### Services (`/backend/app/services/`)
+**CRM Tables**
+- `clients` - Client profiles
+- `client_contacts` - Client contacts
+- `client_interactions` - Interaction history
+- `client_deals` - Sales pipeline
 
-#### OllamaService (`ollama.py`)
-- Supports **local** (`http://localhost:11434`) or **cloud** mode
-- Streaming chat completions
-- Default model: `deepseek-r1:70b`
-- Pre-defined system prompts for different contexts:
-  - `default` - General assistant
-  - `daily_planning` - Daily planning helper
-  - `project_analysis` - Project context analysis
-  - `strategic_thinking` - Strategic thinking partner
-  - `code_review` - Code review assistant
+**Team & User Tables**
+- `team_members` - Team directory
+- `user_settings` - User preferences
+- `user_commands` - Custom slash commands
 
-#### MCP Server (`mcp_server.py`)
-- Model Context Protocol implementation
-- Built-in tools:
-  - `search_conversations` - Search past conversations
-  - `get_project_context` - Get project details
-  - `create_artifact` - Create code/document artifacts
-  - `add_to_daily_log` - Add daily log entries
-  - `get_context_profile` - Get context profiles
-- Custom tool registration support
+**Calendar & Logs**
+- `calendar_events` - Calendar with Google sync
+- `daily_logs` - Daily journal
+- `voice_notes` - Voice transcriptions
 
-### Authentication (`/backend/app/utils/auth.py`)
-- Session validation via Better Auth cookies
-- Cookie name: `better-auth.session_token`
-- Validates against `session` table, joins with `user` table
-- Returns `BetterAuthUser` dataclass with user info
+### AI System
+
+**Multi-provider support:**
+- Ollama Local (for development/desktop)
+- Ollama Cloud
+- Anthropic (Claude)
+- Groq
+
+**Multi-agent system:**
+- `OrchestratorAgent` - Coordinates tasks
+- `DocumentAgent` - Creates documents
+- `AnalysisAgent` - Data analysis
+- `PlanningAgent` - Planning & prioritization
 
 ---
 
@@ -151,172 +214,234 @@ BusinessOS/
 |-------|---------|
 | `/` | Landing page |
 | `/login` | Login page |
-| `/register` | Registration page |
-| `/dashboard` | Main dashboard (focus, tasks, projects) |
-| `/chat` | AI chat interface |
+| `/register` | Registration |
+| `/dashboard` | Main dashboard |
+| `/chat` | AI chat with focus modes |
 | `/tasks` | Task management |
 | `/projects` | Project management |
+| `/clients` | CRM |
+| `/contexts` | Documents |
 | `/team` | Team management |
-| `/contexts` | Context profiles |
-| `/daily` | Daily log |
+| `/nodes` | Business structure |
+| `/calendar` | Calendar |
+| `/settings` | User settings |
+| `/window` | Desktop mode entry |
 
-### Component Organization (`/frontend/src/lib/components/`)
+### Component Organization
 
 ```
 components/
-├── auth/        # Login, register forms
-├── chat/        # Chat UI components
-├── dashboard/   # Dashboard widgets
-├── onboarding/  # Onboarding flow
-├── tasks/       # Task components
-└── team/        # Team components
+├── ai-elements/     # Chat message components
+├── auth/            # Login, register forms
+├── calendar/        # Calendar widgets
+├── chat/            # Chat & Focus Modes
+├── clients/         # CRM views
+├── dashboard/       # Dashboard widgets
+├── desktop/         # Desktop mode (Window, Dock, etc.)
+├── editor/          # Block-based document editor
+├── onboarding/      # Onboarding flows
+├── tasks/           # Task components
+├── team/            # Team components
+└── ui/              # Shared UI primitives
 ```
 
-### Authentication Flow
-1. Frontend uses `better-auth/svelte` client
-2. Session stored in cookies with `credentials: 'include'`
-3. Protected routes check session in `(app)/+layout.svelte`
-4. Redirects to `/login` if no session
+### State Management
+
+| Store | Purpose |
+|-------|---------|
+| `windowStore.ts` | Desktop window management |
+| `desktopStore.ts` | Desktop customization |
+| `chat.ts` | Chat & conversations |
+| `auth.ts` | User session |
+| `projects.ts` | Projects |
+| `clients.ts` | CRM |
+| `contexts.ts` | Documents |
+| `team.ts` | Team members |
+| `editor.ts` | Block editor |
+
+---
+
+## Desktop App Architecture
+
+### Electron Forge Configuration
+
+```typescript
+// forge.config.ts
+export default {
+  packagerConfig: {
+    asar: true,
+    extraResource: ['./backend-go/server'],  // Embedded Go binary
+  },
+  makers: [
+    { name: '@electron-forge/maker-squirrel' },  // Windows
+    { name: '@electron-forge/maker-dmg' },       // macOS
+    { name: '@electron-forge/maker-deb' },       // Linux
+  ],
+  plugins: [
+    {
+      name: '@electron-forge/plugin-vite',
+      config: {
+        main: './vite.main.config.ts',
+        preload: './vite.preload.config.ts',
+        renderer: './vite.renderer.config.ts',
+      },
+    },
+  ],
+};
+```
+
+### Build Process
+
+```bash
+# Build frontend
+cd frontend && npm run build
+
+# Copy to desktop renderer
+cp -r build/* ../desktop/src/renderer/
+
+# Build Go backend
+cd desktop/backend-go
+go build -o server cmd/server/main.go
+
+# Package desktop app
+cd desktop
+npm run make
+```
+
+---
+
+## Authentication
+
+### Better Auth Flow
+
+1. Frontend handles authentication via `better-auth/svelte`
+2. Session stored in cookies (`better-auth.session_token`)
+3. Backend validates session via middleware
+4. User ID extracted and passed to handlers
+
+```go
+// middleware/auth.go
+func AuthMiddleware(pool *pgxpool.Pool) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        sessionToken, _ := c.Cookie("better-auth.session_token")
+        session, _ := validateSession(pool, sessionToken)
+        c.Set("user_id", session.UserID)
+        c.Next()
+    }
+}
+```
 
 ---
 
 ## Configuration
 
-### Backend Environment Variables (`.env`)
+### Backend Environment Variables
 
 ```env
 # Database
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/business_os
+DATABASE_URL=postgres://user:pass@localhost:5432/business_os
 
-# JWT (legacy, Better Auth handles auth now)
-SECRET_KEY=your-secret-key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
+# Server
+SERVER_PORT=8000
 
-# Ollama
-OLLAMA_MODE=local              # "local" or "cloud"
+# AI Provider (ollama_local, ollama_cloud, anthropic, groq)
+AI_PROVIDER=ollama_local
 OLLAMA_LOCAL_URL=http://localhost:11434
-OLLAMA_CLOUD_URL=https://api.ollama.com/v1
-OLLAMA_CLOUD_API_KEY=
+DEFAULT_MODEL=llama3.2:3b
 
-# Default Model
-DEFAULT_MODEL=deepseek-r1:70b
+# Cloud AI
+ANTHROPIC_API_KEY=sk-ant-xxx
+GROQ_API_KEY=gsk_xxx
 
-# Redis (for Celery)
-REDIS_URL=redis://localhost:6379/0
+# Google OAuth
+GOOGLE_CLIENT_ID=xxx
+GOOGLE_CLIENT_SECRET=xxx
 
-# Supermemory
-SUPERMEMORY_API_KEY=
+# CORS
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
 ```
 
-### CORS Configuration
-Allowed origins:
-- `http://localhost:5173` (SvelteKit dev)
-- `http://localhost:5174`
-- `http://localhost:3000`
+### Frontend Environment Variables
+
+```env
+# API URL (development)
+VITE_API_URL=http://localhost:8000/api
+
+# Production (set in Vercel)
+VITE_API_URL=https://api.businessos.app/api
+```
 
 ---
 
 ## Key Features
 
 ### 1. AI Chat with Streaming
-- Real-time streaming responses from Ollama
-- Conversation history persistence
-- Context-aware system prompts
-- Conversation search
+- Real-time streaming responses
+- Multiple AI providers
+- Focus modes (Research, Analyze, Write, Build)
+- Conversation history
 
-### 2. Dashboard
-- **Focus Items**: Daily priorities (3 items)
-- **Tasks**: Due dates, priorities, project links
-- **Projects**: Active projects with health status
-- **Activities**: Recent conversation/team activities
+### 2. Document Editor
+- Notion-like block editor
+- Custom properties
+- Document sharing
+- Templates
 
-### 3. Project Management
-- Status tracking (active, paused, completed, archived)
-- Priority levels (critical, high, medium, low)
-- Client association
-- Notes and conversation linking
+### 3. Desktop Mode
+- macOS-like windowing
+- Dock with app shortcuts
+- Spotlight search (⌘+Space)
+- Window snapping
 
-### 4. Team Management
-- Team member profiles
-- Activity tracking
-- Role management
+### 4. CRM
+- Client profiles
+- Contact management
+- Deal pipeline
+- Interaction tracking
 
-### 5. Context Profiles
-- Custom system prompts
-- Context content for AI
-- Reusable across conversations
-
-### 6. MCP Integration
-- Tool-use capabilities for AI
-- Extensible tool system
-- Built-in business tools
-
----
-
-## Database Schema
-
-The app uses PostgreSQL with the following key tables:
-
-- `user` - Managed by Better Auth
-- `session` - Managed by Better Auth
-- `conversations` - Chat conversations
-- `messages` - Chat messages
-- `projects` - Projects
-- `project_notes` - Project notes
-- `project_conversations` - Project-conversation links
-- `tasks` - Tasks
-- `focus_items` - Daily focus items
-- `contexts` - Context profiles
-- `team_members` - Team members
-- `team_member_activities` - Team activities
-- `artifacts` - Generated artifacts
-- `artifact_versions` - Artifact version history
-- `nodes` - Graph nodes
-- `node_metrics` - Node metrics
-- `daily_logs` - Daily log entries
+### 5. Project Management
+- Projects with status/priority
+- Task boards
+- Team assignment
+- Notes and conversations
 
 ---
 
 ## Running the Application
 
-### Backend
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # Configure your settings
-uvicorn app.main:app --reload
-```
+### Development
 
-### Frontend
 ```bash
+# Backend
+cd desktop/backend-go
+go run cmd/server/main.go
+
+# Frontend (separate terminal)
 cd frontend
-npm install
 npm run dev
 ```
 
-### Prerequisites
-- PostgreSQL database
-- Redis (for Celery tasks)
-- Ollama (local) or Ollama Cloud API key
+### Desktop App
 
----
+```bash
+# Build and run
+cd desktop
+npm start
 
-## TODOs / Incomplete Features
+# Package for distribution
+npm run make
+```
 
-Based on code comments:
-- MCP tool handlers are stubbed (TODO implementations)
-- Full-text search for conversations (currently using ILIKE)
-- Dynamic MCP resource listing
-- Team member count per project (hardcoded to 1)
+### Production
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for production deployment guide.
 
 ---
 
 ## Notes
 
-- The app is designed for a single user ("Roberto") based on system prompts
-- Better Auth handles all authentication - no custom JWT implementation
-- Streaming responses use FastAPI's `StreamingResponse`
-- Frontend uses Svelte 5 runes (`$state`, `$effect`, `$props`)
+- The app is designed for single-user or small team use
+- Better Auth handles all authentication
+- Streaming uses SSE (Server-Sent Events)
+- Frontend uses Svelte 5 runes (`$state`, `$derived`, `$effect`)
+- Desktop app embeds Go binary for self-contained deployment

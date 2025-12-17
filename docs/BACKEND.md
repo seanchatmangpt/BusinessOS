@@ -2,11 +2,17 @@
 
 **Business OS Backend — Go + Gin + SQLC**
 
+> Last Updated: December 18, 2025
+
 ---
 
 ## Overview
 
-The Business OS backend is a high-performance Go API server built with Gin Gonic, using SQLC for type-safe database queries. It provides 313+ REST API endpoints for the frontend, integrates multiple AI providers, and supports real-time streaming responses.
+The Business OS backend is a high-performance Go API server built with Gin Gonic, using SQLC for type-safe database queries. It provides 300+ REST API endpoints for the frontend, integrates multiple AI providers, and supports real-time streaming responses.
+
+The backend is located at `/desktop/backend-go/` and can run:
+- **Standalone**: For web deployment (Cloud Run)
+- **Embedded**: Inside the Electron desktop app
 
 ---
 
@@ -26,7 +32,7 @@ The Business OS backend is a high-performance Go API server built with Gin Gonic
 ## Directory Structure
 
 ```
-backend-go/
+desktop/backend-go/
 ├── cmd/
 │   └── server/
 │       └── main.go                 # Server entry point
@@ -795,7 +801,7 @@ func respondCreated(c *gin.Context, data interface{}) {
 ### Development
 
 ```bash
-cd backend-go
+cd desktop/backend-go
 
 # Install dependencies
 go mod download
@@ -810,6 +816,7 @@ go run cmd/server/main.go
 ### Building
 
 ```bash
+cd desktop/backend-go
 go build -o server cmd/server/main.go
 ./server
 ```
@@ -817,12 +824,24 @@ go build -o server cmd/server/main.go
 ### With Environment
 
 ```bash
+cd desktop/backend-go
+
 # Create .env file
-cp .env.example .env
+cp .env.production.example .env
 # Edit .env with your configuration
 
 # Run
 go run cmd/server/main.go
+```
+
+### For Desktop App
+
+```bash
+# Build backend binary for embedding
+cd desktop/backend-go
+go build -o server cmd/server/main.go
+
+# The desktop app will spawn this binary as a subprocess
 ```
 
 ---
@@ -831,9 +850,9 @@ go run cmd/server/main.go
 
 Schema changes are managed manually:
 
-1. Edit `internal/database/schema.sql`
-2. Apply to database: `psql business_os < internal/database/schema.sql`
-3. Regenerate SQLC: `sqlc generate`
+1. Edit `desktop/backend-go/internal/database/schema.sql`
+2. Apply to database: `psql business_os < desktop/backend-go/internal/database/schema.sql`
+3. Regenerate SQLC: `cd desktop/backend-go && sqlc generate`
 4. Update Go handlers if needed
 
 ---
@@ -878,6 +897,8 @@ func (h *VoiceNotesHandler) UploadVoiceNote(c *gin.Context) {
 
 ## Key Files Reference
 
+All paths relative to `desktop/backend-go/internal/`:
+
 | File | Lines | Purpose |
 |------|-------|---------|
 | `handlers/handlers.go` | 313 | Route registration |
@@ -888,6 +909,22 @@ func (h *VoiceNotesHandler) UploadVoiceNote(c *gin.Context) {
 | `services/llm.go` | 95 | LLM interface |
 | `agents/agents.go` | 384 | Multi-agent system |
 | `config/config.go` | 185 | Configuration |
+
+---
+
+## Deployment
+
+### Web Deployment (Cloud Run)
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for production deployment instructions.
+
+### Desktop App Embedding
+
+The backend is embedded in the Electron desktop app:
+
+1. Build the Go binary: `go build -o server cmd/server/main.go`
+2. The Electron main process spawns the server as a subprocess
+3. Frontend connects to `http://localhost:8000/api`
 
 ---
 

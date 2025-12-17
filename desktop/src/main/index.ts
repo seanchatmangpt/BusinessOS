@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, protocol, net } from 'electron';
 import path from 'path';
 import { createMainWindow, getMainWindow } from './window';
 import { setupIpcHandlers } from './ipc';
@@ -6,10 +6,17 @@ import { BackendManager } from './backend/manager';
 import { setupAutoUpdater } from './updater/auto-update';
 import { initializePopupSystem, cleanupPopupSystem } from './popup/chat-popup';
 import { initializeMeetingRecorder } from './audio/meeting-recorder';
+import { pathToFileURL } from 'url';
 
-// Handle Squirrel events for Windows installer
-if (require('electron-squirrel-startup')) {
-  app.quit();
+// Handle Squirrel events for Windows installer (only on Windows)
+if (process.platform === 'win32') {
+  try {
+    if (require('electron-squirrel-startup')) {
+      app.quit();
+    }
+  } catch {
+    // electron-squirrel-startup not available, ignore on non-Windows
+  }
 }
 
 // Single instance lock
@@ -36,7 +43,21 @@ const isDev = !app.isPackaged;
 const appPath = app.getAppPath();
 const resourcesPath = isDev
   ? path.join(appPath, 'resources')
-  : path.join(process.resourcesPath, 'resources');
+  : process.resourcesPath;
+
+// Register custom protocol for serving app files
+// This allows SvelteKit to work correctly with file:// URLs
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+    },
+  },
+]);
 
 /**
  * Create the native application menu
@@ -254,6 +275,28 @@ async function initialize(): Promise<void> {
   console.log(`Environment: ${isDev ? 'development' : 'production'}`);
   console.log(`App path: ${appPath}`);
   console.log(`Resources path: ${resourcesPath}`);
+
+  // Register the app:// protocol handler for serving static files
+  if (!isDev) {
+    protocol.handle('app', (request) => {
+      const url = new URL(request.url);
+      // Map app://- to the renderer directory
+      let filePath = url.pathname;
+
+      // Default to index.html for root or SPA routes
+      if (filePath === '/' || filePath === '') {
+        filePath = '/index.html';
+      }
+
+      // Construct the full path to the file
+      const basePath = path.join(__dirname, '../renderer/main_window');
+      const fullPath = path.join(basePath, filePath);
+
+      // Return the file
+      return net.fetch(pathToFileURL(fullPath).href);
+    });
+    console.log('Registered app:// protocol handler');
+  }
 
   // Start the Go backend sidecar
   backendManager = new BackendManager(resourcesPath);

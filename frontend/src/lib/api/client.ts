@@ -1,6 +1,41 @@
-// In development, call Go backend directly for better performance
-// In production, use relative URL (nginx/Caddy handles routing)
-const API_BASE = import.meta.env.DEV ? 'http://localhost:8000/api' : '/api';
+// API Base URL configuration
+// - Electron Local Mode: Use bundled backend at localhost:18080
+// - Electron Cloud Mode: Use configured cloud server URL
+// - Web Development: Use local Go backend
+// - Web Production: Use VITE_API_URL env var (Cloud Run backend URL)
+function getApiBase(): string {
+	// Check if we're in a browser context
+	if (typeof window === 'undefined') {
+		return import.meta.env.VITE_API_URL || '/api';
+	}
+
+	// Check if running in Electron
+	const isElectron = 'electron' in window;
+
+	if (isElectron) {
+		const mode = localStorage.getItem('businessos_mode');
+		const cloudUrl = localStorage.getItem('businessos_cloud_url');
+
+		if (mode === 'cloud' && cloudUrl) {
+			// Cloud mode - use the configured server URL
+			return `${cloudUrl}/api`;
+		} else if (mode === 'local') {
+			// Local mode - use the bundled backend
+			return 'http://localhost:18080/api';
+		}
+		// No mode set yet - use local backend for dev
+		return 'http://localhost:8000/api';
+	}
+
+	// Web app - use env var or defaults
+	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
+}
+
+// Get base URL (recalculated on each call to handle mode changes)
+const getApiBaseUrl = () => getApiBase();
+
+// For static usage, also export the function result
+const API_BASE = getApiBase();
 
 interface RequestOptions {
 	method?: string;
@@ -16,7 +51,9 @@ class ApiClient {
 			headers['Content-Type'] = 'application/json';
 		}
 
-		const response = await fetch(`${API_BASE}${endpoint}`, {
+		// Use dynamic URL to handle mode changes
+		const baseUrl = getApiBaseUrl();
+		const response = await fetch(`${baseUrl}${endpoint}`, {
 			method,
 			headers,
 			credentials: 'include', // Send Better Auth cookies
@@ -73,7 +110,7 @@ class ApiClient {
 
 	// Chat - returns a ReadableStream for streaming
 	async sendMessage(message: string, conversationId?: string, contextId?: string, model?: string) {
-		const response = await fetch(`${API_BASE}/chat/message`, {
+		const response = await fetch(`${getApiBaseUrl()}/chat/message`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -556,7 +593,7 @@ class ApiClient {
 		if (contextId) {
 			formData.append('context_id', contextId);
 		}
-		const response = await fetch(`${API_BASE}/voice-notes`, {
+		const response = await fetch(`${getApiBaseUrl()}/voice-notes`, {
 			method: 'POST',
 			credentials: 'include',
 			body: formData
@@ -569,7 +606,7 @@ class ApiClient {
 	}
 
 	async getVoiceNoteAudio(noteId: string): Promise<Blob> {
-		const response = await fetch(`${API_BASE}/voice-notes/${noteId}`, {
+		const response = await fetch(`${getApiBaseUrl()}/voice-notes/${noteId}`, {
 			credentials: 'include'
 		});
 		if (!response.ok) {
@@ -625,7 +662,7 @@ class ApiClient {
 	}
 
 	async pullModel(model: string) {
-		const response = await fetch(`${API_BASE}/ai/models/pull`, {
+		const response = await fetch(`${getApiBaseUrl()}/ai/models/pull`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
@@ -680,7 +717,7 @@ class ApiClient {
 		const formData = new FormData();
 		formData.append('file', file);
 
-		const response = await fetch(`${API_BASE}/profile/photo`, {
+		const response = await fetch(`${getApiBaseUrl()}/profile/photo`, {
 			method: 'POST',
 			credentials: 'include',
 			body: formData
@@ -1652,14 +1689,14 @@ export const api = new ApiClient();
 // Simple fetch wrapper for raw Response access
 export const apiClient = {
 	async get(endpoint: string): Promise<Response> {
-		return fetch(`${API_BASE}${endpoint}`, {
+		return fetch(`${getApiBaseUrl()}${endpoint}`, {
 			method: 'GET',
 			credentials: 'include'
 		});
 	},
 
 	async post(endpoint: string, body?: unknown): Promise<Response> {
-		return fetch(`${API_BASE}${endpoint}`, {
+		return fetch(`${getApiBaseUrl()}${endpoint}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
@@ -1668,7 +1705,7 @@ export const apiClient = {
 	},
 
 	async postFormData(endpoint: string, formData: FormData): Promise<Response> {
-		return fetch(`${API_BASE}${endpoint}`, {
+		return fetch(`${getApiBaseUrl()}${endpoint}`, {
 			method: 'POST',
 			credentials: 'include',
 			body: formData
@@ -1676,7 +1713,7 @@ export const apiClient = {
 	},
 
 	async put(endpoint: string, body?: unknown): Promise<Response> {
-		return fetch(`${API_BASE}${endpoint}`, {
+		return fetch(`${getApiBaseUrl()}${endpoint}`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			credentials: 'include',
@@ -1685,7 +1722,7 @@ export const apiClient = {
 	},
 
 	async delete(endpoint: string): Promise<Response> {
-		return fetch(`${API_BASE}${endpoint}`, {
+		return fetch(`${getApiBaseUrl()}${endpoint}`, {
 			method: 'DELETE',
 			credentials: 'include'
 		});

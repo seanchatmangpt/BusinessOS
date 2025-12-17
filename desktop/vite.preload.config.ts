@@ -9,8 +9,12 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: '.vite/preload',
     rollupOptions: {
       external: ['electron'],
+      output: {
+        entryFileNames: 'index.js',
+      },
     },
   },
 });
