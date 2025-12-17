@@ -3,14 +3,33 @@ import { writable, get } from 'svelte/store';
 // Check if running in Electron
 const isElectron = typeof window !== 'undefined' && 'electron' in window;
 
+// Check if running in development mode (localhost)
+const isDev = typeof window !== 'undefined' &&
+	(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// Local backend URL for development
+const LOCAL_BACKEND_URL = 'http://localhost:8000';
+
 // App mode store - 'cloud' or 'local'
 export const appMode = writable<'cloud' | 'local' | null>(null);
 export const cloudServerUrl = writable<string>('');
 
 // Initialize mode from localStorage
 if (typeof window !== 'undefined') {
-	const savedMode = localStorage.getItem('businessos_mode') as 'cloud' | 'local' | null;
-	const savedUrl = localStorage.getItem('businessos_cloud_url') || '';
+	let savedMode = localStorage.getItem('businessos_mode') as 'cloud' | 'local' | null;
+	let savedUrl = localStorage.getItem('businessos_cloud_url') || '';
+
+	// In dev mode, automatically use local backend if no URL is configured
+	if (isDev && !savedUrl) {
+		savedUrl = LOCAL_BACKEND_URL;
+		localStorage.setItem('businessos_cloud_url', savedUrl);
+		// Auto-set to cloud mode pointing to local backend for dev
+		if (!savedMode) {
+			savedMode = 'cloud';
+			localStorage.setItem('businessos_mode', 'cloud');
+		}
+	}
+
 	appMode.set(savedMode);
 	cloudServerUrl.set(savedUrl);
 }

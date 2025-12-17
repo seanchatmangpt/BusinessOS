@@ -45,9 +45,8 @@ export async function createMainWindow(): Promise<BrowserWindow> {
 
   // Load the app
   if (isDev) {
-    // In development, load from the SvelteKit dev server (port 5174)
-    // Run `npm run dev` in the frontend directory first
-    const devUrl = 'http://localhost:5174';
+    // In development, load from the Vite dev server (port 5173)
+    const devUrl = 'http://localhost:5173';
     console.log(`Loading from ${devUrl}`);
     await mainWindow.loadURL(devUrl);
   } else {

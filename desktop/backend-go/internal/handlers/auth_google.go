@@ -71,9 +71,8 @@ func (h *GoogleAuthHandler) InitiateGoogleLogin(c *gin.Context) {
 
 	authURL := h.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
-	c.JSON(http.StatusOK, gin.H{
-		"auth_url": authURL,
-	})
+	// Redirect to Google OAuth
+	c.Redirect(http.StatusTemporaryRedirect, authURL)
 }
 
 // HandleGoogleLoginCallback handles the OAuth callback for login
