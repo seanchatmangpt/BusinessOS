@@ -73,11 +73,6 @@
 		estimated_cost: number;
 	}
 
-	// Web Speech API types are not included in some TS DOM lib setups
-	type SpeechRecognition = any;
-	type SpeechRecognitionEvent = any;
-	type SpeechRecognitionErrorEvent = any;
-
 	// Message interface
 	interface ChatMessage {
 		id: string;
@@ -1865,7 +1860,7 @@ Use this context to inform your responses.`;
 			analyser.smoothingTimeConstant = 0.3;
 			const source = audioContext.createMediaStreamSource(stream);
 			source.connect(analyser);
-			audioDataArray = new Uint8Array(analyser.fftSize) as Uint8Array<ArrayBuffer>;
+			audioDataArray = new Uint8Array(analyser.fftSize);
 
 			// Start waveform animation using time domain data (actual waveform)
 			function updateWaveform() {
@@ -1899,12 +1894,12 @@ Use this context to inform your responses.`;
 			// Set up Web Speech API for live transcription
 			const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 			if (SpeechRecognitionAPI) {
-				speechRecognition = new SpeechRecognitionAPI();
-				speechRecognition.continuous = true;
-				speechRecognition.interimResults = true;
-				speechRecognition.lang = 'en-US';
+				const recognition = new SpeechRecognitionAPI();
+				recognition.continuous = true;
+				recognition.interimResults = true;
+				recognition.lang = 'en-US';
 
-				speechRecognition.onresult = (event: SpeechRecognitionEvent) => {
+				recognition.onresult = (event: SpeechRecognitionEvent) => {
 					let interimTranscript = '';
 					let finalTranscript = '';
 
@@ -1921,11 +1916,12 @@ Use this context to inform your responses.`;
 					liveTranscript = finalTranscript || interimTranscript;
 				};
 
-				speechRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+				recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
 					console.log('Speech recognition error:', event.error);
 				};
 
-				speechRecognition.start();
+				recognition.start();
+				speechRecognition = recognition;
 			}
 
 			mediaRecorder.ondataavailable = (event) => {
