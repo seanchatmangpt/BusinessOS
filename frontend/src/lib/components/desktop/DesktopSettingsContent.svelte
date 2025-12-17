@@ -1,10 +1,225 @@
 <script lang="ts">
 	import { desktopSettings, desktopBackgrounds, iconStyles, iconSizePresets, backgroundFitOptions, type IconStyle, type BackgroundFit } from '$lib/stores/desktopStore';
+	import { windowStore, type DesktopConfig } from '$lib/stores/windowStore';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 
 	// Local state
-	let selectedTab = $state<'icons' | 'background'>('icons');
+	let selectedTab = $state<'icons' | 'background' | 'shortcuts' | 'permissions' | 'data'>('icons');
+
+	// Data tab state
+	let importError = $state('');
+	let importSuccess = $state(false);
+	let configFileInput: HTMLInputElement;
 	let customImageUrl = $state('');
+	let companyNameInput = $state($desktopSettings.companyName);
 	let fileInput: HTMLInputElement;
+
+	// Shortcut settings - will be loaded from Electron
+	let shortcuts = $state({
+		spotlight: '⌘+Space',
+		quickChat: '⌘+Shift+Space',
+		voiceInput: '⌘+D',
+	});
+
+	// Shortcut recording state
+	let recordingKey = $state<string | null>(null);
+	let accessibilityGranted = $state(false);
+	let isElectron = $state(false);
+	let isCheckingPermissions = $state(false);
+
+	// Check if we're in Electron and load shortcuts
+	onMount(async () => {
+		// Check for window.electron (exposed by preload script)
+		const electron = (window as any).electron;
+		if (browser && electron) {
+			isElectron = true;
+			console.log('Electron detected, loading settings...');
+
+			// Load current shortcuts from Electron
+			try {
+				const savedShortcuts = await electron.shortcuts?.get();
+				if (savedShortcuts) {
+					shortcuts = {
+						spotlight: formatAcceleratorForDisplay(savedShortcuts.spotlight),
+						quickChat: formatAcceleratorForDisplay(savedShortcuts.quickChat),
+						voiceInput: formatAcceleratorForDisplay(savedShortcuts.voiceInput),
+					};
+				}
+
+				// Check accessibility permissions
+				const accessResult = await electron.shortcuts?.checkAccessibility();
+				accessibilityGranted = accessResult?.granted ?? false;
+				console.log('Accessibility granted:', accessibilityGranted);
+			} catch (e) {
+				console.error('Failed to load shortcuts:', e);
+			}
+		} else {
+			console.log('Not running in Electron (window.electron not found)');
+		}
+	});
+
+	// Convert Electron accelerator to display format
+	function formatAcceleratorForDisplay(accelerator: string): string {
+		if (!accelerator) return '';
+		return accelerator
+			.replace('CommandOrControl', '⌘')
+			.replace('Command', '⌘')
+			.replace('Control', '⌃')
+			.replace('Shift', '⇧')
+			.replace('Alt', '⌥')
+			.replace('Option', '⌥')
+			.replace(/\+/g, '');
+	}
+
+	// Convert display format back to Electron accelerator
+	function formatDisplayToAccelerator(display: string): string {
+		if (!display) return '';
+		let result = display
+			.replace('⌘', 'CommandOrControl+')
+			.replace('⌃', 'Control+')
+			.replace('⇧', 'Shift+')
+			.replace('⌥', 'Alt+');
+		// Remove trailing +
+		if (result.endsWith('+')) {
+			result = result.slice(0, -1);
+		}
+		return result;
+	}
+
+	// Start recording a shortcut
+	function startRecording(key: string) {
+		recordingKey = key;
+		// Add keyboard listener
+		if (browser) {
+			window.addEventListener('keydown', handleRecordKeyDown);
+		}
+	}
+
+	// Stop recording
+	function stopRecording() {
+		recordingKey = null;
+		if (browser) {
+			window.removeEventListener('keydown', handleRecordKeyDown);
+		}
+	}
+
+	// Handle key press during recording
+	async function handleRecordKeyDown(event: KeyboardEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+
+		// Ignore modifier-only keys
+		if (['Control', 'Shift', 'Alt', 'Meta', 'Command'].includes(event.key)) {
+			return;
+		}
+
+		// Build the accelerator string
+		const parts: string[] = [];
+
+		if (event.metaKey || event.ctrlKey) parts.push('CommandOrControl');
+		if (event.shiftKey) parts.push('Shift');
+		if (event.altKey) parts.push('Alt');
+
+		// Get the key
+		let key = event.key.toUpperCase();
+		if (key === ' ') key = 'Space';
+		if (key === 'ESCAPE') key = 'Escape';
+		if (key === 'BACKSPACE') key = 'Backspace';
+		if (key === 'TAB') key = 'Tab';
+		if (key === 'ENTER') key = 'Enter';
+		if (key === '`') key = '`';
+
+		parts.push(key);
+
+		const accelerator = parts.join('+');
+		const displayFormat = formatAcceleratorForDisplay(accelerator);
+
+		// Update local state
+		if (recordingKey) {
+			(shortcuts as any)[recordingKey] = displayFormat;
+
+			// Save to Electron
+			if (isElectron && browser) {
+				try {
+					const electron = window as any;
+					await electron.electron?.shortcuts?.set(recordingKey, accelerator);
+				} catch (e) {
+					console.error('Failed to save shortcut:', e);
+				}
+			}
+		}
+
+		stopRecording();
+	}
+
+	// Request accessibility permissions
+	async function requestAccessibility() {
+		if (isElectron && browser) {
+			try {
+				const electron = (window as any).electron;
+				await electron?.shortcuts?.requestAccessibility();
+				// Check again after a delay (user needs to grant in System Preferences)
+				setTimeout(async () => {
+					const result = await electron?.shortcuts?.checkAccessibility();
+					accessibilityGranted = result?.granted ?? false;
+				}, 1000);
+			} catch (e) {
+				console.error('Failed to request accessibility:', e);
+			}
+		}
+	}
+
+	// Open System Preferences to specific pane
+	async function openSystemPreferences(pane: string) {
+		if (isElectron && browser) {
+			try {
+				const electron = (window as any).electron;
+				const urls: Record<string, string> = {
+					accessibility: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+					screenRecording: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
+					microphone: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone',
+				};
+				await electron?.shell?.openExternal(urls[pane] || 'x-apple.systempreferences:');
+			} catch (e) {
+				console.error('Failed to open system preferences:', e);
+			}
+		}
+	}
+
+	// Recheck permissions
+	async function recheckPermissions() {
+		if (isElectron && browser) {
+			isCheckingPermissions = true;
+			try {
+				const electron = (window as any).electron;
+				const result = await electron?.shortcuts?.checkAccessibility();
+				accessibilityGranted = result?.granted ?? false;
+			} catch (e) {
+				console.error('Failed to check permissions:', e);
+			}
+			isCheckingPermissions = false;
+		}
+	}
+
+	// Reset shortcuts to defaults
+	async function resetShortcuts() {
+		if (isElectron && browser) {
+			try {
+				const electron = (window as any).electron;
+				const result = await electron?.shortcuts?.reset();
+				if (result?.shortcuts) {
+					shortcuts = {
+						spotlight: formatAcceleratorForDisplay(result.shortcuts.spotlight),
+						quickChat: formatAcceleratorForDisplay(result.shortcuts.quickChat),
+						voiceInput: formatAcceleratorForDisplay(result.shortcuts.voiceInput),
+					};
+				}
+			} catch (e) {
+				console.error('Failed to reset shortcuts:', e);
+			}
+		}
+	}
 
 	// Tooltip state
 	let tooltipText = $state('');
@@ -84,6 +299,70 @@
 			behavior: 'smooth'
 		});
 	}
+
+	// Data export/import functions
+	function exportConfig() {
+		const config = windowStore.exportConfig();
+		const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `businessos-desktop-config-${new Date().toISOString().split('T')[0]}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
+	function exportSchema() {
+		const schema = windowStore.getConfigSchema();
+		const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'businessos-desktop-config-schema.json';
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	}
+
+	function triggerImport() {
+		configFileInput?.click();
+	}
+
+	function handleConfigImport(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file) return;
+
+		importError = '';
+		importSuccess = false;
+
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const content = e.target?.result as string;
+				const config = JSON.parse(content) as DesktopConfig;
+				const result = windowStore.importConfig(config);
+
+				if (result.success) {
+					importSuccess = true;
+					setTimeout(() => (importSuccess = false), 3000);
+				} else {
+					importError = result.error || 'Import failed';
+					setTimeout(() => (importError = ''), 5000);
+				}
+			} catch (err) {
+				importError = 'Invalid JSON file';
+				setTimeout(() => (importError = ''), 5000);
+			}
+		};
+		reader.readAsText(file);
+
+		// Reset file input
+		target.value = '';
+	}
 </script>
 
 <div class="desktop-settings">
@@ -103,11 +382,62 @@
 		>
 			Background
 		</button>
+		<button
+			class="tab"
+			class:active={selectedTab === 'shortcuts'}
+			onclick={() => selectedTab = 'shortcuts'}
+		>
+			Shortcuts
+		</button>
+		{#if isElectron}
+			<button
+				class="tab"
+				class:active={selectedTab === 'permissions'}
+				onclick={() => selectedTab = 'permissions'}
+			>
+				Permissions
+			</button>
+		{/if}
+		<button
+			class="tab"
+			class:active={selectedTab === 'data'}
+			onclick={() => selectedTab = 'data'}
+		>
+			Data
+		</button>
 	</div>
 
 	<!-- Content -->
 	<div class="content">
 		{#if selectedTab === 'icons'}
+			<!-- Company Branding -->
+			<div class="section">
+				<label class="section-title">Company Branding</label>
+				<div class="branding-row">
+					<div class="branding-preview">
+						<span class="preview-name">{companyNameInput || 'BUSINESS'}</span>
+						<span class="preview-os">OS</span>
+					</div>
+					<div class="branding-input-row">
+						<input
+							type="text"
+							placeholder="Company Name"
+							class="company-name-input"
+							bind:value={companyNameInput}
+							onkeydown={(e) => e.key === 'Enter' && desktopSettings.setCompanyName(companyNameInput)}
+							maxlength="16"
+						/>
+						<button
+							class="save-name-btn"
+							onclick={() => desktopSettings.setCompanyName(companyNameInput)}
+						>
+							Save
+						</button>
+					</div>
+					<p class="branding-hint">This name appears on the loading screen</p>
+				</div>
+			</div>
+
 			<!-- Icon Size -->
 			<div class="section">
 				<div class="section-header">
@@ -395,6 +725,441 @@
 						</div>
 					</div>
 				{/if}
+			</div>
+		{:else if selectedTab === 'shortcuts'}
+			<!-- Accessibility Permission Banner -->
+			{#if isElectron && !accessibilityGranted}
+				<div class="accessibility-banner">
+					<div class="banner-icon">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+						</svg>
+					</div>
+					<div class="banner-content">
+						<div class="banner-title">Accessibility Permission Required</div>
+						<div class="banner-desc">Global shortcuts need accessibility access to work from anywhere on your Mac.</div>
+					</div>
+					<button class="banner-btn" onclick={requestAccessibility}>
+						Grant Access
+					</button>
+				</div>
+			{/if}
+
+			<!-- Keyboard Shortcuts -->
+			<div class="section">
+				<label class="section-title">Global Shortcuts</label>
+				<p class="section-subtitle">Click on a shortcut to change it. Press your desired key combination.</p>
+				<div class="shortcuts-list">
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Spotlight Search</div>
+							<div class="shortcut-desc">Quick search and app launcher</div>
+						</div>
+						<button
+							class="shortcut-key-btn"
+							class:recording={recordingKey === 'spotlight'}
+							onclick={() => recordingKey === 'spotlight' ? stopRecording() : startRecording('spotlight')}
+						>
+							{#if recordingKey === 'spotlight'}
+								<span class="recording-text">Press keys...</span>
+							{:else}
+								{shortcuts.spotlight}
+							{/if}
+						</button>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Quick Chat Popup</div>
+							<div class="shortcut-desc">Open AI chat from anywhere</div>
+						</div>
+						<button
+							class="shortcut-key-btn"
+							class:recording={recordingKey === 'quickChat'}
+							onclick={() => recordingKey === 'quickChat' ? stopRecording() : startRecording('quickChat')}
+						>
+							{#if recordingKey === 'quickChat'}
+								<span class="recording-text">Press keys...</span>
+							{:else}
+								{shortcuts.quickChat}
+							{/if}
+						</button>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Voice Input</div>
+							<div class="shortcut-desc">Start/stop voice recording</div>
+						</div>
+						<button
+							class="shortcut-key-btn"
+							class:recording={recordingKey === 'voiceInput'}
+							onclick={() => recordingKey === 'voiceInput' ? stopRecording() : startRecording('voiceInput')}
+						>
+							{#if recordingKey === 'voiceInput'}
+								<span class="recording-text">Press keys...</span>
+							{:else}
+								{shortcuts.voiceInput}
+							{/if}
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<label class="section-title">Window Management</label>
+				<p class="section-subtitle">System shortcuts (not customizable)</p>
+				<div class="shortcuts-list">
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Close Window</div>
+							<div class="shortcut-desc">Close the active window</div>
+						</div>
+						<div class="shortcut-key">⌘W</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Minimize Window</div>
+							<div class="shortcut-desc">Minimize to dock</div>
+						</div>
+						<div class="shortcut-key">⌘M</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Maximize/Restore</div>
+							<div class="shortcut-desc">Toggle window fullscreen</div>
+						</div>
+						<div class="shortcut-key">⌘⇧F</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Cycle Windows</div>
+							<div class="shortcut-desc">Switch between open windows</div>
+						</div>
+						<div class="shortcut-key">⌘`</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Snap Left</div>
+							<div class="shortcut-desc">Snap window to left half</div>
+						</div>
+						<div class="shortcut-key">⌃⌥←</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Snap Right</div>
+							<div class="shortcut-desc">Snap window to right half</div>
+						</div>
+						<div class="shortcut-key">⌃⌥→</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<label class="section-title">Quick Actions</label>
+				<p class="section-subtitle">Fast access to common tasks</p>
+				<div class="shortcuts-list">
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">New Task</div>
+							<div class="shortcut-desc">Create a new task quickly</div>
+						</div>
+						<div class="shortcut-key">⌘⇧T</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">New Project</div>
+							<div class="shortcut-desc">Start a new project</div>
+						</div>
+						<div class="shortcut-key">⌘⇧P</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">New Note</div>
+							<div class="shortcut-desc">Create a quick note</div>
+						</div>
+						<div class="shortcut-key">⌘⇧N</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Toggle Terminal</div>
+							<div class="shortcut-desc">Open/close terminal</div>
+						</div>
+						<div class="shortcut-key">⌘⇧`</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="section">
+				<label class="section-title">Navigation</label>
+				<p class="section-subtitle">Move around the workspace</p>
+				<div class="shortcuts-list">
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Go to Dashboard</div>
+							<div class="shortcut-desc">Open dashboard view</div>
+						</div>
+						<div class="shortcut-key">⌘1</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Go to Chat</div>
+							<div class="shortcut-desc">Open AI chat</div>
+						</div>
+						<div class="shortcut-key">⌘2</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Go to Tasks</div>
+							<div class="shortcut-desc">Open tasks view</div>
+						</div>
+						<div class="shortcut-key">⌘3</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Go to Calendar</div>
+							<div class="shortcut-desc">Open calendar view</div>
+						</div>
+						<div class="shortcut-key">⌘4</div>
+					</div>
+					<div class="shortcut-row">
+						<div class="shortcut-info">
+							<div class="shortcut-name">Go to Projects</div>
+							<div class="shortcut-desc">Open projects view</div>
+						</div>
+						<div class="shortcut-key">⌘5</div>
+					</div>
+				</div>
+			</div>
+
+			{#if isElectron}
+				<div class="section">
+					<button class="reset-shortcuts-btn" onclick={resetShortcuts}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+							<path d="M3 3v5h5"/>
+						</svg>
+						Reset to Default Shortcuts
+					</button>
+				</div>
+			{/if}
+
+			<div class="section">
+				<div class="shortcut-note">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<path d="M12 16v-4M12 8h.01"/>
+					</svg>
+					<span>
+						{#if isElectron}
+							Global shortcuts work system-wide when BusinessOS Desktop is running. Some shortcuts may conflict with macOS defaults (like ⌘+Space for Spotlight).
+						{:else}
+							Global shortcuts are only available in the desktop app. Download BusinessOS Desktop to use shortcuts anywhere on your Mac.
+						{/if}
+					</span>
+				</div>
+			</div>
+		{:else if selectedTab === 'permissions'}
+			<!-- System Permissions -->
+			<div class="section">
+				<label class="section-title">System Permissions</label>
+				<p class="section-subtitle">BusinessOS needs these permissions for global shortcuts, screenshots, and voice input.</p>
+
+				<div class="permissions-list">
+					<!-- Accessibility -->
+					<div class="permission-row">
+						<div class="permission-icon" class:granted={accessibilityGranted}>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>
+							</svg>
+						</div>
+						<div class="permission-info">
+							<div class="permission-name">Accessibility</div>
+							<div class="permission-desc">Required for global keyboard shortcuts to work system-wide</div>
+						</div>
+						<div class="permission-status">
+							{#if accessibilityGranted}
+								<span class="status-badge granted">
+									<svg viewBox="0 0 20 20" fill="currentColor">
+										<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+									</svg>
+									Granted
+								</span>
+							{:else}
+								<button class="grant-btn" onclick={requestAccessibility}>
+									Grant Access
+								</button>
+							{/if}
+							<button class="settings-btn" onclick={() => openSystemPreferences('accessibility')} title="Open System Settings">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+									<circle cx="12" cy="12" r="3"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+
+					<!-- Screen Recording -->
+					<div class="permission-row">
+						<div class="permission-icon">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+							</svg>
+						</div>
+						<div class="permission-info">
+							<div class="permission-name">Screen Recording</div>
+							<div class="permission-desc">Required for capturing screenshots from the popup chat</div>
+						</div>
+						<div class="permission-status">
+							<button class="settings-btn" onclick={() => openSystemPreferences('screenRecording')} title="Open System Settings">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+									<circle cx="12" cy="12" r="3"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+
+					<!-- Microphone -->
+					<div class="permission-row">
+						<div class="permission-icon">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+							</svg>
+						</div>
+						<div class="permission-info">
+							<div class="permission-name">Microphone</div>
+							<div class="permission-desc">Required for voice input and meeting recording features</div>
+						</div>
+						<div class="permission-status">
+							<button class="settings-btn" onclick={() => openSystemPreferences('microphone')} title="Open System Settings">
+								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+									<circle cx="12" cy="12" r="3"/>
+								</svg>
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<button class="recheck-btn" onclick={recheckPermissions} disabled={isCheckingPermissions}>
+					{#if isCheckingPermissions}
+						<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+						</svg>
+						Checking...
+					{:else}
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+						</svg>
+						Recheck Permissions
+					{/if}
+				</button>
+			</div>
+
+			<div class="section">
+				<div class="shortcut-note">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<path d="M12 16v-4M12 8h.01"/>
+					</svg>
+					<span>
+						After granting permissions in System Settings, click "Recheck Permissions" to update the status. You may need to restart BusinessOS for some permissions to take effect.
+					</span>
+				</div>
+			</div>
+		{:else if selectedTab === 'data'}
+			<!-- Data Export/Import -->
+			<input
+				type="file"
+				accept=".json"
+				bind:this={configFileInput}
+				onchange={handleConfigImport}
+				class="hidden-file-input"
+			/>
+
+			{#if importSuccess}
+				<div class="status-banner success">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+					</svg>
+					Configuration imported successfully!
+				</div>
+			{/if}
+
+			{#if importError}
+				<div class="status-banner error">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<path d="M15 9l-6 6M9 9l6 6"/>
+					</svg>
+					{importError}
+				</div>
+			{/if}
+
+			<div class="section">
+				<label class="section-title">Export Configuration</label>
+				<p class="section-desc">
+					Download your desktop layout, dock items, and folder structure as a JSON file. Use this to backup or transfer your setup.
+				</p>
+				<div class="data-actions">
+					<button class="data-btn primary" onclick={exportConfig}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+							<path d="M7 10l5 5 5-5"/>
+							<path d="M12 15V3"/>
+						</svg>
+						Export Desktop Config
+					</button>
+					<button class="data-btn secondary" onclick={exportSchema}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+							<path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+						</svg>
+						Download Schema
+					</button>
+				</div>
+			</div>
+
+			<div class="section">
+				<label class="section-title">Import Configuration</label>
+				<p class="section-desc">
+					Load a previously exported configuration file. This will replace your current desktop layout.
+				</p>
+				<div class="import-area" onclick={triggerImport} onkeydown={(e) => e.key === 'Enter' && triggerImport()} tabindex="0" role="button">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+						<path d="M17 8l-5-5-5 5"/>
+						<path d="M12 3v12"/>
+					</svg>
+					<span class="import-text">Click to import configuration file</span>
+					<span class="import-hint">Accepts .json files only</span>
+				</div>
+			</div>
+
+			<div class="section">
+				<label class="section-title">Configuration Schema</label>
+				<p class="section-desc">
+					The desktop configuration follows a JSON schema for validation. You can use the schema for programmatic config generation.
+				</p>
+				<div class="schema-preview">
+					<pre><code>{JSON.stringify({
+	version: "1.0.0",
+	desktopIcons: [{ id: "...", module: "...", label: "...", x: 0, y: 0 }],
+	dockPinnedItems: ["finder", "dashboard", "..."],
+	folders: [{ id: "...", name: "...", color: "#...", iconIds: [] }]
+}, null, 2)}</code></pre>
+				</div>
+			</div>
+
+			<div class="section">
+				<div class="shortcut-note">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<path d="M12 16v-4M12 8h.01"/>
+					</svg>
+					<span>
+						Configuration files store icon positions, dock items, and folders. Window states and open apps are not included.
+					</span>
+				</div>
 			</div>
 		{/if}
 	</div>
@@ -1014,5 +1779,618 @@
 		transform: translateX(-50%);
 		white-space: nowrap;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	}
+
+	/* Shortcuts styles */
+	.shortcuts-list {
+		display: flex;
+		flex-direction: column;
+		background: white;
+		border-radius: 8px;
+		overflow: hidden;
+		border: 1px solid #e5e5e5;
+	}
+
+	.shortcut-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 12px 16px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.shortcut-row:last-child {
+		border-bottom: none;
+	}
+
+	.shortcut-info {
+		flex: 1;
+	}
+
+	.shortcut-name {
+		font-size: 13px;
+		font-weight: 500;
+		color: #333;
+	}
+
+	.shortcut-desc {
+		font-size: 11px;
+		color: #999;
+		margin-top: 2px;
+	}
+
+	.shortcut-key {
+		font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 12px;
+		font-weight: 500;
+		color: #555;
+		background: #f5f5f5;
+		border: 1px solid #e0e0e0;
+		border-radius: 6px;
+		padding: 6px 10px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	}
+
+	.shortcut-note {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		padding: 12px 14px;
+		background: #f8f9fa;
+		border: 1px solid #e9ecef;
+		border-radius: 8px;
+		font-size: 12px;
+		color: #666;
+		line-height: 1.5;
+	}
+
+	.shortcut-note svg {
+		width: 16px;
+		height: 16px;
+		flex-shrink: 0;
+		color: #6c757d;
+		margin-top: 1px;
+	}
+
+	/* Accessibility banner */
+	.accessibility-banner {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px 16px;
+		background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+		border: 1px solid #f59e0b;
+		border-radius: 10px;
+		margin-bottom: 16px;
+	}
+
+	.banner-icon {
+		width: 32px;
+		height: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f59e0b;
+		border-radius: 8px;
+		flex-shrink: 0;
+	}
+
+	.banner-icon svg {
+		width: 18px;
+		height: 18px;
+		color: white;
+	}
+
+	.banner-content {
+		flex: 1;
+	}
+
+	.banner-title {
+		font-size: 13px;
+		font-weight: 600;
+		color: #92400e;
+	}
+
+	.banner-desc {
+		font-size: 11px;
+		color: #b45309;
+		margin-top: 2px;
+	}
+
+	.banner-btn {
+		padding: 8px 16px;
+		background: #f59e0b;
+		border: none;
+		border-radius: 6px;
+		color: white;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s;
+		white-space: nowrap;
+	}
+
+	.banner-btn:hover {
+		background: #d97706;
+	}
+
+	/* Section subtitle */
+	.section-subtitle {
+		font-size: 11px;
+		color: #999;
+		margin: -4px 0 8px 0;
+	}
+
+	/* Shortcut key button (clickable) */
+	.shortcut-key-btn {
+		font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 12px;
+		font-weight: 500;
+		color: #555;
+		background: #f5f5f5;
+		border: 1px solid #e0e0e0;
+		border-radius: 6px;
+		padding: 6px 12px;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		cursor: pointer;
+		transition: all 0.15s;
+		min-width: 80px;
+		text-align: center;
+	}
+
+	.shortcut-key-btn:hover {
+		background: #eee;
+		border-color: #ccc;
+	}
+
+	.shortcut-key-btn.recording {
+		background: #3b82f6;
+		border-color: #2563eb;
+		color: white;
+		animation: pulse-recording 1.5s infinite;
+	}
+
+	@keyframes pulse-recording {
+		0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+		50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+	}
+
+	.recording-text {
+		font-family: inherit;
+		font-style: italic;
+		font-size: 11px;
+	}
+
+	/* Reset shortcuts button */
+	.reset-shortcuts-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		padding: 10px 16px;
+		background: #f5f5f5;
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		color: #666;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.reset-shortcuts-btn:hover {
+		background: #eee;
+		color: #333;
+	}
+
+	.reset-shortcuts-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Branding section */
+	.branding-row {
+		background: white;
+		border-radius: 8px;
+		padding: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.branding-preview {
+		display: flex;
+		align-items: baseline;
+		justify-content: center;
+		gap: 2px;
+		padding: 16px;
+		background: #fafafa;
+		border-radius: 8px;
+		font-family: 'SF Mono', 'Monaco', 'Fira Code', monospace;
+	}
+
+	.preview-name {
+		font-size: 24px;
+		font-weight: 800;
+		color: #111;
+		letter-spacing: 3px;
+		text-transform: uppercase;
+	}
+
+	.preview-os {
+		font-size: 20px;
+		font-weight: 400;
+		color: #111;
+		opacity: 0.4;
+	}
+
+	.branding-input-row {
+		display: flex;
+		gap: 8px;
+	}
+
+	.company-name-input {
+		flex: 1;
+		padding: 10px 12px;
+		border: 1px solid #ddd;
+		border-radius: 6px;
+		font-size: 13px;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		outline: none;
+		transition: border-color 0.15s ease;
+	}
+
+	.company-name-input:focus {
+		border-color: #333;
+	}
+
+	.company-name-input::placeholder {
+		color: #999;
+		text-transform: none;
+		letter-spacing: 0;
+	}
+
+	.save-name-btn {
+		padding: 10px 18px;
+		background: #333;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+
+	.save-name-btn:hover {
+		background: #555;
+	}
+
+	.branding-hint {
+		font-size: 11px;
+		color: #999;
+		margin: 0;
+		text-align: center;
+	}
+
+	/* Data tab styles */
+	.section-desc {
+		font-size: 12px;
+		color: #666;
+		margin: -8px 0 12px 0;
+		line-height: 1.5;
+	}
+
+	.data-actions {
+		display: flex;
+		gap: 12px;
+	}
+
+	.data-btn {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 14px 20px;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.data-btn svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	.data-btn.primary {
+		background: #111;
+		color: white;
+		border: none;
+	}
+
+	.data-btn.primary:hover {
+		background: #333;
+	}
+
+	.data-btn.secondary {
+		background: white;
+		color: #333;
+		border: 1px solid #ddd;
+	}
+
+	.data-btn.secondary:hover {
+		background: #f5f5f5;
+		border-color: #ccc;
+	}
+
+	.import-area {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 32px 20px;
+		background: #f8f9fa;
+		border: 2px dashed #ddd;
+		border-radius: 12px;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.import-area:hover {
+		background: #f0f0f0;
+		border-color: #bbb;
+	}
+
+	.import-area:focus {
+		outline: none;
+		border-color: #333;
+		box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+	}
+
+	.import-area svg {
+		width: 32px;
+		height: 32px;
+		color: #888;
+	}
+
+	.import-text {
+		font-size: 14px;
+		font-weight: 500;
+		color: #333;
+	}
+
+	.import-hint {
+		font-size: 11px;
+		color: #999;
+	}
+
+	.schema-preview {
+		background: #1e1e1e;
+		border-radius: 8px;
+		padding: 16px;
+		overflow-x: auto;
+	}
+
+	.schema-preview pre {
+		margin: 0;
+	}
+
+	.schema-preview code {
+		font-family: 'SF Mono', Monaco, 'Fira Code', monospace;
+		font-size: 11px;
+		line-height: 1.6;
+		color: #9cdcfe;
+	}
+
+	.status-banner {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 16px;
+		border-radius: 8px;
+		font-size: 13px;
+		font-weight: 500;
+		margin-bottom: 16px;
+	}
+
+	.status-banner svg {
+		width: 18px;
+		height: 18px;
+		flex-shrink: 0;
+	}
+
+	.status-banner.success {
+		background: #d4edda;
+		color: #155724;
+		border: 1px solid #c3e6cb;
+	}
+
+	.status-banner.error {
+		background: #f8d7da;
+		color: #721c24;
+		border: 1px solid #f5c6cb;
+	}
+
+	/* Permissions tab styles */
+	.permissions-list {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 16px;
+	}
+
+	.permission-row {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 16px;
+		background: white;
+		border: 1px solid #e5e5e5;
+		border-radius: 10px;
+		transition: border-color 0.15s ease;
+	}
+
+	.permission-row:hover {
+		border-color: #ccc;
+	}
+
+	.permission-icon {
+		width: 44px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f5f5f5;
+		border-radius: 10px;
+		flex-shrink: 0;
+		transition: all 0.15s ease;
+	}
+
+	.permission-icon.granted {
+		background: #d4edda;
+	}
+
+	.permission-icon svg {
+		width: 22px;
+		height: 22px;
+		color: #666;
+	}
+
+	.permission-icon.granted svg {
+		color: #28a745;
+	}
+
+	.permission-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.permission-name {
+		font-size: 14px;
+		font-weight: 600;
+		color: #333;
+	}
+
+	.permission-desc {
+		font-size: 12px;
+		color: #666;
+		margin-top: 3px;
+		line-height: 1.4;
+	}
+
+	.permission-status {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-shrink: 0;
+	}
+
+	.grant-btn {
+		padding: 8px 16px;
+		background: #3b82f6;
+		border: none;
+		border-radius: 6px;
+		color: white;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.grant-btn:hover {
+		background: #2563eb;
+	}
+
+	.settings-btn {
+		width: 36px;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f5f5f5;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.settings-btn:hover {
+		background: #eee;
+		border-color: #ccc;
+	}
+
+	.settings-btn svg {
+		width: 18px;
+		height: 18px;
+		color: #666;
+	}
+
+	.status-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 6px 12px;
+		border-radius: 6px;
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	.status-badge.granted {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	.status-badge svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.recheck-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		padding: 12px 16px;
+		margin-top: 16px;
+		background: white;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		color: #555;
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.recheck-btn:hover:not(:disabled) {
+		background: #f5f5f5;
+		color: #333;
+	}
+
+	.recheck-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	.recheck-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.recheck-btn .spin {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
 	}
 </style>

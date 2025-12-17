@@ -2,7 +2,7 @@
 	type Status = 'available' | 'busy' | 'overloaded' | 'ooo';
 
 	interface Props {
-		status: Status;
+		status: Status | null | undefined;
 		showLabel?: boolean;
 		size?: 'sm' | 'md';
 	}
@@ -16,7 +16,9 @@
 		ooo: { color: 'bg-gray-500', bg: 'bg-gray-100 text-gray-600', label: 'Out of Office' }
 	};
 
-	const config = $derived(statusConfig[status]);
+	// Default to 'available' if status is null/undefined
+	const normalizedStatus = $derived(status && statusConfig[status] ? status : 'available');
+	const config = $derived(statusConfig[normalizedStatus]);
 	const sizeClasses = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-sm px-2.5 py-1';
 </script>
 

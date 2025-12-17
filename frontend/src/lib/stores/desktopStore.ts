@@ -564,6 +564,7 @@ interface DesktopSettings {
 	iconSize: number; // 32-128, default 64
 	showIconLabels: boolean;
 	gridSnap: boolean;
+	companyName: string; // Dynamic company name for loading screen
 }
 
 const defaultSettings: DesktopSettings = {
@@ -574,7 +575,8 @@ const defaultSettings: DesktopSettings = {
 	iconStyle: 'default',
 	iconSize: 64,
 	showIconLabels: true,
-	gridSnap: true
+	gridSnap: true,
+	companyName: 'BUSINESS'
 };
 
 // Icon size presets for the slider
@@ -681,6 +683,16 @@ function createDesktopStore() {
 		toggleGridSnap: () => {
 			update(state => {
 				const newState = { ...state, gridSnap: !state.gridSnap };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		setCompanyName: (companyName: string) => {
+			update(state => {
+				const newState = { ...state, companyName: companyName.toUpperCase() };
 				if (browser) {
 					localStorage.setItem('desktop-settings', JSON.stringify(newState));
 				}

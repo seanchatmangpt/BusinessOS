@@ -3,6 +3,31 @@
 	import { page } from '$app/stores';
 	import { useSession } from '$lib/auth-client';
 	import { Separator } from 'bits-ui';
+	import { browser } from '$app/environment';
+	import { isElectron as checkElectron, isMacOS } from '$lib/utils/platform';
+	import { desktopSettings } from '$lib/stores/desktopStore';
+	import { onMount } from 'svelte';
+	import { api } from '$lib/api/client';
+
+	// Projects state for dropdown
+	let projects = $state<Array<{id: string, name: string, status: string}>>([]);
+	let showProjectsDropdown = $state(false);
+
+	// Load projects for sidebar dropdown
+	async function loadProjects() {
+		try {
+			const data = await api.getProjects('active');
+			projects = data.slice(0, 5); // Show top 5 active projects
+		} catch (e) {
+			console.error('Failed to load projects:', e);
+		}
+	}
+
+	onMount(() => {
+		loadProjects();
+	});
+
+	const APP_VERSION = '0.0.1';
 
 	let { children } = $props();
 
@@ -10,6 +35,14 @@
 
 	// Check if we're in embed mode (used by desktop windows)
 	const isEmbedMode = $derived($page.url.searchParams.get('embed') === 'true');
+
+	// No loading screen for app routes - instant load
+	let bootComplete = $state(true);
+
+	// Check if running in Electron (for native window styling)
+	const inElectron = $derived(browser && checkElectron());
+	const onMac = $derived(browser && isMacOS());
+	const needsTrafficLightSpace = $derived(inElectron && onMac);
 
 	// Sidebar collapsed state (persisted to localStorage)
 	let isCollapsed = $state(false);
@@ -50,6 +83,11 @@
 			icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
 		},
 		{
+			href: '/calendar',
+			label: 'Calendar',
+			icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+		},
+		{
 			href: '/projects',
 			label: 'Projects',
 			icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'
@@ -77,7 +115,12 @@
 		{
 			href: '/daily',
 			label: 'Daily Log',
-			icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+			icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'
+		},
+		{
+			href: '/usage',
+			label: 'Usage',
+			icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z'
 		},
 		{
 			href: '/settings',
@@ -88,30 +131,39 @@
 
 </script>
 
-{#if $session.isPending}
-	<div class="min-h-screen flex items-center justify-center">
-		<div class="animate-spin h-8 w-8 border-2 border-gray-900 border-t-transparent rounded-full"></div>
-	</div>
-{:else if $session.data}
+{#if $session.data}
 	{#if isEmbedMode}
 		<!-- Embed mode: no sidebar, just content -->
-		<div class="h-screen w-screen overflow-hidden bg-white">
+		<div class="h-screen w-screen overflow-hidden bg-white dark:bg-gray-900">
 			{@render children()}
 		</div>
 	{:else}
-	<div class="h-screen flex overflow-hidden">
+	<div class="h-screen flex overflow-hidden bg-white dark:bg-gray-900">
 		<!-- Sidebar -->
 		<aside
-			class="sidebar h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out {isCollapsed ? 'w-16' : 'w-64'}"
+			class="sidebar h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out {isCollapsed ? (needsTrafficLightSpace ? 'w-20' : 'w-16') : 'w-64'}"
 		>
-			<!-- Header -->
-			<div class="p-4 flex items-center {isCollapsed ? 'justify-center' : 'justify-between'}">
+			<!-- Draggable titlebar region for Electron (traffic light area) -->
+			{#if needsTrafficLightSpace}
+				<div
+					class="h-12 flex-shrink-0 drag-region"
+					style="-webkit-app-region: drag;"
+				>
+					<!-- Traffic light spacer - this area is for the macOS window controls -->
+				</div>
+			{:else}
+				<div class="h-4 flex-shrink-0"></div>
+			{/if}
+
+			<!-- Header with toggle button -->
+			<div class="px-4 pb-2 flex items-center {isCollapsed ? 'justify-center' : 'justify-between'}">
 				{#if !isCollapsed}
-					<h1 class="text-lg font-semibold text-gray-900">Business OS</h1>
+					<h1 class="text-lg font-semibold text-gray-900 dark:text-white">Business OS</h1>
 				{/if}
 				<button
 					onclick={toggleSidebar}
-					class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+					class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-500 dark:text-gray-400 no-drag"
+					style="-webkit-app-region: no-drag;"
 					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 				>
 					<svg
@@ -131,7 +183,8 @@
 					href="/window"
 					class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
 						bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100
-						border border-gray-200 text-gray-700 hover:text-gray-900
+						dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-600 dark:hover:to-gray-700
+						border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white
 						{isCollapsed ? 'justify-center' : ''}"
 					title={isCollapsed ? 'Window Desktop' : ''}
 				>
@@ -140,51 +193,106 @@
 					</svg>
 					{#if !isCollapsed}
 						<span class="font-medium">Window</span>
-						<span class="ml-auto text-xs text-gray-400">Desktop</span>
+						<span class="ml-auto text-xs text-gray-400 dark:text-gray-500">Desktop</span>
 					{/if}
 				</a>
 			</div>
 
-			<Separator.Root class="h-px bg-gray-200" />
+			<Separator.Root class="h-px bg-gray-200 dark:bg-gray-700" />
 
 			<!-- Navigation -->
-			<nav class="flex-1 p-2 space-y-1">
+			<nav class="flex-1 p-2 space-y-1 overflow-y-auto">
 				{#each navItems as item}
-					<a
-						href={item.href}
-						class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
-							{$page.url.pathname.startsWith(item.href) ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}
-							{isCollapsed ? 'justify-center' : ''}"
-						title={isCollapsed ? item.label : ''}
-					>
-						<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
-						</svg>
-						{#if !isCollapsed}
-							<span>{item.label}</span>
-						{/if}
-					</a>
+					{#if item.label === 'Projects'}
+						<!-- Projects with dropdown -->
+						<div class="relative group">
+							<div class="flex items-center">
+								<a
+									href={item.href}
+									class="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
+										{$page.url.pathname.startsWith(item.href) ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}
+										{isCollapsed ? 'justify-center' : ''}"
+									title={isCollapsed ? item.label : ''}
+								>
+									<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
+									</svg>
+									{#if !isCollapsed}
+										<span>{item.label}</span>
+									{/if}
+								</a>
+								{#if !isCollapsed && projects.length > 0}
+									<button
+										onclick={() => showProjectsDropdown = !showProjectsDropdown}
+										class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mr-1 opacity-0 group-hover:opacity-100 {showProjectsDropdown ? 'opacity-100' : ''} transition-opacity duration-200"
+										title="Show recent projects"
+									>
+										<svg class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform {showProjectsDropdown ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+										</svg>
+									</button>
+								{/if}
+							</div>
+							{#if showProjectsDropdown && !isCollapsed && projects.length > 0}
+								<div class="ml-6 mt-1 space-y-0.5">
+									{#each projects as project}
+										<a
+											href="/projects/{project.id}"
+											class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors
+												{$page.url.pathname === `/projects/${project.id}` ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300'}"
+										>
+											<span class="w-1.5 h-1.5 rounded-full {project.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}"></span>
+											<span class="truncate">{project.name}</span>
+										</a>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<a
+							href={item.href}
+							class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200
+								{$page.url.pathname.startsWith(item.href) ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}
+								{isCollapsed ? 'justify-center' : ''}"
+							title={isCollapsed ? item.label : ''}
+						>
+							<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={item.icon} />
+							</svg>
+							{#if !isCollapsed}
+								<span>{item.label}</span>
+							{/if}
+						</a>
+					{/if}
 				{/each}
 			</nav>
 
-			<Separator.Root class="h-px bg-gray-200" />
+			<Separator.Root class="h-px bg-gray-200 dark:bg-gray-700" />
 
 			<!-- User Section - Links to Profile -->
 			<div class="p-3">
 				<a
 					href="/profile"
-					class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 transition-colors {$page.url.pathname === '/profile' ? 'bg-gray-100' : ''}"
+					class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors {$page.url.pathname === '/profile' ? 'bg-gray-100 dark:bg-gray-700' : ''}"
 					title={isCollapsed ? 'Profile' : ''}
 				>
-					<div class="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
-						{$session.data.user?.name?.charAt(0).toUpperCase() || 'U'}
-					</div>
+					{#if $session.data.user?.image}
+						<img
+							src={$session.data.user.image.startsWith('/') ? `http://localhost:8000${$session.data.user.image}` : $session.data.user.image}
+							alt={$session.data.user?.name || 'Profile'}
+							class="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2 border-gray-200 dark:border-gray-600"
+						/>
+					{:else}
+						<div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-sm font-medium flex-shrink-0">
+							{$session.data.user?.name?.charAt(0).toUpperCase() || 'U'}
+						</div>
+					{/if}
 					{#if !isCollapsed}
 						<div class="flex-1 min-w-0">
-							<p class="text-sm font-medium text-gray-900 truncate">{$session.data.user?.name}</p>
-							<p class="text-xs text-gray-500 truncate">{$session.data.user?.email}</p>
+							<p class="text-sm font-medium text-gray-900 dark:text-white truncate">{$session.data.user?.name}</p>
+							<p class="text-xs text-gray-500 dark:text-gray-400 truncate">{$session.data.user?.email}</p>
 						</div>
-						<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 						</svg>
 					{/if}
@@ -193,8 +301,23 @@
 		</aside>
 
 		<!-- Main Content -->
-		<main class="flex-1 h-full flex flex-col min-w-0 overflow-hidden">
-			{@render children()}
+		<main class="flex-1 h-full flex flex-col min-w-0 overflow-hidden bg-white dark:bg-gray-900">
+			{#if needsTrafficLightSpace}
+				<!-- Draggable titlebar region for main content area (Electron macOS only) -->
+				<div
+					class="h-12 flex-shrink-0 drag-region border-b border-gray-100 dark:border-gray-800"
+					style="-webkit-app-region: drag;"
+				>
+					<!-- This provides a drag area across the top of the main content -->
+				</div>
+				<div class="flex-1 overflow-hidden -mt-12 pt-12">
+					{@render children()}
+				</div>
+			{:else}
+				<div class="flex-1 overflow-hidden">
+					{@render children()}
+				</div>
+			{/if}
 		</main>
 	</div>
 	{/if}

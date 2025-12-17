@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { contexts } from '$lib/stores/contexts';
-	import { api, type Block } from '$lib/api/client';
+	import { api, type Block, type Conversation, type ArtifactListItem, type CalendarEvent } from '$lib/api/client';
 	import { Dialog, Popover } from 'bits-ui';
 	import type { ContextType, Context, ContextListItem } from '$lib/api/client';
 	import { editor, wordCount, type EditorBlock } from '$lib/stores/editor';
@@ -74,6 +74,14 @@
 	// Load clients for linking
 	let clients = $state<{id: string, name: string}[]>([]);
 
+	// Data Hub state
+	type DataHubTab = 'documents' | 'conversations' | 'artifacts' | 'events';
+	let activeDataHubTab = $state<DataHubTab>('documents');
+	let linkedConversations = $state<Conversation[]>([]);
+	let linkedArtifacts = $state<ArtifactListItem[]>([]);
+	let linkedEvents = $state<CalendarEvent[]>([]);
+	let loadingLinkedData = $state(false);
+
 	onMount(async () => {
 		contexts.loadContexts();
 		try {
@@ -142,19 +150,44 @@
 		return $contexts.contexts.filter(c => c.parent_id === profileId);
 	}
 
+	// Load linked data for a context (conversations, artifacts, events)
+	async function loadLinkedData(contextId: string) {
+		loadingLinkedData = true;
+		try {
+			const [convs, arts, events] = await Promise.all([
+				api.getConversationsByContext(contextId).catch(() => []),
+				api.getArtifacts({ contextId }).catch(() => []),
+				api.getCalendarEvents({ contextId }).catch(() => [])
+			]);
+			linkedConversations = convs;
+			linkedArtifacts = arts;
+			linkedEvents = events;
+		} catch (error) {
+			console.error('Failed to load linked data:', error);
+		} finally {
+			loadingLinkedData = false;
+		}
+	}
+
 	// Load full profile details
 	async function selectProfile(profileId: string) {
 		if (selectedProfileId === profileId) {
 			// Toggle off if clicking same profile
 			selectedProfileId = null;
 			selectedProfile = null;
+			linkedConversations = [];
+			linkedArtifacts = [];
+			linkedEvents = [];
 			return;
 		}
 
 		selectedProfileId = profileId;
 		loadingProfile = true;
+		activeDataHubTab = 'documents'; // Reset to documents tab
 		try {
 			selectedProfile = await contexts.loadContext(profileId);
+			// Load linked data in background
+			loadLinkedData(profileId);
 		} catch (error) {
 			console.error('Failed to load profile:', error);
 		} finally {
@@ -713,12 +746,50 @@
 						</div>
 					</div>
 
-					<!-- Documents Section -->
+					<!-- Data Hub Tabs -->
 					<div>
-						<div class="flex items-center justify-between mb-3">
-							<h3 class="text-sm font-medium text-gray-900">Documents</h3>
-							<span class="text-xs text-gray-400">{getChildDocuments(selectedProfile.id).length} documents</span>
+						<div class="flex items-center justify-between mb-4">
+							<h3 class="text-sm font-semibold text-gray-900">Data Hub</h3>
+							{#if loadingLinkedData}
+								<div class="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+							{/if}
 						</div>
+
+						<!-- Tab Navigation -->
+						<div class="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg">
+							{#each [
+								{ id: 'documents', label: 'Documents', count: getChildDocuments(selectedProfile.id).length, icon: '📄' },
+								{ id: 'conversations', label: 'Chats', count: linkedConversations.length, icon: '💬' },
+								{ id: 'artifacts', label: 'Artifacts', count: linkedArtifacts.length, icon: '✨' },
+								{ id: 'events', label: 'Events', count: linkedEvents.length, icon: '📅' }
+							] as tab}
+								<button
+									onclick={() => activeDataHubTab = tab.id as DataHubTab}
+									class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md transition-all {activeDataHubTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+								>
+									<span>{tab.icon}</span>
+									<span>{tab.label}</span>
+									{#if tab.count > 0}
+										<span class="px-1.5 py-0.5 rounded-full text-[10px] {activeDataHubTab === tab.id ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'}">{tab.count}</span>
+									{/if}
+								</button>
+							{/each}
+						</div>
+
+						<!-- Documents Tab -->
+						{#if activeDataHubTab === 'documents'}
+							<div class="flex items-center justify-between mb-3">
+								<span class="text-xs text-gray-400">{getChildDocuments(selectedProfile.id).length} documents</span>
+								<button
+									onclick={() => createNewDocument(selectedProfile?.id)}
+									class="text-xs text-gray-600 hover:text-gray-900 flex items-center gap-1"
+								>
+									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+									</svg>
+									Add
+								</button>
+							</div>
 
 						{#if getChildDocuments(selectedProfile.id).length === 0}
 							<div class="bg-white rounded-xl border border-gray-200 border-dashed p-8 text-center">
@@ -809,6 +880,122 @@
 									</div>
 								{/each}
 							</div>
+						{/if}
+						{/if}
+
+						<!-- Conversations Tab -->
+						{#if activeDataHubTab === 'conversations'}
+							{#if linkedConversations.length === 0}
+								<div class="bg-white rounded-xl border border-gray-200 border-dashed p-8 text-center">
+									<div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+										<span class="text-2xl">💬</span>
+									</div>
+									<p class="text-sm text-gray-500 mb-2">No conversations linked</p>
+									<p class="text-xs text-gray-400">Start a chat with this context selected to link it here</p>
+								</div>
+							{:else}
+								<div class="space-y-2">
+									{#each linkedConversations as conv}
+										<a
+											href="/chat?conversation={conv.id}"
+											class="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all group"
+										>
+											<div class="flex items-start gap-3">
+												<div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+													<span class="text-lg">💬</span>
+												</div>
+												<div class="flex-1 min-w-0">
+													<h4 class="text-sm font-medium text-gray-900 truncate">{conv.title || 'Untitled Chat'}</h4>
+													<p class="text-xs text-gray-400 mt-0.5">
+														{conv.message_count || 0} messages · {formatDate(conv.updated_at)}
+													</p>
+												</div>
+												<svg class="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+												</svg>
+											</div>
+										</a>
+									{/each}
+								</div>
+							{/if}
+						{/if}
+
+						<!-- Artifacts Tab -->
+						{#if activeDataHubTab === 'artifacts'}
+							{#if linkedArtifacts.length === 0}
+								<div class="bg-white rounded-xl border border-gray-200 border-dashed p-8 text-center">
+									<div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+										<span class="text-2xl">✨</span>
+									</div>
+									<p class="text-sm text-gray-500 mb-2">No artifacts linked</p>
+									<p class="text-xs text-gray-400">Generated content from chats will appear here</p>
+								</div>
+							{:else}
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									{#each linkedArtifacts as artifact}
+										<div class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all group">
+											<div class="flex items-start gap-3">
+												<div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+													{#if artifact.type === 'code'}
+														<span class="text-lg">💻</span>
+													{:else if artifact.type === 'document'}
+														<span class="text-lg">📄</span>
+													{:else}
+														<span class="text-lg">✨</span>
+													{/if}
+												</div>
+												<div class="flex-1 min-w-0">
+													<h4 class="text-sm font-medium text-gray-900 truncate">{artifact.title}</h4>
+													<p class="text-xs text-gray-400 mt-0.5 capitalize">{artifact.type} · {formatDate(artifact.created_at)}</p>
+												</div>
+											</div>
+											{#if artifact.summary}
+												<p class="text-xs text-gray-500 mt-2 line-clamp-2">{artifact.summary}</p>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							{/if}
+						{/if}
+
+						<!-- Events Tab -->
+						{#if activeDataHubTab === 'events'}
+							{#if linkedEvents.length === 0}
+								<div class="bg-white rounded-xl border border-gray-200 border-dashed p-8 text-center">
+									<div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+										<span class="text-2xl">📅</span>
+									</div>
+									<p class="text-sm text-gray-500 mb-2">No events linked</p>
+									<p class="text-xs text-gray-400">Calendar events associated with this profile will appear here</p>
+								</div>
+							{:else}
+								<div class="space-y-2">
+									{#each linkedEvents as event}
+										<div class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all">
+											<div class="flex items-start gap-3">
+												<div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+													<span class="text-lg">📅</span>
+												</div>
+												<div class="flex-1 min-w-0">
+													<h4 class="text-sm font-medium text-gray-900 truncate">{event.title || 'Untitled Event'}</h4>
+													<p class="text-xs text-gray-400 mt-0.5">
+														{new Date(event.start_time).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+													</p>
+													{#if event.location}
+														<p class="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+															<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+															</svg>
+															{event.location}
+														</p>
+													{/if}
+												</div>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						{/if}
 					</div>
 

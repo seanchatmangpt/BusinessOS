@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { desktopSettings, type IconStyle } from '$lib/stores/desktopStore';
+	import { windowStore } from '$lib/stores/windowStore';
 
 	interface Props {
 		id: string;
@@ -9,6 +10,9 @@
 		posX: number;
 		posY: number;
 		darkBackground?: boolean;
+		iconType?: 'app' | 'folder';
+		folderId?: string;
+		folderColor?: string;
 		onSelect?: (id: string, additive: boolean) => void;
 		onOpen?: (module: string) => void;
 		onDragStart?: (id: string) => void;
@@ -24,6 +28,9 @@
 		posX,
 		posY,
 		darkBackground = false,
+		iconType = 'app',
+		folderId,
+		folderColor = '#3B82F6',
 		onSelect,
 		onOpen,
 		onDragStart,
@@ -31,12 +38,15 @@
 		onDragEnd
 	}: Props = $props();
 
+	// Track if another icon is being dragged over this folder
+	let isDragOver = $state(false);
+
 	const iconStyle = $derived($desktopSettings.iconStyle);
 	const iconSize = $derived($desktopSettings.iconSize);
 	const showIconLabels = $derived($desktopSettings.showIconLabels);
 
-	// Calculate dimensions based on icon size
-	const containerWidth = $derived(Math.max(iconSize + 24, 64));
+	// Calculate dimensions based on icon size - wider to accommodate labels
+	const containerWidth = $derived(Math.max(iconSize + 36, 90));
 	const imageSize = $derived(iconSize * 0.875); // Icon image is 87.5% of icon size
 	const svgSize = $derived(iconSize * 0.4375); // SVG is about 50% of image
 	const labelSize = $derived(Math.max(9, Math.min(13, iconSize * 0.17)));
@@ -108,7 +118,36 @@
 			// Double click - open
 			if (clickTimer) clearTimeout(clickTimer);
 			clickCount = 0;
-			onOpen?.(module);
+			if (iconType === 'folder' && folderId) {
+				windowStore.openFolder(folderId);
+			} else {
+				onOpen?.(module);
+			}
+		}
+	}
+
+	// Folder drop handlers
+	function handleFolderDragOver(event: DragEvent) {
+		if (iconType !== 'folder') return;
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+		isDragOver = true;
+	}
+
+	function handleFolderDragLeave() {
+		isDragOver = false;
+	}
+
+	function handleFolderDrop(event: DragEvent) {
+		if (iconType !== 'folder' || !folderId) return;
+		event.preventDefault();
+		isDragOver = false;
+
+		const droppedIconId = event.dataTransfer?.getData('text/icon-id');
+		if (droppedIconId && droppedIconId !== id) {
+			windowStore.moveIconToFolder(droppedIconId, folderId);
 		}
 	}
 
@@ -174,10 +213,25 @@
 			color: '#546E7A',
 			bgColor: '#ECEFF1'
 		},
+		calendar: {
+			path: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+			color: '#E53935',
+			bgColor: '#FFEBEE'
+		},
+		'ai-settings': {
+			path: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z',
+			color: '#9C27B0',
+			bgColor: '#F3E5F5'
+		},
 		trash: {
 			path: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
 			color: '#78909C',
 			bgColor: '#ECEFF1'
+		},
+		folder: {
+			path: 'M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z',
+			color: '#3B82F6',
+			bgColor: '#EFF6FF'
 		}
 	};
 
@@ -185,13 +239,26 @@
 	const isTerminal = module === 'terminal';
 	const isPlatform = module === 'platform';
 
-	// HTML5 drag start for dock pinning
-	function handleDragStart(event: DragEvent) {
+	// HTML5 drag start for dock pinning and folder dropping
+	function handleNativeDragStart(event: DragEvent) {
 		if (event.dataTransfer) {
 			event.dataTransfer.setData('text/plain', module);
+			event.dataTransfer.setData('text/icon-id', id);
 			event.dataTransfer.effectAllowed = 'copyMove';
 		}
 	}
+
+	// Use folder color for folder icons
+	const effectiveIconData = $derived(() => {
+		if (iconType === 'folder' && folderColor) {
+			return {
+				...iconPaths.folder,
+				color: folderColor,
+				bgColor: `${folderColor}20`
+			};
+		}
+		return iconPaths[module] || iconPaths.dashboard;
+	});
 </script>
 
 <div
@@ -199,9 +266,14 @@
 	class:selected
 	class:dragging={isDragging}
 	class:dark-bg={darkBackground}
+	class:drag-over={isDragOver}
+	class:is-folder={iconType === 'folder'}
 	style="width: {containerWidth}px;"
 	onmousedown={handleMouseDown}
-	ondragstart={handleDragStart}
+	ondragstart={handleNativeDragStart}
+	ondragover={handleFolderDragOver}
+	ondragleave={handleFolderDragLeave}
+	ondrop={handleFolderDrop}
 	draggable="true"
 	role="button"
 	tabindex="0"
@@ -214,28 +286,39 @@
 			width: {imageSize}px;
 			height: {imageSize}px;
 			border-radius: {Math.max(8, imageSize * 0.2)}px;
-			background-color: {iconStyle === 'minimal' ? 'transparent' : iconData.bgColor};
-			{iconStyle === 'outlined' ? `border: 2px solid ${iconData.color}; background-color: transparent;` : ''}
-			{iconStyle === 'neon' ? `color: ${iconData.color};` : ''}
-			{iconStyle === 'gradient' ? `--gradient-start: ${iconData.color}; --gradient-end: ${iconData.bgColor};` : ''}
+			background-color: {iconStyle === 'minimal' ? 'transparent' : effectiveIconData().bgColor};
+			{iconStyle === 'outlined' ? `border: 2px solid ${effectiveIconData().color}; background-color: transparent;` : ''}
+			{iconStyle === 'neon' ? `color: ${effectiveIconData().color};` : ''}
+			{iconStyle === 'gradient' ? `--gradient-start: ${effectiveIconData().color}; --gradient-end: ${effectiveIconData().bgColor};` : ''}
 		"
 	>
 		{#if isTerminal}
 			<div class="terminal-icon">
 				<span class="terminal-prompt" style="font-size: {svgSize * 0.65}px;">&gt;_</span>
 			</div>
+		{:else if iconType === 'folder'}
+			<!-- Folder icon with fill -->
+			<svg
+				class="icon-svg"
+				viewBox="0 0 24 24"
+				fill={effectiveIconData().color}
+				stroke="none"
+				style="width: {svgSize * 1.2}px; height: {svgSize * 1.2}px;"
+			>
+				<path d={effectiveIconData().path} />
+			</svg>
 		{:else}
 			<svg
 				class="icon-svg"
 				viewBox="0 0 24 24"
 				fill="none"
-				stroke={iconData.color}
+				stroke={effectiveIconData().color}
 				stroke-width="1.5"
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				style="width: {svgSize}px; height: {svgSize}px;"
 			>
-				<path d={iconData.path} />
+				<path d={effectiveIconData().path} />
 			</svg>
 		{/if}
 	</div>
@@ -278,6 +361,16 @@
 		box-shadow: 0 0 0 2px #0066FF;
 	}
 
+	/* Folder drag-over highlight */
+	.desktop-icon.is-folder.drag-over .icon-image {
+		box-shadow: 0 0 0 3px #3B82F6, 0 8px 20px rgba(59, 130, 246, 0.4);
+		transform: scale(1.1);
+	}
+
+	.desktop-icon.is-folder.drag-over {
+		transform: scale(1.05);
+	}
+
 	.icon-image {
 		width: 56px;
 		height: 56px;
@@ -317,13 +410,16 @@
 		font-weight: 500;
 		color: #333;
 		text-align: center;
-		max-width: 72px;
+		max-width: 90px;
 		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		line-height: 1.3;
 		padding: 2px 6px;
 		border-radius: 4px;
 		text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+		word-break: break-word;
 	}
 
 	/* Icon Style Variants */

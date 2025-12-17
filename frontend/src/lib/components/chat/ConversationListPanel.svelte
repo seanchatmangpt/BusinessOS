@@ -8,14 +8,22 @@
 		preview?: string;
 		timestamp: string;
 		projectName?: string;
+		projectId?: string;
 		pinned?: boolean;
 		messageCount?: number;
+		conversationType?: 'chat' | 'focus';
+	}
+
+	interface Project {
+		id: string;
+		name: string;
 	}
 
 	interface Props {
 		conversations?: Conversation[];
 		activeId?: string;
 		searchQuery?: string;
+		projects?: Project[];
 		onSelect?: (id: string) => void;
 		onNewChat?: () => void;
 		onSearch?: (query: string) => void;
@@ -31,6 +39,7 @@
 		conversations = [],
 		activeId = '',
 		searchQuery = $bindable(''),
+		projects = [],
 		onSelect,
 		onNewChat,
 		onSearch,
@@ -42,10 +51,25 @@
 		onLinkProject
 	}: Props = $props();
 
+	let modeFilter: 'all' | 'focus' | 'chat' = $state('all');
+	let projectFilter: string = $state('all');
 	let filterTab: 'all' | 'pinned' | 'recent' = $state('all');
+	let showProjectDropdown = $state(false);
 
 	const filteredConversations = $derived(() => {
 		let filtered = conversations;
+
+		// Apply mode filter (Focus/Chat/All)
+		if (modeFilter === 'focus') {
+			filtered = filtered.filter(c => c.conversationType === 'focus');
+		} else if (modeFilter === 'chat') {
+			filtered = filtered.filter(c => c.conversationType === 'chat' || !c.conversationType);
+		}
+
+		// Apply project filter
+		if (projectFilter !== 'all') {
+			filtered = filtered.filter(c => c.projectId === projectFilter);
+		}
 
 		// Apply search filter
 		if (searchQuery) {
@@ -74,6 +98,13 @@
 		}
 
 		return filtered;
+	});
+
+	// Get selected project name for display
+	const selectedProjectName = $derived(() => {
+		if (projectFilter === 'all') return 'All Projects';
+		const project = projects.find(p => p.id === projectFilter);
+		return project?.name || 'All Projects';
 	});
 
 	function handleSearchInput(e: Event) {
@@ -113,7 +144,65 @@
 			/>
 		</div>
 
-		<!-- Filter Tabs -->
+		<!-- Mode Filter Tabs (Focus/Chat/All) -->
+		<div class="flex items-center gap-1 mt-3 p-1 bg-gray-100 rounded-lg">
+			<button
+				onclick={() => modeFilter = 'all'}
+				class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+					{modeFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+			>
+				All
+			</button>
+			<button
+				onclick={() => modeFilter = 'focus'}
+				class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+					{modeFilter === 'focus' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+			>
+				Focus
+			</button>
+			<button
+				onclick={() => modeFilter = 'chat'}
+				class="flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors
+					{modeFilter === 'chat' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}"
+			>
+				Chat
+			</button>
+		</div>
+
+		<!-- Project Filter -->
+		{#if projects.length > 0}
+			<div class="relative mt-3">
+				<button
+					onclick={() => showProjectDropdown = !showProjectDropdown}
+					class="w-full flex items-center justify-between px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+				>
+					<span class="text-gray-600 truncate">{selectedProjectName()}</span>
+					<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if showProjectDropdown}
+					<div class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+						<button
+							onclick={() => { projectFilter = 'all'; showProjectDropdown = false; }}
+							class="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors {projectFilter === 'all' ? 'bg-gray-50 font-medium' : ''}"
+						>
+							All Projects
+						</button>
+						{#each projects as project (project.id)}
+							<button
+								onclick={() => { projectFilter = project.id; showProjectDropdown = false; }}
+								class="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors truncate {projectFilter === project.id ? 'bg-gray-50 font-medium' : ''}"
+							>
+								{project.name}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Secondary Filter Tabs (Pinned/Recent) -->
 		<div class="flex items-center gap-1 mt-3">
 			<button
 				onclick={() => filterTab = 'all'}
@@ -188,3 +277,46 @@
 		</button>
 	</div>
 </div>
+
+<style>
+	/* Dark mode support for filters */
+	:global(.dark) .bg-gray-100 {
+		background-color: rgba(255, 255, 255, 0.08) !important;
+	}
+
+	:global(.dark) .bg-gray-50 {
+		background-color: rgba(255, 255, 255, 0.05) !important;
+	}
+
+	:global(.dark) .border-gray-200 {
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	:global(.dark) .text-gray-600 {
+		color: #a1a1a6 !important;
+	}
+
+	:global(.dark) .text-gray-900 {
+		color: #f5f5f7 !important;
+	}
+
+	:global(.dark) .bg-white {
+		background-color: #2c2c2e !important;
+	}
+
+	:global(.dark) .hover\:bg-gray-100:hover {
+		background-color: rgba(255, 255, 255, 0.1) !important;
+	}
+
+	:global(.dark) .hover\:bg-gray-50:hover {
+		background-color: rgba(255, 255, 255, 0.08) !important;
+	}
+
+	:global(.dark) .shadow-sm {
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+	}
+
+	:global(.dark) .shadow-lg {
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
+	}
+</style>

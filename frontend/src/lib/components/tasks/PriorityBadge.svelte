@@ -2,7 +2,7 @@
 	type Priority = 'critical' | 'high' | 'medium' | 'low';
 
 	interface Props {
-		priority: Priority;
+		priority: Priority | null | undefined;
 		size?: 'sm' | 'md';
 		showLabel?: boolean;
 	}
@@ -36,7 +36,9 @@
 		}
 	};
 
-	const config = $derived(priorityConfig[priority]);
+	// Default to 'medium' if priority is null/undefined
+	const normalizedPriority = $derived(priority && priorityConfig[priority] ? priority : 'medium');
+	const config = $derived(priorityConfig[normalizedPriority]);
 	const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm';
 </script>
 

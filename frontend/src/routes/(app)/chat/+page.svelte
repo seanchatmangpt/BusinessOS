@@ -1,7 +1,82 @@
 <script lang="ts">
 	import { tick, onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { api, type ArtifactListItem, type Artifact, type Node, type ContextListItem } from '$lib/api/client';
+	import { api, apiClient, type ArtifactListItem, type Artifact, type Node, type ContextListItem } from '$lib/api/client';
+	import FocusModeSelector from '$lib/components/chat/FocusModeSelector.svelte';
+	import ProgressPanel, { type DelegatedTask } from '$lib/components/chat/ProgressPanel.svelte';
+	import ContextPanel, { type ActiveResource } from '$lib/components/chat/ContextPanel.svelte';
+	import { FOCUS_MODES, getDefaultOptions, getAgentForFocusMode } from '$lib/components/chat/focusModes';
+
+	// Markdown rendering helper - ChatGPT-style formatting
+	function renderMarkdown(text: string): string {
+		if (!text) return '';
+
+		let html = text
+			// Escape HTML first to prevent XSS
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			// Code blocks (must be before other formatting)
+			.replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="chat-code-block"><code>$2</code></pre>')
+			// Inline code
+			.replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>')
+			// Bold
+			.replace(/\*\*([^*]+)\*\*/g, '<strong class="chat-bold">$1</strong>')
+			// Italic
+			.replace(/\*([^*]+)\*/g, '<em class="chat-italic">$1</em>')
+			// Major section headers with numbers (1. Title, 2. Title) - ChatGPT style
+			.replace(/^(\d+)\.\s+([A-Z][^\n]+)$/gm, '<div class="chat-section-divider"></div><h2 class="chat-section-header"><span class="chat-section-number">$1.</span> $2</h2>')
+			// Sub-section headers with letters (A. Title, B. Title)
+			.replace(/^([A-Z])\.\s+(.+)$/gm, '<h3 class="chat-subsection-header"><span class="chat-subsection-letter">$1.</span> $2</h3>')
+			// Headers (###, ##, #)
+			.replace(/^### (.+)$/gm, '<h4 class="chat-h4">$1</h4>')
+			.replace(/^## (.+)$/gm, '<h3 class="chat-h3">$1</h3>')
+			.replace(/^# (.+)$/gm, '<h2 class="chat-h2">$1</h2>')
+			// Roman numeral sections (I. II. III. etc)
+			.replace(/^([IVX]+)\.\s+(.+)$/gm, '<div class="chat-section-divider"></div><h2 class="chat-section-header">$1. $2</h2>')
+			// Special labels like "Outcome:", "Example:", "Includes:" - make them bold
+			.replace(/^(Outcome|Example|Includes|Note|Important|Key|Summary):\s*/gm, '<p class="chat-label"><strong>$1:</strong> ')
+			// Numbered list items with bold text
+			.replace(/^(\d+)\.\s+\*\*(.+?)\*\*:?\s*(.*)$/gm, '<div class="chat-list-item"><span class="chat-list-number">$1.</span><div class="chat-list-content"><strong class="chat-bold">$2</strong>$3</div></div>')
+			// Regular numbered lists
+			.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="chat-list-item"><span class="chat-list-number">$1.</span><span class="chat-list-content">$2</span></div>')
+			// Nested bullet points (indented with spaces/tabs)
+			.replace(/^[\t\s]{2,}[•\-\*]\s+(.+)$/gm, '<div class="chat-nested-bullet"><span class="chat-bullet">•</span><span>$1</span></div>')
+			// Bullet points with asterisk or dash
+			.replace(/^[•\-\*]\s+(.+)$/gm, '<div class="chat-bullet-item"><span class="chat-bullet">•</span><span>$1</span></div>')
+			// Horizontal rules
+			.replace(/^---+$/gm, '<div class="chat-section-divider"></div>')
+			// Links
+			.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="chat-link" target="_blank" rel="noopener">$1</a>')
+			// Paragraphs (double newlines)
+			.replace(/\n\n/g, '</p><p class="chat-paragraph">')
+			// Single newlines within content
+			.replace(/\n/g, '<br />');
+
+		// Wrap in paragraph if not starting with block element
+		if (!html.startsWith('<h') && !html.startsWith('<pre') && !html.startsWith('<div')) {
+			html = '<p class="chat-paragraph">' + html + '</p>';
+		}
+
+		return html;
+	}
+
+	// Usage data interface
+	interface UsageData {
+		input_tokens: number;
+		output_tokens: number;
+		total_tokens: number;
+		duration_ms: number;
+		tps: number;
+		provider: string;
+		model: string;
+		estimated_cost: number;
+	}
+
+	// Web Speech API types are not included in some TS DOM lib setups
+	type SpeechRecognition = any;
+	type SpeechRecognitionEvent = any;
+	type SpeechRecognitionErrorEvent = any;
 
 	// Message interface
 	interface ChatMessage {
@@ -9,15 +84,16 @@
 		role: 'user' | 'assistant';
 		content: string;
 		artifacts?: { title: string; type: string; content: string }[];
+		usage?: UsageData;
 	}
 
 	// UI State
 	let messagesContainer: HTMLDivElement | undefined = $state(undefined);
 	let inputRef: HTMLTextAreaElement | undefined = $state(undefined);
 	let inputValue = $state('');
-	let selectedModel = $state('qwen3-coder:480b-cloud');
+	let selectedModel = $state('');
 	let selectedContextIds = $state<string[]>([]);
-	let chatSidebarOpen = $state(true);
+	let chatSidebarOpen = $state(false);
 	let artifactsPanelOpen = $state(false);
 	let searchQuery = $state('');
 	let showContextDropdown = $state(false);
@@ -26,10 +102,78 @@
 	let showNodeDropdown = $state(false);
 	let copiedMessageId: string | null = $state(null);
 	let filterTab: 'all' | 'pinned' | 'recent' = $state('all');
+	let showUsageInChat = $state(true); // User preference for showing usage stats
+	// AI model settings from user preferences
+	let aiTemperature = $state(0.7);
+	let aiMaxTokens = $state(8192);
+	let aiTopP = $state(0.9);
+
+	// Focus Mode state
+	let focusModeEnabled = $state(true); // Focus vs Classic mode
+	let selectedFocusId = $state<string | null>(null); // Current focus card
+	let focusOptions = $state<Record<string, string>>({}); // Selected options
+	let rightPanelOpen = $state(false); // Progress/Context panel - closed by default
+	let rightPanelTab = $state<'progress' | 'context' | 'artifacts'>('progress');
+	let delegatedTasks = $state<DelegatedTask[]>([]); // Tasks from AI
+	let activeResources = $state<ActiveResource[]>([]); // Loaded documents/contexts
+	let focusModeInitialInput = $state(''); // Voice transcript for Focus mode
+
+	// File attachment state
+	interface AttachedFile {
+		id: string;
+		name: string;
+		type: string;
+		size: number;
+		content?: string; // base64 for images
+	}
+	let attachedFiles = $state<AttachedFile[]>([]);
+	let fileInputRef: HTMLInputElement | undefined = $state(undefined);
+	let showPlusMenu = $state(false);
+
+	// Voice recording state
+	let isRecording = $state(false);
+	let mediaRecorder: MediaRecorder | null = null;
+	let audioChunks: Blob[] = [];
+	let whisperAvailable = $state(false);
+	let isTranscribing = $state(false);
+	let recordingDuration = $state(0);
+	let recordingInterval: ReturnType<typeof setInterval> | null = null;
+
+	// Live transcript state (using Web Speech API)
+	let liveTranscript = $state('');
+	let speechRecognition: SpeechRecognition | null = null;
+
+	// Audio visualization state
+	let audioContext: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+	let audioDataArray: Uint8Array<ArrayBuffer> | null = null;
+	let waveformBars = $state<number[]>(Array(40).fill(2)); // 40 bars for waveform
+	let animationFrameId: number | null = null;
+
+	// Format recording duration as MM:SS
+	let recordingTimeDisplay = $derived(() => {
+		const mins = Math.floor(recordingDuration / 60);
+		const secs = recordingDuration % 60;
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	});
 
 	// Contexts state
 	let availableContexts: ContextListItem[] = $state([]);
 	let loadingContexts = $state(false);
+
+	// Slash command autocomplete state
+	interface SlashCommand {
+		name: string;
+		display_name: string;
+		description: string;
+		icon: string;
+		category: string;
+	}
+	let availableCommands: SlashCommand[] = $state([]);
+	let showCommandSuggestions = $state(false);
+	let filteredCommands = $state<SlashCommand[]>([]);
+	let commandDropdownIndex = $state(0);
+	let activeCommand = $state<SlashCommand | null>(null);
 
 	// Chat state
 	let messages: ChatMessage[] = $state([]);
@@ -56,13 +200,22 @@
 	let artifactCompletedInStream = $state(false); // Track if artifact completed during current stream
 
 	// Resizable panel state - default to 50% of available space (will be set in onMount)
-	let artifactPanelWidth = $state(600);
+	let artifactPanelWidth = $state(400);
 	let isResizing = $state(false);
 	let resizeStartX = $state(0);
 	let resizeStartWidth = $state(0);
 
+	// Right panel resize state
+	let rightPanelWidth = $state(320);
+	let isResizingRightPanel = $state(false);
+	let rightPanelResizeStartX = $state(0);
+	let rightPanelResizeStartWidth = $state(0);
+
 	// Currently viewing artifact in panel
 	let viewingArtifactFromMessage: { title: string; type: string; content: string } | null = $state(null);
+
+	// Derived: Whether we're actively viewing/generating an artifact (use split view)
+	let isArtifactFocused = $derived(viewingArtifactFromMessage !== null || generatingArtifact || selectedArtifact !== null);
 
 	// Editable artifact state
 	let isEditingArtifact = $state(false);
@@ -89,6 +242,10 @@
 	let showProjectDropdown = $state(false);
 	let projectsList = $state<ProjectItem[]>([]);
 	let loadingProjects = $state(false);
+	let projectDropdownIndex = $state(0); // For keyboard navigation
+	let showNewProjectModal = $state(false);
+	let newProjectName = $state('');
+	let creatingProject = $state(false);
 
 	// Derived project info
 	let selectedProject = $derived(
@@ -204,6 +361,57 @@
 		openSaveToProfileModal();
 	}
 
+	// Auto-save artifact to database when generated
+	async function autoSaveArtifact(artifactData: { title: string; type: string; content: string }) {
+		try {
+			console.log('[Artifact] Auto-saving artifact:', artifactData.title);
+			const allowedArtifactTypes = new Set([
+				'proposal',
+				'sop',
+				'framework',
+				'agenda',
+				'report',
+				'plan',
+				'code',
+				'document',
+				'markdown',
+				'other'
+			]);
+			const safeType = allowedArtifactTypes.has(artifactData.type) ? (artifactData.type as any) : ('other' as any);
+			const savedArtifact = await api.createArtifact({
+				title: artifactData.title,
+				type: safeType,
+				content: artifactData.content,
+				conversation_id: conversationId || undefined,
+				project_id: selectedProjectId || undefined
+			});
+			console.log('[Artifact] Auto-saved successfully:', savedArtifact.id);
+			// Refresh artifacts list
+			loadArtifacts();
+			return savedArtifact;
+		} catch (e) {
+			console.error('[Artifact] Failed to auto-save:', e);
+			return null;
+		}
+	}
+
+	// Delete an artifact
+	async function deleteArtifactById(id: string) {
+		if (!confirm('Are you sure you want to delete this artifact?')) return;
+
+		try {
+			await api.deleteArtifact(id);
+			// Remove from local list
+			artifacts = artifacts.filter(a => a.id !== id);
+			// Close detail view if this artifact was selected
+			if (selectedArtifact?.id === id) {
+				selectedArtifact = null;
+			}
+		} catch (e) {
+			console.error('[Artifact] Failed to delete:', e);
+		}
+	}
+
 	// Generate tasks from artifact
 	async function generateTasksFromArtifact(artifact: { title: string; type: string; content: string }) {
 		taskGenerationArtifact = artifact;
@@ -258,6 +466,9 @@
 		if (!selectedProjectForTasks || generatedTasks.length === 0) return;
 
 		try {
+			const taskCount = generatedTasks.length;
+			const artifactTitle = taskGenerationArtifact?.title;
+
 			// Create tasks via API
 			for (const task of generatedTasks) {
 				await api.createTask({
@@ -265,23 +476,22 @@
 					description: task.description,
 					project_id: selectedProjectForTasks,
 					priority: task.priority,
-					assignee_id: task.assignee_id,
-					status: 'todo'
+					assignee_id: task.assignee_id
 				});
 			}
-
-			// Close modal and show success
-			showTaskGenerationModal = false;
-			generatedTasks = [];
-			taskGenerationArtifact = null;
 
 			// Add confirmation message to chat
 			const confirmMsgId = crypto.randomUUID();
 			messages = [...messages, {
 				id: confirmMsgId,
 				role: 'assistant',
-				content: `✅ Created ${generatedTasks.length} tasks from "${taskGenerationArtifact?.title}". You can view them in the Tasks tab.`
+				content: `✅ Created ${taskCount} tasks from "${artifactTitle ?? 'the artifact'}". You can view them in the Tasks tab.`
 			}];
+
+			// Close modal and reset state
+			showTaskGenerationModal = false;
+			generatedTasks = [];
+			taskGenerationArtifact = null;
 		} catch (e) {
 			console.error('Failed to create tasks:', e);
 		}
@@ -400,8 +610,7 @@
 					description: task.description,
 					project_id: selectedProjectId,
 					priority: task.priority,
-					assignee_id: task.assignee_id,
-					status: 'todo'
+					assignee_id: task.assignee_id
 				});
 			}
 
@@ -459,7 +668,7 @@
 			projectsList = projects.map(p => ({
 				id: p.id,
 				name: p.name,
-				description: p.description
+				description: p.description ?? undefined
 			}));
 			// Also update availableProjects for task generation
 			availableProjects = projectsList;
@@ -467,6 +676,45 @@
 			console.error('Failed to load projects:', e);
 		} finally {
 			loadingProjects = false;
+		}
+	}
+
+	// Load available slash commands
+	async function loadCommands() {
+		try {
+			const response = await fetch('/api/ai/commands');
+			if (response.ok) {
+				const data = await response.json();
+				availableCommands = data.commands || [];
+				console.log('[Chat] Loaded', availableCommands.length, 'slash commands');
+			}
+		} catch (e) {
+			console.error('Failed to load commands:', e);
+		}
+	}
+
+	// Create a new project quickly from chat
+	async function createProjectQuick() {
+		if (!newProjectName.trim()) return;
+		creatingProject = true;
+		try {
+			const project = await api.createProject({
+				name: newProjectName.trim(),
+				status: 'active'
+			});
+			// Add to list and select it
+			projectsList = [...projectsList, { id: project.id, name: project.name, description: project.description ?? undefined }];
+			selectedProjectId = project.id;
+			newProjectName = '';
+			showNewProjectModal = false;
+			// Send message if there's input
+			if (inputValue.trim()) {
+				setTimeout(() => handleSendMessage(), 50);
+			}
+		} catch (e) {
+			console.error('Failed to create project:', e);
+		} finally {
+			creatingProject = false;
 		}
 	}
 
@@ -519,17 +767,275 @@ Use this context to inform your responses.`;
 		}
 	}
 
-	onMount(() => {
+	// Load user settings for chat preferences
+	async function loadUserSettings() {
+		try {
+			const response = await apiClient.get('/settings');
+			if (response.ok) {
+				const settings = await response.json();
+				// Check custom settings or model_settings for showUsageInChat
+				if (settings.model_settings?.showUsageInChat !== undefined) {
+					showUsageInChat = settings.model_settings.showUsageInChat;
+				} else if (settings.custom_settings?.showUsageInChat !== undefined) {
+					showUsageInChat = settings.custom_settings.showUsageInChat;
+				}
+				// Load preferred model from settings
+				if (settings.default_model) {
+					console.log('[Chat] Loaded preferred model from settings:', settings.default_model);
+					selectedModel = settings.default_model;
+				}
+				// Load AI model settings (temperature, max_tokens, top_p)
+				if (settings.model_settings) {
+					if (typeof settings.model_settings.temperature === 'number') {
+						aiTemperature = settings.model_settings.temperature;
+					}
+					if (typeof settings.model_settings.max_tokens === 'number') {
+						aiMaxTokens = settings.model_settings.max_tokens;
+					}
+					if (typeof settings.model_settings.top_p === 'number') {
+						aiTopP = settings.model_settings.top_p;
+					}
+					console.log('[Chat] Loaded AI settings:', { temperature: aiTemperature, max_tokens: aiMaxTokens, top_p: aiTopP });
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load user settings:', error);
+		}
+	}
+
+	// Save model preference to user settings
+	async function saveModelPreference(modelId: string) {
+		try {
+			const response = await apiClient.put('/settings', {
+				default_model: modelId
+			});
+			if (response.ok) {
+				console.log('[Chat] Saved model preference:', modelId);
+			} else {
+				console.error('[Chat] Failed to save model preference');
+			}
+		} catch (error) {
+			console.error('[Chat] Error saving model preference:', error);
+		}
+	}
+
+	// Select a model and save preference
+	function selectModel(modelId: string) {
+		selectedModel = modelId;
+		showModelDropdown = false;
+		saveModelPreference(modelId);
+
+		// Pre-warm the model for Ollama local (non-blocking)
+		if (activeProvider === 'ollama_local' && !warmedUpModels.has(modelId)) {
+			warmupModel(modelId);
+		}
+	}
+
+	// State for tracking model warmup
+	let warmingUpModel = $state<string | null>(null);
+
+	// Pre-warm a model by sending a minimal request to load it into memory
+	// Uses the dedicated warmup endpoint which is faster than the chat endpoint
+	// This is a best-effort operation - failures are silently ignored
+	async function warmupModel(modelId: string) {
+		// Don't warm up if already warming or already warmed
+		if (warmingUpModel === modelId || warmedUpModels.has(modelId)) return;
+
+		warmingUpModel = modelId;
+		console.log(`[Warmup] Starting warmup for model: ${modelId}`);
+
+		try {
+			// Use the dedicated warmup endpoint (much faster than chat endpoint)
+			const result = await api.warmupModel(modelId);
+
+			if (result.status === 'ready' || result.status === 'skipped') {
+				// Mark model as warmed up
+				const newSet = new Set(warmedUpModels);
+				newSet.add(modelId);
+				warmedUpModels = newSet;
+				if (typeof window !== 'undefined') {
+					localStorage.setItem('warmedUpModels', JSON.stringify([...newSet]));
+				}
+				console.log(`[Warmup] Model ${modelId} ready (${result.status})`);
+			}
+		} catch (error: unknown) {
+			// Silently ignore warmup failures - the model will load on first real message
+			if (error instanceof Error) {
+				console.warn(`[Warmup] Model warmup for ${modelId} skipped:`, error.message);
+			}
+		} finally {
+			warmingUpModel = null;
+		}
+	}
+
+	onMount(async () => {
+		// Load panel state from localStorage
+		try {
+			const savedPanelState = localStorage.getItem('chat_panel_state');
+			if (savedPanelState) {
+				const { rightPanelOpen: rp, rightPanelTab: rt, rightPanelWidth: rw } = JSON.parse(savedPanelState);
+				if (typeof rp === 'boolean') rightPanelOpen = rp;
+				if (rt === 'progress' || rt === 'context' || rt === 'artifacts') rightPanelTab = rt;
+				if (typeof rw === 'number' && rw >= 280 && rw <= 500) rightPanelWidth = rw;
+			}
+		} catch (e) {
+			console.warn('Failed to load panel state from localStorage:', e);
+		}
+
+		// Load user settings FIRST to get preferred model
+		await loadUserSettings();
+
+		// Then load models (will respect the saved model preference)
+		await loadModels();
+
+		// Pre-warm the selected model immediately (non-blocking)
+		// This significantly reduces first-message latency for Ollama
+		if (selectedModel && activeProvider === 'ollama_local') {
+			warmupModel(selectedModel);
+		}
+
+		// Load other data in parallel
 		loadActiveNode();
 		loadContexts();
 		loadConversations();
 		loadProjects();
 		loadTeamMembers();
+		loadCommands(); // Load slash commands for autocomplete
+		checkWhisperStatus(); // Check if voice transcription is available
+
 		// Set artifact panel width to ~50% of available space (window width minus sidebars)
 		// Left sidebar is ~256px, chat sidebar is ~256px when open
 		const availableWidth = window.innerWidth - 256; // Subtract left sidebar
 		artifactPanelWidth = Math.floor(availableWidth / 2);
+
+		// Check for quick chat message from dock
+		checkForQuickChatMessage();
+
+		// Check for voice transcript from dock recording
+		checkForVoiceTranscript();
+
+		// Check for chat transfer from Spotlight
+		checkForSpotlightTransfer();
 	});
+
+	// Save panel state to localStorage when it changes
+	$effect(() => {
+		// Access the reactive values to track them
+		const state = {
+			rightPanelOpen,
+			rightPanelTab,
+			rightPanelWidth
+		};
+		// Only save after initial mount
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('chat_panel_state', JSON.stringify(state));
+		}
+	});
+
+	// Handle chat transfer from Spotlight popup
+	function checkForSpotlightTransfer() {
+		const transferData = sessionStorage.getItem('spotlightChatTransfer');
+		if (transferData) {
+			try {
+				const data = JSON.parse(transferData);
+				sessionStorage.removeItem('spotlightChatTransfer');
+
+				console.log('[Chat] Received transfer from Spotlight:', data);
+
+				// If there's a conversation ID, load it
+				if (data.conversationId) {
+					conversationId = data.conversationId;
+					activeConversationId = data.conversationId;
+					selectConversation(data.conversationId);
+				} else if (data.messages && data.messages.length > 0) {
+					// If no conversation ID but has messages, display them
+					messages = data.messages.map((m: { role: string; content: string }, i: number) => ({
+						id: `spotlight-${i}`,
+						role: m.role as 'user' | 'assistant',
+						content: m.content
+					}));
+				}
+
+				// Set the project if provided
+				if (data.projectId) {
+					selectedProjectId = data.projectId;
+				}
+			} catch (e) {
+				console.error('Failed to parse spotlight transfer data:', e);
+			}
+		}
+	}
+
+	// Handle quick chat message from dock
+	async function checkForQuickChatMessage() {
+		const quickChatData = sessionStorage.getItem('quickChatMessage');
+		if (quickChatData) {
+			try {
+				const data = JSON.parse(quickChatData);
+				// Clear the sessionStorage immediately to prevent re-processing
+				sessionStorage.removeItem('quickChatMessage');
+
+				// Check if message is recent (within last 5 seconds)
+				if (Date.now() - data.timestamp < 5000) {
+					// Start a new conversation with this message
+					if (data.isNewConversation) {
+						startNewConversation();
+					}
+
+					// Set project if provided
+					if (data.projectId) {
+						selectedProjectId = data.projectId;
+					}
+
+					// Set model if provided
+					if (data.model) {
+						selectedModel = data.model;
+					}
+
+					// Set the input value and send
+					inputValue = data.message;
+
+					// Wait for the input to be set, then send
+					await tick();
+					handleSendMessage();
+				}
+			} catch (e) {
+				console.error('Failed to parse quick chat message:', e);
+			}
+		}
+	}
+
+	// Handle voice transcript from dock recording
+	function checkForVoiceTranscript() {
+		const transcriptData = sessionStorage.getItem('voiceTranscript');
+		if (transcriptData) {
+			try {
+				const data = JSON.parse(transcriptData);
+				// Clear the sessionStorage immediately to prevent re-processing
+				sessionStorage.removeItem('voiceTranscript');
+
+				// Check if transcript is recent (within last 10 seconds - transcription can take a bit)
+				if (Date.now() - data.timestamp < 10000) {
+					// Route to appropriate input based on mode
+					if (focusModeEnabled && !conversationId) {
+						// Focus mode - pass to FocusModeSelector
+						focusModeInitialInput = data.message;
+						// Clear after a short delay so it can be re-used
+						setTimeout(() => { focusModeInitialInput = ''; }, 500);
+					} else {
+						// Classic mode or in conversation - use regular input
+						inputValue = data.message;
+						// Focus the input after a short delay
+						setTimeout(() => {
+							inputRef?.focus();
+						}, 100);
+					}
+				}
+			} catch (e) {
+				console.error('Failed to parse voice transcript:', e);
+			}
+		}
+	}
 
 	// Load artifacts
 	async function loadArtifacts() {
@@ -599,64 +1105,273 @@ Use this context to inform your responses.`;
 	}
 
 	// Load artifacts when panel opens
-	$effect(() => {
-		if (artifactsPanelOpen) {
-			loadArtifacts();
-		}
-	});
+	// (handled by artifactsLoadedOnce effect above)
 
-	// Available models
+	// Available models - loaded from API
+	// Capabilities: vision (image analysis), tools (function calling), coding, reasoning, rag (embedding/indexing), multilingual
+	type ModelCapability = 'vision' | 'tools' | 'coding' | 'reasoning' | 'rag' | 'multilingual' | 'fast';
+
 	interface ModelOption {
 		id: string;
 		name: string;
 		description: string;
 		type: 'cloud' | 'local';
+		size?: string;
+		capabilities?: ModelCapability[];
 	}
 
-	const models: ModelOption[] = [
-		// Cloud models (via Ollama Cloud API)
-		{ id: 'qwen3-coder:480b-cloud', name: 'Qwen3 Coder 480B', description: 'Best for coding tasks (Cloud)', type: 'cloud' },
-		{ id: 'gpt-4o', name: 'GPT-4o', description: 'OpenAI flagship model', type: 'cloud' },
-		{ id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast & affordable', type: 'cloud' },
-		{ id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', description: 'Anthropic balanced model', type: 'cloud' },
-		{ id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku', description: 'Fast & efficient', type: 'cloud' },
-		// Local models (requires local Ollama)
-		{ id: 'qwen3:latest', name: 'Qwen 3', description: 'Latest Qwen 3 model', type: 'local' },
-		{ id: 'qwen3:32b', name: 'Qwen 3 32B', description: 'Large Qwen 3 model', type: 'local' },
-		{ id: 'qwen3:8b', name: 'Qwen 3 8B', description: 'Medium Qwen 3 model', type: 'local' },
-		{ id: 'qwen3-coder:latest', name: 'Qwen3 Coder', description: 'Best for coding', type: 'local' },
-		{ id: 'qwen3-coder:30b', name: 'Qwen3 Coder 30B', description: 'Large coding model', type: 'local' },
-		{ id: 'qwen2.5:latest', name: 'Qwen 2.5', description: 'Previous gen Qwen', type: 'local' },
-		{ id: 'qwen2.5:7b', name: 'Qwen 2.5 7B', description: 'Fast general purpose', type: 'local' },
-		{ id: 'qwen2.5:32b', name: 'Qwen 2.5 32B', description: 'Large Qwen 2.5', type: 'local' },
-		{ id: 'llama3.3:latest', name: 'Llama 3.3', description: 'Meta latest model', type: 'local' },
-		{ id: 'llama3.3:70b', name: 'Llama 3.3 70B', description: 'Meta large model', type: 'local' },
-		{ id: 'llama3.2:latest', name: 'Llama 3.2', description: 'Meta efficient model', type: 'local' },
-		{ id: 'llama3.2:3b', name: 'Llama 3.2 3B', description: 'Ultra fast & light', type: 'local' },
-		{ id: 'llama3.1:latest', name: 'Llama 3.1', description: 'Meta previous gen', type: 'local' },
-		{ id: 'llama3.1:70b', name: 'Llama 3.1 70B', description: 'Large Llama 3.1', type: 'local' },
-		{ id: 'deepseek-r1:latest', name: 'DeepSeek R1', description: 'Reasoning model', type: 'local' },
-		{ id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B', description: 'Large reasoning', type: 'local' },
-		{ id: 'deepseek-coder:latest', name: 'DeepSeek Coder', description: 'Coding specialist', type: 'local' },
-		{ id: 'deepseek-coder-v2:latest', name: 'DeepSeek Coder V2', description: 'Latest coding model', type: 'local' },
-		{ id: 'codellama:latest', name: 'Code Llama', description: 'Meta coding model', type: 'local' },
-		{ id: 'codellama:34b', name: 'Code Llama 34B', description: 'Large Code Llama', type: 'local' },
-		{ id: 'mistral:latest', name: 'Mistral', description: 'Mistral AI model', type: 'local' },
-		{ id: 'mixtral:latest', name: 'Mixtral 8x7B', description: 'MoE model', type: 'local' },
-		{ id: 'gemma2:latest', name: 'Gemma 2', description: 'Google model', type: 'local' },
-		{ id: 'gemma2:27b', name: 'Gemma 2 27B', description: 'Large Gemma', type: 'local' },
-		{ id: 'phi3:latest', name: 'Phi 3', description: 'Microsoft model', type: 'local' },
-		{ id: 'phi3:14b', name: 'Phi 3 14B', description: 'Medium Phi 3', type: 'local' },
-		{ id: 'starcoder2:latest', name: 'StarCoder 2', description: 'Code generation', type: 'local' },
-		{ id: 'yi:latest', name: 'Yi', description: '01.AI model', type: 'local' },
-		{ id: 'yi:34b', name: 'Yi 34B', description: 'Large Yi model', type: 'local' },
-		{ id: 'command-r:latest', name: 'Command R', description: 'Cohere model', type: 'local' },
-		{ id: 'neural-chat:latest', name: 'Neural Chat', description: 'Intel optimized', type: 'local' },
-		{ id: 'dolphin-mixtral:latest', name: 'Dolphin Mixtral', description: 'Uncensored MoE', type: 'local' },
-	];
+	// Capability badge colors and labels
+	const capabilityInfo: Record<ModelCapability, { label: string; color: string; icon: string }> = {
+		vision: { label: 'Vision', color: 'bg-purple-100 text-purple-700', icon: '👁️' },
+		tools: { label: 'Tools', color: 'bg-blue-100 text-blue-700', icon: '🔧' },
+		coding: { label: 'Code', color: 'bg-green-100 text-green-700', icon: '💻' },
+		reasoning: { label: 'Reasoning', color: 'bg-orange-100 text-orange-700', icon: '🧠' },
+		rag: { label: 'RAG', color: 'bg-cyan-100 text-cyan-700', icon: '📚' },
+		multilingual: { label: 'Multi-lang', color: 'bg-pink-100 text-pink-700', icon: '🌐' },
+		fast: { label: 'Fast', color: 'bg-yellow-100 text-yellow-700', icon: '⚡' },
+	};
 
-	const cloudModels = models.filter(m => m.type === 'cloud');
-	const localModels = models.filter(m => m.type === 'local');
+	// Dynamic model state
+	let installedModels = $state<ModelOption[]>([]);
+	let loadingModels = $state(false);
+	let activeProvider = $state('ollama_local');
+	// Track which cloud providers are configured (have API keys set)
+	let configuredProviders = $state<Set<string>>(new Set());
+	// Track models that have been warmed up (completed at least one inference)
+	// Persist in localStorage so it survives page reloads
+	let warmedUpModels = $state<Set<string>>(
+		typeof window !== 'undefined' && localStorage.getItem('warmedUpModels')
+			? new Set(JSON.parse(localStorage.getItem('warmedUpModels') || '[]'))
+			: new Set()
+	);
+
+	// Detect capabilities for local models based on model ID
+	function getModelCapabilities(modelId: string): ModelCapability[] {
+		const id = modelId.toLowerCase();
+		const caps: ModelCapability[] = [];
+
+		// Vision models
+		if (id.includes('vision') || id.includes('llava') || id.includes('minicpm-v') || id.includes('bakllava') || id.includes('moondream')) {
+			caps.push('vision');
+		}
+
+		// Coding models
+		if (id.includes('code') || id.includes('coder') || id.includes('deepseek') || id.includes('qwen3-coder') || id.includes('starcoder') || id.includes('codellama')) {
+			caps.push('coding');
+		}
+
+		// Reasoning models
+		if (id.includes('deepseek-r1') || id.includes('o1') || id.includes('reasoning') || id.includes(':70b') || id.includes(':72b') || id.includes(':480b')) {
+			caps.push('reasoning');
+		}
+
+		// Tool-capable models (most modern models support tools)
+		if (id.includes('qwen') || id.includes('llama3') || id.includes('mistral') || id.includes('claude') || id.includes('gpt')) {
+			caps.push('tools');
+		}
+
+		// Multilingual models
+		if (id.includes('qwen') || id.includes('aya') || id.includes('multilingual')) {
+			caps.push('multilingual');
+		}
+
+		// Embedding/RAG models
+		if (id.includes('embed') || id.includes('nomic') || id.includes('mxbai') || id.includes('bge') || id.includes('e5')) {
+			caps.push('rag');
+		}
+
+		// Fast models (small sizes)
+		if (id.includes(':1b') || id.includes(':3b') || id.includes(':4b') || id.includes('instant') || id.includes('mini') || id.includes('tiny')) {
+			caps.push('fast');
+		}
+
+		return caps;
+	}
+
+	// Get a nice description for installed models
+	function getModelDescription(modelId: string, family?: string): string {
+		const id = modelId.toLowerCase();
+		// Match by model family/name
+		if (id.includes('llama3.2-vision')) return 'Multimodal vision model';
+		if (id.includes('llama3.2')) return 'Fast and capable, great all-rounder';
+		if (id.includes('llama3.1')) return 'Powerful general purpose model';
+		if (id.includes('llama3.3')) return 'Latest Llama, best quality';
+		if (id.includes('llama')) return 'Meta AI general purpose';
+		if (id.includes('mistral')) return 'Excellent for general tasks';
+		if (id.includes('mixtral')) return 'MoE model, very capable';
+		if (id.includes('codellama')) return 'Optimized for code tasks';
+		if (id.includes('deepseek-coder') || id.includes('deepseek:coder')) return 'Strong coding assistant';
+		if (id.includes('deepseek-r1')) return 'Advanced reasoning model';
+		if (id.includes('deepseek')) return 'Capable reasoning model';
+		if (id.includes('qwen3-coder')) return 'Qwen coding specialist';
+		if (id.includes('qwen2.5') || id.includes('qwen2')) return 'Strong reasoning and math';
+		if (id.includes('qwen3')) return 'Latest Qwen, very capable';
+		if (id.includes('qwen')) return 'Alibaba multilingual model';
+		if (id.includes('llava')) return 'Vision-language model';
+		if (id.includes('minicpm-v')) return 'Efficient vision model';
+		if (id.includes('nomic-embed') || id.includes('mxbai-embed')) return 'Embedding model for RAG';
+		if (id.includes('phi3') || id.includes('phi-3')) return 'Microsoft efficient model';
+		if (id.includes('phi')) return 'Microsoft small but capable';
+		if (id.includes('gemma2') || id.includes('gemma:2')) return 'Google efficient model';
+		if (id.includes('gemma')) return 'Google lightweight model';
+		if (id.includes('llava')) return 'Vision + Language multimodal';
+		if (id.includes('bakllava')) return 'Vision model for images';
+		if (id.includes('vicuna')) return 'Fine-tuned for chat';
+		if (id.includes('wizard')) return 'Instruction-following model';
+		if (id.includes('openchat')) return 'Optimized for conversation';
+		if (id.includes('neural-chat')) return 'Intel optimized chat';
+		if (id.includes('starling')) return 'Strong reasoning ability';
+		if (id.includes('yi')) return '01.AI bilingual model';
+		if (id.includes('command')) return 'Cohere instruction model';
+		if (id.includes('dolphin')) return 'Uncensored assistant';
+		if (id.includes('orca')) return 'Reasoning focused model';
+		if (id.includes('nous')) return 'Research-focused model';
+		if (id.includes('solar')) return 'Upstage efficient model';
+		if (id.includes('zephyr')) return 'HuggingFace chat model';
+		if (family) return family;
+		return 'Local AI model';
+	}
+
+	// Cloud models for configured providers with capabilities
+	const cloudModelsMap: Record<string, ModelOption[]> = {
+		groq: [
+			{ id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B', description: 'Fast 70B model', type: 'cloud', capabilities: ['tools', 'coding', 'fast'] },
+			{ id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B', description: 'Ultra-fast', type: 'cloud', capabilities: ['fast'] },
+			{ id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: '32k context', type: 'cloud', capabilities: ['coding', 'fast'] },
+		],
+		anthropic: [
+			{ id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', description: 'Best for most tasks', type: 'cloud', capabilities: ['vision', 'tools', 'coding', 'reasoning'] },
+			{ id: 'claude-opus-4-20250514', name: 'Claude Opus 4', description: 'Most capable', type: 'cloud', capabilities: ['vision', 'tools', 'coding', 'reasoning'] },
+		],
+		ollama_cloud: [
+			// Qwen 3 Coder models (cloud variants for agentic/coding tasks)
+			{ id: 'qwen3-coder:480b-cloud', name: 'Qwen3 Coder 480B', description: '480B cloud - best quality', type: 'cloud', capabilities: ['tools', 'coding', 'reasoning', 'multilingual'] },
+			{ id: 'qwen3-coder:30b', name: 'Qwen3 Coder 30B', description: '30B coding model', type: 'cloud', capabilities: ['tools', 'coding', 'multilingual'] },
+			// Qwen 3 standard models
+			{ id: 'qwen3:4b', name: 'Qwen3 4B', description: 'Fast, efficient', type: 'cloud', capabilities: ['fast', 'multilingual'] },
+			{ id: 'qwen3:8b', name: 'Qwen3 8B', description: 'Balanced performance', type: 'cloud', capabilities: ['tools', 'multilingual'] },
+			{ id: 'qwen3:14b', name: 'Qwen3 14B', description: 'Capable mid-size', type: 'cloud', capabilities: ['tools', 'coding', 'multilingual'] },
+			{ id: 'qwen3:30b', name: 'Qwen3 30B', description: 'Large model', type: 'cloud', capabilities: ['tools', 'coding', 'reasoning', 'multilingual'] },
+			{ id: 'qwen3:32b', name: 'Qwen3 32B', description: 'Large model', type: 'cloud', capabilities: ['tools', 'coding', 'reasoning', 'multilingual'] },
+			// Llama models
+			{ id: 'llama3.3:70b', name: 'Llama 3.3 70B', description: 'Latest Llama model', type: 'cloud', capabilities: ['tools', 'coding', 'reasoning'] },
+			{ id: 'llama3.2', name: 'Llama 3.2', description: 'Fast Llama model', type: 'cloud', capabilities: ['fast', 'tools'] },
+			{ id: 'llama3.2-vision', name: 'Llama 3.2 Vision', description: 'Multimodal Llama', type: 'cloud', capabilities: ['vision', 'tools'] },
+			// DeepSeek models
+			{ id: 'deepseek-r1:671b', name: 'DeepSeek R1 671B', description: 'Full reasoning - cloud', type: 'cloud', capabilities: ['reasoning', 'coding', 'tools'] },
+			{ id: 'deepseek-r1:70b', name: 'DeepSeek R1 70B', description: 'Reasoning model', type: 'cloud', capabilities: ['reasoning', 'coding'] },
+			{ id: 'deepseek-r1:32b', name: 'DeepSeek R1 32B', description: 'Compact reasoning', type: 'cloud', capabilities: ['reasoning', 'coding', 'fast'] },
+			// Vision models
+			{ id: 'llava:34b', name: 'LLaVA 34B', description: 'Vision-language model', type: 'cloud', capabilities: ['vision'] },
+			{ id: 'minicpm-v', name: 'MiniCPM-V', description: 'Efficient vision model', type: 'cloud', capabilities: ['vision', 'fast'] },
+			// Embedding/RAG models
+			{ id: 'nomic-embed-text', name: 'Nomic Embed', description: 'Text embeddings for RAG', type: 'cloud', capabilities: ['rag'] },
+			{ id: 'mxbai-embed-large', name: 'MxBai Embed Large', description: 'High-quality embeddings', type: 'cloud', capabilities: ['rag'] },
+			// Mistral
+			{ id: 'mistral', name: 'Mistral', description: 'Mistral AI model', type: 'cloud', capabilities: ['tools', 'coding', 'fast'] },
+		]
+	};
+
+	// Load actual models from API
+	async function loadModels() {
+		loadingModels = true;
+		try {
+			// Get provider info
+			const providersRes = await apiClient.get('/ai/providers');
+			if (providersRes.ok) {
+				const data = await providersRes.json();
+				activeProvider = data.active_provider || 'ollama_local';
+
+				// Track which cloud providers are configured (have API keys)
+				const configured = new Set<string>();
+				for (const provider of data.providers || []) {
+					if (provider.configured && provider.id !== 'ollama_local') {
+						configured.add(provider.id);
+					}
+				}
+				configuredProviders = configured;
+			}
+
+			// Get local models
+			const localRes = await apiClient.get('/ai/models/local');
+			if (localRes.ok) {
+				const data = await localRes.json();
+				// Filter out cloud reference models (they have "cloud" in the name and are tiny stubs)
+				installedModels = (data.models || [])
+					.filter((m: any) => {
+						const nameOrId = (m.id || '') + (m.name || '');
+						const isCloudRef = nameOrId.toLowerCase().includes('cloud') &&
+							(m.size === '< 1 KB' || m.size === '0 B' || !m.size);
+						return !isCloudRef;
+					})
+					.map((m: any) => ({
+						id: m.id,
+						name: m.name,
+						description: getModelDescription(m.id, m.family),
+						type: 'local' as const,
+						size: m.size
+					}));
+			}
+
+			// Build the combined list of all available models (local + configured cloud)
+			const allAvailableModels: ModelOption[] = [...installedModels];
+			for (const provider of configuredProviders) {
+				const providerModels = cloudModelsMap[provider] || [];
+				allAvailableModels.push(...providerModels);
+			}
+
+			// Set default model based on provider ONLY if no model is selected
+			// (selectedModel might be set from user settings)
+			if (!selectedModel || selectedModel === '') {
+				// Prefer local models if available, otherwise use first cloud model
+				if (installedModels.length > 0) {
+					selectedModel = installedModels[0].id;
+					saveModelPreference(selectedModel); // Save the default
+				} else if (allAvailableModels.length > 0) {
+					selectedModel = allAvailableModels[0].id;
+					saveModelPreference(selectedModel); // Save the default
+				}
+			} else {
+				// Validate that the saved model still exists in combined list
+				if (!allAvailableModels.some(m => m.id === selectedModel)) {
+					console.warn('[Chat] Saved model "' + selectedModel + '" not available, resetting to default');
+					const oldModel = selectedModel;
+					if (installedModels.length > 0) {
+						selectedModel = installedModels[0].id;
+					} else if (allAvailableModels.length > 0) {
+						selectedModel = allAvailableModels[0].id;
+					}
+					// Save the corrected model to prevent this from happening again
+					if (selectedModel !== oldModel) {
+						saveModelPreference(selectedModel);
+					}
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load models:', error);
+		} finally {
+			loadingModels = false;
+		}
+	}
+
+	// Derived: combine local models with cloud models from all configured providers
+	let models = $derived.by(() => {
+		// Always include installed local models
+		const allModels: ModelOption[] = [...installedModels];
+
+		// Add cloud models from all configured providers
+		for (const provider of configuredProviders) {
+			const providerModels = cloudModelsMap[provider] || [];
+			// Add provider tag to each model for identification
+			for (const model of providerModels) {
+				allModels.push({
+					...model
+				});
+			}
+		}
+
+		return allModels;
+	});
 
 	// Sidebar conversations
 	interface SidebarConversation {
@@ -664,6 +1379,8 @@ Use this context to inform your responses.`;
 		title: string;
 		timestamp: string;
 		pinned?: boolean;
+		project_id?: string;
+		project_name?: string;
 	}
 
 	let conversations: SidebarConversation[] = $state([]);
@@ -733,6 +1450,117 @@ Use this context to inform your responses.`;
 	let hasConversation = $derived(messages.length > 0 || loadingConversation);
 	let currentModelName = $derived(models.find(m => m.id === selectedModel)?.name ?? selectedModel);
 
+	// Context window limits for different models (in tokens)
+	const modelContextLimits: Record<string, number> = {
+		// Ollama local models
+		'llama3.2': 128000,
+		'llama3.2:1b': 128000,
+		'llama3.2:3b': 128000,
+		'llama3.1': 128000,
+		'llama3.1:8b': 128000,
+		'llama3.1:70b': 128000,
+		'llama3': 8192,
+		'mistral': 32768,
+		'mistral:7b': 32768,
+		'codellama': 16384,
+		'qwen2.5': 128000,
+		'qwen2.5:7b': 128000,
+		'qwen2.5:14b': 128000,
+		'qwen2.5:32b': 128000,
+		'qwen3': 40960,
+		'qwen3:0.6b': 32768,
+		'qwen3:1.7b': 32768,
+		'qwen3:4b': 32768,
+		'qwen3:8b': 40960,
+		'qwen3:14b': 40960,
+		'qwen3:30b': 40960,
+		'qwen3:32b': 40960,
+		'qwen3:235b': 40960,
+		'qwen3:480b': 40960,
+		'phi3': 128000,
+		'gemma2': 8192,
+		'deepseek-coder': 16384,
+		'deepseek-r1': 128000,
+		// Cloud models
+		'gpt-4': 8192,
+		'gpt-4-turbo': 128000,
+		'gpt-4o': 128000,
+		'gpt-3.5-turbo': 16384,
+		'claude-3-opus': 200000,
+		'claude-3-sonnet': 200000,
+		'claude-3-haiku': 200000,
+		'llama-3.2-3b-preview': 128000,
+		'llama-3.2-11b-vision-preview': 128000,
+		'llama-3.2-90b-vision-preview': 128000,
+	};
+
+	// Get context limit for current model (default to 8192 if unknown)
+	let currentContextLimit = $derived(() => {
+		// Try exact match first
+		if (modelContextLimits[selectedModel]) {
+			return modelContextLimits[selectedModel];
+		}
+		// Try to match base model name (e.g., "llama3.2:latest" -> "llama3.2")
+		const baseModel = selectedModel.split(':')[0];
+		if (modelContextLimits[baseModel]) {
+			return modelContextLimits[baseModel];
+		}
+		// Check if model name contains a known model
+		for (const [key, limit] of Object.entries(modelContextLimits)) {
+			if (selectedModel.toLowerCase().includes(key.toLowerCase())) {
+				return limit;
+			}
+		}
+		return 8192; // Conservative default
+	});
+
+	// Calculate message tokens
+	let messageTokens = $derived(() => {
+		return messages.reduce((total, msg) => {
+			if (msg.usage?.total_tokens) {
+				return total + msg.usage.total_tokens;
+			}
+			// Estimate tokens for messages without usage data (rough estimate: ~4 chars per token)
+			return total + Math.ceil(msg.content.length / 4);
+		}, 0);
+	});
+
+	// Calculate node context tokens (from active node)
+	let nodeContextTokens = $derived(() => {
+		if (!nodeContextPrompt) return 0;
+		// Estimate: ~4 chars per token
+		return Math.ceil(nodeContextPrompt.length / 4);
+	});
+
+	// Calculate selected context tokens (from word count, ~1.3 tokens per word)
+	let contextDocTokens = $derived(() => {
+		if (selectedContexts.length === 0) return 0;
+		const totalWords = selectedContexts.reduce((sum, ctx) => sum + (ctx.word_count || 0), 0);
+		return Math.ceil(totalWords * 1.3);
+	});
+
+	// Calculate total tokens used in conversation (including context)
+	let totalConversationTokens = $derived(() => {
+		return messageTokens() + nodeContextTokens() + contextDocTokens();
+	});
+
+	// Calculate context usage percentage
+	let contextUsagePercent = $derived(() => {
+		const limit = currentContextLimit();
+		const used = totalConversationTokens();
+		return Math.min(100, Math.round((used / limit) * 100));
+	});
+
+	// Format token count for display (e.g., 1.5K, 128K)
+	function formatTokenCount(tokens: number): string {
+		if (tokens >= 1000000) {
+			return (tokens / 1000000).toFixed(1) + 'M';
+		} else if (tokens >= 1000) {
+			return (tokens / 1000).toFixed(tokens >= 10000 ? 0 : 1) + 'K';
+		}
+		return tokens.toString();
+	}
+
 	// Typewriter effect for suggestions
 	$effect(() => {
 		if (hasConversation) return; // Don't run when there's a conversation
@@ -796,6 +1624,17 @@ Use this context to inform your responses.`;
 		activeConversationId = null;
 	}
 
+	// Handle context toggle from Context panel
+	function handleContextToggle(contextId: string, selected: boolean) {
+		if (selected) {
+			if (!selectedContextIds.includes(contextId)) {
+				selectedContextIds = [...selectedContextIds, contextId];
+			}
+		} else {
+			selectedContextIds = selectedContextIds.filter(id => id !== contextId);
+		}
+	}
+
 	// Load conversations from API
 	async function loadConversations() {
 		try {
@@ -815,6 +1654,10 @@ Use this context to inform your responses.`;
 	function parseArtifactsFromContent(content: string): { cleanContent: string; artifacts: { title: string; type: string; content: string }[] } {
 		const artifacts: { title: string; type: string; content: string }[] = [];
 		let cleanContent = content;
+
+		// Remove [DELEGATE:AgentName] tags and orchestrator context lines
+		cleanContent = cleanContent.replace(/\[DELEGATE:\w+\]\s*/gi, '');
+		cleanContent = cleanContent.replace(/^(Task|Context|Orchestrator context):\s*.*$/gim, '');
 
 		// Find all artifact blocks
 		const artifactRegex = /```artifact\s*\n([\s\S]*?)\n```/g;
@@ -839,12 +1682,42 @@ Use this context to inform your responses.`;
 		}
 
 		// Remove artifact blocks from displayed content
-		cleanContent = content.replace(/```artifact\s*\n[\s\S]*?\n```/g, '').trim();
+		cleanContent = cleanContent.replace(/```artifact\s*\n[\s\S]*?\n```/g, '').trim();
+
+		// Auto-detect document-like content and wrap as artifact
+		// Detect if content looks like a structured document (has headings and sections)
+		const hasHeadings = /^#{1,3}\s+.+$|^[IVX]+\.\s+.+$|^\d+\.\s+[A-Z]/m.test(cleanContent);
+		const hasMultipleSections = (cleanContent.match(/^(?:#{1,3}\s+|[IVX]+\.\s+|\d+\.\s+[A-Z])/gm) || []).length >= 2;
+		const isLongContent = cleanContent.length > 500;
+
+		if (artifacts.length === 0 && hasHeadings && hasMultipleSections && isLongContent) {
+			// Extract title from first heading or first line
+			const titleMatch = cleanContent.match(/^#{1,3}\s+(.+)$/m) ||
+			                   cleanContent.match(/^(?:Task:\s*)?(.+?)(?:\n|$)/);
+			const title = titleMatch ? titleMatch[1].trim().replace(/^(Create|Write|Draft|Make)\s+(a\s+)?/i, '') : 'Generated Document';
+
+			// Detect type from content
+			let type = 'document';
+			const lowerContent = cleanContent.toLowerCase();
+			if (lowerContent.includes('standard operating procedure') || lowerContent.includes('sop')) type = 'sop';
+			else if (lowerContent.includes('proposal')) type = 'proposal';
+			else if (lowerContent.includes('framework')) type = 'framework';
+			else if (lowerContent.includes('plan') || lowerContent.includes('roadmap')) type = 'plan';
+			else if (lowerContent.includes('report') || lowerContent.includes('analysis')) type = 'report';
+
+			artifacts.push({
+				title: title.substring(0, 100),
+				type,
+				content: cleanContent
+			});
+			cleanContent = ''; // Hide the raw content since we wrapped it as artifact
+		}
 
 		return { cleanContent, artifacts };
 	}
 
 	async function selectConversation(id: string) {
+		console.log('[selectConversation] Starting with id:', id);
 		activeConversationId = id;
 		conversationId = id;
 		loadingConversation = true;
@@ -853,41 +1726,313 @@ Use this context to inform your responses.`;
 		// Load conversation messages from backend
 		try {
 			const conv = await api.getConversation(id);
-			console.log('[selectConversation] Loaded conversation:', conv.id, 'with', conv.messages.length, 'messages');
+			console.log('[selectConversation] Loaded conversation:', conv);
+			console.log('[selectConversation] Messages count:', conv.messages?.length ?? 0);
+
+			if (!conv.messages || !Array.isArray(conv.messages)) {
+				console.error('[selectConversation] No messages array in response');
+				messages = [];
+				return;
+			}
 
 			messages = conv.messages.map(m => {
+				console.log('[selectConversation] Processing message:', m.id, m.role);
 				if (m.role === 'assistant') {
 					// Parse artifacts from assistant messages
-					const hasArtifactBlock = m.content.includes('```artifact');
-					console.log('[selectConversation] Assistant message', m.id, 'has artifact block:', hasArtifactBlock);
+					const hasArtifactBlock = m.content?.includes('```artifact') ?? false;
 					if (hasArtifactBlock) {
 						console.log('[selectConversation] Content preview:', m.content.substring(0, 500));
 					}
 
-					const { cleanContent, artifacts } = parseArtifactsFromContent(m.content);
-					console.log('[selectConversation] Parsed artifacts:', artifacts.length, 'artifacts found');
+					const { cleanContent, artifacts } = parseArtifactsFromContent(m.content || '');
 
 					return {
-						id: m.id,
+						id: String(m.id),
 						role: m.role as 'user' | 'assistant',
 						content: cleanContent,
 						artifacts: artifacts.length > 0 ? artifacts : undefined
 					};
 				}
 				return {
-					id: m.id,
+					id: String(m.id),
 					role: m.role as 'user' | 'assistant',
-					content: m.content
+					content: m.content || ''
 				};
 			});
+
+			console.log('[selectConversation] Final messages state:', messages.length, 'messages');
 
 			// Load artifacts for this conversation
 			loadArtifacts();
 		} catch (e) {
-			console.error('Failed to load conversation:', e);
+			console.error('[selectConversation] Failed to load conversation:', e);
+			messages = [];
 		} finally {
 			loadingConversation = false;
 		}
+	}
+
+	// File attachment handlers
+	function handleFileSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const files = input.files;
+		if (!files) return;
+
+		for (const file of Array.from(files)) {
+			// Check file size (max 10MB)
+			if (file.size > 10 * 1024 * 1024) {
+				alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+				continue;
+			}
+
+			const newFile: AttachedFile = {
+				id: crypto.randomUUID(),
+				name: file.name,
+				type: file.type,
+				size: file.size
+			};
+
+			// For images, convert to base64
+			if (file.type.startsWith('image/')) {
+				const reader = new FileReader();
+				reader.onload = () => {
+					const base64 = reader.result as string;
+					newFile.content = base64;
+					attachedFiles = [...attachedFiles, newFile];
+				};
+				reader.readAsDataURL(file);
+			} else {
+				attachedFiles = [...attachedFiles, newFile];
+			}
+		}
+
+		// Reset input
+		if (fileInputRef) fileInputRef.value = '';
+	}
+
+	function removeAttachedFile(fileId: string) {
+		attachedFiles = attachedFiles.filter(f => f.id !== fileId);
+	}
+
+	function formatFileSize(bytes: number): string {
+		if (bytes < 1024) return bytes + ' B';
+		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+	}
+
+	function startNewConversation() {
+		conversationId = null;
+		activeConversationId = null;
+		messages = [];
+		attachedFiles = [];
+		inputValue = '';
+		showPlusMenu = false;
+	}
+
+	// Voice recording functions
+	async function checkWhisperStatus() {
+		try {
+			const response = await apiClient.get('/transcribe/status');
+			if (response.ok) {
+				const data = await response.json();
+				whisperAvailable = data.available;
+			}
+		} catch (error) {
+			console.error('Failed to check whisper status:', error);
+			whisperAvailable = false;
+		}
+	}
+
+	async function toggleRecording() {
+		if (isRecording) {
+			stopRecording();
+		} else {
+			await startRecording();
+		}
+	}
+
+	async function startRecording() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaRecorder = new MediaRecorder(stream);
+			audioChunks = [];
+			liveTranscript = '';
+
+			// Set up audio analyzer for waveform visualization
+			audioContext = new AudioContext();
+			analyser = audioContext.createAnalyser();
+			analyser.fftSize = 256;
+			analyser.smoothingTimeConstant = 0.3;
+			const source = audioContext.createMediaStreamSource(stream);
+			source.connect(analyser);
+			audioDataArray = new Uint8Array(analyser.fftSize) as Uint8Array<ArrayBuffer>;
+
+			// Start waveform animation using time domain data (actual waveform)
+			function updateWaveform() {
+				if (!analyser || !audioDataArray) {
+					animationFrameId = requestAnimationFrame(updateWaveform);
+					return;
+				}
+
+				// Get time domain data (actual audio waveform, not frequency)
+				analyser.getByteTimeDomainData(audioDataArray);
+
+				// Sample 40 points from the waveform
+				const bars: number[] = [];
+				const step = Math.floor(audioDataArray.length / 40);
+				for (let i = 0; i < 40; i++) {
+					// Time domain data is centered at 128 (silence)
+					// Values go from 0-255, with 128 being center
+					const value = audioDataArray[i * step] || 128;
+					// Calculate deviation from center (0-128 range)
+					const deviation = Math.abs(value - 128);
+					// Scale to 2-24 pixels height (amplify for visibility)
+					const height = Math.max(2, Math.min(24, 2 + (deviation / 128) * 44));
+					bars.push(height);
+				}
+				waveformBars = bars;
+				animationFrameId = requestAnimationFrame(updateWaveform);
+			}
+			// Start animation immediately
+			animationFrameId = requestAnimationFrame(updateWaveform);
+
+			// Set up Web Speech API for live transcription
+			const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+			if (SpeechRecognitionAPI) {
+				speechRecognition = new SpeechRecognitionAPI();
+				speechRecognition.continuous = true;
+				speechRecognition.interimResults = true;
+				speechRecognition.lang = 'en-US';
+
+				speechRecognition.onresult = (event: SpeechRecognitionEvent) => {
+					let interimTranscript = '';
+					let finalTranscript = '';
+
+					for (let i = event.resultIndex; i < event.results.length; i++) {
+						const transcript = event.results[i][0].transcript;
+						if (event.results[i].isFinal) {
+							finalTranscript += transcript;
+						} else {
+							interimTranscript += transcript;
+						}
+					}
+
+					// Show interim results immediately
+					liveTranscript = finalTranscript || interimTranscript;
+				};
+
+				speechRecognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+					console.log('Speech recognition error:', event.error);
+				};
+
+				speechRecognition.start();
+			}
+
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunks.push(event.data);
+			};
+
+			mediaRecorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+				// Use whisper for final accurate transcription
+				await transcribeAudio(audioBlob);
+				// Stop all tracks
+				stream.getTracks().forEach(track => track.stop());
+			};
+
+			mediaRecorder.start();
+			isRecording = true;
+			recordingDuration = 0;
+			recordingInterval = setInterval(() => {
+				recordingDuration++;
+			}, 1000);
+		} catch (error) {
+			console.error('Failed to start recording:', error);
+			alert('Could not access microphone. Please grant microphone permissions.');
+		}
+	}
+
+	function stopRecording() {
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+			isRecording = false;
+		}
+		if (recordingInterval) {
+			clearInterval(recordingInterval);
+			recordingInterval = null;
+		}
+
+		// Stop speech recognition
+		if (speechRecognition) {
+			speechRecognition.stop();
+			speechRecognition = null;
+		}
+
+		// Stop waveform animation
+		if (animationFrameId) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
+
+		// Close audio context
+		if (audioContext) {
+			audioContext.close();
+			audioContext = null;
+			analyser = null;
+			audioDataArray = null;
+		}
+
+		// Reset waveform
+		waveformBars = Array(40).fill(2);
+		recordingDuration = 0;
+	}
+
+	async function transcribeAudio(audioBlob: Blob) {
+		isTranscribing = true;
+		try {
+			const formData = new FormData();
+			formData.append('audio', audioBlob, 'recording.webm');
+
+			const response = await fetch('/api/transcribe', {
+				method: 'POST',
+				credentials: 'include',
+				body: formData
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.text) {
+					// Append transcribed text to input
+					inputValue = inputValue ? inputValue + ' ' + data.text : data.text;
+				}
+			} else {
+				const error = await response.json();
+				console.error('Transcription failed:', error.message);
+				// Show error as system message
+				messages = [...messages, {
+					id: crypto.randomUUID(),
+					role: 'assistant',
+					content: `Voice transcription failed: ${error.message || 'Unknown error'}. Make sure whisper.cpp is installed.`
+				}];
+			}
+		} catch (error) {
+			console.error('Transcription error:', error);
+			messages = [...messages, {
+				id: crypto.randomUUID(),
+				role: 'assistant',
+				content: 'Voice transcription requires whisper.cpp to be installed locally.'
+			}];
+		} finally {
+			isTranscribing = false;
+		}
+	}
+
+	// Handle Focus Mode submission
+	function handleFocusModeSubmit(message: string, focusMode: string | null, options: Record<string, string>) {
+		selectedFocusId = focusMode;
+		focusOptions = options;
+		inputValue = message;
+		handleSendMessage();
 	}
 
 	async function handleSendMessage() {
@@ -907,6 +2052,16 @@ Use this context to inform your responses.`;
 		artifactCompletedInStream = false;
 		showInlineTaskCreation = false;
 
+		// Parse slash commands (e.g., "/analyze what are the key trends?")
+		let command: string | undefined;
+		let messageContent = userMessage;
+		const commandMatch = userMessage.match(/^\/(\w+)(?:\s+(.*))?$/s);
+		if (commandMatch) {
+			command = commandMatch[1]; // e.g., "analyze", "summarize"
+			messageContent = commandMatch[2]?.trim() || userMessage; // The rest of the message
+			console.log('[Chat] Slash command detected:', command, 'Message:', messageContent);
+		}
+
 		// Add user message to UI
 		const userMsgId = crypto.randomUUID();
 		messages = [...messages, { id: userMsgId, role: 'user', content: userMessage }];
@@ -923,12 +2078,20 @@ Use this context to inform your responses.`;
 			// Note: The backend will load full context details (content, system_prompt_template)
 			// using the context_id, so we just pass the ID here
 			const requestBody: Record<string, unknown> = {
-				message: userMessage,
+				message: messageContent,
 				model: selectedModel,
 				conversation_id: conversationId,
 				project_id: selectedProjectId,
 				context_id: selectedContextIds.length > 0 ? selectedContextIds[0] : null,
 				context_ids: selectedContextIds.length > 0 ? selectedContextIds : undefined,
+				command: command, // Send slash command to backend
+				// AI model settings from user preferences
+				temperature: aiTemperature,
+				max_tokens: aiMaxTokens,
+				top_p: aiTopP,
+				// Focus Mode parameters
+				focus_mode: selectedFocusId,
+				focus_options: Object.keys(focusOptions).length > 0 ? focusOptions : undefined,
 			};
 
 			// Include node context if there's an active node
@@ -991,6 +2154,10 @@ Use this context to inform your responses.`;
 						generatingArtifact = true;
 						artifactsPanelOpen = true;
 
+						// Set panel to 50% width when artifact is generated
+						const availableWidth = window.innerWidth - 256; // Subtract left sidebar
+						artifactPanelWidth = Math.floor(availableWidth / 2);
+
 						// Get content before artifact block
 						const beforeArtifact = fullContent.split('```artifact')[0];
 						displayContent = beforeArtifact;
@@ -1017,22 +2184,31 @@ Use this context to inform your responses.`;
 								displayContent += '\n\n' + afterClosing.trim();
 							}
 
-							// Parse artifact for viewing
+							// Parse artifact for viewing and auto-save
 							try {
 								const artifactMatch = fullContent.match(/```artifact\s*\n([\s\S]*?)\n```/);
 								if (artifactMatch) {
 									const artifactData = JSON.parse(artifactMatch[1].trim());
 									if (artifactData.title && artifactData.type && artifactData.content) {
+										const processedContent = artifactData.content
+											.replace(/\\n/g, '\n')
+											.replace(/\\"/g, '"')
+											.replace(/\\\\/g, '\\');
+
 										viewingArtifactFromMessage = {
 											title: artifactData.title,
 											type: artifactData.type,
-											content: artifactData.content
-												.replace(/\\n/g, '\n')
-												.replace(/\\"/g, '"')
-												.replace(/\\\\/g, '\\')
+											content: processedContent
 										};
 										generatingArtifactTitle = artifactData.title;
 										generatingArtifactType = artifactData.type;
+
+										// Auto-save the artifact to database
+										autoSaveArtifact({
+											title: artifactData.title,
+											type: artifactData.type,
+											content: processedContent
+										});
 									}
 								}
 							} catch {
@@ -1090,6 +2266,38 @@ Use this context to inform your responses.`;
 				}
 			}
 
+			// Parse and extract usage data from the response
+			let usageData: UsageData | undefined;
+			// Flexible regex that matches any valid JSON object between usage markers
+			const usageRegex = /<!--USAGE:(\{[^}]+\})-->/;
+			const usageMatch = fullContent.match(usageRegex);
+			console.log('[Chat] Full content length:', fullContent.length);
+			console.log('[Chat] Last 300 chars:', fullContent.slice(-300));
+			console.log('[Chat] Usage match result:', usageMatch ? 'Found' : 'Not found');
+			if (usageMatch) {
+				try {
+					console.log('[Chat] Raw usage JSON:', usageMatch[1]);
+					usageData = JSON.parse(usageMatch[1]);
+					console.log('[Chat] Parsed usage data:', usageData);
+					// Remove usage comment from displayed content
+					fullContent = fullContent.replace(usageRegex, '').trim();
+					displayContent = displayContent.replace(usageRegex, '').trim();
+
+					// Update message with usage data - ensure this persists
+					messages = messages.map(msg =>
+						msg.id === assistantMsgId
+							? { ...msg, content: artifactStarted ? displayContent : fullContent, usage: usageData }
+							: msg
+					);
+					console.log('[Chat] Updated message with usage:', messages.find(m => m.id === assistantMsgId)?.usage);
+				} catch (e) {
+					console.error('Failed to parse usage data:', e, usageMatch[1]);
+				}
+			} else {
+				console.log('[Chat] No usage match found. Looking for USAGE marker...');
+				console.log('[Chat] Contains USAGE marker:', fullContent.includes('<!--USAGE:'));
+			}
+
 			// Check if the response contains artifact blocks - final cleanup
 			if (fullContent.includes('```artifact')) {
 				// Artifact was created - refresh artifacts list
@@ -1110,6 +2318,17 @@ Use this context to inform your responses.`;
 			generatingArtifactTitle = '';
 			generatingArtifactType = '';
 			generatingArtifactContent = '';
+
+			// Mark this model as warmed up (for Ollama local models)
+			if (activeProvider === 'ollama_local' && selectedModel && !warmedUpModels.has(selectedModel)) {
+				const newSet = new Set(warmedUpModels);
+				newSet.add(selectedModel);
+				warmedUpModels = newSet;
+				// Persist to localStorage
+				if (typeof window !== 'undefined') {
+					localStorage.setItem('warmedUpModels', JSON.stringify([...newSet]));
+				}
+			}
 		} catch (error: any) {
 			if (error.name === 'AbortError') {
 				console.log('Request aborted');
@@ -1186,8 +2405,9 @@ Use this context to inform your responses.`;
 			const remainingText = content.slice(lastIndex).trim();
 			if (remainingText) {
 				// Check if remaining text contains an incomplete artifact block
-				if (remainingText.includes('```artifact') && !remainingText.includes('```artifact') ||
-					(remainingText.includes('```artifact') && remainingText.lastIndexOf('```') === remainingText.indexOf('```artifact') + 3)) {
+				const hasArtifactStart = remainingText.includes('```artifact');
+				const hasCompleteArtifactBlock = /```artifact\s*\n[\s\S]*?\n```/.test(remainingText);
+				if (hasArtifactStart && !hasCompleteArtifactBlock) {
 					// Incomplete artifact block - don't show it
 					const beforeArtifact = remainingText.split('```artifact')[0].trim();
 					if (beforeArtifact) {
@@ -1217,25 +2437,6 @@ Use this context to inform your responses.`;
 		return parts;
 	}
 
-	// Simple markdown renderer
-	function renderMarkdown(text: string): string {
-		return text
-			// Headers
-			.replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-gray-900 mt-4 mb-2">$1</h3>')
-			.replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-gray-900 mt-5 mb-3">$1</h2>')
-			.replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mt-6 mb-4">$1</h1>')
-			// Bold
-			.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-			// Italic
-			.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-			// Lists
-			.replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-gray-700">$1</li>')
-			.replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 list-decimal text-gray-700">$2</li>')
-			// Line breaks
-			.replace(/\n\n/g, '</p><p class="mb-3">')
-			.replace(/\n/g, '<br/>');
-	}
-
 	// Resize handlers
 	function startResize(e: MouseEvent) {
 		isResizing = true;
@@ -1262,23 +2463,210 @@ Use this context to inform your responses.`;
 		document.body.style.userSelect = '';
 	}
 
+	// Right panel resize handlers
+	function startRightPanelResize(e: MouseEvent) {
+		isResizingRightPanel = true;
+		rightPanelResizeStartX = e.clientX;
+		rightPanelResizeStartWidth = rightPanelWidth;
+		document.addEventListener('mousemove', handleRightPanelResize);
+		document.addEventListener('mouseup', stopRightPanelResize);
+		document.body.style.cursor = 'col-resize';
+		document.body.style.userSelect = 'none';
+	}
+
+	function handleRightPanelResize(e: MouseEvent) {
+		if (!isResizingRightPanel) return;
+		const delta = rightPanelResizeStartX - e.clientX;
+		const newWidth = Math.min(Math.max(rightPanelResizeStartWidth + delta, 280), 500);
+		rightPanelWidth = newWidth;
+	}
+
+	function stopRightPanelResize() {
+		isResizingRightPanel = false;
+		document.removeEventListener('mousemove', handleRightPanelResize);
+		document.removeEventListener('mouseup', stopRightPanelResize);
+		document.body.style.cursor = '';
+		document.body.style.userSelect = '';
+	}
+
 	function viewArtifactInPanel(artifact: { title: string; type: string; content: string }) {
 		viewingArtifactFromMessage = artifact;
 		selectedArtifact = null;
 		artifactsPanelOpen = true;
 	}
 
+	// Inline project selector dropdown (appears in chat input when Enter pressed without project)
+	let showInlineProjectPicker = $state(false);
+
+	// Auto-scroll command item into view
+	function scrollCommandIntoView(index: number) {
+		setTimeout(() => {
+			const item = document.querySelector(`[data-command-index="${index}"]`);
+			item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		}, 0);
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
+		// Handle command suggestions navigation
+		if (showCommandSuggestions && filteredCommands.length > 0) {
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				commandDropdownIndex = (commandDropdownIndex + 1) % filteredCommands.length;
+				scrollCommandIntoView(commandDropdownIndex);
+			} else if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				commandDropdownIndex = commandDropdownIndex <= 0 ? filteredCommands.length - 1 : commandDropdownIndex - 1;
+				scrollCommandIntoView(commandDropdownIndex);
+			} else if (e.key === 'Enter' || e.key === 'Tab') {
+				e.preventDefault();
+				const cmd = filteredCommands[commandDropdownIndex];
+				if (cmd) {
+					selectCommand(cmd);
+				}
+			} else if (e.key === 'Escape') {
+				e.preventDefault();
+				showCommandSuggestions = false;
+			}
+			return;
+		}
+
+		// Handle inline project picker navigation
+		if (showInlineProjectPicker) {
+			const totalItems = projectsList.length + 1; // +1 for create new
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				projectDropdownIndex = (projectDropdownIndex + 1) % totalItems;
+			} else if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				projectDropdownIndex = projectDropdownIndex <= 0 ? totalItems - 1 : projectDropdownIndex - 1;
+			} else if (e.key === 'Enter') {
+				e.preventDefault();
+				if (projectDropdownIndex === projectsList.length) {
+					showInlineProjectPicker = false;
+					showNewProjectModal = true;
+				} else {
+					const project = projectsList[projectDropdownIndex];
+					if (project) {
+						selectedProjectId = project.id;
+					}
+				}
+				showInlineProjectPicker = false;
+				// User will press Enter again to send
+			} else if (e.key === 'Escape') {
+				e.preventDefault();
+				showInlineProjectPicker = false;
+			}
+			return;
+		}
+
+		// Don't send if any dropdown is open
+		if (showProjectDropdown || showContextDropdown || showModelDropdown) {
+			return;
+		}
+
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
+			// If no project selected and there's input, show inline project picker
+			if (!selectedProjectId && inputValue.trim()) {
+				projectDropdownIndex = 0;
+				showInlineProjectPicker = true;
+				return;
+			}
 			handleSendMessage();
 		}
+	}
+
+	// Select a command from the dropdown
+	function selectCommand(cmd: SlashCommand) {
+		activeCommand = cmd;
+		inputValue = '/' + cmd.name + ' ';
+		showCommandSuggestions = false;
+		inputRef?.focus();
+	}
+
+	// Clear the active command
+	function clearActiveCommand() {
+		activeCommand = null;
+		inputValue = '';
+		inputRef?.focus();
 	}
 
 	function handleInput() {
 		if (inputRef) {
 			inputRef.style.height = 'auto';
 			inputRef.style.height = Math.min(inputRef.scrollHeight, 200) + 'px';
+		}
+
+		// Check for slash command input
+		if (inputValue.startsWith('/')) {
+			const query = inputValue.slice(1).toLowerCase().split(' ')[0]; // Get text after / before space
+
+			// Check if we have a complete command (has space after command name)
+			const spaceIndex = inputValue.indexOf(' ');
+			if (spaceIndex > 0) {
+				const cmdName = inputValue.slice(1, spaceIndex);
+				const matchedCmd = availableCommands.find(c => c.name === cmdName);
+				if (matchedCmd) {
+					activeCommand = matchedCmd;
+					showCommandSuggestions = false;
+					return;
+				}
+			}
+
+			// Still typing command - show suggestions
+			if (query.length === 0) {
+				// Just "/" typed, show all commands
+				filteredCommands = availableCommands.slice(0, 8);
+			} else {
+				// Filter commands by query
+				filteredCommands = availableCommands
+					.filter(cmd => cmd.name.includes(query) || cmd.display_name.toLowerCase().includes(query))
+					.slice(0, 8);
+			}
+			showCommandSuggestions = filteredCommands.length > 0;
+			commandDropdownIndex = 0;
+		} else {
+			showCommandSuggestions = false;
+			activeCommand = null;
+		}
+	}
+
+	// Track if we should send after project selection
+	let pendingMessageAfterProject = $state(false);
+
+	function handleProjectDropdownKeydown(e: KeyboardEvent) {
+		if (!showProjectDropdown) return;
+
+		// Total items = projects + 1 (for "create new" option)
+		const totalItems = projectsList.length + 1;
+		const createNewIndex = projectsList.length; // Last item is "create new"
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			projectDropdownIndex = (projectDropdownIndex + 1) % totalItems;
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			projectDropdownIndex = projectDropdownIndex <= 0 ? totalItems - 1 : projectDropdownIndex - 1;
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			if (projectDropdownIndex === createNewIndex) {
+				// Create new project
+				showProjectDropdown = false;
+				showNewProjectModal = true;
+			} else {
+				const project = projectsList[projectDropdownIndex];
+				if (project) {
+					selectedProjectId = project.id;
+					showProjectDropdown = false;
+					// If there's pending input, send the message
+					if (inputValue.trim()) {
+						setTimeout(() => handleSendMessage(), 50);
+					}
+				}
+			}
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			showProjectDropdown = false;
 		}
 	}
 
@@ -1288,8 +2676,35 @@ Use this context to inform your responses.`;
 		}
 	}
 
+	async function copyToClipboard(text: string) {
+		try {
+			if (navigator.clipboard?.writeText) {
+				await navigator.clipboard.writeText(text);
+				return;
+			}
+		} catch {
+			// Fall back below
+		}
+
+		// Fallback for environments where Clipboard API is unavailable or blocked
+		const textarea = document.createElement('textarea');
+		textarea.value = text;
+		textarea.style.position = 'fixed';
+		textarea.style.top = '0';
+		textarea.style.left = '0';
+		textarea.style.opacity = '0';
+		document.body.appendChild(textarea);
+		textarea.focus();
+		textarea.select();
+		try {
+			document.execCommand('copy');
+		} finally {
+			document.body.removeChild(textarea);
+		}
+	}
+
 	function copyMessage(content: string, id: string) {
-		navigator.clipboard.writeText(content);
+		copyToClipboard(content);
 		copiedMessageId = id;
 		setTimeout(() => copiedMessageId = null, 2000);
 	}
@@ -1303,6 +2718,8 @@ Use this context to inform your responses.`;
 		return date.toLocaleDateString();
 	}
 </script>
+
+<svelte:window onkeydown={handleProjectDropdownKeydown} />
 
 <!-- Fixed height container that fills parent -->
 <div class="h-full flex overflow-hidden">
@@ -1359,17 +2776,46 @@ Use this context to inform your responses.`;
 				</div>
 			</div>
 
-			<!-- Conversation List - scrollable -->
-			<div class="flex-1 overflow-y-auto px-2">
-				{#each conversations as conv (conv.id)}
-					<button
-						onclick={() => selectConversation(conv.id)}
-						class="w-full text-left p-3 rounded-lg mb-1 transition-colors {activeConversationId === conv.id ? 'bg-gray-100' : 'hover:bg-gray-50'}"
-					>
-						<p class="text-sm font-medium text-gray-900 truncate">{conv.title}</p>
-						<p class="text-xs text-gray-500 mt-1">{formatTime(conv.timestamp)}</p>
-					</button>
-				{/each}
+			<!-- Conversation List - scrollable with custom scrollbar -->
+			<div class="flex-1 overflow-y-auto px-2 sidebar-scroll">
+				{#if conversations.length === 0}
+					<div class="flex flex-col items-center justify-center py-12 text-center">
+						<svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+						</svg>
+						<p class="text-sm text-gray-500">No conversations yet</p>
+						<p class="text-xs text-gray-400 mt-1">Start a new chat to begin</p>
+					</div>
+				{:else}
+					{#each conversations as conv (conv.id)}
+						<button
+							onclick={() => selectConversation(conv.id)}
+							class="w-full text-left p-3 rounded-lg mb-1 transition-colors group {activeConversationId === conv.id ? 'bg-gray-100' : 'hover:bg-gray-50'}"
+						>
+							<div class="flex items-start gap-2">
+								<div class="flex-1 min-w-0">
+									<p class="text-sm font-medium text-gray-900 truncate">{conv.title}</p>
+									<div class="flex items-center gap-2 mt-1">
+										{#if conv.project_name}
+											<span class="inline-flex items-center gap-1 text-[10px] font-medium text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">
+												<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+												</svg>
+												{conv.project_name}
+											</span>
+										{/if}
+										<span class="text-xs text-gray-400">{formatTime(conv.timestamp)}</span>
+									</div>
+								</div>
+								{#if conv.pinned}
+									<svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+										<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2m4-2a2 2 0 012 2v0a2 2 0 01-2 2 2 2 0 01-2-2 2 2 0 012-2z" />
+									</svg>
+								{/if}
+							</div>
+						</button>
+					{/each}
+				{/if}
 			</div>
 
 			<!-- Footer -->
@@ -1384,29 +2830,199 @@ Use this context to inform your responses.`;
 		</div>
 	{/if}
 
-	<!-- Main Chat Area - fills remaining space -->
-	<div class="flex-1 flex flex-col min-w-0 h-full bg-gray-50">
+	<!-- Main Chat Area - fills remaining space (or 50% when artifact is focused) -->
+	<div class="{artifactsPanelOpen && isArtifactFocused ? 'w-1/2' : 'flex-1'} flex flex-col min-w-0 h-full bg-gray-50">
 		<!-- Toggle button - fixed header -->
 		<div class="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-gray-100 min-w-0">
-			<button
-				onclick={() => chatSidebarOpen = !chatSidebarOpen}
-				class="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors flex-shrink-0"
-			>
-				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					{#if chatSidebarOpen}
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-					{:else}
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-					{/if}
-				</svg>
-			</button>
+			<!-- Left group: Hamburger + Model Selector -->
+			<div class="flex items-center gap-1 flex-shrink-0">
+				<button
+					onclick={() => chatSidebarOpen = !chatSidebarOpen}
+					class="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors flex-shrink-0"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						{#if chatSidebarOpen}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+						{:else}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+						{/if}
+					</svg>
+				</button>
 
+				<!-- Model Selector (directly next to hamburger) -->
+				<div class="relative">
+					<button
+						onclick={() => showModelDropdown = !showModelDropdown}
+						class="flex items-center gap-1.5 px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+						title="Select AI Model"
+					>
+						{#if warmingUpModel === selectedModel}
+							<svg class="w-3.5 h-3.5 animate-spin text-orange-500 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+						{/if}
+						<span class="truncate max-w-[140px]">{currentModelName || 'Select model'}</span>
+						{#if warmingUpModel === selectedModel}
+							<span class="text-xs text-orange-500">warming...</span>
+						{:else}
+							<svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+							</svg>
+						{/if}
+					</button>
+
+					{#if showModelDropdown}
+						<div
+							class="absolute left-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-30 max-h-96 overflow-y-auto"
+							transition:fly={{ y: -10, duration: 200 }}
+						>
+							{#if loadingModels}
+								<div class="px-4 py-3 text-sm text-gray-500 text-center">Loading models...</div>
+							{:else if installedModels.length === 0 && configuredProviders.size === 0}
+								<div class="px-4 py-3 text-center">
+									<p class="text-sm text-gray-500 mb-2">No models available</p>
+									<a href="/settings/ai" class="text-xs text-blue-600 hover:underline">Configure in AI Settings</a>
+								</div>
+							{:else}
+								<!-- Local Models Section -->
+								{#if installedModels.length > 0}
+									<div class="px-3 py-1.5">
+										<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+											</svg>
+											Local (Ollama)
+										</span>
+									</div>
+									{#each installedModels as model}
+									{@const caps = model.capabilities || getModelCapabilities(model.id)}
+										<button
+											onclick={() => { selectModel(model.id); showModelDropdown = false; }}
+											class="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
+										>
+											<div class="flex items-start gap-2">
+												<svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+												</svg>
+												<div class="flex-1 min-w-0">
+													<div class="flex items-center gap-1.5 flex-wrap">
+														<span class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</span>
+													</div>
+													{#if model.size}
+														<div class="text-xs text-gray-400 mt-0.5">{model.size}</div>
+													{/if}
+													<!-- Capability badges -->
+													{#if caps.length > 0}
+														<div class="flex flex-wrap gap-1 mt-1">
+															{#each caps.slice(0, 4) as cap}
+																<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium rounded {capabilityInfo[cap].color}">
+																	<span>{capabilityInfo[cap].icon}</span>
+																	<span>{capabilityInfo[cap].label}</span>
+																</span>
+															{/each}
+															{#if caps.length > 4}
+																<span class="text-[9px] text-gray-400">+{caps.length - 4}</span>
+															{/if}
+														</div>
+													{/if}
+												</div>
+												{#if selectedModel === model.id}
+													<svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+													</svg>
+												{/if}
+											</div>
+										</button>
+									{/each}
+								{/if}
+
+								<!-- Cloud Models by Provider -->
+								{#each Array.from(configuredProviders) as provider}
+									{@const providerModels = cloudModelsMap[provider] || []}
+									{#if providerModels.length > 0}
+										<div class="px-3 py-1.5 {installedModels.length > 0 || Array.from(configuredProviders).indexOf(provider) > 0 ? 'border-t border-gray-100 mt-1 pt-1' : ''}">
+											<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+												</svg>
+												{provider.charAt(0).toUpperCase() + provider.slice(1)}
+											</span>
+										</div>
+										{#each providerModels as model}
+											{@const caps = model.capabilities || []}
+											<button
+												onclick={() => { selectModel(model.id); showModelDropdown = false; }}
+												class="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
+											>
+												<div class="flex items-start gap-2">
+													<svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+													</svg>
+													<div class="flex-1 min-w-0">
+														<div class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</div>
+														{#if model.description}
+															<div class="text-xs text-gray-400 mt-0.5">{model.description}</div>
+														{/if}
+														<!-- Capability badges -->
+														{#if caps.length > 0}
+															<div class="flex flex-wrap gap-1 mt-1">
+																{#each caps.slice(0, 4) as cap}
+																	<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium rounded {capabilityInfo[cap].color}">
+																		<span>{capabilityInfo[cap].icon}</span>
+																		<span>{capabilityInfo[cap].label}</span>
+																	</span>
+																{/each}
+																{#if caps.length > 4}
+																	<span class="text-[9px] text-gray-400">+{caps.length - 4}</span>
+																{/if}
+															</div>
+														{/if}
+													</div>
+													{#if selectedModel === model.id}
+														<svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+														</svg>
+													{/if}
+												</div>
+											</button>
+										{/each}
+									{/if}
+								{/each}
+
+								<!-- Settings Link -->
+								<div class="border-t border-gray-100 mt-1 pt-1">
+									<a
+										href="/settings/ai"
+										onclick={() => showModelDropdown = false}
+										class="w-full px-4 py-2 text-left text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center gap-2"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+										</svg>
+										AI Settings
+									</a>
+								</div>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Right group: Project, Node, Panel -->
 			<div class="flex items-center gap-2 min-w-0">
 				<!-- Project Selector (required for chat) -->
 				<div class="relative flex-shrink-0">
 					<button
-						onclick={() => { showProjectDropdown = !showProjectDropdown; showHeaderContextDropdown = false; showNodeDropdown = false; }}
-						class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors {selectedProject ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'}"
+						onclick={() => {
+							if (!showProjectDropdown) projectDropdownIndex = 0;
+							showProjectDropdown = !showProjectDropdown;
+							showHeaderContextDropdown = false;
+							showNodeDropdown = false;
+						}}
+						onkeydown={handleProjectDropdownKeydown}
+						class="header-toggle-btn {selectedProject ? 'active' : 'warning'}"
 						title={selectedProject ? selectedProject.name : 'Select Project'}
 					>
 						<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1425,6 +3041,8 @@ Use this context to inform your responses.`;
 						<div
 							class="absolute left-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20 max-h-80 overflow-y-auto"
 							transition:fly={{ y: -10, duration: 200 }}
+							onkeydown={handleProjectDropdownKeydown}
+							tabindex="-1"
 						>
 							<div class="px-3 py-1.5">
 								<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Project</span>
@@ -1440,13 +3058,18 @@ Use this context to inform your responses.`;
 									<a href="/projects" class="text-sm text-blue-600 hover:underline">Create a project</a>
 								</div>
 							{:else}
-								{#each projectsList as project (project.id)}
+								{#each projectsList as project, i (project.id)}
 									{@const isSelected = selectedProjectId === project.id}
+									{@const isFocused = projectDropdownIndex === i}
 									<button
-										onclick={() => { selectedProjectId = project.id; showProjectDropdown = false; }}
-										class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 {isSelected ? 'bg-purple-50' : ''}"
+										onclick={() => {
+											selectedProjectId = project.id;
+											showProjectDropdown = false;
+											if (inputValue.trim()) setTimeout(() => handleSendMessage(), 50);
+										}}
+										class="w-full px-4 py-2 text-left transition-colors flex items-center gap-3 {isSelected ? 'bg-purple-50' : ''} {isFocused ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : 'hover:bg-gray-50'}"
 									>
-										<div class="w-8 h-8 rounded-lg {isSelected ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
+										<div class="w-8 h-8 rounded-lg {isSelected ? 'bg-purple-500 text-white' : isFocused ? 'bg-blue-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
 											{#if isSelected}
 												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -1458,7 +3081,7 @@ Use this context to inform your responses.`;
 											{/if}
 										</div>
 										<div class="flex-1 min-w-0">
-											<div class="text-sm font-medium {isSelected ? 'text-purple-600' : 'text-gray-700'} truncate">{project.name}</div>
+											<div class="text-sm font-medium {isSelected ? 'text-purple-600' : isFocused ? 'text-blue-600' : 'text-gray-700'} truncate">{project.name}</div>
 											{#if project.description}
 												<div class="text-xs text-gray-500 truncate">{project.description}</div>
 											{/if}
@@ -1466,95 +3089,23 @@ Use this context to inform your responses.`;
 									</button>
 								{/each}
 							{/if}
-						</div>
-					{/if}
-				</div>
-
-				<!-- Context Profile Selector (header) -->
-				<div class="relative flex-shrink-0">
-					<button
-						onclick={() => { showHeaderContextDropdown = !showHeaderContextDropdown; showProjectDropdown = false; showNodeDropdown = false; }}
-						class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
-					>
-						<svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-							<path d="M13 10V3L4 14h7v7l9-11h-7z" />
-						</svg>
-						<span>{selectedContextsLabel}</span>
-						<svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-						</svg>
-					</button>
-
-					{#if showHeaderContextDropdown}
-						<div
-							class="absolute left-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20 max-h-80 overflow-y-auto"
-							transition:fly={{ y: -10, duration: 200 }}
-						>
-							<div class="px-3 py-1.5">
-								<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Available Contexts</span>
-							</div>
-							{#if loadingContexts}
-								<div class="px-4 py-3 text-sm text-gray-500">Loading contexts...</div>
-							{:else if availableContexts.length === 0}
-								<div class="px-4 py-3 text-sm text-gray-500">No contexts available</div>
-							{:else}
-								<!-- Clear all option -->
-								{#if selectedContextIds.length > 0}
-									<button
-										onclick={() => { selectedContextIds = []; }}
-										class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 border-b border-gray-100"
-									>
-										<div class="w-8 h-8 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center flex-shrink-0">
-											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-										</div>
-										<div class="flex-1 min-w-0">
-											<div class="text-sm font-medium text-gray-700">Clear selection</div>
-											<div class="text-xs text-gray-500">{selectedContextIds.length} selected</div>
-										</div>
-									</button>
-								{/if}
-								{#each availableContexts as ctx (ctx.id)}
-									{@const isSelected = selectedContextIds.includes(ctx.id)}
-									<button
-										onclick={() => {
-											if (isSelected) {
-												selectedContextIds = selectedContextIds.filter(id => id !== ctx.id);
-											} else {
-												selectedContextIds = [...selectedContextIds, ctx.id];
-											}
-										}}
-										class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 {isSelected ? 'bg-blue-50' : ''}"
-									>
-										<div class="w-8 h-8 rounded-lg {isSelected ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-600'} flex items-center justify-center flex-shrink-0 text-lg">
-											{#if isSelected}
-												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-												</svg>
-											{:else}
-												{ctx.icon || '📄'}
-											{/if}
-										</div>
-										<div class="flex-1 min-w-0">
-											<div class="text-sm font-medium {isSelected ? 'text-blue-600' : 'text-gray-700'} truncate">{ctx.name}</div>
-											{#if ctx.type}
-												<div class="text-xs text-gray-500 capitalize">{ctx.type}</div>
-											{/if}
-										</div>
-									</button>
-								{/each}
-								{#if selectedContextIds.length > 0}
-									<div class="px-4 py-2 border-t border-gray-100">
-										<button
-											onclick={() => showHeaderContextDropdown = false}
-											class="w-full py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-										>
-											Done
-										</button>
+							<!-- Create New Project Option -->
+							<div class="border-t border-gray-100 mt-1 pt-1">
+								<button
+									onclick={() => { showProjectDropdown = false; showNewProjectModal = true; }}
+									class="w-full px-4 py-2 text-left transition-colors flex items-center gap-3 {projectDropdownIndex === projectsList.length ? 'bg-gray-100 ring-2 ring-gray-400 ring-inset' : 'hover:bg-gray-50'}"
+								>
+									<div class="w-8 h-8 rounded-lg {projectDropdownIndex === projectsList.length ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'} flex items-center justify-center flex-shrink-0">
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
 									</div>
-								{/if}
-							{/if}
+									<div class="flex-1 min-w-0">
+										<div class="text-sm font-medium {projectDropdownIndex === projectsList.length ? 'text-gray-900' : 'text-gray-700'}">Create new project</div>
+										<div class="text-xs text-gray-500">Start a new project for this chat</div>
+									</div>
+								</button>
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -1564,7 +3115,7 @@ Use this context to inform your responses.`;
 					<div class="relative flex-shrink-0">
 						<button
 							onclick={() => showNodeDropdown = !showNodeDropdown}
-							class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+							class="header-toggle-btn active"
 						>
 							<svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
 								<path d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1607,26 +3158,27 @@ Use this context to inform your responses.`;
 				{:else}
 					<a
 						href="/nodes"
-						class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+						class="header-toggle-btn"
 					>
 						<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 						</svg>
-						<span>No Node</span>
+						<span>MIOSA Platform</span>
 					</a>
 				{/if}
 
-				<!-- Artifacts Toggle -->
+				<!-- Panel Toggle (combines Progress, Context, Artifacts) -->
 				<button
-					onclick={() => artifactsPanelOpen = !artifactsPanelOpen}
-					class="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors flex-shrink-0 {artifactsPanelOpen ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}"
+					onclick={() => rightPanelOpen = !rightPanelOpen}
+					class="header-toggle-btn {rightPanelOpen ? 'active' : ''}"
+					title="Toggle Side Panel"
 				>
 					<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
 					</svg>
-					<span>Artifacts</span>
+					<span>Panel</span>
 					{#if artifacts.length > 0}
-						<span class="px-1.5 py-0.5 text-xs font-medium rounded-full {artifactsPanelOpen ? 'bg-blue-200' : 'bg-gray-200'}">{artifacts.length}</span>
+						<span class="header-toggle-badge">{artifacts.length}</span>
 					{/if}
 				</button>
 			</div>
@@ -1635,7 +3187,7 @@ Use this context to inform your responses.`;
 		{#if hasConversation}
 			<!-- Messages container - scrollable, takes remaining height -->
 			<div bind:this={messagesContainer} class="flex-1 overflow-y-auto min-h-0">
-				<div class="max-w-3xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+				<div class="max-w-5xl mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
 					{#if loadingConversation}
 						<div class="flex items-center justify-center py-12">
 							<div class="flex items-center gap-3 text-gray-500">
@@ -1662,18 +3214,45 @@ Use this context to inform your responses.`;
 							<!-- Assistant message - left aligned -->
 							<div class="max-w-[95%] sm:max-w-[85%]">
 								{#if !message.content && !message.artifacts?.length && isStreaming && isLastMessage}
-									<!-- Still loading, show initial indicator -->
-									<div class="flex items-center gap-2 text-sm text-gray-500">
-										<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-										</svg>
-										<span>Thinking...</span>
+									{@const modelId = selectedModel.toLowerCase()}
+									{@const isLargeModel = modelId.includes(':30b') || modelId.includes(':32b') || modelId.includes(':70b') || modelId.includes(':72b') || modelId.includes(':235b')}
+									{@const isColdStart = (activeProvider === 'ollama_local' || activeProvider === 'ollama_cloud') && !warmedUpModels.has(selectedModel)}
+									<!-- Still loading, show initial indicator with model info -->
+									<div class="flex flex-col gap-1.5 p-3 bg-gray-50 rounded-xl border border-gray-100">
+										<div class="flex items-center gap-2 text-sm text-gray-600">
+											<svg class="w-4 h-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+											<span class="font-medium">
+												{#if isColdStart}
+													Loading {currentModelName}...
+												{:else}
+													Generating response...
+												{/if}
+											</span>
+										</div>
+										{#if isColdStart}
+											<div class="text-xs text-gray-500 ml-6 space-y-0.5">
+												<p>Loading model into memory for first use</p>
+												{#if isLargeModel}
+													<p class="text-orange-600">⚠️ Large model ({currentModelName}) - this may take 30-60 seconds</p>
+												{:else}
+													<p>This usually takes 5-15 seconds</p>
+												{/if}
+											</div>
+										{:else if isLargeModel}
+											<div class="text-xs text-gray-500 ml-6">
+												<p class="text-orange-600">Using large model - response may be slower</p>
+											</div>
+										{/if}
 									</div>
 								{:else}
 									<!-- Show text content if any -->
 									{#if message.content}
-										<p class="text-sm sm:text-[15px] leading-relaxed text-gray-800 whitespace-pre-wrap break-words">{message.content}</p>
+										<div class="text-sm sm:text-[15px] leading-relaxed text-gray-800 prose prose-sm max-w-none streaming-content">
+											{@html renderMarkdown(message.content)}{#if isLastMessage && isStreaming && !artifactCompletedInStream}<span class="streaming-cursor"></span>{/if}
+										</div>
 									{/if}
 
 									<!-- Show artifacts from message.artifacts (new approach) -->
@@ -1779,7 +3358,7 @@ Use this context to inform your responses.`;
 										{/each}
 									{/if}
 								{/if}
-								{#if isLastMessage && isStreaming && (message.content || message.artifacts?.length) && !artifactCompletedInStream}<span class="inline-block w-2 h-5 bg-blue-500 animate-pulse ml-1 rounded-sm"></span>{/if}
+								<!-- Cursor is now inline with text content in streaming-content div -->
 
 								<!-- Inline Task Creation (after artifact) -->
 								{#if isLastMessage && showInlineTaskCreation}
@@ -1899,6 +3478,21 @@ Use this context to inform your responses.`;
 												<span>Copy</span>
 											{/if}
 										</button>
+
+										<!-- Usage stats display -->
+										{#if message.usage && showUsageInChat}
+											<div class="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
+												<span class="flex items-center gap-1" title="Tokens per second">
+													<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+													</svg>
+													{message.usage.tps.toFixed(1)} t/s
+												</span>
+												<span title="Total tokens">{message.usage.total_tokens} tokens</span>
+												<span class="text-gray-300 dark:text-gray-600">•</span>
+												<span title="Provider">{message.usage.provider === 'ollama_local' ? 'Local' : message.usage.provider}</span>
+											</div>
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -1917,34 +3511,296 @@ Use this context to inform your responses.`;
 			</div>
 
 			<!-- Input Area - fixed at bottom -->
-			<div class="flex-shrink-0 p-4 bg-gray-50 border-t border-gray-100">
+			<div class="chat-input-area flex-shrink-0 p-4">
 				<div class="max-w-3xl mx-auto">
-					<div class="bg-white rounded-3xl shadow-sm border border-gray-200 p-4 cursor-text" onclick={() => inputRef?.focus()}>
-						<!-- Textarea -->
-						<textarea
-							bind:this={inputRef}
-							bind:value={inputValue}
-							placeholder="Ask OSA anything..."
-							rows={1}
-							disabled={isStreaming}
-							class="w-full text-[15px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none mb-3"
-							style="min-height: 24px; max-height: 200px;"
-							onkeydown={handleKeydown}
-							oninput={handleInput}
-						></textarea>
+					<div class="chat-input-box bg-white rounded-2xl shadow-sm border border-gray-200 p-3 cursor-text" onclick={() => inputRef?.focus()}>
+						<!-- Hidden file input -->
+						<input
+							bind:this={fileInputRef}
+							type="file"
+							multiple
+							accept="image/*,.pdf,.txt,.md,.json,.csv,.doc,.docx"
+							class="hidden"
+							onchange={handleFileSelect}
+						/>
+
+						<!-- Attached files display -->
+						{#if attachedFiles.length > 0}
+							<div class="flex flex-wrap gap-2 mb-3">
+								{#each attachedFiles as file (file.id)}
+									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-sm">
+										{#if file.type.startsWith('image/') && file.content}
+											<img src={file.content} alt={file.name} class="w-6 h-6 rounded object-cover" />
+										{:else}
+											<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+											</svg>
+										{/if}
+										<span class="text-gray-700 truncate max-w-[150px]">{file.name}</span>
+										<span class="text-gray-400 text-xs">{formatFileSize(file.size)}</span>
+										<button
+											onclick={(e) => { e.stopPropagation(); removeAttachedFile(file.id); }}
+											class="p-0.5 text-gray-400 hover:text-gray-600"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Recording overlay - Windsurf style with live transcript -->
+						{#if isRecording}
+							<div class="mb-3">
+								<!-- Live transcript preview -->
+								{#if liveTranscript}
+									<div class="text-gray-600 text-sm mb-3 min-h-[24px] animate-pulse">
+										{liveTranscript}
+									</div>
+								{:else}
+									<div class="text-gray-400 text-sm mb-3 min-h-[24px]">
+										Listening...
+									</div>
+								{/if}
+
+								<!-- Waveform bar -->
+								<div class="flex items-center gap-3 bg-gray-800 rounded-full px-4 py-2">
+									<!-- Cancel button -->
+									<button
+										onclick={(e) => {
+											e.stopPropagation();
+											// Cancel without transcribing
+											if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+												mediaRecorder.ondataavailable = null;
+												mediaRecorder.onstop = null;
+												mediaRecorder.stop();
+											}
+											isRecording = false;
+											if (recordingInterval) {
+												clearInterval(recordingInterval);
+												recordingInterval = null;
+											}
+											if (speechRecognition) {
+												speechRecognition.stop();
+												speechRecognition = null;
+											}
+											if (animationFrameId) {
+												cancelAnimationFrame(animationFrameId);
+												animationFrameId = null;
+											}
+											if (audioContext) {
+												audioContext.close();
+												audioContext = null;
+											}
+											waveformBars = Array(40).fill(2);
+											liveTranscript = '';
+											recordingDuration = 0;
+										}}
+										class="p-1.5 text-gray-400 hover:text-white transition-colors"
+										aria-label="Cancel recording"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+										</svg>
+									</button>
+
+									<!-- Waveform visualization -->
+									<div class="flex-1 flex items-center justify-center gap-[1px] h-8">
+										{#each waveformBars as height, i}
+											<div
+												class="w-[2px] bg-white rounded-full"
+												style="height: {height}px"
+											></div>
+										{/each}
+									</div>
+
+									<!-- Duration -->
+									<span class="text-white font-mono text-sm min-w-[40px] text-right">{recordingTimeDisplay()}</span>
+
+									<!-- Confirm button -->
+									<button
+										onclick={(e) => { e.stopPropagation(); stopRecording(); }}
+										class="p-1.5 bg-white text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+										aria-label="Stop and transcribe"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										</svg>
+									</button>
+								</div>
+							</div>
+						{:else if isTranscribing}
+							<div class="flex items-center gap-3 mb-3 py-4 px-2">
+								<svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+								<span class="text-blue-500 font-medium">Transcribing audio...</span>
+							</div>
+						{:else}
+							<!-- Inline Project Picker (appears when Enter pressed without project) -->
+							{#if showInlineProjectPicker}
+								<div class="mb-3 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" transition:fly={{ y: 10, duration: 150 }}>
+									<div class="px-3 py-2 border-b border-gray-200 bg-white">
+										<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select a project to continue</span>
+									</div>
+									<div class="max-h-48 overflow-y-auto">
+										{#each projectsList as project, i (project.id)}
+											<button
+												onclick={() => { selectedProjectId = project.id; showInlineProjectPicker = false; }}
+												class="w-full px-3 py-2 text-left transition-colors flex items-center gap-3 {projectDropdownIndex === i ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}"
+											>
+												<div class="w-7 h-7 rounded-lg {projectDropdownIndex === i ? 'bg-blue-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
+													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+													</svg>
+												</div>
+												<span class="text-sm font-medium truncate">{project.name}</span>
+											</button>
+										{/each}
+										<!-- Create new project option -->
+										<button
+											onclick={() => { showInlineProjectPicker = false; showNewProjectModal = true; }}
+											class="w-full px-3 py-2 text-left transition-colors flex items-center gap-3 border-t border-gray-200 {projectDropdownIndex === projectsList.length ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-50 text-gray-600'}"
+										>
+											<div class="w-7 h-7 rounded-lg {projectDropdownIndex === projectsList.length ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'} flex items-center justify-center flex-shrink-0">
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+												</svg>
+											</div>
+											<span class="text-sm font-medium">Create new project</span>
+										</button>
+									</div>
+									<div class="px-3 py-1.5 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
+										↑↓ Navigate · Enter Select · Esc Cancel
+									</div>
+								</div>
+							{/if}
+
+							<!-- Slash Command Suggestions -->
+							{#if showCommandSuggestions}
+								<div class="mb-3 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" transition:fly={{ y: 10, duration: 150 }}>
+									<div class="px-3 py-2 border-b border-gray-200 bg-white">
+										<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Commands</span>
+									</div>
+									<div class="max-h-64 overflow-y-auto" id="command-list-messages">
+										{#each filteredCommands as cmd, i (cmd.name)}
+											<button
+												data-command-index={i}
+												onclick={() => selectCommand(cmd)}
+												class="w-full px-3 py-2.5 text-left transition-colors flex items-center gap-3 {commandDropdownIndex === i ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}"
+											>
+												<div class="w-8 h-8 rounded-lg {commandDropdownIndex === i ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'} flex items-center justify-center flex-shrink-0">
+													<span class="text-sm font-bold">/</span>
+												</div>
+												<div class="flex-1 min-w-0">
+													<div class="text-sm font-medium">{cmd.display_name}</div>
+													<div class="text-xs text-gray-500 truncate">{cmd.description}</div>
+												</div>
+												<span class="text-xs text-gray-400 font-mono">/{cmd.name}</span>
+											</button>
+										{/each}
+									</div>
+									<div class="px-3 py-1.5 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
+										↑↓ Navigate · Enter/Tab Select · Esc Cancel
+									</div>
+								</div>
+							{/if}
+
+							<!-- Active Command Chip (when command is selected) -->
+							{#if activeCommand}
+								<div class="mb-2 flex items-center gap-2" transition:fly={{ y: -5, duration: 150 }}>
+									<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
+										<div class="w-5 h-5 rounded bg-blue-500 text-white flex items-center justify-center">
+											<span class="text-xs font-bold">/</span>
+										</div>
+										<span class="text-sm font-medium text-blue-700">{activeCommand.display_name}</span>
+										<button
+											onclick={clearActiveCommand}
+											class="w-4 h-4 rounded-full bg-blue-200 hover:bg-blue-300 text-blue-600 flex items-center justify-center transition-colors"
+											aria-label="Clear command"
+										>
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+											</svg>
+										</button>
+									</div>
+									<span class="text-xs text-gray-500">{activeCommand.description}</span>
+								</div>
+							{/if}
+
+							<!-- Textarea -->
+							<textarea
+								bind:this={inputRef}
+								bind:value={inputValue}
+								placeholder="Ask OSA anything... (type / for commands)"
+								rows={1}
+								disabled={isStreaming}
+								class="w-full text-[15px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none mb-3"
+								style="min-height: 24px; max-height: 200px;"
+								onkeydown={handleKeydown}
+								oninput={handleInput}
+							></textarea>
+						{/if}
 
 						<!-- Bottom row -->
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-1">
-								<!-- Plus button -->
-								<button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Add">
-									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-									</svg>
-								</button>
+								<!-- Plus button with menu -->
+								<div class="relative">
+									<button
+										onclick={(e) => { e.stopPropagation(); showPlusMenu = !showPlusMenu; showContextDropdown = false; showModelDropdown = false; }}
+										class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+										aria-label="Add"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+									</button>
+									{#if showPlusMenu}
+										<div
+											class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[180px] z-10"
+											transition:fly={{ y: 5, duration: 150 }}
+										>
+											<button
+												onclick={() => startNewConversation()}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+												</svg>
+												New conversation
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; showContextDropdown = true; }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+												</svg>
+												Add context
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; fileInputRef?.click(); }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+												</svg>
+												Attach file
+											</button>
+										</div>
+									{/if}
+								</div>
 
 								<!-- Attachment -->
-								<button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Attach file">
+								<button
+									onclick={(e) => { e.stopPropagation(); fileInputRef?.click(); }}
+									class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+									aria-label="Attach file"
+								>
 									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
 									</svg>
@@ -2004,94 +3860,93 @@ Use this context to inform your responses.`;
 									{/if}
 								</div>
 
-								<!-- Model selector -->
-								<div class="relative">
-									<button
-										onclick={() => { showModelDropdown = !showModelDropdown; showContextDropdown = false; }}
-										class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-										</svg>
-										{currentModelName}
-									</button>
-
-									{#if showModelDropdown}
-										<div
-											class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-2 min-w-[250px] z-10 max-h-80 overflow-y-auto"
-											transition:fly={{ y: 5, duration: 150 }}
-										>
-											<!-- Cloud Models -->
-											<div class="px-3 py-1.5">
-												<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cloud</span>
-											</div>
-											{#each cloudModels as model}
-												<button
-													onclick={() => { selectedModel = model.id; showModelDropdown = false; }}
-													class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
-												>
-													<div class="flex items-center gap-2">
-														<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-														</svg>
-														<div>
-															<div class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</div>
-															<div class="text-xs text-gray-500">{model.description}</div>
-														</div>
-													</div>
-												</button>
-											{/each}
-
-											<div class="border-t border-gray-100 my-2"></div>
-
-											<!-- Local Models -->
-											<div class="px-3 py-1.5">
-												<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Local</span>
-											</div>
-											{#each localModels as model}
-												<button
-													onclick={() => { selectedModel = model.id; showModelDropdown = false; }}
-													class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
-												>
-													<div class="flex items-center gap-2">
-														<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-														</svg>
-														<div>
-															<div class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</div>
-															<div class="text-xs text-gray-500">{model.description}</div>
-														</div>
-													</div>
-												</button>
-											{/each}
+								<!-- Context Window Indicator (only show when conversation has messages) -->
+								{#if messages.length > 0}
+									<div class="group relative flex items-center">
+										<div class="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400 hover:text-gray-600 cursor-default transition-colors">
+											<span class="tabular-nums font-medium">{formatTokenCount(totalConversationTokens())}</span>
+											<span class="text-gray-300">/</span>
+											<span class="tabular-nums">{formatTokenCount(currentContextLimit())}</span>
+											{#if contextUsagePercent() >= 50}
+												<div class="w-12 h-1 bg-gray-200 rounded-full overflow-hidden ml-1">
+													<div
+														class="h-full rounded-full transition-all duration-300 {contextUsagePercent() > 80 ? 'bg-red-500' : 'bg-yellow-500'}"
+														style="width: {contextUsagePercent()}%"
+													></div>
+												</div>
+											{/if}
 										</div>
-									{/if}
-								</div>
+										<!-- Tooltip on hover -->
+										<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+											<div class="font-medium mb-1">Context Window</div>
+											<div class="text-gray-300">{totalConversationTokens().toLocaleString()} / {currentContextLimit().toLocaleString()} tokens</div>
+											<div class="text-gray-400 mt-1">{contextUsagePercent()}% used</div>
+											{#if nodeContextTokens() > 0 || contextDocTokens() > 0}
+												<div class="border-t border-gray-700 mt-2 pt-2 text-gray-400">
+													<div class="flex justify-between gap-4">
+														<span>Messages:</span>
+														<span>{messageTokens().toLocaleString()}</span>
+													</div>
+													{#if nodeContextTokens() > 0}
+														<div class="flex justify-between gap-4">
+															<span>Node context:</span>
+															<span>~{nodeContextTokens().toLocaleString()}</span>
+														</div>
+													{/if}
+													{#if contextDocTokens() > 0}
+														<div class="flex justify-between gap-4">
+															<span>Documents ({selectedContexts.length}):</span>
+															<span>~{contextDocTokens().toLocaleString()}</span>
+														</div>
+													{/if}
+												</div>
+											{/if}
+											<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+										</div>
+									</div>
+								{/if}
 							</div>
 
-							<!-- Send/Stop button -->
-							{#if isStreaming}
-								<button
-									type="button"
-									onclick={handleStop}
-									class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
-								>
-									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-										<rect x="6" y="6" width="12" height="12" rx="2" />
-									</svg>
-								</button>
-							{:else}
-								<button
-									type="button"
-									onclick={handleSendMessage}
-									disabled={!inputValue.trim()}
-									class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-								>
-									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-									</svg>
-								</button>
-							{/if}
+							<!-- Right controls: Mic + Send/Stop -->
+							<div class="flex items-center gap-2">
+								<!-- Voice Recording Button -->
+								{#if !isRecording && !isTranscribing}
+									<button
+										type="button"
+										onclick={(e) => { e.stopPropagation(); toggleRecording(); }}
+										class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+										aria-label="Voice input"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+										</svg>
+									</button>
+								{/if}
+
+								<!-- Send/Stop button -->
+								{#if isStreaming}
+									<button
+										type="button"
+										onclick={handleStop}
+										class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+									>
+										<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+											<rect x="6" y="6" width="12" height="12" rx="2" />
+										</svg>
+									</button>
+								{:else}
+									<button
+										type="button"
+										onclick={handleSendMessage}
+										disabled={!inputValue.trim()}
+										class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+										</svg>
+									</button>
+								{/if}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -2100,39 +3955,303 @@ Use this context to inform your responses.`;
 			<!-- Empty State - centered in available space -->
 			<div class="flex-1 flex items-center justify-center overflow-auto">
 				<div class="w-full max-w-3xl px-6">
-					<!-- Personalized Title -->
-					<div class="text-center mb-8">
-						<h1 class="text-3xl font-semibold text-gray-900 mb-3">
-							{personalizedGreeting}
-						</h1>
-						<p class="text-gray-500 h-6">
-							Let me help you <span class="text-blue-600 font-medium">{displayedSuggestion}</span><span class="cursor-blink text-blue-600 font-light">|</span>
-						</p>
-					</div>
+					{#if focusModeEnabled}
+						<!-- Focus Mode UI -->
+						<FocusModeSelector
+							onSubmit={handleFocusModeSubmit}
+							commands={availableCommands}
+							onModeChange={(isFocus: boolean) => focusModeEnabled = isFocus}
+							{selectedProjectId}
+							onRequestProjectSelect={() => showProjectDropdown = true}
+							availableContexts={availableContexts.map(c => ({ id: c.id, name: c.name, icon: c.icon ?? undefined }))}
+							{selectedContextIds}
+							onContextToggle={(id: string) => {
+								if (selectedContextIds.includes(id)) {
+									selectedContextIds = selectedContextIds.filter(cid => cid !== id);
+								} else {
+									selectedContextIds = [...selectedContextIds, id];
+								}
+							}}
+							initialInput={focusModeInitialInput}
+						/>
+					{:else}
+						<!-- Classic Mode - Personalized Title -->
+						<div class="text-center mb-8">
+							<h1 class="text-3xl font-semibold text-gray-900 mb-3">
+								{personalizedGreeting}
+							</h1>
+							<p class="text-gray-500 h-6">
+								Let me help you <span class="text-blue-600 font-medium">{displayedSuggestion}</span><span class="cursor-blink text-blue-600 font-light">|</span>
+							</p>
+						</div>
 
-					<!-- Input Box -->
+						<!-- Input Box (Classic Mode) -->
 					<div class="bg-white rounded-3xl shadow-lg border border-gray-200 p-4 cursor-text" onclick={() => inputRef?.focus()}>
-						<textarea
-							bind:this={inputRef}
-							bind:value={inputValue}
-							placeholder="Ask OSA anything..."
-							rows={1}
-							disabled={isStreaming}
-							class="w-full text-[15px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none mb-3"
-							style="min-height: 24px; max-height: 200px;"
-							onkeydown={handleKeydown}
-							oninput={handleInput}
-						></textarea>
+						<!-- Attached files display (empty state) -->
+						{#if attachedFiles.length > 0}
+							<div class="flex flex-wrap gap-2 mb-3">
+								{#each attachedFiles as file (file.id)}
+									<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg text-sm">
+										{#if file.type.startsWith('image/') && file.content}
+											<img src={file.content} alt={file.name} class="w-6 h-6 rounded object-cover" />
+										{:else}
+											<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+											</svg>
+										{/if}
+										<span class="text-gray-700 truncate max-w-[150px]">{file.name}</span>
+										<span class="text-gray-400 text-xs">{formatFileSize(file.size)}</span>
+										<button
+											onclick={(e) => { e.stopPropagation(); removeAttachedFile(file.id); }}
+											class="p-0.5 text-gray-400 hover:text-gray-600"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Recording overlay - Windsurf style (empty state) -->
+						{#if isRecording}
+							<div class="mb-3">
+								<!-- Live transcript preview -->
+								{#if liveTranscript}
+									<div class="text-gray-600 text-sm mb-3 min-h-[24px] animate-pulse">
+										{liveTranscript}
+									</div>
+								{:else}
+									<div class="text-gray-400 text-sm mb-3 min-h-[24px]">
+										Listening...
+									</div>
+								{/if}
+
+								<!-- Waveform bar -->
+								<div class="flex items-center gap-3 bg-gray-800 rounded-full px-4 py-2">
+									<!-- Cancel button -->
+									<button
+										onclick={(e) => {
+											e.stopPropagation();
+											if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+												mediaRecorder.ondataavailable = null;
+												mediaRecorder.onstop = null;
+												mediaRecorder.stop();
+											}
+											isRecording = false;
+											if (recordingInterval) {
+												clearInterval(recordingInterval);
+												recordingInterval = null;
+											}
+											if (speechRecognition) {
+												speechRecognition.stop();
+												speechRecognition = null;
+											}
+											if (animationFrameId) {
+												cancelAnimationFrame(animationFrameId);
+												animationFrameId = null;
+											}
+											if (audioContext) {
+												audioContext.close();
+												audioContext = null;
+											}
+											waveformBars = Array(40).fill(2);
+											liveTranscript = '';
+											recordingDuration = 0;
+										}}
+										class="p-1.5 text-gray-400 hover:text-white transition-colors"
+										aria-label="Cancel recording"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+										</svg>
+									</button>
+
+									<!-- Waveform visualization -->
+									<div class="flex-1 flex items-center justify-center gap-[1px] h-8">
+										{#each waveformBars as height, i}
+											<div
+												class="w-[2px] bg-white rounded-full"
+												style="height: {height}px"
+											></div>
+										{/each}
+									</div>
+
+									<!-- Duration -->
+									<span class="text-white font-mono text-sm min-w-[40px] text-right">{recordingTimeDisplay()}</span>
+
+									<!-- Confirm button -->
+									<button
+										onclick={(e) => { e.stopPropagation(); stopRecording(); }}
+										class="p-1.5 bg-white text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
+										aria-label="Stop and transcribe"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										</svg>
+									</button>
+								</div>
+							</div>
+						{:else if isTranscribing}
+							<div class="flex items-center gap-3 mb-3 py-4 px-2">
+								<svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+								<span class="text-blue-500 font-medium">Transcribing audio...</span>
+							</div>
+						{:else}
+							<!-- Inline Project Picker (appears when Enter pressed without project - empty state) -->
+							{#if showInlineProjectPicker}
+								<div class="mb-3 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" transition:fly={{ y: 10, duration: 150 }}>
+									<div class="px-3 py-2 border-b border-gray-200 bg-white">
+										<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Select a project to continue</span>
+									</div>
+									<div class="max-h-48 overflow-y-auto">
+										{#each projectsList as project, idx (project.id)}
+											<button
+												onclick={() => { selectedProjectId = project.id; showInlineProjectPicker = false; }}
+												class="w-full px-3 py-2 text-left transition-colors flex items-center gap-3 {projectDropdownIndex === idx ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}"
+											>
+												<div class="w-7 h-7 rounded-lg {projectDropdownIndex === idx ? 'bg-blue-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
+													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+													</svg>
+												</div>
+												<span class="text-sm font-medium truncate">{project.name}</span>
+											</button>
+										{/each}
+										<!-- Create new project option -->
+										<button
+											onclick={() => { showInlineProjectPicker = false; showNewProjectModal = true; }}
+											class="w-full px-3 py-2 text-left transition-colors flex items-center gap-3 border-t border-gray-200 {projectDropdownIndex === projectsList.length ? 'bg-gray-100 text-gray-900' : 'hover:bg-gray-50 text-gray-600'}"
+										>
+											<div class="w-7 h-7 rounded-lg {projectDropdownIndex === projectsList.length ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'} flex items-center justify-center flex-shrink-0">
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+												</svg>
+											</div>
+											<span class="text-sm font-medium">Create new project</span>
+										</button>
+									</div>
+									<div class="px-3 py-1.5 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
+										↑↓ Navigate · Enter Select · Esc Cancel
+									</div>
+								</div>
+							{/if}
+
+							<!-- Slash Command Suggestions (empty state) -->
+							{#if showCommandSuggestions}
+								<div class="mb-3 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden" transition:fly={{ y: 10, duration: 150 }}>
+									<div class="px-3 py-2 border-b border-gray-200 bg-white">
+										<span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Commands</span>
+									</div>
+									<div class="max-h-64 overflow-y-auto" id="command-list-empty">
+										{#each filteredCommands as cmd, i (cmd.name)}
+											<button
+												data-command-index={i}
+												onclick={() => selectCommand(cmd)}
+												class="w-full px-3 py-2.5 text-left transition-colors flex items-center gap-3 {commandDropdownIndex === i ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}"
+											>
+												<div class="w-8 h-8 rounded-lg {commandDropdownIndex === i ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'} flex items-center justify-center flex-shrink-0">
+													<span class="text-sm font-bold">/</span>
+												</div>
+												<div class="flex-1 min-w-0">
+													<div class="text-sm font-medium">{cmd.display_name}</div>
+													<div class="text-xs text-gray-500 truncate">{cmd.description}</div>
+												</div>
+												<span class="text-xs text-gray-400 font-mono">/{cmd.name}</span>
+											</button>
+										{/each}
+									</div>
+									<div class="px-3 py-1.5 bg-gray-100 border-t border-gray-200 text-xs text-gray-500">
+										↑↓ Navigate · Enter/Tab Select · Esc Cancel
+									</div>
+								</div>
+							{/if}
+
+							<!-- Active Command Chip (empty state) -->
+							{#if activeCommand}
+								<div class="mb-2 flex items-center gap-2" transition:fly={{ y: -5, duration: 150 }}>
+									<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
+										<div class="w-5 h-5 rounded bg-blue-500 text-white flex items-center justify-center">
+											<span class="text-xs font-bold">/</span>
+										</div>
+										<span class="text-sm font-medium text-blue-700">{activeCommand.display_name}</span>
+										<button
+											onclick={clearActiveCommand}
+											class="w-4 h-4 rounded-full bg-blue-200 hover:bg-blue-300 text-blue-600 flex items-center justify-center transition-colors"
+											aria-label="Clear command"
+										>
+											<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+											</svg>
+										</button>
+									</div>
+									<span class="text-xs text-gray-500">{activeCommand.description}</span>
+								</div>
+							{/if}
+
+							<textarea
+								bind:this={inputRef}
+								bind:value={inputValue}
+								placeholder="Ask OSA anything... (type / for commands)"
+								rows={1}
+								disabled={isStreaming}
+								class="w-full text-[15px] text-gray-900 placeholder-gray-400 bg-transparent resize-none focus:outline-none mb-3"
+								style="min-height: 24px; max-height: 200px;"
+								onkeydown={handleKeydown}
+								oninput={handleInput}
+							></textarea>
+						{/if}
 
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-1">
-								<button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Add">
-									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-									</svg>
-								</button>
+								<!-- Plus button with menu (empty state) -->
+								<div class="relative">
+									<button
+										onclick={(e) => { e.stopPropagation(); showPlusMenu = !showPlusMenu; showContextDropdown = false; showModelDropdown = false; }}
+										class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+										aria-label="Add"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+									</button>
+									{#if showPlusMenu}
+										<div
+											class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[180px] z-10"
+											transition:fly={{ y: 5, duration: 150 }}
+										>
+											<button
+												onclick={() => { showPlusMenu = false; showContextDropdown = true; }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+												</svg>
+												Add context
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; fileInputRef?.click(); }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+												</svg>
+												Attach file
+											</button>
+										</div>
+									{/if}
+								</div>
 
-								<button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Attach file">
+								<!-- Attachment -->
+								<button
+									onclick={(e) => { e.stopPropagation(); fileInputRef?.click(); }}
+									class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+									aria-label="Attach file"
+								>
 									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
 									</svg>
@@ -2190,83 +4309,39 @@ Use this context to inform your responses.`;
 										</div>
 									{/if}
 								</div>
-
-								<div class="relative">
-									<button
-										onclick={() => { showModelDropdown = !showModelDropdown; showContextDropdown = false; }}
-										class="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-										</svg>
-										{currentModelName}
-									</button>
-
-									{#if showModelDropdown}
-										<div
-											class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-2 min-w-[250px] z-10 max-h-80 overflow-y-auto"
-											transition:fly={{ y: 5, duration: 150 }}
-										>
-											<div class="px-3 py-1.5">
-												<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cloud</span>
-											</div>
-											{#each cloudModels as model}
-												<button
-													onclick={() => { selectedModel = model.id; showModelDropdown = false; }}
-													class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
-												>
-													<div class="flex items-center gap-2">
-														<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-														</svg>
-														<div>
-															<div class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</div>
-															<div class="text-xs text-gray-500">{model.description}</div>
-														</div>
-													</div>
-												</button>
-											{/each}
-
-											<div class="border-t border-gray-100 my-2"></div>
-
-											<div class="px-3 py-1.5">
-												<span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Local</span>
-											</div>
-											{#each localModels as model}
-												<button
-													onclick={() => { selectedModel = model.id; showModelDropdown = false; }}
-													class="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors {selectedModel === model.id ? 'bg-blue-50' : ''}"
-												>
-													<div class="flex items-center gap-2">
-														<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-														</svg>
-														<div>
-															<div class="text-sm font-medium {selectedModel === model.id ? 'text-blue-600' : 'text-gray-700'}">{model.name}</div>
-															<div class="text-xs text-gray-500">{model.description}</div>
-														</div>
-													</div>
-												</button>
-											{/each}
-										</div>
-									{/if}
-								</div>
 							</div>
 
-							<button
-								type="button"
-								onclick={handleSendMessage}
-								disabled={!inputValue.trim() || isStreaming}
-								class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-							>
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-								</svg>
-							</button>
+							<!-- Right controls: Mic + Send (empty state) -->
+							<div class="flex items-center gap-2">
+								<!-- Voice Recording Button -->
+								{#if !isRecording && !isTranscribing}
+									<button
+										type="button"
+										onclick={(e) => { e.stopPropagation(); toggleRecording(); }}
+										class="flex-shrink-0 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+										aria-label="Voice input"
+									>
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+										</svg>
+									</button>
+								{/if}
+
+								<button
+									type="button"
+									onclick={handleSendMessage}
+									disabled={!inputValue.trim() || isStreaming}
+									class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+								>
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+									</svg>
+								</button>
+							</div>
 						</div>
 					</div>
 
-					<!-- Quick Actions -->
+					<!-- Quick Actions (Classic Mode only) -->
 					<div class="flex flex-wrap justify-center gap-2 mt-5">
 						{#each quickActions as action}
 							<button
@@ -2277,6 +4352,20 @@ Use this context to inform your responses.`;
 							</button>
 						{/each}
 					</div>
+
+					<!-- Switch to Focus Mode -->
+					<div class="flex justify-center mt-6">
+						<button
+							onclick={() => focusModeEnabled = true}
+							class="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 border border-gray-200 rounded-full hover:text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+							</svg>
+							Switch to Focus mode
+						</button>
+					</div>
+					{/if}
 				</div>
 			</div>
 		{/if}
@@ -2300,7 +4389,7 @@ Use this context to inform your responses.`;
 			</div>
 		</div>
 
-		<div class="h-full flex flex-col bg-white flex-shrink-0" style="width: {artifactPanelWidth}px" transition:fly={{ x: 320, duration: 200 }}>
+		<div class="h-full flex flex-col bg-white {isArtifactFocused ? 'w-1/2' : 'flex-shrink-0'}" style="{isArtifactFocused ? '' : `width: ${artifactPanelWidth}px`}" transition:fly={{ x: 320, duration: 200 }}>
 			<!-- Panel Header -->
 			<div class="p-4 border-b border-gray-100 flex-shrink-0">
 				<div class="flex items-center justify-between mb-3">
@@ -2460,7 +4549,7 @@ Use this context to inform your responses.`;
 						{:else}
 							<div class="flex gap-2 mb-2">
 								<button
-									onclick={() => { navigator.clipboard.writeText(viewingArtifactFromMessage?.content || ''); }}
+									onclick={() => { copyToClipboard(viewingArtifactFromMessage?.content || ''); }}
 									class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
 								>
 									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2524,7 +4613,7 @@ Use this context to inform your responses.`;
 					<!-- Actions -->
 					<div class="p-3 border-t border-gray-100 flex gap-2 flex-shrink-0">
 						<button
-							onclick={() => { navigator.clipboard.writeText(selectedArtifact?.content || ''); }}
+							onclick={() => { copyToClipboard(selectedArtifact?.content || ''); }}
 							class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2560,37 +4649,168 @@ Use this context to inform your responses.`;
 					{:else}
 						<div class="p-2 space-y-1">
 							{#each artifacts as artifact (artifact.id)}
-								<button
-									onclick={() => selectArtifact(artifact.id)}
-									class="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
-								>
-									<div class="w-9 h-9 rounded-lg {getArtifactColor(artifact.type)} flex items-center justify-center flex-shrink-0">
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={getArtifactIcon(artifact.type)} />
-										</svg>
-									</div>
-									<div class="flex-1 min-w-0">
-										<p class="text-sm font-medium text-gray-900 truncate">{artifact.title}</p>
-										{#if artifact.summary}
-											<p class="text-xs text-gray-500 line-clamp-2 mt-0.5">{artifact.summary}</p>
-										{/if}
-										<div class="flex items-center gap-1.5 mt-1">
-											<span class="text-xs text-gray-400 capitalize">{artifact.type}</span>
-											{#if artifact.context_name}
-												<span class="text-xs text-gray-300">&bull;</span>
-												<span class="text-xs text-blue-500 truncate">{artifact.context_name}</span>
-											{:else}
-												<span class="text-xs text-gray-300">&bull;</span>
-												<span class="text-xs text-gray-400 italic">Unlinked</span>
-											{/if}
+								<div class="group relative">
+									<button
+										onclick={() => selectArtifact(artifact.id)}
+										class="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+									>
+										<div class="w-9 h-9 rounded-lg {getArtifactColor(artifact.type)} flex items-center justify-center flex-shrink-0">
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={getArtifactIcon(artifact.type)} />
+											</svg>
 										</div>
-									</div>
-								</button>
+										<div class="flex-1 min-w-0">
+											<p class="text-sm font-medium text-gray-900 truncate">{artifact.title}</p>
+											{#if artifact.summary}
+												<p class="text-xs text-gray-500 line-clamp-2 mt-0.5">{artifact.summary}</p>
+											{/if}
+											<div class="flex items-center gap-1.5 mt-1">
+												<span class="text-xs text-gray-400 capitalize">{artifact.type}</span>
+												{#if artifact.context_name}
+													<span class="text-xs text-gray-300">&bull;</span>
+													<span class="text-xs text-blue-500 truncate">{artifact.context_name}</span>
+												{:else if artifact.project_id}
+													<span class="text-xs text-gray-300">&bull;</span>
+													<span class="text-xs text-purple-500 truncate">Linked to project</span>
+												{:else}
+													<span class="text-xs text-gray-300">&bull;</span>
+													<span class="text-xs text-gray-400 italic">Unlinked</span>
+												{/if}
+											</div>
+										</div>
+									</button>
+									<!-- Delete button - shows on hover -->
+									<button
+										onclick={(e) => { e.stopPropagation(); deleteArtifactById(artifact.id); }}
+										class="absolute right-2 top-2 p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+										title="Delete artifact"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+										</svg>
+									</button>
+								</div>
 							{/each}
 						</div>
 					{/if}
 				</div>
 			{/if}
+		</div>
+	{/if}
+
+	<!-- Right Panel: Progress/Context/Artifacts -->
+	{#if rightPanelOpen}
+		<!-- Resize Handle -->
+		<div
+			class="w-1 h-full bg-gray-200 hover:bg-blue-400 cursor-col-resize flex-shrink-0 transition-colors relative group"
+			onmousedown={startRightPanelResize}
+			role="separator"
+			aria-orientation="vertical"
+		>
+			<div class="absolute inset-y-0 -left-1 -right-1 group-hover:bg-blue-400/20"></div>
+			<!-- Visible grip indicator -->
+			<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+				<div class="w-1 h-1 rounded-full bg-gray-400"></div>
+				<div class="w-1 h-1 rounded-full bg-gray-400"></div>
+				<div class="w-1 h-1 rounded-full bg-gray-400"></div>
+			</div>
+		</div>
+
+		<div class="h-full flex flex-col bg-white flex-shrink-0" style="width: {rightPanelWidth}px" transition:fly={{ x: 320, duration: 200 }}>
+			<!-- Panel Tabs -->
+			<div class="flex border-b border-gray-200">
+				<button
+					onclick={() => rightPanelTab = 'progress'}
+					class="flex-1 px-3 py-3 text-xs font-medium transition-colors {rightPanelTab === 'progress' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700'}"
+				>
+					Progress
+				</button>
+				<button
+					onclick={() => rightPanelTab = 'context'}
+					class="flex-1 px-3 py-3 text-xs font-medium transition-colors {rightPanelTab === 'context' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700'}"
+				>
+					Context
+				</button>
+				<button
+					onclick={() => rightPanelTab = 'artifacts'}
+					class="flex-1 px-3 py-3 text-xs font-medium transition-colors {rightPanelTab === 'artifacts' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-700'}"
+				>
+					Artifacts
+					{#if artifacts.length > 0}
+						<span class="ml-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-200">{artifacts.length}</span>
+					{/if}
+				</button>
+				<button
+					onclick={() => rightPanelOpen = false}
+					class="p-3 text-gray-400 hover:text-gray-600"
+					aria-label="Close panel"
+				>
+					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+
+			<!-- Panel Content -->
+			<div class="flex-1 overflow-hidden">
+				{#if rightPanelTab === 'progress'}
+					<ProgressPanel tasks={delegatedTasks} />
+				{:else if rightPanelTab === 'context'}
+					<ContextPanel
+						resources={activeResources}
+						availableContexts={availableContexts.map(c => ({
+							id: c.id,
+							name: c.name
+						}))}
+						{selectedContextIds}
+						onContextToggle={handleContextToggle}
+					/>
+				{:else if rightPanelTab === 'artifacts'}
+					<!-- Artifacts List in Panel -->
+					<div class="flex flex-col h-full">
+						<div class="p-4 border-b border-gray-100">
+							<div class="flex items-center justify-between">
+								<h3 class="text-sm font-semibold text-gray-900">Artifacts</h3>
+								{#if artifacts.length > 0}
+									<span class="text-xs text-gray-500">{artifacts.length} items</span>
+								{/if}
+							</div>
+						</div>
+						<div class="flex-1 overflow-y-auto p-2">
+							{#if artifacts.length === 0}
+								<div class="flex flex-col items-center justify-center py-12 px-4 text-center">
+									<svg class="w-10 h-10 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+									</svg>
+									<p class="text-sm text-gray-500">No artifacts yet</p>
+									<p class="text-xs text-gray-400 mt-1">Artifacts created by AI will appear here</p>
+								</div>
+							{:else}
+								<div class="space-y-1">
+									{#each artifacts as artifact (artifact.id)}
+										<button
+											onclick={() => selectArtifact(artifact.id)}
+											class="w-full p-3 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+										>
+											<div class="flex items-start gap-3">
+												<div class="w-8 h-8 rounded-lg {getArtifactColor(artifact.type)} flex items-center justify-center flex-shrink-0">
+													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getArtifactIcon(artifact.type)} />
+													</svg>
+												</div>
+												<div class="flex-1 min-w-0">
+													<p class="text-sm font-medium text-gray-900 truncate">{artifact.title}</p>
+													<p class="text-xs text-gray-500 capitalize">{artifact.type}</p>
+												</div>
+											</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -2830,6 +5050,49 @@ Use this context to inform your responses.`;
 	</div>
 {/if}
 
+<!-- Quick Create Project Modal -->
+{#if showNewProjectModal}
+	<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+			<div class="p-5 border-b border-gray-100">
+				<h3 class="text-lg font-semibold text-gray-900">Create New Project</h3>
+				<p class="text-sm text-gray-500 mt-1">Give your project a name to get started</p>
+			</div>
+			<div class="p-5">
+				<input
+					type="text"
+					bind:value={newProjectName}
+					placeholder="Project name..."
+					class="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+					onkeydown={(e) => { if (e.key === 'Enter') createProjectQuick(); if (e.key === 'Escape') showNewProjectModal = false; }}
+					autofocus
+				/>
+			</div>
+			<div class="p-4 border-t border-gray-100 flex justify-end gap-3">
+				<button
+					onclick={() => { showNewProjectModal = false; newProjectName = ''; }}
+					class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={createProjectQuick}
+					disabled={!newProjectName.trim() || creatingProject}
+					class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+				>
+					{#if creatingProject}
+						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+						</svg>
+					{/if}
+					Create & Start Chat
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	@keyframes blink {
 		0%, 50% { opacity: 1; }
@@ -2838,5 +5101,678 @@ Use this context to inform your responses.`;
 
 	:global(.cursor-blink) {
 		animation: blink 1s step-end infinite;
+	}
+
+	/* Streaming cursor - appears inline with text */
+	:global(.streaming-cursor) {
+		display: inline-block;
+		width: 2px;
+		height: 1em;
+		background-color: #3b82f6;
+		margin-left: 2px;
+		vertical-align: text-bottom;
+		animation: blink 1s step-end infinite;
+		border-radius: 1px;
+	}
+
+	:global(.dark) .streaming-cursor {
+		background-color: #60a5fa;
+	}
+
+	/* Ensure cursor stays inline with last text element */
+	:global(.streaming-content) :global(p:last-child),
+	:global(.streaming-content) :global(div:last-child),
+	:global(.streaming-content) :global(span:last-child) {
+		display: inline;
+	}
+
+	/* ===== DARK MODE FOR CHAT PAGE ===== */
+	/* Window container */
+	:global(.dark) .window-container,
+	:global(.dark) .chat-container {
+		background: #1c1c1e !important;
+	}
+
+	/* Header bar */
+	:global(.dark) .chat-header {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	/* Main input area */
+	:global(.dark) .chat-input-container {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	:global(.dark) .chat-input,
+	:global(.dark) .message-input {
+		background: #3a3a3c !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
+		color: #f5f5f7 !important;
+	}
+
+	:global(.dark) .chat-input:focus,
+	:global(.dark) .message-input:focus {
+		border-color: #0A84FF !important;
+	}
+
+	:global(.dark) .chat-input::placeholder,
+	:global(.dark) .message-input::placeholder {
+		color: #6e6e73 !important;
+	}
+
+	/* Messages area */
+	:global(.dark) .messages-area {
+		background: #1c1c1e !important;
+	}
+
+	/* User message bubbles */
+	:global(.dark) .user-message,
+	:global(.dark) .message.user {
+		background: #0A84FF !important;
+		color: white !important;
+	}
+
+	/* Assistant message bubbles */
+	:global(.dark) .assistant-message,
+	:global(.dark) .message.assistant {
+		background: #2c2c2e !important;
+		color: #f5f5f7 !important;
+	}
+
+	/* Buttons and icons */
+	:global(.dark) .chat-btn,
+	:global(.dark) .action-btn {
+		color: #a1a1a6 !important;
+	}
+
+	:global(.dark) .chat-btn:hover,
+	:global(.dark) .action-btn:hover {
+		background: #3a3a3c !important;
+		color: #f5f5f7 !important;
+	}
+
+	/* Header toggle buttons */
+	.header-toggle-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.375rem 0.625rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		border-radius: 0.5rem;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
+		color: #6b7280;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+	}
+
+	.header-toggle-btn:hover {
+		color: #374151;
+		background: rgba(0, 0, 0, 0.05);
+	}
+
+	.header-toggle-btn.active {
+		color: #1f2937;
+		background: rgba(0, 0, 0, 0.08);
+	}
+
+	.header-toggle-btn.warning {
+		color: #b45309;
+		background: #fef3c7;
+		border: 1px solid #fcd34d;
+	}
+
+	.header-toggle-btn.warning:hover {
+		background: #fde68a;
+	}
+
+	.header-toggle-badge {
+		padding: 0.125rem 0.375rem;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		border-radius: 9999px;
+		background: rgba(0, 0, 0, 0.08);
+		color: #4b5563;
+	}
+
+	:global(.dark) .header-toggle-btn {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .header-toggle-btn:hover {
+		color: #e5e7eb;
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	:global(.dark) .header-toggle-btn.active {
+		color: #f3f4f6;
+		background: rgba(255, 255, 255, 0.12);
+	}
+
+	:global(.dark) .header-toggle-btn.warning {
+		color: #fbbf24;
+		background: rgba(251, 191, 36, 0.15);
+		border: 1px solid rgba(251, 191, 36, 0.3);
+	}
+
+	:global(.dark) .header-toggle-btn.warning:hover {
+		background: rgba(251, 191, 36, 0.25);
+	}
+
+	:global(.dark) .header-toggle-badge {
+		background: rgba(255, 255, 255, 0.12);
+		color: #d1d5db;
+	}
+
+	/* Custom sidebar scrollbar */
+	.sidebar-scroll {
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+	}
+
+	.sidebar-scroll:hover {
+		scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+	}
+
+	.sidebar-scroll::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.sidebar-scroll::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.sidebar-scroll::-webkit-scrollbar-thumb {
+		background: transparent;
+		border-radius: 3px;
+	}
+
+	.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.15);
+	}
+
+	:global(.dark) .sidebar-scroll:hover {
+		scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+	}
+
+	:global(.dark) .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.2);
+	}
+
+	/* Suggestion chips */
+	:global(.dark) .suggestion-chip {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
+		color: #f5f5f7 !important;
+	}
+
+	:global(.dark) .suggestion-chip:hover {
+		background: #3a3a3c !important;
+		border-color: rgba(255, 255, 255, 0.25) !important;
+	}
+
+	/* Dropdowns */
+	:global(.dark) .dropdown,
+	:global(.dark) .context-dropdown,
+	:global(.dark) .model-dropdown {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+	}
+
+	:global(.dark) .dropdown-item:hover {
+		background: #3a3a3c !important;
+	}
+
+	/* Sidebar (conversations list) */
+	:global(.dark) .conversations-sidebar {
+		background: #1c1c1e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	:global(.dark) .conversation-item {
+		color: #f5f5f7 !important;
+	}
+
+	:global(.dark) .conversation-item:hover {
+		background: #2c2c2e !important;
+	}
+
+	:global(.dark) .conversation-item.active {
+		background: #3a3a3c !important;
+	}
+
+	/* Artifacts panel */
+	:global(.dark) .artifacts-panel {
+		background: #1c1c1e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	:global(.dark) .artifact-card {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	/* Empty state */
+	:global(.dark) .empty-state {
+		color: #a1a1a6 !important;
+	}
+
+	:global(.dark) .empty-state h2 {
+		color: #f5f5f7 !important;
+	}
+
+	/* Modals */
+	:global(.dark) .modal-content {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	/* ChatGPT-style input area */
+	.chat-input-area {
+		background: transparent;
+	}
+
+	.chat-input-box {
+		transition: all 0.2s ease;
+	}
+
+	:global(.dark) .chat-input-area {
+		background: transparent !important;
+	}
+
+	:global(.dark) .chat-input-box {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+	}
+
+	:global(.dark) .chat-input-box:focus-within {
+		border-color: rgba(255, 255, 255, 0.25) !important;
+	}
+
+	/* Input area container in dark mode */
+	:global(.dark) .bg-gray-50 {
+		background: #1c1c1e !important;
+	}
+
+	:global(.dark) .border-gray-100 {
+		border-color: transparent !important;
+	}
+
+	:global(.dark) .rounded-3xl.bg-white,
+	:global(.dark) .rounded-2xl.bg-white {
+		background: #2c2c2e !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
+	}
+
+	:global(.dark) .text-gray-900 {
+		color: #f5f5f7 !important;
+	}
+
+	:global(.dark) .placeholder-gray-400::placeholder {
+		color: #6e6e73 !important;
+	}
+
+	/* Usage stats dark mode */
+	:global(.dark) .border-l.border-gray-200 {
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	:global(.dark) .text-gray-400 {
+		color: #6e6e73 !important;
+	}
+
+	:global(.dark) .text-gray-300 {
+		color: #48484a !important;
+	}
+
+	/* Assistant message text dark mode */
+	:global(.dark) .text-gray-800 {
+		color: #e5e5e7 !important;
+	}
+
+	:global(.dark) .prose {
+		color: #e5e5e7;
+	}
+
+	:global(.dark) .prose p,
+	:global(.dark) .prose li,
+	:global(.dark) .prose span {
+		color: #e5e5e7;
+	}
+
+	/* Artifact cards dark mode */
+	:global(.dark) .from-blue-50,
+	:global(.dark) .to-purple-50 {
+		--tw-gradient-from: rgba(30, 41, 59, 0.5) !important;
+		--tw-gradient-to: rgba(30, 30, 46, 0.5) !important;
+	}
+
+	:global(.dark) .border-blue-200 {
+		border-color: rgba(59, 130, 246, 0.3) !important;
+	}
+
+	:global(.dark) .bg-gray-50 {
+		background-color: #1c1c1e !important;
+	}
+
+	:global(.dark) .border-gray-200 {
+		border-color: rgba(255, 255, 255, 0.12) !important;
+	}
+
+	/* Recording indicator - pulsing red dot */
+	.recording-indicator {
+		width: 12px;
+		height: 12px;
+		background-color: #ef4444;
+		border-radius: 50%;
+		animation: pulse-recording 1.5s ease-in-out infinite;
+	}
+
+	@keyframes pulse-recording {
+		0%, 100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scale(1.2);
+			opacity: 0.7;
+		}
+	}
+
+	/* Voice waveform animation */
+	.voice-waveform {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+		height: 32px;
+	}
+
+	.voice-waveform span {
+		width: 4px;
+		background-color: #ef4444;
+		border-radius: 2px;
+		animation: waveform 0.8s ease-in-out infinite;
+	}
+
+	.voice-waveform span:nth-child(1) { animation-delay: 0s; height: 8px; }
+	.voice-waveform span:nth-child(2) { animation-delay: 0.1s; height: 16px; }
+	.voice-waveform span:nth-child(3) { animation-delay: 0.2s; height: 24px; }
+	.voice-waveform span:nth-child(4) { animation-delay: 0.3s; height: 16px; }
+	.voice-waveform span:nth-child(5) { animation-delay: 0.4s; height: 8px; }
+
+	@keyframes waveform {
+		0%, 100% {
+			transform: scaleY(1);
+		}
+		50% {
+			transform: scaleY(1.8);
+		}
+	}
+
+	/* ===== CHATGPT-STYLE MARKDOWN FORMATTING ===== */
+
+	/* Section dividers - subtle horizontal line */
+	:global(.chat-section-divider) {
+		height: 1px;
+		background: linear-gradient(to right, transparent, #e5e5e5 20%, #e5e5e5 80%, transparent);
+		margin: 1.5rem 0 1rem 0;
+	}
+
+	:global(.dark) .chat-section-divider {
+		background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.12) 20%, rgba(255, 255, 255, 0.12) 80%, transparent);
+	}
+
+	/* Major section headers (1. Title, 2. Title) */
+	:global(.chat-section-header) {
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: #1a1a1a;
+		margin: 0.5rem 0 1rem 0;
+		line-height: 1.4;
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	:global(.dark) .chat-section-header {
+		color: #f5f5f7;
+	}
+
+	:global(.chat-section-number) {
+		font-weight: 700;
+		color: #1a1a1a;
+	}
+
+	:global(.dark) .chat-section-number {
+		color: #e5e5e7;
+	}
+
+	/* Sub-section headers (A. Title, B. Title) */
+	:global(.chat-subsection-header) {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #2d2d2d;
+		margin: 1rem 0 0.75rem 0;
+		line-height: 1.4;
+		display: flex;
+		align-items: baseline;
+		gap: 0.4rem;
+	}
+
+	:global(.dark) .chat-subsection-header {
+		color: #e5e5e7;
+	}
+
+	:global(.chat-subsection-letter) {
+		font-weight: 700;
+		color: #1a1a1a;
+	}
+
+	:global(.dark) .chat-subsection-letter {
+		color: #e5e5e7;
+	}
+
+	/* Regular markdown headers */
+	:global(.chat-h2) {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #1a1a1a;
+		margin: 1.25rem 0 0.75rem 0;
+		line-height: 1.3;
+	}
+
+	:global(.chat-h3) {
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: #2d2d2d;
+		margin: 1rem 0 0.6rem 0;
+		line-height: 1.3;
+	}
+
+	:global(.chat-h4) {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #3d3d3d;
+		margin: 0.875rem 0 0.5rem 0;
+		line-height: 1.3;
+	}
+
+	:global(.dark) .chat-h2,
+	:global(.dark) .chat-h3,
+	:global(.dark) .chat-h4 {
+		color: #f5f5f7;
+	}
+
+	/* Code blocks */
+	:global(.chat-code-block) {
+		background: #1e1e1e;
+		border-radius: 0.75rem;
+		padding: 1rem;
+		margin: 1rem 0;
+		overflow-x: auto;
+		font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+		font-size: 0.875rem;
+		line-height: 1.6;
+		border: 1px solid #2d2d2d;
+	}
+
+	:global(.chat-code-block code) {
+		color: #d4d4d4;
+		background: transparent;
+		padding: 0;
+		font-size: inherit;
+	}
+
+	:global(.dark) .chat-code-block {
+		background: #0d0d0d;
+		border-color: rgba(255, 255, 255, 0.08);
+	}
+
+	/* Inline code */
+	:global(.chat-inline-code) {
+		background: #f3f4f6;
+		color: #e11d48;
+		padding: 0.125rem 0.375rem;
+		border-radius: 0.375rem;
+		font-family: 'SF Mono', 'Fira Code', 'Monaco', 'Consolas', monospace;
+		font-size: 0.875em;
+	}
+
+	:global(.dark) .chat-inline-code {
+		background: rgba(255, 255, 255, 0.1);
+		color: #fb7185;
+	}
+
+	/* Bold text */
+	:global(.chat-bold) {
+		font-weight: 600;
+		color: inherit;
+	}
+
+	/* Italic text */
+	:global(.chat-italic) {
+		font-style: italic;
+		color: inherit;
+	}
+
+	/* Numbered list items */
+	:global(.chat-list-item) {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		margin: 0.625rem 0;
+		padding-left: 0.25rem;
+	}
+
+	:global(.chat-list-number) {
+		font-weight: 600;
+		color: #1a1a1a;
+		min-width: 1.5rem;
+		flex-shrink: 0;
+	}
+
+	:global(.dark) .chat-list-number {
+		color: #e5e5e7;
+	}
+
+	:global(.chat-list-content) {
+		flex: 1;
+		line-height: 1.6;
+	}
+
+	/* Bullet items */
+	:global(.chat-bullet-item) {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		margin: 0.5rem 0;
+		padding-left: 0.25rem;
+	}
+
+	:global(.chat-bullet) {
+		color: #9ca3af;
+		font-size: 0.75rem;
+		margin-top: 0.375rem;
+	}
+
+	:global(.dark) .chat-bullet {
+		color: #6b7280;
+	}
+
+	/* Nested bullets */
+	:global(.chat-nested-bullet) {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		margin: 0.375rem 0 0.375rem 1.5rem;
+		font-size: 0.9375rem;
+	}
+
+	/* Labels like "Outcome:", "Example:" */
+	:global(.chat-label) {
+		margin: 1rem 0 0.5rem 0;
+		line-height: 1.6;
+	}
+
+	:global(.chat-label strong) {
+		color: #4b5563;
+		font-weight: 600;
+	}
+
+	:global(.dark) .chat-label strong {
+		color: #9ca3af;
+	}
+
+	/* Links */
+	:global(.chat-link) {
+		color: #3b82f6;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		transition: color 0.15s;
+	}
+
+	:global(.chat-link:hover) {
+		color: #2563eb;
+	}
+
+	:global(.dark) .chat-link {
+		color: #60a5fa;
+	}
+
+	:global(.dark) .chat-link:hover {
+		color: #93c5fd;
+	}
+
+	/* Paragraphs */
+	:global(.chat-paragraph) {
+		margin: 0.75rem 0;
+		line-height: 1.7;
+	}
+
+	:global(.chat-paragraph:first-child) {
+		margin-top: 0;
+	}
+
+	:global(.chat-paragraph:last-child) {
+		margin-bottom: 0;
+	}
+
+	/* Fix overall message content */
+	:global(.prose) .chat-section-header,
+	:global(.prose) .chat-subsection-header,
+	:global(.prose) .chat-h2,
+	:global(.prose) .chat-h3,
+	:global(.prose) .chat-h4 {
+		margin-top: 1rem;
+	}
+
+	:global(.prose) .chat-section-divider + .chat-section-header {
+		margin-top: 0;
 	}
 </style>

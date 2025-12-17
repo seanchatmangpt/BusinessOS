@@ -29,20 +29,31 @@
 	let isCreatingNode = $state(false);
 
 	// Node type config
-	const nodeTypeConfig: Record<NodeType, { icon: string; color: string; label: string }> = {
+	const nodeTypeConfig: Record<string, { icon: string; color: string; label: string }> = {
 		business: { icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4', color: 'blue', label: 'Business' },
 		project: { icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'green', label: 'Project' },
 		learning: { icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', color: 'purple', label: 'Learning' },
 		operational: { icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z', color: 'orange', label: 'Operational' },
 	};
+	const defaultTypeConfig = { icon: 'M4 6h16M4 12h16M4 18h16', color: 'gray', label: 'Unknown' };
 
 	// Health config
-	const healthConfig: Record<NodeHealth, { color: string; label: string }> = {
+	const healthConfig: Record<string, { color: string; label: string }> = {
 		healthy: { color: 'bg-green-500', label: 'Healthy' },
 		needs_attention: { color: 'bg-yellow-500', label: 'Needs Attention' },
 		critical: { color: 'bg-red-500', label: 'Critical' },
 		not_started: { color: 'bg-gray-400', label: 'Not Started' },
 	};
+	const defaultHealthConfig = { color: 'bg-gray-400', label: 'Unknown' };
+
+	// Helper functions to safely get config
+	function getTypeConfig(type: string | undefined | null) {
+		return (type && nodeTypeConfig[type]) || defaultTypeConfig;
+	}
+
+	function getHealthConfig(health: string | undefined | null) {
+		return (health && healthConfig[health]) || defaultHealthConfig;
+	}
 
 	async function loadData() {
 		isLoading = true;
@@ -134,6 +145,7 @@
 
 	// Filter nodes
 	function filterNodes(nodeList: NodeTree[]): NodeTree[] {
+		if (!nodeList) return [];
 		return nodeList.filter(node => {
 			const matchesSearch = !searchQuery || node.name.toLowerCase().includes(searchQuery.toLowerCase());
 			const matchesType = filterType === 'all' || node.type === filterType;
@@ -141,7 +153,7 @@
 			return matchesSearch && matchesType && matchesHealth;
 		}).map(node => ({
 			...node,
-			children: filterNodes(node.children)
+			children: filterNodes(node.children || [])
 		}));
 	}
 
@@ -149,10 +161,11 @@
 
 	// Flatten nodes for list view
 	function flattenNodes(nodeList: NodeTree[], depth = 0): (NodeTree & { depth: number })[] {
+		if (!nodeList) return [];
 		let result: (NodeTree & { depth: number })[] = [];
 		for (const node of nodeList) {
 			result.push({ ...node, depth });
-			result = result.concat(flattenNodes(node.children, depth + 1));
+			result = result.concat(flattenNodes(node.children || [], depth + 1));
 		}
 		return result;
 	}
@@ -161,10 +174,11 @@
 
 	// Get all nodes for parent selector
 	function getAllNodes(nodeList: NodeTree[]): NodeTree[] {
+		if (!nodeList) return [];
 		let result: NodeTree[] = [];
 		for (const node of nodeList) {
 			result.push(node);
-			result = result.concat(getAllNodes(node.children));
+			result = result.concat(getAllNodes(node.children || []));
 		}
 		return result;
 	}
@@ -409,9 +423,9 @@
 							{/if}
 
 							<!-- Type Icon -->
-							<div class="w-8 h-8 rounded-lg bg-{nodeTypeConfig[node.type].color}-100 text-{nodeTypeConfig[node.type].color}-600 flex items-center justify-center flex-shrink-0">
+							<div class="w-8 h-8 rounded-lg bg-{getTypeConfig(node.type).color}-100 text-{getTypeConfig(node.type).color}-600 flex items-center justify-center flex-shrink-0">
 								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={nodeTypeConfig[node.type].icon} />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getTypeConfig(node.type).icon} />
 								</svg>
 							</div>
 
@@ -426,7 +440,7 @@
 							{/if}
 
 							<!-- Health -->
-							<div class="w-2.5 h-2.5 rounded-full {healthConfig[node.health].color}"></div>
+							<div class="w-2.5 h-2.5 rounded-full {getHealthConfig(node.health).color}"></div>
 
 							<!-- Actions -->
 							<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -485,9 +499,9 @@
 							<tr class="hover:bg-gray-50">
 								<td class="px-4 py-3">
 									<div class="flex items-center gap-3" style="padding-left: {node.depth * 20}px">
-										<div class="w-8 h-8 rounded-lg bg-{nodeTypeConfig[node.type].color}-100 text-{nodeTypeConfig[node.type].color}-600 flex items-center justify-center flex-shrink-0">
+										<div class="w-8 h-8 rounded-lg bg-{getTypeConfig(node.type).color}-100 text-{getTypeConfig(node.type).color}-600 flex items-center justify-center flex-shrink-0">
 											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={nodeTypeConfig[node.type].icon} />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getTypeConfig(node.type).icon} />
 											</svg>
 										</div>
 										<a href="/nodes/{node.id}" class="font-medium text-gray-900 hover:text-blue-600">
@@ -501,8 +515,8 @@
 								<td class="px-4 py-3 text-sm text-gray-600 capitalize">{node.type}</td>
 								<td class="px-4 py-3">
 									<span class="flex items-center gap-2">
-										<span class="w-2 h-2 rounded-full {healthConfig[node.health].color}"></span>
-										<span class="text-sm text-gray-600">{healthConfig[node.health].label}</span>
+										<span class="w-2 h-2 rounded-full {getHealthConfig(node.health).color}"></span>
+										<span class="text-sm text-gray-600">{getHealthConfig(node.health).label}</span>
 									</span>
 								</td>
 								<td class="px-4 py-3 text-sm text-gray-500">
@@ -544,16 +558,16 @@
 						class="block p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all hover:-translate-y-0.5"
 					>
 						<div class="flex items-start gap-3">
-							<div class="w-10 h-10 rounded-lg bg-{nodeTypeConfig[node.type].color}-100 text-{nodeTypeConfig[node.type].color}-600 flex items-center justify-center flex-shrink-0">
+							<div class="w-10 h-10 rounded-lg bg-{getTypeConfig(node.type).color}-100 text-{getTypeConfig(node.type).color}-600 flex items-center justify-center flex-shrink-0">
 								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={nodeTypeConfig[node.type].icon} />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getTypeConfig(node.type).icon} />
 								</svg>
 							</div>
 							<div class="flex-1 min-w-0">
 								<h3 class="font-medium text-gray-900 truncate">{node.name}</h3>
 								<div class="flex items-center gap-2 mt-1">
-									<span class="w-2 h-2 rounded-full {healthConfig[node.health].color}"></span>
-									<span class="text-sm text-gray-500">{healthConfig[node.health].label}</span>
+									<span class="w-2 h-2 rounded-full {getHealthConfig(node.health).color}"></span>
+									<span class="text-sm text-gray-500">{getHealthConfig(node.health).label}</span>
 								</div>
 							</div>
 							{#if node.is_active}

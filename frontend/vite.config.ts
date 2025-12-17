@@ -56,6 +56,30 @@ export default defineConfig({
 				target: 'http://localhost:8000',
 				changeOrigin: true,
 			},
+			'/api/transcribe': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/api/voice-notes': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/api/ai': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/api/calendar': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/api/integrations': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
+			'/api/profile': {
+				target: 'http://localhost:8000',
+				changeOrigin: true,
+			},
 			'/health': {
 				target: 'http://localhost:8000',
 				changeOrigin: true,

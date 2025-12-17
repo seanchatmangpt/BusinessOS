@@ -1,6 +1,6 @@
 # Business OS - Features Documentation
 
-> Last Updated: December 12, 2025
+> Last Updated: December 18, 2025
 
 This document provides detailed information about all features in Business OS.
 
@@ -12,9 +12,10 @@ This document provides detailed information about all features in Business OS.
 2. [Desktop Mode](#desktop-mode)
 3. [Clients System](#clients-system)
 4. [AI Chat](#ai-chat)
-5. [Context System](#context-system)
-6. [Projects & Tasks](#projects--tasks)
-7. [Artifacts](#artifacts)
+5. [AI Settings](#ai-settings)
+6. [Context System](#context-system)
+7. [Projects & Tasks](#projects--tasks)
+8. [Artifacts](#artifacts)
 
 ---
 
@@ -249,6 +250,64 @@ Convert AI-generated artifacts into actionable tasks:
 3. Review and edit generated tasks
 4. Select project and assign team members
 5. Create tasks in one click
+
+---
+
+## AI Settings
+
+The AI Settings page (`/settings/ai`) provides comprehensive model management and configuration.
+
+### Tabs
+
+| Tab | Description |
+|-----|-------------|
+| **Models** | Browse, install, and manage AI models |
+| **Providers** | Configure AI provider connections |
+| **Settings** | Model parameters and defaults |
+| **Agents** | Manage AI agents |
+| **Commands** | Custom slash commands |
+| **Stats** | Usage analytics and metrics |
+
+### Model Browser
+
+A compact, single-row filter bar for browsing available models:
+
+| Control | Description |
+|---------|-------------|
+| **Search** | Filter models by name (⌘K shortcut) |
+| **Source** | Dropdown: All / Local / Cloud with counts |
+| **Filters** | Dropdown with capability checkboxes (Vision, Tools, Code, Reasoning, RAG, Multi-lang, Fast) |
+| **Filter Chips** | Active filters shown as removable chips |
+| **Installed** | Apple-style toggle to show only installed models |
+| **Sort** | Dropdown: Recommended / Name / Size / Downloads |
+
+### Model Capabilities
+
+| Capability | Color | Description |
+|------------|-------|-------------|
+| Vision | Green | Image understanding |
+| Tools | Blue | Function calling |
+| Code | Purple | Code generation |
+| Reasoning | Orange | Complex reasoning |
+| RAG | Cyan | Retrieval augmented |
+| Multi-lang | Pink | Multiple languages |
+| Fast | Yellow | Quick inference |
+
+### Model Card Features
+
+- **Size Variants**: Select different parameter sizes (1B, 3B, 7B, etc.)
+- **Download Status**: Progress bar for pulling models
+- **Default Selection**: Set model as default for chat
+- **Delete**: Remove installed models
+- **Recommended Banner**: System-detected optimal models based on RAM
+
+### Recommended For You
+
+The Models page shows personalized recommendations based on system specs:
+- Detects available RAM
+- Suggests optimal models for your hardware
+- Shows speed/quality ratings
+- One-click install for recommended models
 
 ---
 

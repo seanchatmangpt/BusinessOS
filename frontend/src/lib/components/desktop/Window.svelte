@@ -548,4 +548,44 @@
 		height: 10px;
 		cursor: nesw-resize;
 	}
+
+	/* ===== DARK MODE FOR WINDOWS ===== */
+	:global(.dark) .window {
+		background: #1c1c1e;
+		border-color: rgba(255, 255, 255, 0.12);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+	}
+
+	:global(.dark) .window.focused {
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+	}
+
+	:global(.dark) .title-bar {
+		background: linear-gradient(to bottom, #2c2c2e, #262628);
+		border-bottom-color: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .title-bar.focused {
+		background: linear-gradient(to bottom, #3a3a3c, #2c2c2e);
+	}
+
+	:global(.dark) .title-text {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .window:not(.focused) .title-text {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .window:not(.focused) .control-button {
+		background: #48484a;
+	}
+
+	:global(.dark) .window-content {
+		background: #1c1c1e;
+	}
+
+	:global(.dark) .window-placeholder {
+		color: #6e6e73;
+	}
 </style>

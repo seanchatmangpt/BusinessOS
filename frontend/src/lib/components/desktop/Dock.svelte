@@ -1,8 +1,222 @@
 <script lang="ts">
 	import { windowStore } from '$lib/stores/windowStore';
 	import { desktopSettings } from '$lib/stores/desktopStore';
+	import { api, apiClient } from '$lib/api/client';
 
 	const iconStyle = $derived($desktopSettings.iconStyle);
+
+	// Check if any windows are open (for collapsed chat bubble state)
+	const hasOpenWindows = $derived($windowStore.windows.filter(w => !w.minimized).length > 0);
+
+	// Collapsed bubble state
+	let isHoveringCollapsed = $state(false);
+	let collapsedVoiceActive = $state(false);
+
+	// Quick chat state
+	let chatInput = $state('');
+	let isExpanded = $state(false);
+	let isLoading = $state(false);
+	let lastResponse = $state('');
+	let showResponse = $state(false);
+	let chatInputElement: HTMLTextAreaElement;
+
+	// Context/Project selection
+	let selectedProject = $state<{ id: string; name: string } | null>(null);
+	let showProjectSelector = $state(false);
+	let highlightedProjectIndex = $state(-1);
+	let projects = $state<{ id: string; name: string }[]>([]);
+	let loadingProjects = $state(false);
+
+	// Model selection
+	let selectedModel = $state<{ id: string; name: string; isLocal: boolean } | null>(null);
+	let showModelSelector = $state(false);
+	let localModels = $state<{ id: string; name: string }[]>([]);
+	let cloudModels = $state<{ id: string; name: string }[]>([
+		{ id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+		{ id: 'gpt-4o', name: 'GPT-4o' },
+		{ id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+	]);
+	let loadingModels = $state(false);
+
+	// Model pull state
+	let isPulling = $state(false);
+	let pullingModel = $state('');
+	let pullProgress = $state<{ status: string; percent?: number } | null>(null);
+	const recommendedModels = [
+		{ id: 'llama3.2:3b', name: 'Llama 3.2 3B', size: '~2GB' },
+		{ id: 'llama3.2:latest', name: 'Llama 3.2 7B', size: '~4GB' },
+		{ id: 'mistral:7b', name: 'Mistral 7B', size: '~4GB' },
+		{ id: 'qwen2.5:7b', name: 'Qwen 2.5 7B', size: '~4GB' }
+	];
+
+	// Voice recording state
+	let isRecording = $state(false);
+	let mediaRecorder: MediaRecorder | null = null;
+	let audioChunks: Blob[] = [];
+	let recordingDuration = $state(0);
+	let recordingInterval: number | null = null;
+
+	// Audio visualization
+	let audioContext: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+	let audioDataArray: Uint8Array | null = null;
+	let waveformBars = $state<number[]>(Array(20).fill(2));
+	let animationFrameId: number | null = null;
+
+	// File upload state
+	let isDraggingFile = $state(false);
+	let attachedFiles = $state<File[]>([]);
+	let fileInputElement: HTMLInputElement;
+
+	// Content size detection for dynamic width
+	let contentSize = $derived(() => {
+		const lineCount = (chatInput.match(/\n/g) || []).length + 1;
+		const charCount = chatInput.length;
+
+		if (lineCount >= 3 || charCount > 150) return 'large';
+		if (lineCount >= 2 || charCount > 80) return 'medium';
+		if (charCount > 40) return 'small-expand';
+		return 'default';
+	});
+
+	// Load contexts on mount
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+
+	// Global keyboard handler for Ctrl+Space dictation shortcut
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		// Ctrl+Space to start dictation when collapsed bubble is visible
+		if (e.ctrlKey && e.code === 'Space' && hasOpenWindows && !collapsedVoiceActive && !isRecording) {
+			e.preventDefault();
+			handleCollapsedBubbleClick();
+		}
+	}
+
+	onMount(() => {
+		if (browser) {
+			// Load in background - don't block UI
+			loadProjects();
+			loadModels();
+			// Add global keyboard listener for dictation shortcut
+			window.addEventListener('keydown', handleGlobalKeydown);
+		}
+	});
+
+	onDestroy(() => {
+		if (browser) {
+			window.removeEventListener('keydown', handleGlobalKeydown);
+		}
+	});
+
+	async function loadProjects() {
+		loadingProjects = true;
+		try {
+			const projectsList = await api.getProjects();
+			projects = projectsList.map((p: any) => ({ id: p.id, name: p.name }));
+		} catch (error) {
+			console.error('Failed to load projects:', error);
+		} finally {
+			loadingProjects = false;
+		}
+	}
+
+	async function loadModels() {
+		loadingModels = true;
+		try {
+			// Load local models from Ollama API (same endpoint as chat module)
+			const localRes = await apiClient.get('/ai/models/local');
+			if (localRes.ok) {
+				const data = await localRes.json();
+				localModels = (data.models || [])
+					.filter((m: any) => {
+						// Filter out tiny cloud reference stubs
+						const nameOrId = (m.id || '') + (m.name || '');
+						const isCloudRef = nameOrId.toLowerCase().includes('cloud') &&
+							(m.size === '< 1 KB' || m.size === '0 B' || !m.size);
+						return !isCloudRef;
+					})
+					.map((m: any) => ({
+						id: m.id || m.name,
+						name: m.name || m.id
+					}));
+
+				// Set default model if none selected
+				if (!selectedModel && localModels.length > 0) {
+					selectedModel = { ...localModels[0], isLocal: true };
+				} else if (!selectedModel && cloudModels.length > 0) {
+					selectedModel = { ...cloudModels[0], isLocal: false };
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load models:', error);
+			// Default to first cloud model
+			if (!selectedModel && cloudModels.length > 0) {
+				selectedModel = { ...cloudModels[0], isLocal: false };
+			}
+		} finally {
+			loadingModels = false;
+		}
+	}
+
+	async function pullModel(modelId: string) {
+		if (isPulling) return;
+
+		isPulling = true;
+		pullingModel = modelId;
+		pullProgress = { status: 'Starting...' };
+
+		try {
+			const response = await fetch('http://localhost:8000/api/ai/models/pull', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ model: modelId }),
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to pull model');
+			}
+
+			const reader = response.body?.getReader();
+			if (!reader) throw new Error('No response body');
+
+			const decoder = new TextDecoder();
+			let buffer = '';
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const data = JSON.parse(line);
+						if (data.status) {
+							pullProgress = {
+								status: data.status,
+								percent: data.completed && data.total ? Math.round((data.completed / data.total) * 100) : undefined
+							};
+						}
+					} catch {}
+				}
+			}
+
+			// Refresh models after pull
+			await loadModels();
+			pullProgress = null;
+		} catch (error) {
+			console.error('Failed to pull model:', error);
+			pullProgress = { status: 'Failed to pull model' };
+			setTimeout(() => { pullProgress = null; }, 3000);
+		} finally {
+			isPulling = false;
+			pullingModel = '';
+		}
+	}
 
 	interface DockItem {
 		id: string;
@@ -11,14 +225,22 @@
 		isOpen: boolean;
 		isMinimized: boolean;
 		windowId?: string;
+		folderId?: string;
+		folderColor?: string;
 	}
 
 	// Icon data for each module
-	const moduleIcons: Record<string, { path: string; color: string; bgColor: string; isTerminal?: boolean }> = {
+	const moduleIcons: Record<string, { path: string; color: string; bgColor: string; isTerminal?: boolean; isFolder?: boolean }> = {
 		platform: {
 			path: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
 			color: '#333333',
 			bgColor: '#F5F5F5'
+		},
+		folder: {
+			path: 'M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z',
+			color: '#3B82F6',
+			bgColor: '#EFF6FF',
+			isFolder: true
 		},
 		terminal: {
 			path: 'M4 17l6-6-6-6M12 19h8',
@@ -80,6 +302,32 @@
 			path: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
 			color: '#78909C',
 			bgColor: '#ECEFF1'
+		},
+		files: {
+			path: 'M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z M7 13h10M7 16h6',
+			color: '#2196F3',
+			bgColor: '#E3F2FD'
+		},
+		calendar: {
+			path: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+			color: '#E91E63',
+			bgColor: '#FCE4EC'
+		},
+		'ai-settings': {
+			path: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+			color: '#9C27B0',
+			bgColor: '#F3E5F5'
+		},
+		help: {
+			path: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+			color: '#0EA5E9',
+			bgColor: '#E0F2FE'
+		},
+		finder: {
+			path: 'M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z',
+			color: '#1C9BF6',
+			bgColor: 'linear-gradient(180deg, #3FBBF7 0%, #1C7FE6 100%)',
+			isFinder: true
 		}
 	};
 
@@ -96,7 +344,12 @@
 		nodes: 'Nodes',
 		daily: 'Daily Log',
 		settings: 'Settings',
-		trash: 'Trash'
+		trash: 'Trash',
+		files: 'Files',
+		calendar: 'Calendar',
+		'ai-settings': 'AI Settings',
+		help: 'Help',
+		finder: 'Finder'
 	};
 
 	let hoveredIndex = $state<number | null>(null);
@@ -119,12 +372,44 @@
 		event.preventDefault();
 		isDragOver = false;
 		const module = event.dataTransfer?.getData('text/plain');
+		const iconId = event.dataTransfer?.getData('text/icon-id');
+
 		if (module && module !== 'trash' && module !== 'separator') {
+			let moduleToAdd = module;
+
+			// If it's a folder, look up the folder ID
+			if (module === 'folder' && iconId) {
+				const icon = $windowStore.desktopIcons.find(i => i.id === iconId);
+				if (icon?.type === 'folder' && icon.folderId) {
+					moduleToAdd = `folder-${icon.folderId}`;
+				}
+			}
+
 			// Add to pinned items if not already there
-			if (!$windowStore.dockPinnedItems.includes(module)) {
-				windowStore.addToDock(module);
+			if (!$windowStore.dockPinnedItems.includes(moduleToAdd)) {
+				windowStore.addToDock(moduleToAdd);
 			}
 		}
+	}
+
+	// Helper to check if a module is a folder
+	function isFolder(module: string): boolean {
+		return module === 'folder' || module.startsWith('folder-');
+	}
+
+	// Get folder data from a folder module string
+	function getFolderData(module: string) {
+		if (module === 'folder') return null;
+		const folderId = module.replace('folder-', '');
+		const folderIcon = $windowStore.desktopIcons.find(
+			i => i.type === 'folder' && i.folderId === folderId
+		);
+		const folder = $windowStore.folders.find(f => f.id === folderId);
+		return {
+			folderId,
+			label: folder?.name || folderIcon?.label || 'Folder',
+			color: folder?.color || folderIcon?.folderColor || '#3B82F6'
+		};
 	}
 
 	// Build dock items from pinned items and open windows
@@ -137,13 +422,18 @@
 			const isOpen = windows.length > 0;
 			const minimizedWindow = windows.find(w => w.minimized);
 
+			// Check if it's a folder
+			const folderData = isFolder(module) ? getFolderData(module) : null;
+
 			items.push({
 				id: `pinned-${module}`,
 				module,
-				label: moduleLabels[module] || module,
+				label: folderData?.label || moduleLabels[module] || module,
 				isOpen,
 				isMinimized: !!minimizedWindow,
-				windowId: minimizedWindow?.id || windows[0]?.id
+				windowId: minimizedWindow?.id || windows[0]?.id,
+				folderId: folderData?.folderId,
+				folderColor: folderData?.color
 			});
 		}
 
@@ -198,6 +488,416 @@
 		return items;
 	});
 
+	// Format recording duration
+	function formatDuration(seconds: number): string {
+		const mins = Math.floor(seconds / 60);
+		const secs = seconds % 60;
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
+	// Voice recording handlers
+	async function startRecording() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+			// Set up audio context for visualization
+			audioContext = new AudioContext();
+			analyser = audioContext.createAnalyser();
+			const source = audioContext.createMediaStreamSource(stream);
+			source.connect(analyser);
+			analyser.fftSize = 64;
+			audioDataArray = new Uint8Array(analyser.frequencyBinCount);
+
+			mediaRecorder = new MediaRecorder(stream);
+			audioChunks = [];
+
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunks.push(event.data);
+			};
+
+			mediaRecorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+				await transcribeAudio(audioBlob);
+				stream.getTracks().forEach(track => track.stop());
+			};
+
+			mediaRecorder.start();
+			isRecording = true;
+			isExpanded = true;
+			recordingDuration = 0;
+
+			recordingInterval = window.setInterval(() => {
+				recordingDuration++;
+			}, 1000);
+
+			updateWaveform();
+		} catch (error) {
+			console.error('Failed to start recording:', error);
+		}
+	}
+
+	function stopRecording() {
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+		}
+		isRecording = false;
+
+		if (recordingInterval) {
+			clearInterval(recordingInterval);
+			recordingInterval = null;
+		}
+
+		if (animationFrameId) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
+
+		waveformBars = Array(20).fill(2);
+	}
+
+	function updateWaveform() {
+		if (!isRecording || !analyser || !audioDataArray) return;
+
+		analyser.getByteTimeDomainData(audioDataArray);
+
+		const newBars: number[] = [];
+		const step = Math.floor(audioDataArray.length / 20);
+
+		for (let i = 0; i < 20; i++) {
+			const index = i * step;
+			const value = audioDataArray[index];
+			const deviation = Math.abs(value - 128);
+			const height = Math.max(2, Math.min(20, 2 + (deviation / 128) * 36));
+			newBars.push(height);
+		}
+
+		waveformBars = newBars;
+		animationFrameId = requestAnimationFrame(updateWaveform);
+	}
+
+	async function transcribeAudio(audioBlob: Blob) {
+		isLoading = true;
+		showResponse = false;
+
+		try {
+			const formData = new FormData();
+			formData.append('audio', audioBlob, 'recording.webm');
+
+			const response = await fetch('/api/transcribe', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.text) {
+					chatInput = data.text;
+				}
+			}
+
+			// Auto-save voice note in the background (don't wait for it)
+			apiClient.uploadVoiceNote(audioBlob).catch(err => {
+				console.warn('Voice note auto-save failed (non-critical):', err);
+			});
+		} catch (error) {
+			console.error('Transcription error:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// Quick chat handlers
+	function handleChatFocus() {
+		isExpanded = true;
+	}
+
+	function handleChatBlur() {
+		if (!chatInput.trim() && !showResponse && !isRecording) {
+			setTimeout(() => {
+				if (!chatInput.trim() && !showResponse && !isRecording) {
+					isExpanded = false;
+				}
+			}, 150);
+		}
+	}
+
+	async function handleChatSubmit() {
+		if (!chatInput.trim() || isLoading) return;
+
+		// Require project selection
+		if (!selectedProject) {
+			showProjectSelector = true;
+			highlightedProjectIndex = 0;
+			return;
+		}
+
+		const message = chatInput.trim();
+
+		// Store the message to pass to chat module
+		if (browser) {
+			// Convert files to serializable format (store file names/sizes)
+			const fileData = attachedFiles.map(f => ({
+				name: f.name,
+				size: f.size,
+				type: f.type
+			}));
+
+			// Store message in sessionStorage so chat module can pick it up
+			sessionStorage.setItem('quickChatMessage', JSON.stringify({
+				message,
+				projectId: selectedProject.id,
+				projectName: selectedProject.name,
+				model: selectedModel?.name,
+				isLocalModel: selectedModel?.isLocal,
+				files: fileData,
+				timestamp: Date.now(),
+				isNewConversation: true
+			}));
+		}
+
+		// Clear input and reset
+		chatInput = '';
+		attachedFiles = [];
+		isExpanded = false;
+		showResponse = false;
+		resetTextareaHeight();
+
+		// Open the chat module
+		windowStore.openWindow('chat');
+	}
+
+	function handleChatKeyDown(e: KeyboardEvent) {
+		// Handle keyboard navigation when project selector is open
+		if (showProjectSelector && projects.length > 0) {
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				highlightedProjectIndex = Math.min(highlightedProjectIndex + 1, projects.length - 1);
+				return;
+			} else if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				highlightedProjectIndex = Math.max(highlightedProjectIndex - 1, 0);
+				return;
+			} else if (e.key === 'Enter') {
+				e.preventDefault();
+				if (highlightedProjectIndex >= 0 && highlightedProjectIndex < projects.length) {
+					selectedProject = projects[highlightedProjectIndex];
+					showProjectSelector = false;
+					highlightedProjectIndex = -1;
+				}
+				return;
+			} else if (e.key === 'Escape') {
+				e.preventDefault();
+				showProjectSelector = false;
+				highlightedProjectIndex = -1;
+				return;
+			}
+		}
+
+		if (e.key === 'Enter' && !e.shiftKey) {
+			e.preventDefault();
+			handleChatSubmit();
+		} else if (e.key === 'Escape') {
+			chatInput = '';
+			showResponse = false;
+			isExpanded = false;
+			resetTextareaHeight();
+			if (isRecording) stopRecording();
+			chatInputElement?.blur();
+		} else if (e.key === 'd' && (e.metaKey || e.ctrlKey)) {
+			e.preventDefault();
+			toggleRecording();
+		}
+	}
+
+	// Auto-resize textarea based on content
+	function autoResizeTextarea() {
+		if (!chatInputElement) return;
+		// Reset height to auto to get the proper scrollHeight
+		chatInputElement.style.height = 'auto';
+		// Set height to scrollHeight, with min and max constraints
+		const newHeight = Math.min(Math.max(chatInputElement.scrollHeight, 24), 120);
+		chatInputElement.style.height = `${newHeight}px`;
+	}
+
+	function resetTextareaHeight() {
+		if (!chatInputElement) return;
+		chatInputElement.style.height = '24px';
+	}
+
+	// Watch for input changes to auto-resize
+	$effect(() => {
+		if (chatInput !== undefined && chatInputElement) {
+			// Use requestAnimationFrame to ensure DOM has updated
+			requestAnimationFrame(autoResizeTextarea);
+		}
+	});
+
+	function openFullChat() {
+		windowStore.openWindow('chat');
+		showResponse = false;
+		isExpanded = false;
+	}
+
+	// Handle collapsed bubble click/hover - start dictation immediately
+	async function handleCollapsedBubbleClick() {
+		collapsedVoiceActive = true;
+		// Start recording without expanding (we'll stay in collapsed mode)
+		await startRecordingCollapsed();
+	}
+
+	// Start recording for collapsed bubble mode (doesn't expand)
+	async function startRecordingCollapsed() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+			// Set up audio context for visualization
+			audioContext = new AudioContext();
+			analyser = audioContext.createAnalyser();
+			const source = audioContext.createMediaStreamSource(stream);
+			source.connect(analyser);
+			analyser.fftSize = 64;
+			audioDataArray = new Uint8Array(analyser.frequencyBinCount);
+
+			mediaRecorder = new MediaRecorder(stream);
+			audioChunks = [];
+
+			mediaRecorder.ondataavailable = (event) => {
+				audioChunks.push(event.data);
+			};
+
+			mediaRecorder.onstop = async () => {
+				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+				await transcribeAudio(audioBlob);
+				stream.getTracks().forEach(track => track.stop());
+			};
+
+			mediaRecorder.start();
+			isRecording = true;
+			// Don't set isExpanded = true for collapsed mode
+			recordingDuration = 0;
+
+			recordingInterval = window.setInterval(() => {
+				recordingDuration++;
+			}, 1000);
+
+			updateWaveform();
+		} catch (error) {
+			console.error('Failed to start recording:', error);
+			collapsedVoiceActive = false;
+		}
+	}
+
+	// Handle collapsed voice done - stop recording and open chat with transcribed text
+	async function handleCollapsedVoiceDone() {
+		// Store current chatInput to check for changes
+		const previousInput = chatInput;
+
+		// Stop recording (triggers transcription via onstop)
+		stopRecording();
+
+		// Wait for transcription to complete by polling for chatInput changes
+		// Transcription typically takes 1-3 seconds
+		let attempts = 0;
+		const maxAttempts = 30; // 3 seconds max wait
+
+		const waitForTranscription = () => {
+			return new Promise<void>((resolve) => {
+				const checkInterval = setInterval(() => {
+					attempts++;
+					if (chatInput !== previousInput || attempts >= maxAttempts) {
+						clearInterval(checkInterval);
+						resolve();
+					}
+				}, 100);
+			});
+		};
+
+		await waitForTranscription();
+
+		collapsedVoiceActive = false;
+		isHoveringCollapsed = false;
+		isRecording = false;
+
+		// Open chat window with transcribed text
+		if (chatInput.trim() && browser) {
+			// Store transcript in sessionStorage so chat module can pick it up
+			// Use autoSend: false to just put text in input without sending
+			sessionStorage.setItem('voiceTranscript', JSON.stringify({
+				message: chatInput.trim(),
+				timestamp: Date.now(),
+				autoSend: false
+			}));
+
+			// Clear local chatInput since it will be in the chat window now
+			chatInput = '';
+
+			windowStore.openWindow('chat');
+		}
+	}
+
+	// Handle collapsed voice cancel - stop recording without opening chat
+	function handleCollapsedVoiceCancel() {
+		stopRecording();
+		collapsedVoiceActive = false;
+		isHoveringCollapsed = false;
+		chatInput = ''; // Clear any partial transcription
+	}
+
+	// File handling
+	function handleFileDragOver(e: DragEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		isDraggingFile = true;
+	}
+
+	function handleFileDragLeave(e: DragEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		isDraggingFile = false;
+	}
+
+	function handleFileDrop(e: DragEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		isDraggingFile = false;
+
+		const files = e.dataTransfer?.files;
+		if (files && files.length > 0) {
+			addFiles(Array.from(files));
+		}
+	}
+
+	function handleFileSelect(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files && input.files.length > 0) {
+			addFiles(Array.from(input.files));
+			input.value = ''; // Reset for next selection
+		}
+	}
+
+	function addFiles(files: File[]) {
+		// Limit to 5 files
+		const newFiles = [...attachedFiles, ...files].slice(0, 5);
+		attachedFiles = newFiles;
+		isExpanded = true;
+	}
+
+	function removeFile(index: number) {
+		attachedFiles = attachedFiles.filter((_, i) => i !== index);
+	}
+
+	function openFileDialog() {
+		fileInputElement?.click();
+	}
+
+	function toggleRecording() {
+		if (isRecording) {
+			stopRecording();
+		} else {
+			startRecording();
+		}
+	}
+
 	function handleItemClick(item: DockItem) {
 		if (item.module === 'separator') return;
 
@@ -205,9 +905,25 @@
 			windowStore.restoreWindow(item.windowId);
 		} else if (item.isOpen && item.windowId) {
 			windowStore.focusWindow(item.windowId);
+		} else if (item.folderId) {
+			// Open folder
+			windowStore.openFolder(item.folderId);
 		} else {
 			windowStore.openWindow(item.module);
 		}
+	}
+
+	// Get the icon data for an item, handling folders specially
+	function getItemIcon(item: DockItem) {
+		if (item.folderId) {
+			return {
+				path: moduleIcons.folder.path,
+				color: item.folderColor || '#3B82F6',
+				bgColor: `${item.folderColor || '#3B82F6'}20`,
+				isFolder: true
+			};
+		}
+		return moduleIcons[item.module] || moduleIcons.dashboard;
 	}
 
 	function getScale(index: number): number {
@@ -232,6 +948,413 @@
 </script>
 
 <div class="dock-container">
+	<!-- Hidden file input -->
+	<input
+		type="file"
+		bind:this={fileInputElement}
+		onchange={handleFileSelect}
+		multiple
+		accept="*/*"
+		class="hidden-file-input"
+	/>
+
+	<!-- Collapsed Chat Bubble (shown when windows are open) -->
+	{#if hasOpenWindows && (!isRecording || collapsedVoiceActive) && !showResponse && !isExpanded}
+		<div
+			class="collapsed-chat-bubble"
+			class:hovering={isHoveringCollapsed && !collapsedVoiceActive}
+			class:voice-active={collapsedVoiceActive}
+			onmouseenter={() => { if (!collapsedVoiceActive) isHoveringCollapsed = true; }}
+			onmouseleave={() => { if (!collapsedVoiceActive) isHoveringCollapsed = false; }}
+			role="button"
+			tabindex="0"
+			aria-label="Click to start voice input"
+		>
+			{#if collapsedVoiceActive}
+				<!-- Voice recording active - matches example design -->
+				<div class="collapsed-voice-recording">
+					<button class="collapsed-cancel-btn" onclick={handleCollapsedVoiceCancel} title="Cancel recording">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+							<line x1="18" y1="6" x2="6" y2="18"/>
+							<line x1="6" y1="6" x2="18" y2="18"/>
+						</svg>
+					</button>
+					<div class="collapsed-waveform-container">
+						<div class="collapsed-waveform">
+							{#each waveformBars.slice(0, 10) as height}
+								<div class="collapsed-bar" style="height: {Math.max(4, height * 0.7)}px"></div>
+							{/each}
+						</div>
+						<span class="collapsed-timer">{formatDuration(recordingDuration)}</span>
+					</div>
+					<button class="collapsed-stop-btn" onclick={handleCollapsedVoiceDone} title="Stop and send to chat">
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<rect x="6" y="6" width="12" height="12" rx="2"/>
+						</svg>
+					</button>
+				</div>
+			{:else if isHoveringCollapsed}
+				<!-- Hover state - macOS dictation style popup -->
+				<div class="collapsed-hover-state">
+					<div class="collapsed-hint-bubble">
+						<span>Click or hold</span>
+						<kbd>⌃ Ctrl</kbd>
+						<span>to start dictating</span>
+					</div>
+					<button
+						class="collapsed-input-pill"
+						onclick={handleCollapsedBubbleClick}
+						title="Start dictating"
+					>
+						<span class="collapsed-dots">............</span>
+					</button>
+				</div>
+			{:else}
+				<!-- Default collapsed state - dots pill -->
+				<button
+					class="collapsed-pill collapsed-dots-pill"
+					onclick={handleCollapsedBubbleClick}
+					title="Click to start voice input"
+				>
+					<span class="collapsed-dots-default">•••</span>
+				</button>
+			{/if}
+		</div>
+	{:else}
+		<!-- Full Quick Chat Input Bar (shown when no windows are open) -->
+		<div
+			class="quick-chat"
+			class:expanded={isExpanded || showResponse || isRecording}
+			class:size-small-expand={contentSize() === 'small-expand'}
+			class:size-medium={contentSize() === 'medium'}
+			class:size-large={contentSize() === 'large'}
+			class:dragging-file={isDraggingFile}
+			ondragover={handleFileDragOver}
+			ondragleave={handleFileDragLeave}
+			ondrop={handleFileDrop}
+		>
+		{#if showResponse}
+			<!-- Response display -->
+			<div class="quick-chat-response">
+				<div class="response-header">
+					<div class="ai-badge">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+						</svg>
+						<span>AI</span>
+					</div>
+					<div class="response-actions">
+						<button class="action-btn" onclick={openFullChat} title="Open full chat (⌘+Enter)">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+								<polyline points="15 3 21 3 21 9"/>
+								<line x1="10" y1="14" x2="21" y2="3"/>
+							</svg>
+						</button>
+						<button class="action-btn" onclick={() => { showResponse = false; isExpanded = false; }} title="Close (Esc)">
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<line x1="18" y1="6" x2="6" y2="18"/>
+								<line x1="6" y1="6" x2="18" y2="18"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+				<div class="response-content">
+					{#if isLoading}
+						<div class="loading-dots">
+							<span></span><span></span><span></span>
+						</div>
+					{:else}
+						{lastResponse}
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Recording indicator - matches popup-chat style -->
+		{#if isRecording}
+			<div class="recording-waveform-bar">
+				<button class="recording-cancel-btn" onclick={stopRecording} title="Cancel">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+					</svg>
+				</button>
+				<div class="recording-waveform">
+					{#each waveformBars as height}
+						<div class="recording-bar" style="height: {height}px"></div>
+					{/each}
+				</div>
+				<span class="recording-duration">{formatDuration(recordingDuration)}</span>
+				<button class="recording-confirm-btn" onclick={stopRecording} title="Done">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<polyline points="20 6 9 17 4 12"/>
+					</svg>
+				</button>
+			</div>
+		{/if}
+
+		<!-- Text area (top) -->
+		<div class="quick-chat-textarea-wrapper">
+			<textarea
+				bind:this={chatInputElement}
+				bind:value={chatInput}
+				placeholder={selectedProject ? `Ask about ${selectedProject.name}...` : 'Ask anything...'}
+				onfocus={handleChatFocus}
+				onblur={handleChatBlur}
+				onkeydown={handleChatKeyDown}
+				rows="1"
+			></textarea>
+		</div>
+
+		<!-- Attached files display -->
+		{#if attachedFiles.length > 0}
+			<div class="attached-files">
+				{#each attachedFiles as file, index}
+					<div class="attached-file">
+						<svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+							<polyline points="14 2 14 8 20 8"/>
+						</svg>
+						<span class="file-name">{file.name}</span>
+						<button class="file-remove" onclick={() => removeFile(index)}>
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+							</svg>
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		<!-- Bottom toolbar (fixed) -->
+		<div class="quick-chat-toolbar">
+			<!-- Left side - context and options -->
+			<div class="toolbar-left">
+				<!-- Attachment button -->
+				<button class="attach-btn" onclick={openFileDialog} title="Attach files">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+					</svg>
+				</button>
+
+				<!-- Project selector (required) -->
+				<div class="context-selector">
+					<button
+						class="context-btn"
+						class:has-context={selectedProject}
+						class:required={!selectedProject}
+						onclick={() => { showProjectSelector = !showProjectSelector; highlightedProjectIndex = showProjectSelector ? 0 : -1; }}
+						title="Select project (required)"
+					>
+						{#if selectedProject}
+							<svg class="project-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+							</svg>
+							<span class="context-name">{selectedProject.name}</span>
+						{:else}
+							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+							</svg>
+							<span class="placeholder-text">Project</span>
+						{/if}
+						<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M6 9l6 6 6-6"/>
+						</svg>
+					</button>
+
+					{#if showProjectSelector}
+						<div class="context-dropdown">
+							<div class="dropdown-header">Select Project</div>
+							{#if loadingProjects}
+								<div class="context-option empty">Loading...</div>
+							{:else if projects.length === 0}
+								<div class="context-option empty">No projects found</div>
+							{:else}
+								{#each projects as proj, index}
+									<button
+										class="context-option"
+										class:selected={selectedProject?.id === proj.id}
+										class:highlighted={highlightedProjectIndex === index}
+										onclick={() => { selectedProject = proj; showProjectSelector = false; highlightedProjectIndex = -1; }}
+										onmouseenter={() => highlightedProjectIndex = index}
+									>
+										<span class="option-icon">📁</span>
+										<span>{proj.name}</span>
+									</button>
+								{/each}
+							{/if}
+							<div class="dropdown-divider"></div>
+							<button
+								class="context-option create-new"
+								onclick={() => { showProjectSelector = false; windowStore.openWindow('projects'); }}
+							>
+								<span class="option-icon">➕</span>
+								<span>Create New Project</span>
+							</button>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Model selector -->
+				<div class="context-selector">
+					<button
+						class="model-btn"
+						onclick={() => showModelSelector = !showModelSelector}
+						title="Select AI model"
+					>
+						{#if selectedModel?.isLocal}
+							<svg class="model-icon local" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<rect x="2" y="3" width="20" height="14" rx="2"/>
+								<path d="M8 21h8M12 17v4"/>
+							</svg>
+						{:else}
+							<svg class="model-icon cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+							</svg>
+						{/if}
+						<span class="model-name">{selectedModel?.name?.split(':')[0] || 'Model'}</span>
+						<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M6 9l6 6 6-6"/>
+						</svg>
+					</button>
+
+					{#if showModelSelector}
+						<div class="context-dropdown model-dropdown">
+							<div class="dropdown-header">LOCAL MODELS</div>
+							{#if loadingModels}
+								<div class="context-option empty">Loading...</div>
+							{:else if localModels.length === 0}
+								<div class="context-option empty">No local models installed</div>
+							{:else}
+								{#each localModels as model}
+									<button
+										class="context-option"
+										class:selected={selectedModel?.id === model.id}
+										onclick={() => { selectedModel = { ...model, isLocal: true }; showModelSelector = false; }}
+									>
+										<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<rect x="2" y="3" width="20" height="14" rx="2"/>
+											<path d="M8 21h8M12 17v4"/>
+										</svg>
+										<span>{model.name}</span>
+										<span class="model-status ready">Ready</span>
+									</button>
+								{/each}
+							{/if}
+
+							<!-- Recommended models to pull -->
+							<div class="dropdown-divider"></div>
+							<div class="dropdown-header">AVAILABLE TO PULL</div>
+							{#if isPulling && pullProgress}
+								<div class="context-option pull-progress">
+									<span class="pull-model">{pullingModel}</span>
+									<span class="pull-status">
+										{pullProgress.status}
+										{#if pullProgress.percent !== undefined}
+											({pullProgress.percent}%)
+										{/if}
+									</span>
+								</div>
+							{/if}
+							{#each recommendedModels as model}
+								{@const isInstalled = localModels.some(m => m.id === model.id || m.id.startsWith(model.id.split(':')[0]))}
+								{#if !isInstalled}
+									<button
+										class="context-option"
+										disabled={isPulling}
+										onclick={() => pullModel(model.id)}
+									>
+										<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+											<polyline points="7 10 12 15 17 10"/>
+											<line x1="12" y1="15" x2="12" y2="3"/>
+										</svg>
+										<span>{model.name}</span>
+										<span class="model-size">{model.size}</span>
+										<span class="model-status pull">Pull</span>
+									</button>
+								{/if}
+							{/each}
+
+							<div class="dropdown-divider"></div>
+							<div class="dropdown-header">CLOUD MODELS</div>
+							{#each cloudModels as model}
+								<button
+									class="context-option"
+									class:selected={selectedModel?.id === model.id}
+									onclick={() => { selectedModel = { ...model, isLocal: false }; showModelSelector = false; }}
+								>
+									<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+										<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+									</svg>
+									<span>{model.name}</span>
+								</button>
+							{/each}
+
+							<div class="dropdown-divider"></div>
+							<a href="/settings/ai" class="context-option settings-link" onclick={() => showModelSelector = false}>
+								<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="3"/>
+									<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+								</svg>
+								<span>AI Settings</span>
+							</a>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Quick hints in toolbar -->
+				{#if isExpanded && !isRecording}
+					<div class="toolbar-hints">
+						<span class="hint">⌘D</span>
+						<span class="hint-text">Voice</span>
+						<span class="hint-divider">•</span>
+						<span class="hint">Enter</span>
+						<span class="hint-text">Send</span>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Right side - action buttons -->
+			<div class="toolbar-right">
+				<!-- Voice button -->
+				<button
+					class="voice-btn"
+					class:recording={isRecording}
+					onclick={toggleRecording}
+					title={isRecording ? 'Stop recording' : 'Voice input (⌘D)'}
+				>
+					{#if isRecording}
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<rect x="6" y="6" width="12" height="12" rx="2"/>
+						</svg>
+					{:else}
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+							<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+							<line x1="12" y1="19" x2="12" y2="23"/>
+							<line x1="8" y1="23" x2="16" y2="23"/>
+						</svg>
+					{/if}
+				</button>
+
+				<!-- Send button -->
+				<button
+					class="send-btn"
+					class:has-content={chatInput.trim()}
+					onclick={chatInput.trim() ? handleChatSubmit : openFullChat}
+					disabled={isLoading}
+					title={chatInput.trim() ? 'Send (Enter)' : 'Open full chat'}
+				>
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M12 19V5M5 12l7-7 7 7"/>
+					</svg>
+				</button>
+			</div>
+		</div>
+	</div>
+	{/if}
+
 	<div
 		class="dock"
 		class:drag-over={isDragOver}
@@ -246,7 +1369,7 @@
 			{#if item.module === 'separator'}
 				<div class="dock-separator"></div>
 			{:else}
-				{@const icon = moduleIcons[item.module] || moduleIcons.dashboard}
+				{@const icon = getItemIcon(item)}
 				<button
 					class="dock-item style-{iconStyle}"
 					class:has-indicator={item.isOpen}
@@ -261,15 +1384,36 @@
 					<div
 						class="dock-icon"
 						class:terminal={icon.isTerminal}
+						class:finder={icon.isFinder}
 						style="
-							background-color: {iconStyle === 'minimal' ? 'transparent' : icon.bgColor};
-							{iconStyle === 'outlined' ? `border: 2px solid ${icon.color}; background-color: transparent;` : ''}
+							{icon.isFinder ? `background: ${icon.bgColor};` : `background-color: ${iconStyle === 'minimal' ? 'transparent' : icon.bgColor};`}
+							{iconStyle === 'outlined' && !icon.isFinder ? `border: 2px solid ${icon.color}; background-color: transparent;` : ''}
 							{iconStyle === 'neon' ? `color: ${icon.color};` : ''}
 							{iconStyle === 'gradient' ? `--gradient-start: ${icon.color}; --gradient-end: ${icon.bgColor};` : ''}
 						"
 					>
 						{#if icon.isTerminal}
 							<span class="terminal-prompt">&gt;_</span>
+						{:else if icon.isFinder}
+							<!-- Finder happy face icon -->
+							<svg class="dock-icon-svg finder-face" viewBox="0 0 24 24" fill="none">
+								<!-- Left eye -->
+								<rect x="6" y="7" width="4" height="6" rx="2" fill="white"/>
+								<!-- Right eye -->
+								<rect x="14" y="7" width="4" height="6" rx="2" fill="white"/>
+								<!-- Smile -->
+								<path d="M6 17 C8 20, 16 20, 18 17" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+							</svg>
+						{:else if icon.isFolder}
+							<!-- Folder icon with fill -->
+							<svg
+								class="dock-icon-svg"
+								viewBox="0 0 24 24"
+								fill={icon.color}
+								stroke="none"
+							>
+								<path d={icon.path} />
+							</svg>
 						{:else}
 							<svg
 								class="dock-icon-svg"
@@ -307,6 +1451,1163 @@
 		left: 50%;
 		transform: translateX(-50%);
 		z-index: 9999;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+
+	/* Quick Chat Input Bar - dynamic width */
+	.quick-chat {
+		display: flex;
+		flex-direction: column;
+		background: var(--quick-chat-bg, rgba(255, 255, 255, 0.95));
+		backdrop-filter: blur(24px);
+		-webkit-backdrop-filter: blur(24px);
+		border: 1px solid var(--quick-chat-border, rgba(0, 0, 0, 0.08));
+		border-radius: 16px;
+		box-shadow: var(--quick-chat-shadow, 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.12));
+		overflow: visible;
+		transition: min-width 0.2s ease, box-shadow 0.2s ease;
+		width: auto;
+		min-width: 420px;
+		max-width: 700px;
+		position: relative;
+		z-index: 1;
+	}
+
+	:global(.dark) {
+		--quick-chat-bg: rgba(28, 28, 30, 0.95);
+		--quick-chat-border: rgba(255, 255, 255, 0.12);
+		--quick-chat-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 8px 32px rgba(0, 0, 0, 0.4);
+	}
+
+	/* Collapsed Chat Bubble - macOS dictation style */
+	.collapsed-chat-bubble {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border-radius: 22px;
+		padding: 0;
+		transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+		position: relative;
+		z-index: 1;
+	}
+
+	/* Light mode - default also transparent */
+	:global(html:not(.dark)) .collapsed-chat-bubble {
+		background: transparent;
+	}
+
+	/* Only show background when hovering (expanded hint state) */
+	.collapsed-chat-bubble.hovering {
+		background: rgba(30, 30, 32, 0.95);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		padding: 12px 16px;
+		border-radius: 16px;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+	}
+
+	:global(html:not(.dark)) .collapsed-chat-bubble.hovering {
+		background: rgba(255, 255, 255, 0.95);
+		border: 1px solid rgba(0, 0, 0, 0.12);
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.collapsed-chat-bubble.voice-active {
+		background: transparent;
+		padding: 0;
+		box-shadow: none;
+	}
+
+	:global(html:not(.dark)) .collapsed-chat-bubble.voice-active {
+		background: transparent;
+	}
+
+	/* Hover state - macOS dictation style */
+	.collapsed-hover-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.collapsed-hint-bubble {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 13px;
+		color: rgba(255, 255, 255, 0.95);
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	:global(html:not(.dark)) .collapsed-hint-bubble {
+		color: rgba(0, 0, 0, 0.85);
+	}
+
+	.collapsed-hint-bubble kbd {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px 6px;
+		background: rgba(255, 255, 255, 0.15);
+		border-radius: 4px;
+		font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	:global(html:not(.dark)) .collapsed-hint-bubble kbd {
+		background: rgba(0, 0, 0, 0.08);
+	}
+
+	.collapsed-input-pill {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.12);
+		border: none;
+		border-radius: 18px;
+		padding: 8px 24px;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	:global(html:not(.dark)) .collapsed-input-pill {
+		background: rgba(0, 0, 0, 0.06);
+	}
+
+	.collapsed-input-pill:hover {
+		background: rgba(255, 255, 255, 0.18);
+	}
+
+	:global(html:not(.dark)) .collapsed-input-pill:hover {
+		background: rgba(0, 0, 0, 0.1);
+	}
+
+	.collapsed-input-pill .collapsed-dots {
+		color: rgba(255, 255, 255, 0.5);
+		font-size: 11px;
+		letter-spacing: 2px;
+	}
+
+	:global(html:not(.dark)) .collapsed-input-pill .collapsed-dots {
+		color: rgba(0, 0, 0, 0.4);
+	}
+
+	/* Default pill - click to start dictation */
+	.collapsed-pill {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		background: rgba(255, 255, 255, 0.1);
+		border: none;
+		border-radius: 50%;
+		cursor: pointer;
+		padding: 0;
+		margin: 0;
+		color: rgba(255, 255, 255, 0.7);
+		transition: all 0.2s;
+	}
+
+	:global(html:not(.dark)) .collapsed-pill {
+		background: rgba(0, 0, 0, 0.06);
+		color: rgba(0, 0, 0, 0.5);
+	}
+
+	.collapsed-pill:hover {
+		background: rgba(255, 255, 255, 0.2);
+		color: rgba(255, 255, 255, 1);
+		transform: scale(1.05);
+	}
+
+	:global(html:not(.dark)) .collapsed-pill:hover {
+		background: rgba(0, 0, 0, 0.12);
+		color: rgba(0, 0, 0, 0.8);
+	}
+
+	.collapsed-mic {
+		width: 18px;
+		height: 18px;
+		opacity: 0.9;
+		flex-shrink: 0;
+	}
+
+	.collapsed-pill:hover .collapsed-mic {
+		opacity: 1;
+	}
+
+	.collapsed-dots {
+		font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+		text-align: center;
+		/* Compensate for letter-spacing trailing space */
+		margin-right: -2px;
+	}
+
+	/* Dots pill variant - matches recording interface style */
+	.collapsed-dots-pill {
+		width: auto;
+		height: 40px;
+		padding: 0 20px;
+		border-radius: 20px;
+		gap: 2px;
+		background: rgba(30, 30, 32, 0.95);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+	}
+
+	:global(html:not(.dark)) .collapsed-dots-pill {
+		background: rgba(255, 255, 255, 0.95);
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+		border: 1px solid rgba(0, 0, 0, 0.08);
+	}
+
+	.collapsed-dots-pill:hover {
+		transform: scale(1.02);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+	}
+
+	:global(html:not(.dark)) .collapsed-dots-pill:hover {
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+	}
+
+	.collapsed-dots-default {
+		font-size: 16px;
+		letter-spacing: 3px;
+		font-weight: 700;
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	:global(html:not(.dark)) .collapsed-dots-default {
+		color: rgba(0, 0, 0, 0.35);
+	}
+
+	.collapsed-pill:hover .collapsed-dots-default {
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	:global(html:not(.dark)) .collapsed-pill:hover .collapsed-dots-default {
+		color: rgba(0, 0, 0, 0.5);
+	}
+
+	/* Voice recording in collapsed mode - matches example design */
+	.collapsed-voice-recording {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 6px 8px 6px 10px;
+		background: rgba(30, 30, 30, 0.95);
+		border-radius: 24px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	}
+
+	:global(html:not(.dark)) .collapsed-voice-recording {
+		background: rgba(255, 255, 255, 0.98);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+	}
+
+	.collapsed-cancel-btn {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(255, 255, 255, 0.15);
+		color: rgba(255, 255, 255, 0.7);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s;
+		flex-shrink: 0;
+	}
+
+	:global(html:not(.dark)) .collapsed-cancel-btn {
+		background: rgba(0, 0, 0, 0.08);
+		color: rgba(0, 0, 0, 0.5);
+	}
+
+	.collapsed-cancel-btn:hover {
+		background: rgba(255, 255, 255, 0.25);
+		color: rgba(255, 255, 255, 0.9);
+	}
+
+	:global(html:not(.dark)) .collapsed-cancel-btn:hover {
+		background: rgba(0, 0, 0, 0.15);
+		color: rgba(0, 0, 0, 0.8);
+	}
+
+	.collapsed-cancel-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.collapsed-waveform-container {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.collapsed-waveform {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		height: 24px;
+		min-width: 60px;
+	}
+
+	.collapsed-timer {
+		font-size: 13px;
+		font-family: ui-monospace, 'SF Mono', monospace;
+		font-weight: 500;
+		color: rgba(255, 255, 255, 0.9);
+		min-width: 40px;
+		letter-spacing: 0.5px;
+	}
+
+	:global(html:not(.dark)) .collapsed-timer {
+		color: rgba(0, 0, 0, 0.8);
+	}
+
+	.collapsed-bar {
+		width: 3px;
+		background: rgba(255, 255, 255, 0.85);
+		border-radius: 2px;
+		transition: height 0.08s ease-out;
+		animation: waveform-pulse 0.5s ease-in-out infinite alternate;
+	}
+
+	.collapsed-bar:nth-child(odd) {
+		animation-delay: 0.1s;
+	}
+
+	.collapsed-bar:nth-child(3n) {
+		animation-delay: 0.2s;
+	}
+
+	@keyframes waveform-pulse {
+		from { opacity: 0.7; }
+		to { opacity: 1; }
+	}
+
+	:global(html:not(.dark)) .collapsed-bar {
+		background: rgba(0, 0, 0, 0.7);
+	}
+
+	.collapsed-duration {
+		font-size: 12px;
+		font-family: ui-monospace, monospace;
+		color: rgba(255, 255, 255, 0.9);
+		min-width: 36px;
+		text-align: center;
+	}
+
+	:global(html:not(.dark)) .collapsed-duration {
+		color: rgba(0, 0, 0, 0.8);
+	}
+
+	.collapsed-stop-btn {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: none;
+		background: #ff3b30;
+		color: white;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s;
+		flex-shrink: 0;
+	}
+
+	.collapsed-stop-btn:hover {
+		background: #e8342a;
+		transform: scale(1.05);
+	}
+
+	.collapsed-stop-btn svg {
+		width: 12px;
+		height: 12px;
+	}
+
+	.quick-chat.expanded {
+		min-width: 460px;
+		box-shadow:
+			0 0 0 0.5px rgba(0, 0, 0, 0.08),
+			0 12px 40px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Dynamic width based on content */
+	.quick-chat.size-small-expand {
+		min-width: 500px;
+	}
+
+	.quick-chat.size-medium {
+		min-width: 600px;
+	}
+
+	.quick-chat.size-large {
+		min-width: 720px;
+		max-width: 800px;
+	}
+
+	.quick-chat.dragging-file {
+		border-color: #3B82F6;
+		background: rgba(239, 246, 255, 0.95);
+		box-shadow:
+			0 0 0 2px rgba(59, 130, 246, 0.3),
+			0 12px 40px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Focus state - no scale to avoid blur */
+	.quick-chat:focus-within {
+		box-shadow:
+			0 0 0 0.5px rgba(0, 0, 0, 0.1),
+			0 0 0 3px rgba(59, 130, 246, 0.15),
+			0 12px 40px rgba(0, 0, 0, 0.12);
+	}
+
+	/* Textarea wrapper (top section) */
+	.quick-chat-textarea-wrapper {
+		padding: 12px 14px 8px 14px;
+	}
+
+	/* Textarea input */
+	.quick-chat textarea {
+		width: 100%;
+		border: none;
+		background: transparent;
+		font-size: 14px;
+		font-family: inherit;
+		outline: none;
+		color: var(--quick-chat-text, #333);
+		resize: none;
+		line-height: 1.5;
+		min-height: 24px;
+		max-height: 150px;
+		height: 24px;
+		overflow-y: auto;
+		overflow-x: hidden;
+		transition: height 0.15s ease;
+		padding: 0;
+		/* Hide scrollbar but keep functionality */
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+
+	:global(.dark) {
+		--quick-chat-text: #f5f5f7;
+		--quick-chat-placeholder: #6e6e73;
+		--quick-chat-icon: #a1a1a6;
+		--quick-chat-icon-hover: #f5f5f7;
+		--quick-chat-btn-bg: #2c2c2e;
+		--quick-chat-btn-hover: #3a3a3c;
+	}
+
+	/* Remove focus outline in dark mode */
+	:global(.dark) .quick-chat textarea:focus {
+		outline: none !important;
+		box-shadow: none !important;
+	}
+
+	:global(.dark) .quick-chat *:focus {
+		outline: none !important;
+	}
+
+	.quick-chat textarea::-webkit-scrollbar {
+		display: none; /* Chrome/Safari/Opera */
+	}
+
+	.quick-chat textarea::placeholder {
+		color: var(--quick-chat-placeholder, #999);
+	}
+
+	/* Bottom toolbar (fixed at bottom) - no border */
+	.quick-chat-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 14px 10px 14px;
+	}
+
+	.toolbar-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.toolbar-right {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	/* Toolbar hints */
+	.toolbar-hints {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		color: #999;
+		margin-left: 8px;
+	}
+
+	.toolbar-hints .hint {
+		background: rgba(0, 0, 0, 0.05);
+		padding: 2px 5px;
+		border-radius: 3px;
+		font-family: ui-monospace, monospace;
+		font-size: 10px;
+	}
+
+	.toolbar-hints .hint-text {
+		color: #aaa;
+	}
+
+	.toolbar-hints .hint-divider {
+		color: #ddd;
+		margin: 0 2px;
+	}
+
+	/* Voice button - minimal, no background */
+	.quick-chat .voice-btn {
+		width: 32px;
+		height: 32px;
+		border: none;
+		background: transparent;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #888;
+		transition: all 0.2s;
+		flex-shrink: 0;
+	}
+
+	.quick-chat .voice-btn:hover {
+		color: #333;
+	}
+
+	.quick-chat .voice-btn.recording {
+		background: #EF4444;
+		color: white;
+		animation: pulse 1.5s infinite;
+	}
+
+	.quick-chat .voice-btn svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	@keyframes pulse {
+		0%, 100% { transform: scale(1); }
+		50% { transform: scale(1.05); }
+	}
+
+	/* Send button - circular */
+	.quick-chat .send-btn {
+		width: 32px;
+		height: 32px;
+		border: none;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+		flex-shrink: 0;
+		background: #3B82F6;
+		color: white;
+	}
+
+	.quick-chat .send-btn:hover:not(:disabled) {
+		background: #2563EB;
+	}
+
+	.quick-chat .send-btn:disabled {
+		background: #E5E7EB;
+		color: #9CA3AF;
+		cursor: not-allowed;
+	}
+
+	.quick-chat .send-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Hidden file input */
+	.hidden-file-input {
+		display: none;
+	}
+
+	/* Attached files display */
+	.attached-files {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 8px 14px 0 14px;
+	}
+
+	.attached-file {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 8px;
+		background: #F3F4F6;
+		border-radius: 6px;
+		font-size: 12px;
+		color: #374151;
+	}
+
+	.attached-file .file-icon {
+		width: 14px;
+		height: 14px;
+		color: #6B7280;
+	}
+
+	.attached-file .file-name {
+		max-width: 120px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.attached-file .file-remove {
+		width: 16px;
+		height: 16px;
+		border: none;
+		background: transparent;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #9CA3AF;
+		transition: all 0.15s;
+		padding: 0;
+	}
+
+	.attached-file .file-remove:hover {
+		background: #E5E7EB;
+		color: #374151;
+	}
+
+	.attached-file .file-remove svg {
+		width: 12px;
+		height: 12px;
+	}
+
+	/* Attachment button */
+	.attach-btn {
+		width: 32px;
+		height: 32px;
+		border: none;
+		background: transparent;
+		border-radius: 8px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #9CA3AF;
+		transition: all 0.15s;
+	}
+
+	.attach-btn:hover {
+		background: #F3F4F6;
+		color: #374151;
+	}
+
+	.attach-btn svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	/* Context selector */
+	.context-selector {
+		position: relative;
+		z-index: 10000;
+	}
+
+	.context-btn {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 6px 10px;
+		border: 1px solid #E5E7EB;
+		background: white;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 12px;
+		color: #666;
+		transition: all 0.15s;
+		white-space: nowrap;
+	}
+
+	.context-btn:hover {
+		border-color: #D1D5DB;
+		background: #F9FAFB;
+	}
+
+	.context-btn.has-context {
+		background: #EEF2FF;
+		border-color: #C7D2FE;
+		color: #4F46E5;
+	}
+
+	.context-btn.required {
+		border-color: #FCA5A5;
+		animation: pulse-required 2s infinite;
+	}
+
+	@keyframes pulse-required {
+		0%, 100% { border-color: #FCA5A5; }
+		50% { border-color: #EF4444; }
+	}
+
+	.context-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.context-btn .project-icon {
+		color: #8B5CF6;
+	}
+
+	.context-btn .placeholder-text {
+		color: #9CA3AF;
+	}
+
+	/* Model button */
+	.model-btn {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 6px 10px;
+		border: 1px solid #E5E7EB;
+		background: white;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 12px;
+		color: #666;
+		transition: all 0.15s;
+		white-space: nowrap;
+	}
+
+	.model-btn:hover {
+		border-color: #D1D5DB;
+		background: #F9FAFB;
+	}
+
+	.model-btn .model-icon {
+		width: 14px;
+		height: 14px;
+	}
+
+	.model-btn .model-icon.local {
+		color: #10B981;
+	}
+
+	.model-btn .model-icon.cloud {
+		color: #3B82F6;
+	}
+
+	.model-btn .model-name {
+		max-width: 80px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	.model-btn .chevron {
+		width: 12px;
+		height: 12px;
+		opacity: 0.5;
+	}
+
+	/* Dropdown enhancements */
+	.dropdown-header {
+		padding: 8px 12px 4px;
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: #9CA3AF;
+	}
+
+	.dropdown-divider {
+		height: 1px;
+		background: #E5E7EB;
+		margin: 4px 0;
+	}
+
+	.context-option.empty {
+		color: #9CA3AF;
+		font-style: italic;
+		cursor: default;
+	}
+
+	.context-option.create-new {
+		color: #3B82F6;
+	}
+
+	.context-option.create-new:hover {
+		background: #EFF6FF;
+	}
+
+	.option-model-icon {
+		width: 14px;
+		height: 14px;
+		flex-shrink: 0;
+	}
+
+	.model-dropdown {
+		min-width: 240px;
+	}
+
+	.model-status {
+		font-size: 10px;
+		padding: 2px 6px;
+		border-radius: 4px;
+		font-weight: 500;
+		margin-left: auto;
+	}
+
+	.model-status.ready {
+		background: #D1FAE5;
+		color: #059669;
+	}
+
+	.model-status.pull {
+		background: #DBEAFE;
+		color: #2563EB;
+	}
+
+	.model-size {
+		font-size: 10px;
+		color: #9CA3AF;
+		margin-left: 4px;
+	}
+
+	.pull-progress {
+		flex-direction: column !important;
+		align-items: flex-start !important;
+		gap: 4px !important;
+		padding: 12px !important;
+		background: #F3F4F6;
+	}
+
+	.pull-model {
+		font-weight: 500;
+		color: #374151;
+	}
+
+	.pull-status {
+		font-size: 11px;
+		color: #2563EB;
+	}
+
+	.settings-link {
+		color: #6B7280 !important;
+		text-decoration: none;
+	}
+
+	.settings-link:hover {
+		background: #F3F4F6;
+	}
+
+	.context-option:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.context-btn .chevron {
+		width: 12px;
+		height: 12px;
+		opacity: 0.5;
+	}
+
+	.context-name {
+		max-width: 80px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-weight: 500;
+	}
+
+	.context-dropdown {
+		position: absolute;
+		bottom: 100%;
+		left: 0;
+		margin-bottom: 8px;
+		background: white;
+		border: 1px solid #E5E7EB;
+		border-radius: 12px;
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+		min-width: 220px;
+		max-height: 280px;
+		overflow-y: auto;
+		z-index: 10002;
+		animation: dropdownSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		transform-origin: bottom center;
+	}
+
+	@keyframes dropdownSlideUp {
+		from {
+			opacity: 0;
+			transform: translateY(8px) scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
+	.context-option {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 10px 12px;
+		border: none;
+		background: none;
+		cursor: pointer;
+		font-size: 13px;
+		color: #333;
+		text-align: left;
+		transition: background 0.1s;
+	}
+
+	.context-option:hover {
+		background: #F3F4F6;
+	}
+
+	.context-option.selected {
+		background: #EEF2FF;
+		color: #4F46E5;
+	}
+
+	.context-option.highlighted {
+		background: #E5E7EB;
+	}
+
+	.context-option.highlighted.selected {
+		background: #DDD6FE;
+	}
+
+	.context-option:first-child {
+		border-radius: 9px 9px 0 0;
+	}
+
+	.context-option:last-child {
+		border-radius: 0 0 9px 9px;
+	}
+
+	.context-option:only-child {
+		border-radius: 9px;
+	}
+
+	.option-icon {
+		font-size: 14px;
+	}
+
+	/* Recording waveform bar - matches popup-chat style */
+	.recording-waveform-bar {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		background: #1f2937;
+		border-radius: 24px;
+		padding: 8px 12px;
+		margin: 8px 10px;
+	}
+
+	.recording-waveform {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 2px;
+		height: 24px;
+	}
+
+	.recording-bar {
+		width: 2px;
+		background: white;
+		border-radius: 1px;
+		transition: height 0.05s ease-out;
+		min-height: 2px;
+	}
+
+	.recording-duration {
+		font-size: 12px;
+		font-family: ui-monospace, 'SF Mono', monospace;
+		color: white;
+		min-width: 32px;
+		text-align: right;
+	}
+
+	.recording-cancel-btn,
+	.recording-confirm-btn {
+		width: 28px;
+		height: 28px;
+		border: none;
+		border-radius: 50%;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s;
+		flex-shrink: 0;
+	}
+
+	.recording-cancel-btn {
+		background: transparent;
+		color: #9ca3af;
+	}
+
+	.recording-cancel-btn:hover {
+		color: white;
+	}
+
+	.recording-confirm-btn {
+		background: white;
+		color: #1f2937;
+	}
+
+	.recording-confirm-btn:hover {
+		background: #e5e7eb;
+	}
+
+	.recording-cancel-btn svg,
+	.recording-confirm-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Response display */
+	.quick-chat-response {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 14px 16px;
+		background: rgba(249, 250, 251, 0.9);
+		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	}
+
+	.response-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.ai-badge {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		font-weight: 600;
+		color: #666;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.ai-badge svg {
+		width: 14px;
+		height: 14px;
+		color: #8B5CF6;
+	}
+
+	.response-actions {
+		display: flex;
+		gap: 4px;
+	}
+
+	.action-btn {
+		width: 26px;
+		height: 26px;
+		border: none;
+		background: rgba(0, 0, 0, 0.05);
+		border-radius: 6px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: #666;
+		transition: all 0.15s;
+	}
+
+	.action-btn:hover {
+		background: rgba(0, 0, 0, 0.1);
+		color: #333;
+	}
+
+	.action-btn svg {
+		width: 14px;
+		height: 14px;
+	}
+
+	.response-content {
+		font-size: 13px;
+		line-height: 1.6;
+		color: #333;
+		max-height: 150px;
+		overflow-y: auto;
+	}
+
+	/* Quick hints */
+	.quick-hints {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		padding: 6px 12px;
+		background: rgba(0, 0, 0, 0.02);
+		border-top: 1px solid rgba(0, 0, 0, 0.04);
+		font-size: 11px;
+	}
+
+	.hint {
+		padding: 2px 6px;
+		background: rgba(0, 0, 0, 0.06);
+		border-radius: 4px;
+		font-weight: 500;
+		color: #666;
+		font-family: system-ui, -apple-system, sans-serif;
+	}
+
+	.hint-text {
+		color: #999;
+	}
+
+	.hint-divider {
+		color: #ddd;
+	}
+
+	/* Loading dots animation */
+	.loading-dots {
+		display: flex;
+		gap: 4px;
+	}
+
+	.loading-dots span {
+		width: 6px;
+		height: 6px;
+		background: #8B5CF6;
+		border-radius: 50%;
+		animation: loadingBounce 1.4s infinite ease-in-out both;
+	}
+
+	.loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+	.loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+	@keyframes loadingBounce {
+		0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+		40% { transform: scale(1); opacity: 1; }
 	}
 
 	.dock {
@@ -323,6 +2624,8 @@
 			0 0 0 0.5px rgba(0, 0, 0, 0.1),
 			0 8px 32px rgba(0, 0, 0, 0.12);
 		transition: all 0.2s ease;
+		position: relative;
+		z-index: 10;
 	}
 
 	.dock.drag-over {
@@ -378,6 +2681,18 @@
 		background: #1E1E1E !important;
 	}
 
+	.dock-icon.finder {
+		border-radius: 10px;
+		box-shadow:
+			0 2px 8px rgba(0, 0, 0, 0.15),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2);
+	}
+
+	.finder-face {
+		width: 32px;
+		height: 32px;
+	}
+
 	.terminal-prompt {
 		font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Courier New', monospace;
 		font-size: 16px;
@@ -401,14 +2716,15 @@
 		transform: translateX(-50%);
 		margin-bottom: 8px;
 		padding: 6px 12px;
-		background: rgba(30, 30, 30, 0.9);
+		background: rgba(30, 30, 30, 0.95);
 		color: white;
 		font-size: 12px;
 		font-weight: 500;
 		border-radius: 6px;
 		white-space: nowrap;
 		pointer-events: none;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		z-index: 10010;
 	}
 
 	.dock-tooltip::after {
@@ -597,5 +2913,246 @@
 			0 3px 0 #333,
 			0 -3px 0 #333;
 		filter: brightness(1.1);
+	}
+
+	/* ===== DARK MODE - MODERN APPLE STYLE ===== */
+	:global(.dark) .dock {
+		background: rgba(44, 44, 46, 0.85);
+		border-color: rgba(255, 255, 255, 0.12);
+		box-shadow:
+			0 0 0 0.5px rgba(255, 255, 255, 0.08),
+			0 8px 32px rgba(0, 0, 0, 0.4);
+	}
+
+	:global(.dark) .dock.drag-over {
+		background: rgba(59, 130, 246, 0.15);
+		border-color: rgba(59, 130, 246, 0.5);
+	}
+
+	:global(.dark) .dock-separator {
+		background: rgba(255, 255, 255, 0.15);
+	}
+
+	:global(.dark) .dock-indicator {
+		background: #fff;
+	}
+
+	:global(.dark) .dock-tooltip {
+		background: rgba(44, 44, 46, 0.98);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+	}
+
+	:global(.dark) .dock-tooltip::after {
+		border-top-color: rgba(44, 44, 46, 0.98);
+	}
+
+	:global(.dark) .quick-chat {
+		background: rgba(28, 28, 30, 0.95) !important;
+		border-color: rgba(255, 255, 255, 0.12) !important;
+		box-shadow:
+			0 0 0 0.5px rgba(255, 255, 255, 0.08),
+			0 8px 32px rgba(0, 0, 0, 0.4) !important;
+	}
+
+	:global(.dark) .quick-chat:focus-within {
+		box-shadow:
+			0 0 0 0.5px rgba(255, 255, 255, 0.15),
+			0 12px 40px rgba(0, 0, 0, 0.4) !important;
+		outline: none !important;
+		border-color: rgba(255, 255, 255, 0.2) !important;
+	}
+
+	:global(.dark) .quick-chat.dragging-file {
+		background: rgba(30, 60, 90, 0.95) !important;
+		border-color: #3B82F6 !important;
+	}
+
+	:global(.dark) .quick-chat.expanded {
+		background: rgba(28, 28, 30, 0.95) !important;
+	}
+
+	:global(.dark) .quick-chat textarea {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .quick-chat textarea::placeholder {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .quick-chat .voice-btn {
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .quick-chat .voice-btn:hover {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .quick-chat .send-btn {
+		background: #0A84FF;
+	}
+
+	:global(.dark) .quick-chat .send-btn:disabled {
+		background: #3a3a3c;
+		color: #6e6e73;
+	}
+
+	:global(.dark) .context-btn {
+		background: #2c2c2e;
+		border-color: rgba(255, 255, 255, 0.12);
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .context-btn:hover {
+		border-color: rgba(255, 255, 255, 0.2);
+		background: #3a3a3c;
+	}
+
+	:global(.dark) .context-btn.has-context {
+		background: rgba(79, 70, 229, 0.2);
+		border-color: rgba(79, 70, 229, 0.4);
+		color: #a5b4fc;
+	}
+
+	:global(.dark) .model-btn {
+		background: #2c2c2e;
+		border-color: rgba(255, 255, 255, 0.12);
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .model-btn:hover {
+		border-color: rgba(255, 255, 255, 0.2);
+		background: #3a3a3c;
+	}
+
+	:global(.dark) .context-dropdown {
+		background: #2c2c2e;
+		border-color: rgba(255, 255, 255, 0.12);
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+	}
+
+	:global(.dark) .context-option {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .context-option:hover {
+		background: #3a3a3c;
+	}
+
+	:global(.dark) .context-option.selected {
+		background: rgba(79, 70, 229, 0.25);
+		color: #a5b4fc;
+	}
+
+	:global(.dark) .context-option.highlighted {
+		background: #48484a;
+	}
+
+	:global(.dark) .dropdown-header {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .dropdown-divider {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .attached-file {
+		background: #3a3a3c;
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .attached-file .file-icon {
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .attached-file .file-remove:hover {
+		background: #48484a;
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .attach-btn {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .attach-btn:hover {
+		background: #3a3a3c;
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .toolbar-hints .hint {
+		background: rgba(255, 255, 255, 0.1);
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .toolbar-hints .hint-text {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .toolbar-hints .hint-divider {
+		color: #48484a;
+	}
+
+	:global(.dark) .recording-waveform-bar {
+		background: #1c1c1e;
+		border: 1px solid rgba(255, 255, 255, 0.12);
+	}
+
+	:global(.dark) .quick-chat-response {
+		background: rgba(44, 44, 46, 0.95);
+		border-bottom-color: rgba(255, 255, 255, 0.08);
+	}
+
+	:global(.dark) .response-content {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .ai-badge {
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .action-btn {
+		background: rgba(255, 255, 255, 0.08);
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .action-btn:hover {
+		background: rgba(255, 255, 255, 0.12);
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .model-status.ready {
+		background: rgba(16, 185, 129, 0.2);
+		color: #34d399;
+	}
+
+	:global(.dark) .model-status.pull {
+		background: rgba(10, 132, 255, 0.2);
+		color: #60a5fa;
+	}
+
+	:global(.dark) .pull-progress {
+		background: #3a3a3c;
+	}
+
+	:global(.dark) .pull-model {
+		color: #f5f5f7;
+	}
+
+	/* Dark mode icon styles */
+	:global(.dark) .dock-item.style-glassmorphism .dock-icon {
+		background: rgba(255, 255, 255, 0.1) !important;
+		border-color: rgba(255, 255, 255, 0.15);
+	}
+
+	:global(.dark) .dock-item.style-glassmorphism:hover .dock-icon {
+		background: rgba(255, 255, 255, 0.15) !important;
+	}
+
+	:global(.dark) .dock-item.style-minimal:hover .dock-icon {
+		background: rgba(255, 255, 255, 0.1) !important;
+	}
+
+	:global(.dark) .dock-item.style-paper .dock-icon {
+		background: #3a3a3c !important;
+		border-color: rgba(255, 255, 255, 0.12);
 	}
 </style>

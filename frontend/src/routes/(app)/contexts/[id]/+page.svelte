@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { contexts } from '$lib/stores/contexts';
 	import { editor, wordCount, type EditorBlock, type BlockType, blockTypes, createEmptyBlock } from '$lib/stores/editor';
-	import type { Context, Block } from '$lib/api/client';
+	import type { Context, Block, VoiceNote } from '$lib/api/client';
+	import { api } from '$lib/api/client';
 	import BlockComponent from '$lib/components/editor/Block.svelte';
 	import BlockMenu from '$lib/components/editor/BlockMenu.svelte';
 	import ChatInput from '$lib/components/chat/ChatInput.svelte';
@@ -53,6 +54,19 @@
 	let aiInput = $state('');
 	let isAIStreaming = $state(false);
 	let aiMessagesContainer: HTMLDivElement;
+
+	// Voice Notes state
+	let showVoiceNotesPanel = $state(false);
+	let voiceNotes = $state<VoiceNote[]>([]);
+	let loadingVoiceNotes = $state(false);
+	let isRecording = $state(false);
+	let recordingTime = $state(0);
+	let recordingTimer: ReturnType<typeof setInterval> | null = null;
+	let mediaRecorder: MediaRecorder | null = null;
+	let audioChunks: Blob[] = [];
+	let isUploading = $state(false);
+	let playingNoteId = $state<string | null>(null);
+	let audioElement: HTMLAudioElement | null = null;
 
 	const contextId = $derived($page.params.id);
 
@@ -105,6 +119,14 @@
 
 	onDestroy(() => {
 		if (autoSaveTimer) clearTimeout(autoSaveTimer);
+		if (recordingTimer) clearInterval(recordingTimer);
+		if (audioElement) {
+			audioElement.pause();
+			audioElement = null;
+		}
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+		}
 		editor.reset();
 	});
 
@@ -435,6 +457,139 @@
 	function clearAIChat() {
 		aiMessages = [];
 	}
+
+	// Voice Notes functions
+	async function loadVoiceNotes() {
+		loadingVoiceNotes = true;
+		try {
+			voiceNotes = await api.getVoiceNotes(contextId);
+		} catch (e) {
+			console.error('Failed to load voice notes:', e);
+		} finally {
+			loadingVoiceNotes = false;
+		}
+	}
+
+	async function startRecording() {
+		try {
+			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+			audioChunks = [];
+
+			mediaRecorder.ondataavailable = (e) => {
+				if (e.data.size > 0) {
+					audioChunks.push(e.data);
+				}
+			};
+
+			mediaRecorder.onstop = async () => {
+				stream.getTracks().forEach(track => track.stop());
+				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+				await uploadVoiceNote(audioBlob);
+			};
+
+			mediaRecorder.start(1000);
+			isRecording = true;
+			recordingTime = 0;
+			recordingTimer = setInterval(() => {
+				recordingTime++;
+			}, 1000);
+		} catch (e) {
+			console.error('Failed to start recording:', e);
+			alert('Could not access microphone. Please check permissions.');
+		}
+	}
+
+	function stopRecording() {
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+		}
+		isRecording = false;
+		if (recordingTimer) {
+			clearInterval(recordingTimer);
+			recordingTimer = null;
+		}
+	}
+
+	async function uploadVoiceNote(audioBlob: Blob) {
+		isUploading = true;
+		try {
+			const note = await api.uploadVoiceNote(audioBlob, contextId);
+			voiceNotes = [note, ...voiceNotes];
+		} catch (e) {
+			console.error('Failed to upload voice note:', e);
+			alert('Failed to save voice note');
+		} finally {
+			isUploading = false;
+		}
+	}
+
+	async function playVoiceNote(noteId: string) {
+		if (playingNoteId === noteId) {
+			// Stop playing
+			if (audioElement) {
+				audioElement.pause();
+				audioElement = null;
+			}
+			playingNoteId = null;
+			return;
+		}
+
+		try {
+			const blob = await api.getVoiceNoteAudio(noteId);
+			const url = URL.createObjectURL(blob);
+
+			if (audioElement) {
+				audioElement.pause();
+			}
+
+			audioElement = new Audio(url);
+			audioElement.onended = () => {
+				playingNoteId = null;
+				URL.revokeObjectURL(url);
+			};
+			audioElement.play();
+			playingNoteId = noteId;
+		} catch (e) {
+			console.error('Failed to play voice note:', e);
+		}
+	}
+
+	async function deleteVoiceNote(noteId: string) {
+		if (!confirm('Delete this voice note?')) return;
+		try {
+			await api.deleteVoiceNote(noteId);
+			voiceNotes = voiceNotes.filter(n => n.id !== noteId);
+		} catch (e) {
+			console.error('Failed to delete voice note:', e);
+		}
+	}
+
+	function formatDuration(seconds: number): string {
+		const mins = Math.floor(seconds / 60);
+		const secs = Math.floor(seconds % 60);
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
+	function formatTimeAgo(dateStr: string): string {
+		const date = new Date(dateStr);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		const diffHours = Math.floor(diffMs / 3600000);
+		const diffDays = Math.floor(diffMs / 86400000);
+
+		if (diffMins < 1) return 'Just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		if (diffHours < 24) return `${diffHours}h ago`;
+		if (diffDays < 7) return `${diffDays}d ago`;
+		return date.toLocaleDateString();
+	}
+
+	function openVoiceNotesPanel() {
+		showVoiceNotesPanel = true;
+		loadVoiceNotes();
+	}
 </script>
 
 <svelte:head>
@@ -554,6 +709,22 @@
 						<span>Saved</span>
 					{/if}
 				</div>
+
+				<!-- Voice Notes button -->
+				<button
+					onclick={openVoiceNotesPanel}
+					class="p-2 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors relative"
+					title="Voice notes"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+					</svg>
+					{#if voiceNotes.length > 0}
+						<span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center font-medium">
+							{voiceNotes.length > 9 ? '9+' : voiceNotes.length}
+						</span>
+					{/if}
+				</button>
 
 				<!-- Share button -->
 				<div class="relative">
@@ -902,6 +1073,162 @@
 					onSend={handleAISend}
 					onStop={handleAIStop}
 				/>
+			</div>
+		{/if}
+
+		<!-- Voice Notes Panel -->
+		{#if showVoiceNotesPanel}
+			<div class="fixed inset-y-0 right-0 w-[380px] bg-white border-l border-gray-200 shadow-xl z-50 flex flex-col">
+				<!-- Header -->
+				<div class="p-4 border-b border-gray-100 flex items-center justify-between">
+					<div class="flex items-center gap-2">
+						<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+							<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+							</svg>
+						</div>
+						<div>
+							<h3 class="font-medium text-gray-900">Voice Notes</h3>
+							<p class="text-xs text-gray-400">{voiceNotes.length} recording{voiceNotes.length !== 1 ? 's' : ''}</p>
+						</div>
+					</div>
+					<button
+						onclick={() => showVoiceNotesPanel = false}
+						class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+						title="Close"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+
+				<!-- Recording Section -->
+				<div class="p-4 border-b border-gray-100">
+					{#if isRecording}
+						<div class="flex items-center gap-4">
+							<button
+								onclick={stopRecording}
+								class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all animate-pulse"
+							>
+								<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+									<rect x="6" y="6" width="12" height="12" rx="2" />
+								</svg>
+							</button>
+							<div class="flex-1">
+								<div class="text-sm font-medium text-gray-900">Recording...</div>
+								<div class="text-2xl font-mono text-red-600">{formatDuration(recordingTime)}</div>
+							</div>
+							<div class="flex gap-1">
+								{#each Array(5) as _, i}
+									<div
+										class="w-1 bg-red-500 rounded-full animate-pulse"
+										style="height: {8 + Math.random() * 24}px; animation-delay: {i * 0.1}s"
+									></div>
+								{/each}
+							</div>
+						</div>
+					{:else if isUploading}
+						<div class="flex items-center gap-4">
+							<div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center">
+								<div class="animate-spin h-6 w-6 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+							</div>
+							<div>
+								<div class="text-sm font-medium text-gray-900">Processing...</div>
+								<div class="text-xs text-gray-500">Transcribing audio</div>
+							</div>
+						</div>
+					{:else}
+						<div class="flex items-center gap-4">
+							<button
+								onclick={startRecording}
+								class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-white shadow-lg transition-all hover:scale-105"
+							>
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+								</svg>
+							</button>
+							<div>
+								<div class="text-sm font-medium text-gray-900">Record a note</div>
+								<div class="text-xs text-gray-500">Click to start recording</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Voice Notes List -->
+				<div class="flex-1 overflow-y-auto">
+					{#if loadingVoiceNotes}
+						<div class="p-8 text-center">
+							<div class="animate-spin h-6 w-6 border-2 border-gray-300 border-t-gray-600 rounded-full mx-auto"></div>
+						</div>
+					{:else if voiceNotes.length === 0}
+						<div class="p-8 text-center">
+							<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+								<svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+								</svg>
+							</div>
+							<h4 class="text-sm font-medium text-gray-700 mb-1">No voice notes yet</h4>
+							<p class="text-xs text-gray-400">Record your first voice note above</p>
+						</div>
+					{:else}
+						<div class="divide-y divide-gray-100">
+							{#each voiceNotes as note (note.id)}
+								<div class="p-4 hover:bg-gray-50 transition-colors group">
+									<div class="flex items-start gap-3">
+										<!-- Play button -->
+										<button
+											onclick={() => playVoiceNote(note.id)}
+											class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-all {playingNoteId === note.id ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
+										>
+											{#if playingNoteId === note.id}
+												<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+													<rect x="6" y="5" width="4" height="14" rx="1" />
+													<rect x="14" y="5" width="4" height="14" rx="1" />
+												</svg>
+											{:else}
+												<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+													<path d="M8 5v14l11-7z" />
+												</svg>
+											{/if}
+										</button>
+
+										<div class="flex-1 min-w-0">
+											<!-- Duration and time -->
+											<div class="flex items-center gap-2 mb-1">
+												<span class="text-xs font-medium text-gray-900">
+													{formatDuration(note.duration || 0)}
+												</span>
+												<span class="text-xs text-gray-400">
+													{formatTimeAgo(note.created_at)}
+												</span>
+											</div>
+
+											<!-- Transcript -->
+											{#if note.transcript}
+												<p class="text-sm text-gray-600 line-clamp-3">{note.transcript}</p>
+											{:else}
+												<p class="text-sm text-gray-400 italic">No transcript available</p>
+											{/if}
+										</div>
+
+										<!-- Delete button -->
+										<button
+											onclick={() => deleteVoiceNote(note.id)}
+											class="p-1.5 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+											title="Delete"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+											</svg>
+										</button>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
 		{/if}
 

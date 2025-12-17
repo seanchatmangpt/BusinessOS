@@ -821,9 +821,74 @@ npm run check
 | `stores/windowStore.ts` | 958 | Desktop window management |
 | `stores/desktopStore.ts` | 789 | Desktop customization |
 | `routes/(app)/chat/+page.svelte` | 4500+ | Main chat page |
+| `routes/(app)/settings/ai/+page.svelte` | 5800+ | AI Settings & Models |
 | `components/desktop/Dock.svelte` | 800+ | Dock component |
 | `components/desktop/Window.svelte` | 600+ | Window component |
 | `components/editor/DocumentEditor.svelte` | 1000+ | Block editor |
+
+---
+
+## AI Settings Page
+
+### Location
+
+`/src/routes/(app)/settings/ai/+page.svelte` (~5800 lines)
+
+### Features
+
+The AI Settings page provides comprehensive model management with a compact filter interface.
+
+### Compact Filter Bar
+
+A single-row sticky header for model filtering:
+
+```
+[🔍 Search...  ⌘K] [Source ▼] [Filters ▼] [chips] [○ Installed] [Sort ▼]
+```
+
+**Components:**
+- **Compact Search**: Expandable search with ⌘K shortcut
+- **Source Dropdown**: All/Local/Cloud with model counts
+- **Filters Dropdown**: Multi-select capability checkboxes
+- **Filter Chips**: Active filters as removable tags
+- **Apple Toggle**: iOS-style toggle for "Installed only"
+- **Sort Dropdown**: Recommended/Name/Size/Downloads
+
+### State Management
+
+```typescript
+// Multi-select capabilities (array instead of single)
+let selectedCapabilityFilters = $state<ModelCapability[]>([]);
+let selectedProviderFilter = $state<'all' | 'local' | 'cloud'>('all');
+let showOnlyInstalled = $state(false);
+let modelSortBy = $state<'recommended' | 'name' | 'size' | 'downloads'>('recommended');
+
+// Dropdown visibility
+let showSourceDropdown = $state(false);
+let showFiltersDropdown = $state(false);
+```
+
+### Click Outside Handler
+
+```typescript
+onMount(() => {
+  const handleClickOutside = (e: MouseEvent) => {
+    if (!target.closest('.filter-dropdown-wrapper')) {
+      showSourceDropdown = false;
+      showFiltersDropdown = false;
+    }
+  };
+  document.addEventListener('click', handleClickOutside);
+  return () => document.removeEventListener('click', handleClickOutside);
+});
+```
+
+### CSS Styling
+
+- Neutral colors (no blue gradients)
+- Apple-style toggle with green (#34c759) active state
+- Subtle shadows and borders
+- Works in both light and dark modes
 
 ---
 

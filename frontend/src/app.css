@@ -96,6 +96,15 @@ body {
 	background-color: var(--color-primary-hover);
 }
 
+.dark .btn-primary {
+	background-color: #0A84FF;
+	color: white;
+}
+
+.dark .btn-primary:hover {
+	background-color: #0070E0;
+}
+
 .btn-secondary {
 	background-color: var(--color-bg);
 	color: var(--color-text);
@@ -153,6 +162,11 @@ body {
 	padding: 1.5rem;
 }
 
+.dark .card {
+	background-color: #2c2c2e;
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
 /* Message bubbles - ChatGPT/Apple style */
 .message-bubble {
 	padding: 0.875rem 1.125rem;
@@ -176,6 +190,11 @@ body {
 .sidebar {
 	background-color: var(--color-bg-secondary);
 	border-right: 1px solid var(--color-border);
+}
+
+.dark .sidebar {
+	background-color: #1c1c1e;
+	border-right-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Status badges */
@@ -264,37 +283,50 @@ body {
 }
 
 .dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.985 0 0);
-	--card: oklch(0.205 0 0);
-	--card-foreground: oklch(0.985 0 0);
-	--popover: oklch(0.205 0 0);
-	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.922 0 0);
-	--primary-foreground: oklch(0.205 0 0);
-	--secondary: oklch(0.269 0 0);
-	--secondary-foreground: oklch(0.985 0 0);
-	--muted: oklch(0.269 0 0);
-	--muted-foreground: oklch(0.708 0 0);
-	--accent: oklch(0.269 0 0);
-	--accent-foreground: oklch(0.985 0 0);
+	/* Modern Apple-style dark mode - sleek charcoal grays */
+	--background: oklch(0.13 0 0); /* Dark gray, not black */
+	--foreground: oklch(0.95 0 0);
+	--card: oklch(0.17 0 0); /* Slightly elevated surface */
+	--card-foreground: oklch(0.95 0 0);
+	--popover: oklch(0.15 0 0);
+	--popover-foreground: oklch(0.95 0 0);
+	--primary: oklch(0.95 0 0);
+	--primary-foreground: oklch(0.13 0 0);
+	--secondary: oklch(0.20 0 0); /* Subtle elevation */
+	--secondary-foreground: oklch(0.95 0 0);
+	--muted: oklch(0.22 0 0);
+	--muted-foreground: oklch(0.6 0 0);
+	--accent: oklch(0.20 0 0);
+	--accent-foreground: oklch(0.95 0 0);
 	--destructive: oklch(0.704 0.191 22.216);
 	--border: oklch(1 0 0 / 10%);
-	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.556 0 0);
+	--input: oklch(1 0 0 / 12%);
+	--ring: oklch(0.5 0 0);
 	--chart-1: oklch(0.488 0.243 264.376);
 	--chart-2: oklch(0.696 0.17 162.48);
 	--chart-3: oklch(0.769 0.188 70.08);
 	--chart-4: oklch(0.627 0.265 303.9);
 	--chart-5: oklch(0.645 0.246 16.439);
-	--sidebar: oklch(0.205 0 0);
-	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.269 0 0);
-	--sidebar-accent-foreground: oklch(0.985 0 0);
+	--sidebar: oklch(0.11 0 0); /* Slightly darker sidebar */
+	--sidebar-foreground: oklch(0.95 0 0);
+	--sidebar-primary: oklch(0.95 0 0);
+	--sidebar-primary-foreground: oklch(0.13 0 0);
+	--sidebar-accent: oklch(0.18 0 0);
+	--sidebar-accent-foreground: oklch(0.95 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.556 0 0);
+	--sidebar-ring: oklch(0.5 0 0);
+
+	/* Modern dark gray colors - like Apple's dark mode */
+	--color-bg: #1c1c1e;
+	--color-bg-secondary: #2c2c2e;
+	--color-bg-tertiary: #3a3a3c;
+	--color-border: rgba(255, 255, 255, 0.12);
+	--color-border-hover: rgba(255, 255, 255, 0.2);
+	--color-text: #f5f5f7;
+	--color-text-secondary: #a1a1a6;
+	--color-text-muted: #6e6e73;
+	--color-primary: #ffffff;
+	--color-primary-hover: #e5e5ea;
 }
 
 @layer base {
@@ -304,4 +336,218 @@ body {
   body {
     @apply bg-background text-foreground;
 	}
+}
+
+/* ===== COMPREHENSIVE DARK MODE OVERRIDES ===== */
+/* Override hardcoded Tailwind classes for dark mode */
+
+/* Background overrides */
+.dark .bg-white { background-color: #1c1c1e !important; }
+.dark .bg-gray-50 { background-color: #2c2c2e !important; }
+.dark .bg-gray-100 { background-color: #3a3a3c !important; }
+.dark .bg-gray-200 { background-color: #48484a !important; }
+.dark .bg-gray-900 { background-color: #0d0d0f !important; }
+
+/* Text overrides */
+.dark .text-gray-900 { color: #f5f5f7 !important; }
+.dark .text-gray-800 { color: #e5e5ea !important; }
+.dark .text-gray-700 { color: #d1d1d6 !important; }
+.dark .text-gray-600 { color: #a1a1a6 !important; }
+.dark .text-gray-500 { color: #8e8e93 !important; }
+.dark .text-gray-400 { color: #6e6e73 !important; }
+.dark .text-gray-300 { color: #636366 !important; }
+
+/* Code blocks in dark mode */
+.dark pre code {
+	color: #f5f5f7 !important;
+}
+
+.dark code.bg-gray-100 {
+	background-color: #3a3a3c !important;
+	color: #f5f5f7 !important;
+}
+
+/* Border overrides */
+.dark .border-gray-200 { border-color: rgba(255, 255, 255, 0.12) !important; }
+.dark .border-gray-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+.dark .border-gray-100 { border-color: rgba(255, 255, 255, 0.08) !important; }
+
+/* Divide overrides */
+.dark .divide-gray-200 > * + * { border-color: rgba(255, 255, 255, 0.12) !important; }
+
+/* Hover state overrides */
+.dark .hover\:bg-gray-50:hover { background-color: #3a3a3c !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #48484a !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #58585a !important; }
+
+/* Focus state overrides */
+.dark .focus\:ring-gray-200:focus { --tw-ring-color: rgba(255, 255, 255, 0.2) !important; }
+.dark .focus\:border-gray-300:focus { border-color: rgba(255, 255, 255, 0.25) !important; }
+
+/* Shadow overrides - soften in dark mode */
+.dark .shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3) !important; }
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }
+.dark .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important; }
+.dark .shadow-lg { box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4) !important; }
+
+/* Input/Form overrides */
+.dark input,
+.dark textarea,
+.dark select {
+	background-color: #2c2c2e;
+	border-color: rgba(255, 255, 255, 0.12);
+	color: #f5f5f7;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+	color: #6e6e73;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+	border-color: rgba(255, 255, 255, 0.2) !important;
+	box-shadow: none !important;
+	outline: none !important;
+	--tw-ring-color: transparent !important;
+	--tw-ring-shadow: none !important;
+}
+
+/* Override Tailwind focus ring classes in dark mode */
+.dark .focus\:ring-2:focus,
+.dark .focus\:ring-1:focus,
+.dark .focus\:ring:focus {
+	--tw-ring-color: transparent !important;
+	--tw-ring-shadow: 0 0 0 0 transparent !important;
+	box-shadow: none !important;
+}
+
+.dark .focus\:ring-gray-900:focus,
+.dark .focus\:ring-blue-500:focus {
+	--tw-ring-color: transparent !important;
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+	background-color: rgba(255, 255, 255, 0.2);
+	border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* HR/Divider in dark mode */
+.dark hr {
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== CONTEXTS PAGE DOCUMENT EDITOR DARK MODE ===== */
+/* Document editor panel */
+.dark .bg-white.border-l {
+	background-color: #1c1c1e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Document editor header */
+.dark .bg-gray-50\/50 {
+	background-color: #2c2c2e !important;
+}
+
+/* Profile header */
+.dark .sticky.bg-white {
+	background-color: #1c1c1e !important;
+}
+
+/* Context information box */
+.dark .bg-white.rounded-xl.border {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Data hub tabs */
+.dark .bg-gray-100.p-1.rounded-lg {
+	background-color: #2c2c2e !important;
+}
+
+/* Data hub active tab */
+.dark .bg-white.text-gray-900.shadow-sm {
+	background-color: #3a3a3c !important;
+	color: #f5f5f7 !important;
+}
+
+/* Document cards */
+.dark .bg-white.rounded-xl.border.hover\:shadow-md {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Modal overlays */
+.dark .bg-black\/30 {
+	background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Modal content */
+.dark .bg-white.rounded-2xl.shadow-2xl {
+	background-color: #2c2c2e !important;
+}
+
+/* Left panel / sidebar */
+.dark .bg-gray-50.flex-col {
+	background-color: #1c1c1e !important;
+}
+
+/* Resize handle */
+.dark .bg-gray-200.hover\:bg-gray-400 {
+	background-color: #3a3a3c !important;
+}
+
+.dark .bg-gray-200.hover\:bg-gray-400:hover {
+	background-color: #48484a !important;
+}
+
+/* Filter tabs */
+.dark .bg-gray-100.rounded-lg {
+	background-color: #2c2c2e !important;
+}
+
+/* Section headers */
+.dark .text-gray-400.uppercase {
+	color: #6e6e73 !important;
+}
+
+/* Profile/document list items */
+.dark .hover\:bg-gray-100:hover {
+	background-color: #3a3a3c !important;
+}
+
+/* Empty state dashed border */
+.dark .border-dashed {
+	border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Icon pickers */
+.dark .bg-white.rounded-xl.shadow-xl {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Dialog overlays */
+.dark [data-bits-dialog-overlay] {
+	background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark [data-bits-dialog-content] {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
 }

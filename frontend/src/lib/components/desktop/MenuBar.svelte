@@ -1,10 +1,34 @@
 <script lang="ts">
 	import { windowStore, focusedWindow } from '$lib/stores/windowStore';
 	import { desktopSettings } from '$lib/stores/desktopStore';
+	import { themeStore } from '$lib/stores/themeStore';
 	import { useSession, signOut } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { isElectron, isMacOS } from '$lib/utils/platform';
 
 	const session = useSession();
+
+	// Theme state
+	const isDarkMode = $derived($themeStore.resolvedTheme === 'dark');
+	const themeMode = $derived($themeStore.theme);
+
+	function toggleDarkMode() {
+		if ($themeStore.theme === 'dark') {
+			themeStore.setTheme('light');
+		} else {
+			themeStore.setTheme('dark');
+		}
+	}
+
+	function setThemeMode(mode: 'light' | 'dark' | 'system') {
+		themeStore.setTheme(mode);
+	}
+
+	// Detect Electron and macOS for traffic light handling
+	const inElectron = $derived(browser && isElectron());
+	const onMac = $derived(browser && isMacOS());
+	const needsTrafficLightSpace = $derived(inElectron && onMac);
 
 	let activeMenu: string | null = $state(null);
 	let currentTime = $state(new Date());
@@ -124,6 +148,9 @@
 			case 'open-terminal':
 				windowStore.openWindow('terminal');
 				break;
+			case 'open-docs':
+				goto('/docs');
+				break;
 		}
 	}
 
@@ -211,7 +238,7 @@
 			label: 'Help',
 			items: [
 				{ label: 'Keyboard Shortcuts', action: 'shortcuts', disabled: true },
-				{ label: 'Documentation', action: 'docs', disabled: true },
+				{ label: 'Documentation', action: 'open-docs' },
 				{ type: 'separator' },
 				{ label: 'About Business OS', action: 'about', disabled: true },
 			]
@@ -220,7 +247,12 @@
 
 	</script>
 
-<div class="menu-bar">
+<div
+	class="menu-bar"
+	class:electron={inElectron}
+	class:traffic-light-space={needsTrafficLightSpace}
+	style={inElectron ? '-webkit-app-region: drag;' : ''}
+>
 	<!-- Left side: Logo and menus -->
 	<div class="menu-bar-left">
 		<!-- Logo / Desktop Settings -->
@@ -372,6 +404,45 @@
 					<span class="menu-user-email">{$session.data?.user?.email || ''}</span>
 				</div>
 				<div class="menu-separator"></div>
+
+				<!-- Appearance Section -->
+				<div class="menu-section-label">Appearance</div>
+				<div class="theme-toggle-group">
+					<button
+						class="theme-toggle-btn"
+						class:active={themeMode === 'light'}
+						onclick={() => setThemeMode('light')}
+					>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<circle cx="12" cy="12" r="5"/>
+							<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+						</svg>
+						<span>Light</span>
+					</button>
+					<button
+						class="theme-toggle-btn"
+						class:active={themeMode === 'dark'}
+						onclick={() => setThemeMode('dark')}
+					>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+						</svg>
+						<span>Dark</span>
+					</button>
+					<button
+						class="theme-toggle-btn"
+						class:active={themeMode === 'system'}
+						onclick={() => setThemeMode('system')}
+					>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<rect x="2" y="3" width="20" height="14" rx="2"/>
+							<path d="M8 21h8M12 17v4"/>
+						</svg>
+						<span>Auto</span>
+					</button>
+				</div>
+
+				<div class="menu-separator"></div>
 				<button class="menu-item" onclick={() => { closeMenus(); goto('/profile'); }}>
 					<span class="menu-item-check"></span>
 					<span class="menu-item-label">Profile</span>
@@ -412,10 +483,21 @@
 		user-select: none;
 	}
 
+	/* Electron on macOS: taller menu bar with traffic light space */
+	.menu-bar.traffic-light-space {
+		height: 52px;
+		padding-left: 80px; /* Space for traffic lights */
+		padding-top: 26px; /* Push content below traffic lights */
+		padding-bottom: 8px;
+		align-items: center;
+		box-sizing: border-box;
+	}
+
 	.menu-bar-left {
 		display: flex;
 		align-items: center;
 		gap: 0;
+		-webkit-app-region: no-drag;
 	}
 
 	.menu-bar-right {
@@ -423,6 +505,7 @@
 		align-items: center;
 		gap: 12px;
 		position: relative;
+		-webkit-app-region: no-drag;
 	}
 
 	.menu-bar-logo {
@@ -708,5 +791,185 @@
 		color: white;
 		font-size: 10px;
 		font-weight: 600;
+	}
+
+	/* Theme toggle group */
+	.menu-section-label {
+		padding: 4px 12px 2px;
+		font-size: 10px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		color: #999;
+	}
+
+	.theme-toggle-group {
+		display: flex;
+		gap: 4px;
+		padding: 6px 8px;
+	}
+
+	.theme-toggle-btn {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 8px 4px;
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		background: transparent;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 10px;
+		color: #666;
+		transition: all 0.15s;
+	}
+
+	.theme-toggle-btn svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.theme-toggle-btn:hover {
+		background: rgba(0, 0, 0, 0.05);
+		border-color: rgba(0, 0, 0, 0.15);
+	}
+
+	.theme-toggle-btn.active {
+		background: #0066FF;
+		border-color: #0066FF;
+		color: white;
+	}
+
+	/* ===== DARK MODE - MODERN APPLE STYLE ===== */
+	:global(.dark) .menu-bar {
+		background: rgba(28, 28, 30, 0.85);
+		border-bottom-color: rgba(255, 255, 255, 0.12);
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-bar-logo {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-bar-logo:hover {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .menu-bar-app-name {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-bar-item {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-bar-item:hover,
+	:global(.dark) .menu-bar-item.active {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .menu-dropdown {
+		background: rgba(44, 44, 46, 0.98);
+		border-color: rgba(255, 255, 255, 0.12);
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+	}
+
+	:global(.dark) .menu-item {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-item:hover:not(.disabled) {
+		background: #0A84FF;
+	}
+
+	:global(.dark) .menu-item.disabled {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .menu-item-shortcut {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .menu-separator {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .menu-user-name {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-user-email {
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .menu-bar-clock {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .menu-bar-clock:hover {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .calendar-nav {
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .calendar-nav:hover {
+		background: rgba(255, 255, 255, 0.1);
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .calendar-month-year {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .calendar-weekdays span {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .calendar-day {
+		color: #f5f5f7;
+	}
+
+	:global(.dark) .calendar-day:hover:not(.empty) {
+		background: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .calendar-today-btn-wrapper {
+		border-top-color: rgba(255, 255, 255, 0.1);
+	}
+
+	:global(.dark) .calendar-today-btn {
+		border-color: rgba(255, 255, 255, 0.15);
+		color: #0A84FF;
+	}
+
+	:global(.dark) .calendar-today-btn:hover {
+		background: rgba(10, 132, 255, 0.15);
+	}
+
+	:global(.dark) .menu-bar-avatar {
+		background: #48484a;
+	}
+
+	:global(.dark) .menu-section-label {
+		color: #6e6e73;
+	}
+
+	:global(.dark) .theme-toggle-btn {
+		border-color: rgba(255, 255, 255, 0.12);
+		color: #a1a1a6;
+	}
+
+	:global(.dark) .theme-toggle-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		border-color: rgba(255, 255, 255, 0.2);
+	}
+
+	:global(.dark) .theme-toggle-btn.active {
+		background: #0A84FF;
+		border-color: #0A84FF;
+		color: white;
 	}
 </style>

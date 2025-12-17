@@ -1,5 +1,6 @@
-// Use relative URL - Vite proxy forwards /api to FastAPI backend
-const API_BASE = '/api';
+// In development, call Go backend directly for better performance
+// In production, use relative URL (nginx/Caddy handles routing)
+const API_BASE = import.meta.env.DEV ? 'http://localhost:8000/api' : '/api';
 
 interface RequestOptions {
 	method?: string;
@@ -36,7 +37,16 @@ class ApiClient {
 	}
 
 	async getConversation(id: string) {
-		return this.request<Conversation>(`/chat/conversations/${id}`);
+		// Backend returns { conversation: {...}, messages: [...] }
+		const response = await this.request<{ conversation: Conversation; messages: Message[] }>(`/chat/conversations/${id}`);
+		console.log('[API] getConversation response:', response);
+
+		// Combine conversation with messages
+		return {
+			...response.conversation,
+			messages: response.messages || [],
+			message_count: response.messages?.length || 0
+		} as Conversation;
 	}
 
 	async createConversation(title?: string, contextId?: string) {
@@ -48,6 +58,17 @@ class ApiClient {
 
 	async deleteConversation(id: string) {
 		return this.request(`/chat/conversations/${id}`, { method: 'DELETE' });
+	}
+
+	async updateConversation(id: string, data: { title?: string; context_id?: string | null }) {
+		return this.request<Conversation>(`/chat/conversations/${id}`, {
+			method: 'PUT',
+			body: data
+		});
+	}
+
+	async getConversationsByContext(contextId: string) {
+		return this.request<Conversation[]>(`/chat/conversations?context_id=${encodeURIComponent(contextId)}`);
 	}
 
 	// Chat - returns a ReadableStream for streaming
@@ -467,6 +488,215 @@ class ApiClient {
 			body: { stage }
 		});
 	}
+
+	// Google OAuth Integration
+	async initiateGoogleAuth() {
+		return this.request<{ auth_url: string }>('/integrations/google/auth');
+	}
+
+	async getGoogleConnectionStatus() {
+		return this.request<GoogleConnectionStatus>('/integrations/google/status');
+	}
+
+	async disconnectGoogle() {
+		return this.request('/integrations/google', { method: 'DELETE' });
+	}
+
+	// Calendar Events
+	async getCalendarEvents(filters?: { start?: string; end?: string; meetingType?: MeetingType; contextId?: string; projectId?: string; clientId?: string }) {
+		const params = new URLSearchParams();
+		if (filters?.start) params.set('start', filters.start);
+		if (filters?.end) params.set('end', filters.end);
+		if (filters?.meetingType) params.set('meeting_type', filters.meetingType);
+		if (filters?.contextId) params.set('context_id', filters.contextId);
+		if (filters?.projectId) params.set('project_id', filters.projectId);
+		if (filters?.clientId) params.set('client_id', filters.clientId);
+		const query = params.toString();
+		return this.request<CalendarEvent[]>(`/calendar/events${query ? `?${query}` : ''}`);
+	}
+
+	async getCalendarEvent(id: string) {
+		return this.request<CalendarEvent>(`/calendar/events/${id}`);
+	}
+
+	async createCalendarEvent(data: CreateCalendarEventData) {
+		return this.request<CalendarEvent>('/calendar/events', { method: 'POST', body: data });
+	}
+
+	async updateCalendarEvent(id: string, data: UpdateCalendarEventData) {
+		return this.request<CalendarEvent>(`/calendar/events/${id}`, { method: 'PUT', body: data });
+	}
+
+	async deleteCalendarEvent(id: string) {
+		return this.request(`/calendar/events/${id}`, { method: 'DELETE' });
+	}
+
+	async syncCalendar() {
+		return this.request<{ message: string; synced_count: number }>('/calendar/sync', { method: 'POST' });
+	}
+
+	async getTodayEvents() {
+		return this.request<CalendarEvent[]>('/calendar/today');
+	}
+
+	async getUpcomingEvents(limit?: number) {
+		const params = limit ? `?limit=${limit}` : '';
+		return this.request<CalendarEvent[]>(`/calendar/upcoming${params}`);
+	}
+
+	// Voice Notes
+	async getVoiceNotes(contextId?: string) {
+		const params = contextId ? `?context_id=${contextId}` : '';
+		return this.request<VoiceNote[]>(`/voice-notes${params}`);
+	}
+
+	async uploadVoiceNote(audioBlob: Blob, contextId?: string): Promise<VoiceNote> {
+		const formData = new FormData();
+		formData.append('audio', audioBlob, 'recording.webm');
+		if (contextId) {
+			formData.append('context_id', contextId);
+		}
+		const response = await fetch(`${API_BASE}/voice-notes`, {
+			method: 'POST',
+			credentials: 'include',
+			body: formData
+		});
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+			throw new Error(error.detail || 'Upload failed');
+		}
+		return response.json();
+	}
+
+	async getVoiceNoteAudio(noteId: string): Promise<Blob> {
+		const response = await fetch(`${API_BASE}/voice-notes/${noteId}`, {
+			credentials: 'include'
+		});
+		if (!response.ok) {
+			throw new Error('Failed to fetch audio');
+		}
+		return response.blob();
+	}
+
+	async deleteVoiceNote(noteId: string) {
+		return this.request(`/voice-notes/${noteId}`, { method: 'DELETE' });
+	}
+
+	async retranscribeVoiceNote(noteId: string) {
+		return this.request<VoiceNote>(`/voice-notes/${noteId}/retranscribe`, { method: 'POST' });
+	}
+
+	// Usage Analytics
+	async getUsageSummary(period: 'today' | 'week' | 'month' | 'all' = 'month') {
+		return this.request<UsageSummary>(`/usage/summary?period=${period}`);
+	}
+
+	async getUsageByProvider(period: 'today' | 'week' | 'month' | 'year' = 'month') {
+		return this.request<ProviderUsage[]>(`/usage/providers?period=${period}`);
+	}
+
+	async getUsageByModel(period: 'today' | 'week' | 'month' | 'year' = 'month') {
+		return this.request<ModelUsage[]>(`/usage/models?period=${period}`);
+	}
+
+	async getUsageByAgent(period: 'today' | 'week' | 'month' | 'year' = 'month') {
+		return this.request<AgentUsage[]>(`/usage/agents?period=${period}`);
+	}
+
+	async getUsageTrend() {
+		return this.request<UsageTrendPoint[]>('/usage/trend');
+	}
+
+	async getMCPUsage(period: 'today' | 'week' | 'month' | 'year' = 'month') {
+		return this.request<MCPToolUsage[]>(`/usage/mcp?period=${period}`);
+	}
+
+	// AI Configuration
+	async getAIProviders() {
+		return this.request<AIProvidersResponse>('/ai/providers');
+	}
+
+	async getAllModels() {
+		return this.request<AllModelsResponse>('/ai/models');
+	}
+
+	async getLocalModels() {
+		return this.request<LocalModelsResponse>('/ai/models/local');
+	}
+
+	async pullModel(model: string) {
+		const response = await fetch(`${API_BASE}/ai/models/pull`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ model })
+		});
+		return response.body;
+	}
+
+	async warmupModel(model: string): Promise<{ status: string; model: string; provider: string; message: string }> {
+		return this.request('/ai/models/warmup', {
+			method: 'POST',
+			body: { model }
+		});
+	}
+
+	async getAISystemInfo() {
+		return this.request<AISystemInfo>('/ai/system');
+	}
+
+	async saveAPIKey(provider: string, apiKey: string) {
+		return this.request<{ message: string }>('/ai/api-key', {
+			method: 'POST',
+			body: { provider, api_key: apiKey }
+		});
+	}
+
+	async updateAIProvider(provider: string) {
+		return this.request<{ message: string }>('/ai/provider', {
+			method: 'PUT',
+			body: { provider }
+		});
+	}
+
+	// Agent Prompts
+	async getAgentPrompts() {
+		return this.request<{ agents: AgentInfo[] }>('/ai/agents');
+	}
+
+	async getAgentPrompt(id: string) {
+		return this.request<{ id: string; prompt: string }>(`/ai/agents/${id}`);
+	}
+
+	// Profile
+	async updateProfile(data: { name: string }) {
+		return this.request<{ message: string; name: string }>('/profile', {
+			method: 'PUT',
+			body: data
+		});
+	}
+
+	async uploadProfilePhoto(file: File) {
+		const formData = new FormData();
+		formData.append('file', file);
+
+		const response = await fetch(`${API_BASE}/profile/photo`, {
+			method: 'POST',
+			credentials: 'include',
+			body: formData
+		});
+
+		if (!response.ok) {
+			const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+			throw new Error(error.error || 'Upload failed');
+		}
+
+		return response.json() as Promise<{ url: string; filename: string; message: string }>;
+	}
+
+	async deleteProfilePhoto() {
+		return this.request<{ message: string }>('/profile/photo', { method: 'DELETE' });
+	}
 }
 
 // Types
@@ -878,6 +1108,7 @@ export interface AvailableModel {
 
 export interface SystemInfo {
 	ollama_mode: string;
+	active_provider?: string;
 	available_models: AvailableModel[];
 	default_model: string;
 }
@@ -1186,4 +1417,277 @@ export interface UpdateDealData {
 	notes?: string;
 }
 
+// Google OAuth Types
+export interface GoogleConnectionStatus {
+	connected: boolean;
+	email?: string;
+	connected_at?: string;
+}
+
+// Calendar Types
+export type MeetingType = 'team' | 'sales' | 'onboarding' | 'kickoff' | 'implementation' | 'standup' | 'retrospective' | 'planning' | 'review' | 'one_on_one' | 'client' | 'internal' | 'external' | 'other';
+export type EventSource = 'google' | 'businessos';
+
+export interface CalendarAttendee {
+	email: string;
+	name?: string;
+	response_status?: string;
+}
+
+export interface ExternalLink {
+	name: string;
+	url: string;
+	type?: string;
+}
+
+export interface ActionItem {
+	id: string;
+	text: string;
+	completed: boolean;
+	assignee_id?: string;
+	due_date?: string;
+}
+
+export interface CalendarEvent {
+	id: string;
+	user_id: string;
+	google_event_id: string | null;
+	calendar_id: string | null;
+	title: string | null;
+	description: string | null;
+	start_time: string;
+	end_time: string;
+	all_day: boolean;
+	location: string | null;
+	attendees: CalendarAttendee[];
+	status: string | null;
+	visibility: string | null;
+	html_link: string | null;
+	source: EventSource;
+	// Meeting management fields
+	meeting_type: MeetingType;
+	context_id: string | null;
+	project_id: string | null;
+	client_id: string | null;
+	recording_url: string | null;
+	meeting_link: string | null;
+	external_links: ExternalLink[];
+	meeting_notes: string | null;
+	meeting_summary: string | null;
+	action_items: ActionItem[];
+	synced_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateCalendarEventData {
+	title: string;
+	description?: string;
+	start_time: string;
+	end_time: string;
+	all_day?: boolean;
+	location?: string;
+	attendees?: CalendarAttendee[];
+	meeting_type?: MeetingType;
+	context_id?: string;
+	project_id?: string;
+	client_id?: string;
+	recording_url?: string;
+	meeting_link?: string;
+	external_links?: ExternalLink[];
+	meeting_notes?: string;
+	action_items?: ActionItem[];
+}
+
+export interface UpdateCalendarEventData {
+	title?: string;
+	description?: string;
+	start_time?: string;
+	end_time?: string;
+	all_day?: boolean;
+	location?: string;
+	attendees?: CalendarAttendee[];
+	meeting_type?: MeetingType;
+	context_id?: string | null;
+	project_id?: string | null;
+	client_id?: string | null;
+	recording_url?: string;
+	meeting_link?: string;
+	external_links?: ExternalLink[];
+	meeting_notes?: string;
+	action_items?: ActionItem[];
+}
+
+export interface VoiceNote {
+	id: string;
+	filename: string;
+	transcript: string;
+	duration: number;
+	created_at: string;
+	url: string;
+	context_id?: string;
+}
+
+// Usage Analytics Types
+export interface UsageSummary {
+	total_requests: number;
+	total_input_tokens: number;
+	total_output_tokens: number;
+	total_tokens: number;
+	total_cost: number;
+	period: string;
+	start_date: string;
+	end_date: string;
+}
+
+export interface ProviderUsage {
+	provider: string;
+	request_count: number;
+	total_input_tokens: number;
+	total_output_tokens: number;
+	total_tokens: number;
+	total_cost: number;
+}
+
+export interface ModelUsage {
+	model: string;
+	provider: string;
+	request_count: number;
+	total_input_tokens: number;
+	total_output_tokens: number;
+	total_tokens: number;
+	total_cost: number;
+}
+
+export interface AgentUsage {
+	agent_name: string;
+	request_count: number;
+	total_input_tokens: number;
+	total_output_tokens: number;
+	total_tokens: number;
+	avg_duration_ms: number;
+}
+
+export interface UsageTrendPoint {
+	date: string;
+	ai_requests: number;
+	total_tokens: number;
+	estimated_cost: number;
+	mcp_requests: number;
+	messages_sent: number;
+}
+
+export interface MCPToolUsage {
+	tool_name: string;
+	server_name: string | null;
+	request_count: number;
+	success_count: number;
+	avg_duration_ms: number;
+}
+
+// AI Configuration Types
+export interface LLMProvider {
+	id: string;
+	name: string;
+	type: 'local' | 'cloud';
+	description: string;
+	configured: boolean;
+	base_url?: string;
+}
+
+export interface LLMModel {
+	id: string;
+	name: string;
+	provider: string;
+	description?: string;
+	size?: string;
+	family?: string;
+}
+
+export interface AIProvidersResponse {
+	providers: LLMProvider[];
+	active_provider: string;
+	default_model: string;
+}
+
+export interface AllModelsResponse {
+	models: LLMModel[];
+	active_provider: string;
+	default_model: string;
+}
+
+export interface LocalModelsResponse {
+	models: LLMModel[];
+	provider: string;
+	base_url: string;
+}
+
+export interface RecommendedModel {
+	name: string;
+	description: string;
+	ram_required: string;
+	speed: string;
+	quality: string;
+}
+
+export interface AISystemInfo {
+	total_ram_gb: number;
+	available_ram_gb: number;
+	platform: string;
+	has_gpu: boolean;
+	gpu_name?: string;
+	recommended_models: RecommendedModel[];
+}
+
+export interface AgentInfo {
+	id: string;
+	name: string;
+	description: string;
+	prompt: string;
+	category: 'general' | 'specialist' | 'system';
+}
+
 export const api = new ApiClient();
+
+// Simple fetch wrapper for raw Response access
+export const apiClient = {
+	async get(endpoint: string): Promise<Response> {
+		return fetch(`${API_BASE}${endpoint}`, {
+			method: 'GET',
+			credentials: 'include'
+		});
+	},
+
+	async post(endpoint: string, body?: unknown): Promise<Response> {
+		return fetch(`${API_BASE}${endpoint}`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: body ? JSON.stringify(body) : undefined
+		});
+	},
+
+	async postFormData(endpoint: string, formData: FormData): Promise<Response> {
+		return fetch(`${API_BASE}${endpoint}`, {
+			method: 'POST',
+			credentials: 'include',
+			body: formData
+		});
+	},
+
+	async put(endpoint: string, body?: unknown): Promise<Response> {
+		return fetch(`${API_BASE}${endpoint}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: body ? JSON.stringify(body) : undefined
+		});
+	},
+
+	async delete(endpoint: string): Promise<Response> {
+		return fetch(`${API_BASE}${endpoint}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
+	}
+};
