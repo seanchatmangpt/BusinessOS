@@ -30,13 +30,19 @@ export async function getLocalModels() {
   return request<LocalModelsResponse>('/ai/models/local');
 }
 
-export async function pullModel(model: string) {
+export async function pullModel(model: string): Promise<ReadableStream<Uint8Array> | null> {
   const response = await fetch(`${getApiBaseUrl()}/ai/models/pull`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ model })
   });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Pull model failed' }));
+    throw new Error(error.detail || `Failed to pull model (HTTP ${response.status})`);
+  }
+
   return response.body;
 }
 

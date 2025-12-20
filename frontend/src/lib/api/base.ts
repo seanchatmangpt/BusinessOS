@@ -15,10 +15,10 @@ function getApiBase(): string {
     } else if (mode === 'local') {
       return 'http://localhost:18080/api';
     }
-    return 'http://localhost:8000/api';
+    return 'http://localhost:8080/api';
   }
 
-  return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
+  return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8080/api' : '/api');
 }
 
 export const getApiBaseUrl = () => getApiBase();
@@ -47,7 +47,9 @@ export async function request<T>(endpoint: string, options: RequestOptions = {})
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Request failed');
+    const errorMessage = error.detail || error.message || 'Request failed';
+    console.error(`[API] ${method} ${endpoint} failed with status ${response.status}: ${errorMessage}`);
+    throw new Error(`${errorMessage} (HTTP ${response.status})`);
   }
 
   return response.json();

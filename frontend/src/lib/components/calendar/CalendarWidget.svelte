@@ -1,6 +1,8 @@
 <script lang="ts">
-	import type { GoogleConnectionStatus, CalendarEvent } from '$lib/api/calendar';
-	import { getTodayEvents, getGoogleConnectionStatus } from '$lib/api/calendar';
+	import type { CalendarEvent } from '$lib/api/calendar';
+	import type { GoogleConnectionStatus } from '$lib/api/integrations';
+	import { getTodayEvents } from '$lib/api/calendar';
+	import { getGoogleConnectionStatus } from '$lib/api/integrations';
 	import { onMount } from 'svelte';
 
 	interface Props {

@@ -12,7 +12,7 @@ export const api = {
   syncCalendar: calendarApi.syncCalendar,
   getTodayEvents: calendarApi.getTodayEvents,
   getUpcomingEvents: calendarApi.getUpcomingEvents,
-  getGoogleConnectionStatus: calendarApi.getGoogleConnectionStatus,
+  // getGoogleConnectionStatus moved to integrations module
 };
 
 export default api;

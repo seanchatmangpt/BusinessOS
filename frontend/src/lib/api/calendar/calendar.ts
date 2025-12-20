@@ -1,5 +1,5 @@
 import { request } from '../base';
-import type { CalendarEvent, CreateCalendarEventData, UpdateCalendarEventData, GoogleConnectionStatus } from './types';
+import type { CalendarEvent, CreateCalendarEventData, UpdateCalendarEventData } from './types';
 
 export async function getCalendarEvents(filters?: { start?: string; end?: string; meetingType?: string; contextId?: string; projectId?: string; clientId?: string }) {
   const params = new URLSearchParams();
@@ -29,8 +29,8 @@ export async function deleteCalendarEvent(id: string) {
   return request(`/calendar/events/${id}`, { method: 'DELETE' });
 }
 
-export async function syncCalendar() {
-  return request(`/calendar/sync`, { method: 'POST' });
+export async function syncCalendar(): Promise<{ message: string; synced_count: number }> {
+  return request<{ message: string; synced_count: number }>(`/calendar/sync`, { method: 'POST' });
 }
 
 export async function getTodayEvents() {
@@ -42,6 +42,5 @@ export async function getUpcomingEvents(limit?: number) {
   return request<CalendarEvent[]>(`/calendar/upcoming${params}`);
 }
 
-export async function getGoogleConnectionStatus() {
-  return request<GoogleConnectionStatus>('/integrations/google/status');
-}
+// NOTE: getGoogleConnectionStatus moved to integrations module
+// Use: import { getGoogleConnectionStatus } from '$lib/api/integrations'

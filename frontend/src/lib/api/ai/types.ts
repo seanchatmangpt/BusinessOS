@@ -75,8 +75,7 @@ export interface Tool {
   source: 'builtin' | 'custom';
 }
 
-export interface ToolResponse {
-  success: boolean;
-  result: string | null;
-  error: string | null;
-}
+// Discriminated union for ToolResponse - prevents illegal state where both result and error are set
+export type ToolResponse =
+  | { success: true; result: string; error?: never }
+  | { success: false; result?: never; error: string };

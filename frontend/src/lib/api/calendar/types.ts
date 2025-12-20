@@ -1,13 +1,8 @@
 // Calendar API Types
+// NOTE: GoogleConnectionStatus moved to integrations/types.ts
 
 export type MeetingType = 'team' | 'sales' | 'onboarding' | 'kickoff' | 'implementation' | 'standup' | 'retrospective' | 'planning' | 'review' | 'one_on_one' | 'client' | 'internal' | 'external' | 'other';
 export type EventSource = 'google' | 'businessos';
-
-export interface GoogleConnectionStatus {
-  connected: boolean;
-  email?: string;
-  connected_at?: string;
-}
 
 export interface CalendarAttendee {
   email: string;
