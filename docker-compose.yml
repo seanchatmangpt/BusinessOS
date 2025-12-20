@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: businessos-postgres
+    environment:
+      POSTGRES_USER: rhl
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: business_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./desktop/backend-go/internal/database/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rhl -d business_os"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - businessos-network
+    restart: unless-stopped
+
+  # Redis Cache (Optional - for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: businessos-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - businessos-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  businessos-network:
+    driver: bridge

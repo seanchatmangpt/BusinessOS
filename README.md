@@ -6,6 +6,24 @@ AI-native. Self-hosted. Built for fast software.
 
 ---
 
+## Quick Start
+
+```bash
+# Clone and enter directory
+git clone https://github.com/robertohluna/BusinessOS.git
+cd BusinessOS
+
+# Start all services
+./startup.sh
+
+# Open browser
+open http://localhost:5173
+```
+
+**Requirements:** Node.js 18+, Go 1.21+, PostgreSQL 15+
+
+---
+
 ## Overview
 
 Business OS is a foundational operating system for the agentic era. Built for fast software creation where you own your data, control your AI, and customize everything.
@@ -18,413 +36,238 @@ Business OS is a foundational operating system for the agentic era. Built for fa
 
 ---
 
+## Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                         FRONTEND                            │
+│              SvelteKit 2.0 + TypeScript + Tailwind          │
+│                      http://localhost:5173                  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                    Vite Proxy (/api/*)
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                        GO BACKEND                           │
+│              Gin + pgx/v5 + Better Auth                     │
+│                      http://localhost:8001                  │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  REST API   │  │  WebSocket  │  │  Terminal   │        │
+│  │  Handlers   │  │  Terminal   │  │  PTY (pty)  │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       POSTGRESQL                            │
+│                      localhost:5432                         │
+│                    Database: business_os                    │
+└─────────────────────────────────────────────────────────────┘
+```
+---
+
 ## Features
 
 ### Core Modules
 
 | Module | Description |
 |--------|-------------|
-| **Dashboard** | Your daily command center with widgets for tasks, projects, and activity |
-| **Projects** | Track work across your business with status, deadlines, and team assignments |
-| **Tasks** | Kanban boards, list views, calendar views with priorities and due dates |
-| **Team** | Org chart, capacity planning, workload management, and member profiles |
+| **Dashboard** | Command center with widgets for tasks, projects, and activity |
+| **Projects** | Track work with status, deadlines, and team assignments |
+| **Tasks** | Kanban boards, list views, calendar views |
+| **Team** | Org chart, capacity planning, workload management |
 | **AI Chat** | Chat with AI using Focus Modes for specialized assistance |
-| **Contexts** | Store business knowledge (people, businesses, projects) that AI can reference |
-| **Documents** | Notion-like document editor with blocks, properties, and relations |
-| **Clients** | Full CRM with profiles, contacts, deals pipeline, and interaction tracking |
-| **Nodes** | Hierarchical business structure - your cognitive operating system |
+| **Contexts** | Store business knowledge that AI can reference |
+| **Documents** | Notion-like block editor with properties and relations |
+| **Clients** | Full CRM with deals pipeline and interaction tracking |
+| **Nodes** | Hierarchical business structure - your cognitive OS |
 | **Calendar** | Event management with Google Calendar integration |
-| **Daily Log** | Track your day, patterns, and reflections |
-| **Artifacts** | AI-generated documents: proposals, SOPs, frameworks, reports, code |
-| **Desktop Mode** | macOS-inspired multi-window interface with customizable backgrounds |
-| **Voice Notes** | Record and transcribe voice memos with AI |
-| **Settings** | Configure AI models, providers, and integrations |
-
-### AI Focus Modes
-
-Five specialized modes for different types of work:
-
-| Mode | Agent | Purpose | Options |
-|------|-------|---------|---------|
-| **Research** | Analysis Agent | Web/docs search | Scope (Web/Docs/All), Depth (Quick/Thorough), Output (Summary/Report) |
-| **Analyze** | Analysis Agent | Data analysis | Approach (Validate/Compare/Forecast), Depth, Output (Findings/Dashboard) |
-| **Write** | Document Agent | Content creation | Format (Doc/Slides/Spreadsheet), Mode (Step-by-step/First Draft) |
-| **Build** | Planning Agent | Strategy & planning | Create (Framework/SOP/Plan), Detail (Outline/Detailed) |
-| **Do More** | Orchestrator | General assistance | Mode (Chat/Learn/Brainstorm) |
-
-### Nodes System
-
-Nodes are the core organizational structure — a hierarchical system to manage different areas of your business:
-
-- **Node Types**: Business, Project, Learning, Operational
-- **Health Tracking**: Healthy, Needs Attention, Critical, Not Started
-- **Features**: Purpose, Current Status, Weekly Focus, Decision Queue, Delegation Ready
-- **Views**: Tree, List, Grid
-- **Activation**: Set an active node to focus AI context on that area
-
-### AI Agent System
-
-Business OS includes a multi-agent architecture:
-
-| Agent | Role |
-|-------|------|
-| **Orchestrator** | Main coordinator that handles requests and delegates to sub-agents |
-| **DocumentAgent** | Creates business documents: proposals, SOPs, frameworks, agendas, reports |
-| **AnalysisAgent** | Analyzes data, situations, and provides insights |
-| **PlanningAgent** | Helps with planning, prioritization, and strategy |
+| **Terminal** | Real terminal with WebSocket backend (xterm.js + PTY) |
+| **Desktop Mode** | macOS-inspired multi-window interface |
 
 ### Desktop Mode
 
-A macOS-inspired desktop environment:
+A macOS-inspired desktop environment with:
 
-- **Multi-Window Management**: Draggable, resizable windows with snap zones
-- **Dock**: Quick access to apps with pinned items and window indicators
-- **Menu Bar**: File, Edit, View, Window menus with keyboard shortcuts
-- **Spotlight Search**: ⌘+Space for instant search and AI chat
-- **Desktop Icons**: 15+ icon styles (macOS, Windows 95, neon, glassmorphism, etc.)
-- **Customizable Backgrounds**: 50+ backgrounds (solid, gradient, pattern) + custom upload
-- **Folders**: Create and organize desktop folders
-- **Quick Chat**: Voice input from dock with auto-transcription
+- **Multi-Window Management** — Draggable, resizable windows with snap zones
+- **Dock** — Quick access to apps with window indicators
+- **Real Terminal** — Full PTY terminal via WebSocket (not a mock!)
+- **Spotlight Search** — ⌘+Space for instant search
+- **Custom Backgrounds** — 50+ options + custom upload
 
-### Document Editor
+### Real Terminal Integration
 
-A full-featured Notion-like block editor:
+The terminal is a **real shell** powered by:
 
-- **Block Types**: Paragraph, headings (H1-H3), bullet/numbered lists, todo, quote, code, divider, image, callout, table, embed, artifact
-- **Slash Commands**: Type `/` to insert any block type
-- **Properties**: Custom fields (text, select, multi-select, date, number, checkbox, URL, email, relation)
-- **Relations**: Link documents to other contexts, projects, or clients
-- **Templates**: Create reusable document templates
-- **Public Sharing**: Generate shareable links with unique IDs
-- **Auto-save**: Changes save automatically with debouncing
-
-### Client Management (CRM)
-
-Full client relationship management:
-
-- **Client Profiles**: Company/individual info, status tracking (lead → prospect → active → churned)
-- **Contacts**: Multiple contacts per client with primary designation
-- **Deals Pipeline**: Kanban board with stages (Qualification → Proposal → Negotiation → Closed)
-- **Interactions**: Log calls, emails, meetings, and notes
-- **Project Linking**: Associate projects and contexts with clients
-
-### Voice Features
-
-- **Voice Notes**: Record voice memos with automatic transcription
-- **Quick Chat Voice**: Record from dock, auto-transcribes and opens chat with transcript
-- **Voice Input**: Microphone button in chat input for voice messages
+- **Frontend**: xterm.js with fit, search, and web-links addons
+- **Backend**: Go WebSocket handler with PTY (pseudo-terminal)
+- **Features**: Resize support, session management, heartbeat keepalive
+- **Auth**: Session-cookie authenticated via Better Auth
 
 ---
 
 ## Tech Stack
 
-### Frontend
+### Frontend (Port 5173)
 
 | Component | Technology |
 |-----------|------------|
 | Framework | SvelteKit 2.0 |
 | Language | TypeScript |
 | Styling | TailwindCSS 4.x |
-| State | Svelte 5 Runes (`$state`, `$derived`, `$effect`) |
-| UI Components | Radix UI + bits-ui |
-| Animation | Motion + svelte/transition |
+| State | Svelte 5 Runes |
+| Terminal | xterm.js |
 | Auth | Better Auth |
 
-### Backend
+### Backend (Port 8001)
 
 | Component | Technology |
 |-----------|------------|
 | Language | Go 1.25 |
 | Framework | Gin Gonic |
-| Database | PostgreSQL |
-| Driver | pgx/v5 |
-| Code Generation | SQLC |
-| Auth | Better Auth integration |
+| Database | PostgreSQL + pgx/v5 |
+| WebSocket | gorilla/websocket |
+| Terminal | creack/pty |
 | Config | Viper |
 
 ### AI Integration
 
 | Provider | Type |
 |----------|------|
-| Ollama (Local) | Local LLMs (Qwen, Llama, Mistral, etc.) |
-| Ollama Cloud | Cloud-hosted Ollama |
-| Groq | Fast inference cloud |
+| Ollama (Local) | Local LLMs (Qwen, Llama, Mistral) |
+| Groq | Fast cloud inference |
 | Anthropic | Claude models |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      YOUR SERVERS                           │
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │  PostgreSQL │  │   Ollama    │  │  Go Backend │        │
-│  │  (Data)     │  │   (LLMs)    │  │  (Gin API)  │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘        │
-│                                                             │
-│          🔒 Nothing leaves without your permission          │
-└─────────────────────────────────────────────────────────────┘
-                            ↕
-                     [YOU CONTROL]
-                            ↕
-┌─────────────────────────────────────────────────────────────┐
-│                   EXTERNAL (Optional)                       │
-│    Cloud LLMs (Groq/Anthropic)  •  Google Calendar  •  MCP │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ---
 
 ## Project Structure
 
-```
+```text
 BusinessOS/
-├── backend-go/                  # Go backend (Gin + SQLC)
-│   ├── cmd/server/
-│   │   └── main.go              # Server entry point
-│   ├── internal/
-│   │   ├── config/              # Configuration (Viper)
-│   │   ├── database/
-│   │   │   ├── postgres.go      # Connection pool
-│   │   │   ├── schema.sql       # Database schema
-│   │   │   ├── queries/         # SQLC query definitions
-│   │   │   └── sqlc/            # Generated Go code
-│   │   ├── handlers/            # HTTP handlers (313 routes)
-│   │   │   ├── chat.go          # Chat & AI endpoints
-│   │   │   ├── contexts.go      # Documents & contexts
-│   │   │   ├── clients.go       # CRM endpoints
-│   │   │   ├── projects.go      # Project management
-│   │   │   ├── commands.go      # Slash commands
-│   │   │   └── ...
-│   │   ├── middleware/          # Auth & CORS
-│   │   └── services/            # LLM & integrations
-│   ├── sqlc.yaml                # SQLC config
-│   └── go.mod
+├── desktop/
+│   ├── backend-go/              # Go backend
+│   │   ├── cmd/server/          # Entry point
+│   │   ├── internal/
+│   │   │   ├── config/          # Viper configuration
+│   │   │   ├── database/        # PostgreSQL + SQLC
+│   │   │   ├── handlers/        # HTTP/WebSocket handlers
+│   │   │   ├── middleware/      # Auth middleware
+│   │   │   ├── services/        # LLM + MCP services
+│   │   │   └── terminal/        # PTY terminal package
+│   │   └── go.mod
+│   └── src/                     # Electron app (optional)
 │
 ├── frontend/                    # SvelteKit frontend
 │   ├── src/
 │   │   ├── lib/
-│   │   │   ├── api/
-│   │   │   │   └── client.ts    # API client (100+ methods)
-│   │   │   ├── components/      # 140+ Svelte components
-│   │   │   │   ├── ai-elements/ # AI UI (Message, Artifact, etc.)
-│   │   │   │   ├── chat/        # Chat & Focus Modes
-│   │   │   │   ├── desktop/     # Desktop mode (Window, Dock, etc.)
-│   │   │   │   ├── editor/      # Block-based document editor
-│   │   │   │   ├── clients/     # CRM components
-│   │   │   │   └── ...
+│   │   │   ├── api/             # API client
+│   │   │   ├── components/      # 140+ components
+│   │   │   ├── services/        # Terminal WebSocket service
 │   │   │   └── stores/          # State management
-│   │   │       ├── windowStore.ts    # Desktop windows
-│   │   │       ├── desktopStore.ts   # Desktop customization
-│   │   │       ├── chat.ts           # Chat state
-│   │   │       └── ...
-│   │   └── routes/
-│   │       ├── (app)/           # Protected routes
-│   │       │   ├── chat/        # AI Chat with Focus Modes
-│   │       │   ├── dashboard/   # Dashboard
-│   │       │   ├── projects/    # Projects
-│   │       │   ├── clients/     # CRM
-│   │       │   ├── contexts/    # Documents
-│   │       │   ├── nodes/       # Node tree
-│   │       │   └── ...
-│   │       ├── window/          # Desktop mode
-│   │       └── popup-chat/      # Embedded chat widget
+│   │   └── routes/              # SvelteKit routes
+│   ├── vite.config.ts           # Vite + proxy config
 │   └── package.json
 │
-├── docs/
-│   ├── ARCHITECTURE.md          # System architecture
-│   ├── FRONTEND.md              # Frontend architecture
-│   ├── BACKEND.md               # Backend architecture
-│   └── FEATURES.md              # Feature documentation
-│
+├── docs/                        # Documentation
+├── startup.sh                   # Quick start script
 └── README.md
 ```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Go 1.21+
-- PostgreSQL 15+
-- Ollama (for local LLMs)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/robertohluna/BusinessOS.git
-   cd BusinessOS
-   ```
-
-2. **Setup the database**
-   ```bash
-   # Create PostgreSQL database
-   createdb business_os
-
-   # Apply schema
-   psql business_os < backend-go/internal/database/schema.sql
-   ```
-
-3. **Setup the backend**
-   ```bash
-   cd backend-go
-   cp .env.example .env
-   # Edit .env with your configuration
-
-   # Generate SQLC code (if needed)
-   sqlc generate
-
-   # Run the server
-   go run cmd/server/main.go
-   ```
-
-4. **Setup the frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-5. **Start Ollama** (for local AI)
-   ```bash
-   ollama serve
-   ollama pull qwen3:4b  # or your preferred model
-   ```
-
-6. **Open your browser**
-   ```
-   http://localhost:5173
-   ```
-
 ---
 
 ## Configuration
 
-### Backend Environment Variables
+### Environment Variables
 
 ```env
 # Server
-PORT=8000
-GIN_MODE=debug
+SERVER_PORT=8001
 
 # Database
-DATABASE_URL=postgres://user:password@localhost:5432/business_os
+DATABASE_URL=postgresql://user@localhost:5432/business_os?sslmode=disable
 
-# Better Auth
-BETTER_AUTH_SECRET=your-secret-key
+# Auth
+SECRET_KEY=your-secret-key
 
-# Ollama (Local)
+# AI (choose one or more)
 OLLAMA_LOCAL_URL=http://localhost:11434
-DEFAULT_MODEL=qwen3:4b
-
-# Cloud Providers (Optional)
 GROQ_API_KEY=your-groq-key
 ANTHROPIC_API_KEY=your-anthropic-key
-OLLAMA_CLOUD_API_KEY=your-ollama-cloud-key
 
-# Google Calendar (Optional)
+# Google Calendar (optional)
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 ```
 
-### Supported AI Models
+### Ports
 
-**Local (Ollama):**
-- Qwen 3 (4b, 8b, 14b, 30b, 32b)
-- Llama 3.2/3.1 (various sizes)
-- Mistral/Mixtral
-- DeepSeek Coder
-- Phi-3
-- Gemma 2
-- LLaVA (vision)
-
-**Cloud:**
-- Groq: Llama 3.3 70B, Llama 3.1 8B, Mixtral
-- Anthropic: Claude Sonnet 4, Claude Opus 4
-- Ollama Cloud: Qwen3 (235b, 480b)
+| Service | Port | Description |
+|---------|------|-------------|
+| Frontend | 5173 | SvelteKit dev server |
+| Backend | 8001 | Go API + WebSocket |
+| PostgreSQL | 5432 | Database |
+| Ollama | 11434 | Local LLM (optional) |
 
 ---
 
 ## API Overview
 
-The backend exposes 313 routes across these domains:
+The backend exposes 100+ routes:
 
 | Domain | Endpoints | Description |
 |--------|-----------|-------------|
-| `/api/chat` | 12 | Conversations, messages, AI analysis |
-| `/api/artifacts` | 6 | Generated content management |
-| `/api/contexts` | 15 | Documents, sharing, aggregation |
+| `/api/chat` | 12 | Conversations, messages, AI |
+| `/api/terminal` | 3 | WebSocket + session management |
+| `/api/contexts` | 15 | Documents and sharing |
+| `/api/clients` | 20+ | CRM with deals pipeline |
 | `/api/projects` | 5 | Project CRUD |
-| `/api/clients` | 20+ | CRM with contacts, deals, interactions |
-| `/api/dashboard` | 10 | Focus items, tasks, summary |
-| `/api/team` | 8 | Team member management |
 | `/api/nodes` | 12 | Business structure tree |
-| `/api/daily/logs` | 6 | Daily journal entries |
 | `/api/calendar` | 8 | Events and sync |
-| `/api/ai` | 15 | Models, providers, commands |
-| `/api/voice-notes` | 6 | Recording and transcription |
-| `/api/settings` | 3 | User preferences |
-| `/api/usage` | 8 | Analytics and tracking |
-| `/api/mcp` | 3 | MCP tool integration |
-
-See [docs/BACKEND.md](docs/BACKEND.md) for full API documentation.
+| `/api/auth` | 6 | Login, logout, session |
 
 ---
 
-## Data Privacy
+## Development
 
-- **Self-hosted** — Runs entirely on your servers
-- **Local LLMs** — Use AI without Big Tech watching
-- **You decide** — Choose what connects externally
-- **No data harvesting** — Your business data stays yours
+### Start Development Servers
 
----
+```bash
+# Option 1: Use startup script
+./startup.sh
 
-## The Fast Software Philosophy
+# Option 2: Manual start
+# Terminal 1 - Backend
+cd desktop/backend-go
+DATABASE_URL="postgresql://user@localhost:5432/business_os?sslmode=disable" \
+SERVER_PORT=8001 go run ./cmd/server
 
-| Traditional SaaS | Fast Software |
-|------------------|---------------|
-| Request a feature | Need a feature? |
-| Wait 6 months | Build it today |
-| Maybe get it | Ship it tonight |
+# Terminal 2 - Frontend
+cd frontend
+npm run dev
+```
 
-- Modify anything — it's your codebase
-- Extend with your own features
-- Integrate your existing tools
-- Ship changes in hours, not months
+### Database Setup
+
+```bash
+createdb business_os
+psql business_os < desktop/backend-go/internal/database/schema.sql
+```
 
 ---
 
 ## Documentation
 
-- **[Architecture](docs/ARCHITECTURE.md)** — System architecture overview
-- **[Frontend](docs/FRONTEND.md)** — Frontend architecture and components
-- **[Backend](docs/BACKEND.md)** — Backend architecture and API reference
-- **[Features](docs/FEATURES.md)** — Detailed feature documentation
-
----
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** — Development guide and recent changes
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System architecture
+- **[docs/FRONTEND.md](docs/FRONTEND.md)** — Frontend architecture
+- **[docs/BACKEND.md](docs/BACKEND.md)** — Backend API reference
 
 ---
 
 ## License
 
 MIT License — See [LICENSE](LICENSE) for details.
-
----
-
-## Links
-
-- **Repository**: [github.com/robertohluna/BusinessOS](https://github.com/robertohluna/BusinessOS)
-- **OSA (OS Agent)**: [osa.dev](https://osa.dev)
 
 ---
 

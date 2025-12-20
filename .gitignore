@@ -54,7 +54,9 @@ htmlcov/
 .nyc_output/
 
 # Misc
-*.local
+*.local 
 .cache/
 tmp/
 temp/
+.claude/
+.handoffs/
