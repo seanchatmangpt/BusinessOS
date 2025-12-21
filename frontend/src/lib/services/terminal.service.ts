@@ -84,10 +84,13 @@ export class TerminalService {
 		};
 
 		this.ws.onmessage = (event) => {
+			console.log('[Terminal] Raw message received:', event.data);
 			try {
 				const message: TerminalMessage = JSON.parse(event.data);
+				console.log('[Terminal] Parsed message:', message);
 				this.handleMessage(message);
 			} catch (error) {
+				console.log('[Terminal] Non-JSON data, treating as raw output');
 				// If not JSON, treat as raw output
 				this.handlers.onData(event.data);
 			}
@@ -110,6 +113,8 @@ export class TerminalService {
 	}
 
 	private handleMessage(message: TerminalMessage): void {
+		console.log('[Terminal] Received message:', message.type, message);
+
 		switch (message.type) {
 			case 'output':
 				if (message.data) {
@@ -118,8 +123,10 @@ export class TerminalService {
 				break;
 
 			case 'status':
+				console.log('[Terminal] Status message:', message.data, 'metadata:', message.metadata);
 				if (message.data === 'connected' && message.metadata?.session_id) {
 					this.sessionId = message.metadata.session_id as string;
+					console.log('[Terminal] Calling onConnect with session:', this.sessionId);
 					this.handlers.onConnect(this.sessionId, message.metadata);
 				}
 				break;
@@ -244,18 +251,22 @@ export function createTerminalService(
 	handlers: TerminalEventHandler,
 	config?: TerminalConfig
 ): TerminalService {
-	// Get API URL - in dev mode use empty string for Vite proxy, otherwise use backend port
-	const isDev = typeof window !== 'undefined' &&
-		(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
 	// Check for Electron or custom API URL
 	const customUrl = typeof window !== 'undefined'
 		? (window as unknown as { __API_URL__?: string }).__API_URL__
 		: undefined;
 
-	// In dev mode with Vite, use current origin (Vite will proxy WebSocket)
-	// In Electron or production, use the backend URL directly
+	// In dev mode, use Vite proxy (same origin) so cookies are sent automatically
+	// In Electron, use the custom URL or direct backend
+	// The Vite proxy at /api/terminal has ws: true for WebSocket support
+	// Check for dev ports (5173, 5174, etc.) - Vite may use alternate ports if primary is busy
+	const isDev = typeof window !== 'undefined' &&
+		(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+		/^517[0-9]$/.test(window.location.port);
+
 	const apiUrl = customUrl || (isDev ? window.location.origin : 'http://localhost:8001');
+
+	console.log('[Terminal] Connecting to backend:', apiUrl, isDev ? '(via Vite proxy)' : '(direct)');
 
 	return new TerminalService(apiUrl, handlers, config);
 }

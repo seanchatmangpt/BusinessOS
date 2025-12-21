@@ -34,12 +34,15 @@ func NewWebSocketHandler(manager *Manager) *WebSocketHandler {
 
 // HandleConnection handles a WebSocket terminal connection
 func (h *WebSocketHandler) HandleConnection(w http.ResponseWriter, r *http.Request, userID string) {
+	log.Printf("[Terminal] HandleConnection starting for user: %s", userID)
+
 	// Upgrade to WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Failed to upgrade WebSocket connection: %v", err)
+		log.Printf("[Terminal] Failed to upgrade WebSocket connection: %v", err)
 		return
 	}
+	log.Printf("[Terminal] WebSocket upgraded successfully")
 	defer conn.Close()
 
 	// Parse query parameters for terminal configuration
@@ -51,22 +54,35 @@ func (h *WebSocketHandler) HandleConnection(w http.ResponseWriter, r *http.Reque
 		shell = "zsh" // Default to zsh on macOS
 	}
 	workingDir := query.Get("cwd")
+	log.Printf("[Terminal] Config: cols=%d, rows=%d, shell=%s, cwd=%s", cols, rows, shell, workingDir)
 
 	// Create terminal session
+	log.Printf("[Terminal] Creating session...")
 	session, err := h.manager.CreateSession(userID, cols, rows, shell, workingDir)
 	if err != nil {
+		log.Printf("[Terminal] CreateSession error: %v", err)
 		h.sendError(conn, err.Error())
 		return
 	}
+	log.Printf("[Terminal] Session created: %s", session.ID)
 	defer h.manager.CloseSession(session.ID)
 
 	// Send connected status with session ID
+	log.Printf("[Terminal] Session created: %s for user %s", session.ID, userID)
+	log.Printf("[Terminal] Sending connected status...")
 	h.sendStatus(conn, "connected", map[string]interface{}{
 		"session_id": session.ID,
 		"cols":       cols,
 		"rows":       rows,
 		"shell":      shell,
 	})
+	log.Printf("[Terminal] Status message sent")
+
+	// Send welcome banner via WebSocket (not PTY!)
+	log.Printf("[Terminal] Sending welcome banner via WebSocket...")
+	banner := GetWelcomeBanner()
+	h.sendOutput(conn, session.ID, banner)
+	log.Printf("[Terminal] Banner sent")
 
 	// Start bi-directional streaming
 	errChan := make(chan error, 2)
@@ -166,6 +182,19 @@ func (h *WebSocketHandler) sendError(conn *websocket.Conn, message string) {
 	conn.WriteMessage(websocket.TextMessage, msgBytes)
 }
 
+// sendOutput sends output data to the client
+func (h *WebSocketHandler) sendOutput(conn *websocket.Conn, sessionID string, data string) {
+	msg := TerminalMessage{
+		Type:      MsgTypeOutput,
+		SessionID: sessionID,
+		Data:      data,
+	}
+	msgBytes, _ := json.Marshal(msg)
+	if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+		log.Printf("[Terminal] ERROR writing output message: %v", err)
+	}
+}
+
 // sendStatus sends a status message to the client
 func (h *WebSocketHandler) sendStatus(conn *websocket.Conn, status string, metadata map[string]interface{}) {
 	msg := TerminalMessage{
@@ -174,7 +203,10 @@ func (h *WebSocketHandler) sendStatus(conn *websocket.Conn, status string, metad
 		Metadata: metadata,
 	}
 	msgBytes, _ := json.Marshal(msg)
-	conn.WriteMessage(websocket.TextMessage, msgBytes)
+	log.Printf("[Terminal] Sending status message: %s", string(msgBytes))
+	if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+		log.Printf("[Terminal] ERROR writing status message: %v", err)
+	}
 }
 
 // parseIntParam parses an integer from string with default value

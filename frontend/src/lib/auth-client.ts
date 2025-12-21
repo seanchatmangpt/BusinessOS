@@ -8,7 +8,7 @@ const isDev = typeof window !== 'undefined' &&
 	(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 // Local backend URL for development
-const LOCAL_BACKEND_URL = 'http://localhost:8000';
+const LOCAL_BACKEND_URL = 'http://localhost:8001';
 
 // App mode store - 'cloud' or 'local'
 export const appMode = writable<'cloud' | 'local' | null>(null);
@@ -201,7 +201,7 @@ function getBaseURL(): string {
 
 	// Local mode in Electron - use local backend
 	if (isElectron) {
-		return 'http://localhost:8000';
+		return 'http://localhost:8001';
 	}
 
 	// Web app - use current origin

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,12 +37,17 @@ func NewTerminalHandler() *TerminalHandler {
 // @Failure 401 {object} map[string]string "Unauthorized"
 // @Router /api/terminal/ws [get]
 func (h *TerminalHandler) HandleWebSocket(c *gin.Context) {
+	log.Printf("[Terminal] HandleWebSocket called from %s", c.Request.RemoteAddr)
+	log.Printf("[Terminal] Request headers: %v", c.Request.Header)
+
 	// Get authenticated user from context (set by AuthMiddleware as "user")
 	user := middleware.GetCurrentUser(c)
 	if user == nil {
+		log.Printf("[Terminal] No authenticated user found in context")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	log.Printf("[Terminal] User authenticated: %s (%s)", user.Name, user.ID)
 
 	// Upgrade to WebSocket and handle connection
 	h.wsHandler.HandleConnection(c.Writer, c.Request, user.ID)

@@ -178,7 +178,7 @@
 						<div class="relative">
 							{#if profilePhoto}
 								<img
-									src={profilePhoto.startsWith('/') ? `http://localhost:8000${profilePhoto}` : profilePhoto}
+									src={profilePhoto.startsWith('/') ? `http://localhost:8001${profilePhoto}` : profilePhoto}
 									alt={name || 'Profile'}
 									class="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-600"
 								/>

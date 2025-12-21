@@ -2,6 +2,7 @@ package terminal
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
@@ -13,11 +14,14 @@ import (
 
 // startPTY creates a new PTY and starts the shell process
 func startPTY(session *Session) error {
+	log.Printf("[PTY] startPTY called")
 	// Determine shell based on OS
 	shell := getShellPath(session.Shell)
+	log.Printf("[PTY] Using shell: %s", shell)
 
 	// Create command
 	cmd := exec.Command(shell)
+	log.Printf("[PTY] Command created")
 
 	// Set working directory
 	if session.WorkingDir != "" {
@@ -25,17 +29,22 @@ func startPTY(session *Session) error {
 	} else {
 		cmd.Dir = getDefaultWorkingDir()
 	}
+	log.Printf("[PTY] Working dir: %s", cmd.Dir)
 
 	// Set environment variables
 	cmd.Env = buildEnvArray(session.Environment)
+	log.Printf("[PTY] Starting PTY...")
 
 	// Start with PTY
 	ptmx, err := pty.Start(cmd)
 	if err != nil {
+		log.Printf("[PTY] pty.Start failed: %v", err)
 		return fmt.Errorf("failed to start PTY: %w", err)
 	}
+	log.Printf("[PTY] PTY started successfully")
 
 	// Set PTY size
+	log.Printf("[PTY] Setting PTY size: %dx%d", session.Cols, session.Rows)
 	if err := pty.Setsize(ptmx, &pty.Winsize{
 		Rows: uint16(session.Rows),
 		Cols: uint16(session.Cols),
@@ -43,11 +52,18 @@ func startPTY(session *Session) error {
 		ptmx.Close()
 		return fmt.Errorf("failed to set PTY size: %w", err)
 	}
+	log.Printf("[PTY] PTY size set")
 
 	// Store in session
 	session.PTY = ptmx
 	session.Cmd = cmd
+	log.Printf("[PTY] Session PTY assigned")
 
+	// NOTE: Welcome banner is now sent via WebSocket, not PTY
+	// Writing to PTY master would go to shell stdin, not output!
+	log.Printf("[PTY] PTY ready (banner sent via WebSocket)")
+
+	log.Printf("[PTY] startPTY complete")
 	return nil
 }
 

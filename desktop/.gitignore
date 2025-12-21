@@ -35,3 +35,6 @@ coverage/
 temp/
 .claude/
 .handoffs/
+.playwright/
+.playwright-mcp/
+/Users/ososerious/BusinessOS-1/desktop/.gitignore

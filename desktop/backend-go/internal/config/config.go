@@ -72,7 +72,7 @@ func Load() (*Config, error) {
 
 	// Set defaults
 	viper.SetDefault("ENVIRONMENT", "development")
-	viper.SetDefault("SERVER_PORT", "8000")
+	viper.SetDefault("SERVER_PORT", "8001")
 	viper.SetDefault("DATABASE_URL", "postgres://postgres:password@localhost:5432/business_os")
 	viper.SetDefault("ENABLE_LOCAL_MODELS", true) // Disable in production
 	viper.SetDefault("SECRET_KEY", "your-secret-key-change-this-in-production")
@@ -107,7 +107,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("SUPERMEMORY_API_KEY", "")
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_CLIENT_SECRET", "")
-	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/integrations/google/callback")
+	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/integrations/google/callback")
 	viper.SetDefault("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000,app://localhost")
 
 	// Read config file
@@ -126,13 +126,31 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	// Parse ALLOWED_ORIGINS from comma-separated string
+	// Default CORS origins for development
+	defaultOrigins := []string{
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"http://localhost:3000",
+		"app://localhost",
+	}
+
+	// Clear AllowedOrigins set by Unmarshal (may have garbage) and parse from string
+	config.AllowedOrigins = nil
 	originsStr := viper.GetString("ALLOWED_ORIGINS")
 	if originsStr != "" {
-		config.AllowedOrigins = strings.Split(originsStr, ",")
-		for i := range config.AllowedOrigins {
-			config.AllowedOrigins[i] = strings.TrimSpace(config.AllowedOrigins[i])
+		origins := strings.Split(originsStr, ",")
+		for _, o := range origins {
+			trimmed := strings.TrimSpace(o)
+			// Only include valid origins (starts with http:// or https:// or is *)
+			if trimmed == "*" || strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+				config.AllowedOrigins = append(config.AllowedOrigins, trimmed)
+			}
 		}
+	}
+
+	// Fallback to defaults if no valid origins found
+	if len(config.AllowedOrigins) == 0 {
+		config.AllowedOrigins = defaultOrigins
 	}
 
 	// Convert DATABASE_URL from asyncpg format to pgx format if needed

@@ -278,7 +278,7 @@
 				>
 					{#if $session.data.user?.image}
 						<img
-							src={$session.data.user.image.startsWith('/') ? `http://localhost:8000${$session.data.user.image}` : $session.data.user.image}
+							src={$session.data.user.image.startsWith('/') ? `http://localhost:8001${$session.data.user.image}` : $session.data.user.image}
 							alt={$session.data.user?.name || 'Profile'}
 							class="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2 border-gray-200 dark:border-gray-600"
 						/>

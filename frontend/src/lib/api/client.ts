@@ -24,11 +24,11 @@ function getApiBase(): string {
 			return 'http://localhost:18080/api';
 		}
 		// No mode set yet - use local backend for dev
-		return 'http://localhost:8000/api';
+		return 'http://localhost:8001/api';
 	}
 
 	// Web app - use env var or defaults
-	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
+	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8001/api' : '/api');
 }
 
 // Get base URL (recalculated on each call to handle mode changes)

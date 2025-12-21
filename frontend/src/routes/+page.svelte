@@ -46,7 +46,7 @@
 
 	// Default cloud URL - use local backend in development
 	const isDev = browser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-	const defaultCloudUrl = isDev ? 'http://localhost:8000' : 'https://api.businessos.app';
+	const defaultCloudUrl = isDev ? 'http://localhost:8001' : 'https://api.businessos.app';
 
 	function signInWithGoogle() {
 		// Set cloud mode with default URL and initiate OAuth

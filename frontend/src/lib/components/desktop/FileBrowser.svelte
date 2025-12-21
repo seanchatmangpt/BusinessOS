@@ -1,199 +1,81 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { filesystemService, type FileItem, type QuickAccessPath } from '$lib/services/filesystem.service';
 
 	// Check if running in Electron
 	const isElectron = browser && typeof window !== 'undefined' && !!(window as any).electron;
 
-	interface FileItem {
-		id: string;
-		name: string;
-		type: 'folder' | 'file';
-		size?: number;
-		modified?: Date;
-		extension?: string;
-		children?: FileItem[];
-	}
-
-	// File source mode
-	type FileSource = 'businessos' | 'local';
-	let fileSource = $state<FileSource>('businessos');
-
-	// Mock file system - in real app this would come from backend
-	let fileSystem: FileItem[] = $state([
-		{
-			id: '1',
-			name: 'Documents',
-			type: 'folder',
-			children: [
-				{ id: '1-1', name: 'Business Plan.pdf', type: 'file', extension: 'pdf', size: 2400000, modified: new Date('2024-12-10') },
-				{ id: '1-2', name: 'Q4 Report.xlsx', type: 'file', extension: 'xlsx', size: 156000, modified: new Date('2024-12-15') },
-				{ id: '1-3', name: 'Meeting Notes.md', type: 'file', extension: 'md', size: 12000, modified: new Date('2024-12-16') },
-				{
-					id: '1-4',
-					name: 'Contracts',
-					type: 'folder',
-					children: [
-						{ id: '1-4-1', name: 'Client Agreement.docx', type: 'file', extension: 'docx', size: 45000 },
-						{ id: '1-4-2', name: 'NDA Template.pdf', type: 'file', extension: 'pdf', size: 89000 },
-					]
-				}
-			]
-		},
-		{
-			id: '2',
-			name: 'Projects',
-			type: 'folder',
-			children: [
-				{ id: '2-1', name: 'Website Redesign', type: 'folder', children: [] },
-				{ id: '2-2', name: 'Mobile App', type: 'folder', children: [] },
-				{ id: '2-3', name: 'API Integration', type: 'folder', children: [] },
-			]
-		},
-		{
-			id: '3',
-			name: 'Downloads',
-			type: 'folder',
-			children: [
-				{ id: '3-1', name: 'installer.dmg', type: 'file', extension: 'dmg', size: 125000000 },
-				{ id: '3-2', name: 'logo.png', type: 'file', extension: 'png', size: 456000 },
-			]
-		},
-		{
-			id: '4',
-			name: 'Pictures',
-			type: 'folder',
-			children: []
-		},
-		{ id: '5', name: 'README.md', type: 'file', extension: 'md', size: 3200, modified: new Date('2024-12-01') },
-		{ id: '6', name: 'config.json', type: 'file', extension: 'json', size: 1200, modified: new Date('2024-11-20') },
-	]);
-
-	// Navigation state
-	let currentPath = $state<string[]>([]);
+	// State
+	let isLoading = $state(true);
+	let error = $state<string | null>(null);
+	let currentPath = $state('~');
+	let parentDir = $state<string | null>(null);
+	let items = $state<FileItem[]>([]);
+	let quickAccessPaths = $state<QuickAccessPath[]>([]);
 	let selectedItems = $state<Set<string>>(new Set());
 	let viewMode = $state<'grid' | 'list'>('list');
 	let searchQuery = $state('');
+	let showHidden = $state(false);
 
-	// Get current directory items
-	const currentItems = $derived(() => {
-		let items = activeFileSystem;
-		for (const segment of currentPath) {
-			const folder = items.find(i => i.name === segment && i.type === 'folder');
-			if (folder?.children) {
-				items = folder.children;
-			}
-		}
-
-		// Filter by search
-		if (searchQuery.trim()) {
-			const query = searchQuery.toLowerCase();
-			items = items.filter(i => i.name.toLowerCase().includes(query));
-		}
-
-		// Sort: folders first, then alphabetically
-		return [...items].sort((a, b) => {
-			if (a.type === 'folder' && b.type !== 'folder') return -1;
-			if (a.type !== 'folder' && b.type === 'folder') return 1;
-			return a.name.localeCompare(b.name);
-		});
+	// Filtered items based on search
+	const filteredItems = $derived(() => {
+		if (!searchQuery.trim()) return items;
+		const query = searchQuery.toLowerCase();
+		return items.filter(item => item.name.toLowerCase().includes(query));
 	});
 
-	// Switch file source mode
-	function switchSource(source: FileSource) {
-		fileSource = source;
-		currentPath = [];
-		selectedItems = new Set();
-		searchQuery = '';
+	// Load directory contents
+	async function loadDirectory(path: string = '~') {
+		isLoading = true;
+		error = null;
+		try {
+			const response = await filesystemService.listDirectory(path, showHidden);
+			items = response.items;
+			currentPath = response.path;
+			parentDir = response.parentDir || null;
+			selectedItems = new Set();
+		} catch (err: any) {
+			console.error('Failed to load directory:', err);
+			error = err?.response?.data?.error || err?.message || 'Failed to load directory';
+		} finally {
+			isLoading = false;
+		}
 	}
 
-	// Mock local file system (simulates macOS folders)
-	const localFileSystem: FileItem[] = [
-		{
-			id: 'local-1',
-			name: 'Desktop',
-			type: 'folder',
-			children: [
-				{ id: 'local-1-1', name: 'Screenshot 2024-12-15.png', type: 'file', extension: 'png', size: 1240000 },
-				{ id: 'local-1-2', name: 'Notes.txt', type: 'file', extension: 'txt', size: 2400 },
-			]
-		},
-		{
-			id: 'local-2',
-			name: 'Documents',
-			type: 'folder',
-			children: [
-				{ id: 'local-2-1', name: 'Resume.pdf', type: 'file', extension: 'pdf', size: 145000 },
-				{ id: 'local-2-2', name: 'Tax Returns 2024', type: 'folder', children: [] },
-			]
-		},
-		{
-			id: 'local-3',
-			name: 'Downloads',
-			type: 'folder',
-			children: [
-				{ id: 'local-3-1', name: 'installer.dmg', type: 'file', extension: 'dmg', size: 89000000 },
-				{ id: 'local-3-2', name: 'meeting-recording.mp4', type: 'file', extension: 'mp4', size: 245000000 },
-			]
-		},
-		{
-			id: 'local-4',
-			name: 'Applications',
-			type: 'folder',
-			children: []
-		},
-		{
-			id: 'local-5',
-			name: 'Pictures',
-			type: 'folder',
-			children: []
-		},
-	];
+	// Load quick access paths
+	async function loadQuickAccessPaths() {
+		try {
+			const response = await filesystemService.getQuickAccessPaths();
+			quickAccessPaths = response.paths;
+		} catch (err) {
+			console.error('Failed to load quick access paths:', err);
+		}
+	}
 
-	// Sidebar favorites based on source
-	const businessOSFavorites = [
-		{ name: 'Documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-		{ name: 'Downloads', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
-		{ name: 'Projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' },
-		{ name: 'Pictures', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-	];
-
-	const localFavorites = [
-		{ name: 'Desktop', icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-		{ name: 'Documents', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-		{ name: 'Downloads', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
-		{ name: 'Applications', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
-		{ name: 'Pictures', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-	];
-
-	const favorites = $derived(fileSource === 'businessos' ? businessOSFavorites : localFavorites);
-	const activeFileSystem = $derived(fileSource === 'businessos' ? fileSystem : localFileSystem);
-
-	function navigateTo(path: string[]) {
-		currentPath = path;
-		selectedItems = new Set();
+	// Navigation functions
+	function navigateTo(path: string) {
+		loadDirectory(path);
 	}
 
 	function openItem(item: FileItem) {
 		if (item.type === 'folder') {
-			currentPath = [...currentPath, item.name];
-			selectedItems = new Set();
+			loadDirectory(item.path);
 		} else {
-			// Would open file preview or external app
+			// For files, could open preview or download
 			console.log('Opening file:', item.name);
+			// Could implement file preview modal here
 		}
 	}
 
 	function goBack() {
-		if (currentPath.length > 0) {
-			currentPath = currentPath.slice(0, -1);
-			selectedItems = new Set();
+		if (parentDir) {
+			loadDirectory(parentDir);
 		}
 	}
 
 	function goHome() {
-		currentPath = [];
-		selectedItems = new Set();
+		loadDirectory('~');
 	}
 
 	function toggleSelect(itemId: string, event: MouseEvent) {
@@ -210,84 +92,107 @@
 		}
 	}
 
-	function formatSize(bytes?: number): string {
-		if (!bytes) return '-';
-		if (bytes < 1024) return `${bytes} B`;
-		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-		if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-		return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+	function toggleHidden() {
+		showHidden = !showHidden;
+		loadDirectory(currentPath);
 	}
 
-	function formatDate(date?: Date): string {
-		if (!date) return '-';
-		return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	// Create new folder
+	async function createNewFolder() {
+		const name = prompt('Enter folder name:');
+		if (!name) return;
+
+		try {
+			await filesystemService.createDirectory(currentPath, name);
+			loadDirectory(currentPath); // Refresh
+		} catch (err: any) {
+			alert(err?.response?.data?.error || 'Failed to create folder');
+		}
 	}
 
-	function getFileIcon(extension?: string): { icon: string; color: string } {
-		const icons: Record<string, { icon: string; color: string }> = {
-			pdf: { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#E53935' },
-			docx: { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#1565C0' },
-			xlsx: { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#2E7D32' },
-			md: { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#455A64' },
-			json: { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#FFA000' },
-			png: { icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#7B1FA2' },
-			jpg: { icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#7B1FA2' },
-			dmg: { icon: 'M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8', color: '#546E7A' },
+	// Delete selected items
+	async function deleteSelected() {
+		if (selectedItems.size === 0) return;
+		if (!confirm(`Delete ${selectedItems.size} item(s)?`)) return;
+
+		for (const id of selectedItems) {
+			const item = items.find(i => i.id === id);
+			if (item) {
+				try {
+					await filesystemService.delete(item.path);
+				} catch (err: any) {
+					alert(`Failed to delete ${item.name}: ${err?.response?.data?.error || 'Unknown error'}`);
+				}
+			}
+		}
+		loadDirectory(currentPath); // Refresh
+	}
+
+	// Get breadcrumb segments from path
+	function getBreadcrumbs(path: string): { name: string; path: string }[] {
+		const parts = path.split('/').filter(Boolean);
+		const crumbs: { name: string; path: string }[] = [];
+		let accumulated = '';
+
+		for (const part of parts) {
+			accumulated += '/' + part;
+			crumbs.push({ name: part, path: accumulated });
+		}
+
+		return crumbs;
+	}
+
+	const breadcrumbs = $derived(getBreadcrumbs(currentPath));
+
+	// Quick access icon mapping
+	function getQuickAccessIcon(iconName: string): string {
+		const icons: Record<string, string> = {
+			home: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+			desktop: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+			document: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+			download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+			image: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+			music: 'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
+			video: 'M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z',
 		};
-		return icons[extension || ''] || { icon: 'M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z', color: '#78909C' };
+		return icons[iconName] || icons.document;
 	}
+
+	onMount(() => {
+		loadQuickAccessPaths();
+		loadDirectory('~');
+	});
 </script>
 
 <div class="file-browser">
 	<!-- Sidebar -->
 	<aside class="file-sidebar">
-		<!-- Source Switcher -->
-		<div class="source-switcher">
-			<button
-				class="source-tab"
-				class:active={fileSource === 'businessos'}
-				onclick={() => switchSource('businessos')}
-			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-					<path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-				</svg>
-				BusinessOS
-			</button>
-			<button
-				class="source-tab"
-				class:active={fileSource === 'local'}
-				onclick={() => switchSource('local')}
-			>
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-					<path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-				</svg>
-				This Mac
-			</button>
+		<div class="sidebar-header">
+			<h3>Locations</h3>
 		</div>
 
-		{#if fileSource === 'local'}
-			<div class="local-notice">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-					<path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-				</svg>
-				<span>Read-only access to local files</span>
-			</div>
-		{/if}
-
 		<div class="sidebar-section">
-			<h3>{fileSource === 'businessos' ? 'Favorites' : 'Locations'}</h3>
-			{#each favorites as fav}
+			{#each quickAccessPaths as loc}
 				<button
 					class="sidebar-item"
-					class:active={currentPath.length === 1 && currentPath[0] === fav.name}
-					onclick={() => navigateTo([fav.name])}
+					class:active={currentPath === loc.path}
+					onclick={() => navigateTo(loc.path)}
 				>
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-						<path d={fav.icon} />
+						<path d={getQuickAccessIcon(loc.icon)} />
 					</svg>
-					{fav.name}
+					{loc.name}
 				</button>
 			{/each}
+		</div>
+
+		<div class="sidebar-divider"></div>
+
+		<div class="sidebar-section">
+			<label class="sidebar-checkbox">
+				<input type="checkbox" checked={showHidden} onchange={toggleHidden} />
+				<span>Show Hidden Files</span>
+			</label>
 		</div>
 	</aside>
 
@@ -296,7 +201,7 @@
 		<!-- Toolbar -->
 		<div class="file-toolbar">
 			<div class="toolbar-nav">
-				<button class="toolbar-btn" onclick={goBack} disabled={currentPath.length === 0} title="Go Back">
+				<button class="toolbar-btn" onclick={goBack} disabled={!parentDir} title="Go Back">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M15 19l-7-7 7-7" />
 					</svg>
@@ -306,14 +211,19 @@
 						<path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
 					</svg>
 				</button>
+				<button class="toolbar-btn" onclick={() => loadDirectory(currentPath)} title="Refresh">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+				</button>
 			</div>
 
 			<!-- Breadcrumb -->
 			<div class="file-breadcrumb">
-				<button onclick={goHome}>Home</button>
-				{#each currentPath as segment, i}
+				<button onclick={goHome}>~</button>
+				{#each breadcrumbs as crumb, i}
 					<span class="breadcrumb-sep">/</span>
-					<button onclick={() => navigateTo(currentPath.slice(0, i + 1))}>{segment}</button>
+					<button onclick={() => navigateTo(crumb.path)}>{crumb.name}</button>
 				{/each}
 			</div>
 
@@ -326,6 +236,21 @@
 					</svg>
 					<input type="text" placeholder="Search..." bind:value={searchQuery} />
 				</div>
+
+				<button class="toolbar-btn" onclick={createNewFolder} title="New Folder">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+					</svg>
+				</button>
+
+				{#if selectedItems.size > 0}
+					<button class="toolbar-btn danger" onclick={deleteSelected} title="Delete Selected">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+						</svg>
+					</button>
+				{/if}
+
 				<div class="view-toggle">
 					<button class:active={viewMode === 'list'} onclick={() => viewMode = 'list'} title="List View">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -344,19 +269,34 @@
 			</div>
 		</div>
 
-		<!-- File List -->
-		{#if viewMode === 'list'}
+		<!-- Loading State -->
+		{#if isLoading}
+			<div class="loading-state">
+				<div class="spinner"></div>
+				<p>Loading...</p>
+			</div>
+		{:else if error}
+			<div class="error-state">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+					<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+				</svg>
+				<p>{error}</p>
+				<button onclick={() => loadDirectory(currentPath)}>Retry</button>
+			</div>
+		{:else if viewMode === 'list'}
+			<!-- List View -->
 			<div class="file-list">
 				<div class="file-list-header">
 					<span class="col-name">Name</span>
 					<span class="col-date">Date Modified</span>
 					<span class="col-size">Size</span>
 				</div>
-				{#each currentItems() as item (item.id)}
-					{@const fileIcon = item.type === 'file' ? getFileIcon(item.extension) : null}
+				{#each filteredItems() as item (item.id)}
+					{@const fileIcon = item.type === 'file' ? filesystemService.getFileIcon(item.extension) : null}
 					<button
 						class="file-list-item"
 						class:selected={selectedItems.has(item.id)}
+						class:hidden-file={item.isHidden}
 						onclick={(e) => toggleSelect(item.id, e)}
 						ondblclick={() => openItem(item)}
 					>
@@ -372,28 +312,29 @@
 							{/if}
 							{item.name}
 						</span>
-						<span class="col-date">{formatDate(item.modified)}</span>
-						<span class="col-size">{item.type === 'folder' ? '-' : formatSize(item.size)}</span>
+						<span class="col-date">{filesystemService.formatDate(item.modified)}</span>
+						<span class="col-size">{item.type === 'folder' ? '-' : filesystemService.formatSize(item.size)}</span>
 					</button>
 				{/each}
 
-				{#if currentItems().length === 0}
+				{#if filteredItems().length === 0}
 					<div class="empty-folder">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
 							<path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z"/>
 						</svg>
-						<p>This folder is empty</p>
+						<p>{searchQuery ? 'No matching files' : 'This folder is empty'}</p>
 					</div>
 				{/if}
 			</div>
 		{:else}
 			<!-- Grid View -->
 			<div class="file-grid">
-				{#each currentItems() as item (item.id)}
-					{@const fileIcon = item.type === 'file' ? getFileIcon(item.extension) : null}
+				{#each filteredItems() as item (item.id)}
+					{@const fileIcon = item.type === 'file' ? filesystemService.getFileIcon(item.extension) : null}
 					<button
 						class="file-grid-item"
 						class:selected={selectedItems.has(item.id)}
+						class:hidden-file={item.isHidden}
 						onclick={(e) => toggleSelect(item.id, e)}
 						ondblclick={() => openItem(item)}
 					>
@@ -414,7 +355,8 @@
 
 		<!-- Status Bar -->
 		<div class="file-status">
-			<span>{currentItems().length} items</span>
+			<span>{currentPath}</span>
+			<span>{filteredItems().length} items</span>
 			{#if selectedItems.size > 0}
 				<span>{selectedItems.size} selected</span>
 			{/if}
@@ -441,70 +383,17 @@
 		flex-direction: column;
 	}
 
-	.source-switcher {
-		display: flex;
-		gap: 2px;
-		padding: 4px 8px;
-		margin-bottom: 4px;
-	}
-
-	.source-tab {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 4px;
-		padding: 6px 8px;
-		border: none;
-		background: transparent;
-		border-radius: 6px;
-		cursor: pointer;
-		font-size: 11px;
-		font-weight: 500;
-		color: #666;
-		transition: all 0.15s ease;
-	}
-
-	.source-tab:hover {
-		background: rgba(0, 0, 0, 0.05);
-	}
-
-	.source-tab.active {
-		background: #fff;
-		color: #333;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	}
-
-	.source-tab svg {
-		width: 14px;
-		height: 14px;
-	}
-
-	.local-notice {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 12px;
-		margin: 0 8px 8px;
-		background: #FEF3C7;
-		border-radius: 6px;
-		font-size: 10px;
-		color: #92400E;
-	}
-
-	.local-notice svg {
-		width: 12px;
-		height: 12px;
-		flex-shrink: 0;
-	}
-
-	.sidebar-section h3 {
+	.sidebar-header h3 {
 		font-size: 11px;
 		font-weight: 600;
 		color: #666;
 		text-transform: uppercase;
 		padding: 8px 16px;
 		margin: 0;
+	}
+
+	.sidebar-section {
+		padding: 0;
 	}
 
 	.sidebar-item {
@@ -534,6 +423,26 @@
 		width: 16px;
 		height: 16px;
 		flex-shrink: 0;
+	}
+
+	.sidebar-divider {
+		height: 1px;
+		background: #e0e0e0;
+		margin: 8px 16px;
+	}
+
+	.sidebar-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 16px;
+		font-size: 12px;
+		color: #666;
+		cursor: pointer;
+	}
+
+	.sidebar-checkbox input {
+		margin: 0;
 	}
 
 	/* Main */
@@ -581,6 +490,14 @@
 		cursor: not-allowed;
 	}
 
+	.toolbar-btn.danger {
+		color: #dc2626;
+	}
+
+	.toolbar-btn.danger:hover {
+		background: rgba(220, 38, 38, 0.1);
+	}
+
 	.toolbar-btn svg {
 		width: 16px;
 		height: 16px;
@@ -593,6 +510,7 @@
 		gap: 4px;
 		font-size: 13px;
 		min-width: 0;
+		overflow-x: auto;
 	}
 
 	.file-breadcrumb button {
@@ -676,6 +594,45 @@
 		height: 14px;
 	}
 
+	/* Loading and Error States */
+	.loading-state, .error-state {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 16px;
+		color: #666;
+	}
+
+	.spinner {
+		width: 32px;
+		height: 32px;
+		border: 3px solid #e0e0e0;
+		border-top-color: #3B82F6;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	.error-state svg {
+		width: 48px;
+		height: 48px;
+		color: #dc2626;
+	}
+
+	.error-state button {
+		padding: 8px 16px;
+		background: #3B82F6;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+
 	/* File List */
 	.file-list {
 		flex: 1;
@@ -713,6 +670,10 @@
 
 	.file-list-item.selected {
 		background: rgba(0, 102, 255, 0.1);
+	}
+
+	.file-list-item.hidden-file {
+		opacity: 0.6;
 	}
 
 	.col-name {
@@ -775,6 +736,10 @@
 
 	.file-grid-item.selected {
 		background: rgba(0, 102, 255, 0.1);
+	}
+
+	.file-grid-item.hidden-file {
+		opacity: 0.6;
 	}
 
 	.grid-icon {

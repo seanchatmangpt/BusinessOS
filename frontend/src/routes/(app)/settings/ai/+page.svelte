@@ -917,7 +917,7 @@
 		const model = modelName.trim();
 
 		try {
-			const response = await fetch(`http://localhost:8000/api/ai/models/pull`, {
+			const response = await fetch(`/api/ai/models/pull`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ model }),

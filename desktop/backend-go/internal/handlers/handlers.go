@@ -311,6 +311,30 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		calendar.GET("/upcoming", calendarHandler.GetUpcomingEvents)
 	}
 
+	// Terminal routes - /api/terminal
+	terminalHandler := NewTerminalHandler()
+	terminalRoutes := api.Group("/terminal")
+	terminalRoutes.Use(auth)
+	{
+		terminalRoutes.GET("/ws", terminalHandler.HandleWebSocket)
+		terminalRoutes.GET("/sessions", terminalHandler.ListSessions)
+		terminalRoutes.DELETE("/sessions/:id", terminalHandler.CloseSession)
+	}
+
+	// Filesystem routes - /api/filesystem
+	filesystem := api.Group("/filesystem")
+	filesystem.Use(auth)
+	{
+		filesystem.GET("/list", h.ListDirectory)
+		filesystem.GET("/read", h.ReadFile)
+		filesystem.GET("/download", h.DownloadFile)
+		filesystem.GET("/info", h.GetFileInfo)
+		filesystem.GET("/quick-access", h.GetQuickAccessPaths)
+		filesystem.POST("/mkdir", h.CreateDirectory)
+		filesystem.POST("/upload", h.UploadFile)
+		filesystem.DELETE("/delete", h.DeleteFileOrDir)
+	}
+
 	// Authentication routes - /api/auth
 	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg)
 	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg)

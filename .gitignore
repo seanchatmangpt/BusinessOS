@@ -54,9 +54,14 @@ htmlcov/
 .nyc_output/
 
 # Misc
-*.local 
+.local/
 .cache/
 tmp/
 temp/
 .claude/
-.handoffs/
+.handoffs/ 
+.playwright/
+.startup-logs/
+.playwright-mcp/
+
+
