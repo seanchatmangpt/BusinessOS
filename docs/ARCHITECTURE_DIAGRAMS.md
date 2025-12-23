@@ -1,4 +1,4 @@
-# BusinessOS Scalability Architecture Diagrams
+## BusinessOS Scalability Architecture Diagrams
 
 Visual representations of the system architecture at different scales.
 

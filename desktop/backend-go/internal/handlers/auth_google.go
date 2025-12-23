@@ -44,7 +44,7 @@ func NewGoogleAuthHandler(pool *pgxpool.Pool, cfg *config.Config, sessionCache *
 	oauthConfig := &oauth2.Config{
 		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
-		RedirectURL:  cfg.GoogleRedirectURI + "/login",
+		RedirectURL:  cfg.GoogleRedirectURI,
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.email",
 			"https://www.googleapis.com/auth/userinfo.profile",

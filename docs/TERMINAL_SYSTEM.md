@@ -1796,12 +1796,5 @@ Resources{
 
 ## Contact & Support
 
-**Development Team**: BusinessOS Backend Team
-**Security Contact**: security@businessos.com
-**Documentation**: https://docs.businessos.com
-
-For security vulnerabilities, please report privately to security team before public disclosure.
-
----
 
 **End of Documentation**

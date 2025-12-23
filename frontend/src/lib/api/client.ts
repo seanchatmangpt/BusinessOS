@@ -28,7 +28,9 @@ function getApiBase(): string {
 	}
 
 	// Web app - use env var or defaults
-	return import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8001/api' : '/api');
+	// In dev mode, use /api to go through Vite proxy (preserves cookies on same origin)
+	// In production, use VITE_API_URL or relative /api
+	return import.meta.env.VITE_API_URL || '/api';
 }
 
 // Get base URL (recalculated on each call to handle mode changes)

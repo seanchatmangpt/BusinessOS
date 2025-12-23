@@ -41,7 +41,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		// Fallback to direct DB auth (single instance mode)
 		auth = middleware.AuthMiddleware(h.pool)
 	}
-	_ = middleware.OptionalAuthMiddleware(h.pool) // Available for routes that need optional auth
+	optionalAuth := middleware.OptionalAuthMiddleware(h.pool) // For dev-friendly routes
 
 	// Chat routes - /api/chat
 	chat := api.Group("/chat")
@@ -336,9 +336,9 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		terminalRoutes.DELETE("/sessions/:id", terminalHandler.CloseSession)
 	}
 
-	// Filesystem routes - /api/filesystem
+	// Filesystem routes - /api/filesystem (optional auth for dev)
 	filesystem := api.Group("/filesystem")
-	filesystem.Use(auth)
+	filesystem.Use(optionalAuth)
 	{
 		filesystem.GET("/list", h.ListDirectory)
 		filesystem.GET("/read", h.ReadFile)
