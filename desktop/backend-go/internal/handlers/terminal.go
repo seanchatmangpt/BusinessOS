@@ -15,16 +15,28 @@ type TerminalHandler struct {
 	wsHandler    *terminal.WebSocketHandler
 	manager      *terminal.Manager
 	containerMgr *container.ContainerManager
+	pubsub       *terminal.TerminalPubSub
 }
 
 // NewTerminalHandler creates a new terminal handler
-func NewTerminalHandler(containerMgr *container.ContainerManager) *TerminalHandler {
+// pubsub is optional - if nil, terminal works without horizontal scaling
+func NewTerminalHandler(containerMgr *container.ContainerManager, pubsub *terminal.TerminalPubSub) *TerminalHandler {
 	manager := terminal.NewManager(containerMgr)
+
+	// Wire up pub/sub if available
+	if pubsub != nil {
+		manager.SetPubSub(pubsub)
+		log.Printf("[Terminal] Pub/sub enabled for horizontal scaling (instance=%s)", pubsub.InstanceID())
+	} else {
+		log.Printf("[Terminal] Pub/sub disabled - single instance mode")
+	}
+
 	wsHandler := terminal.NewWebSocketHandler(manager)
 	return &TerminalHandler{
 		wsHandler:    wsHandler,
 		manager:      manager,
 		containerMgr: containerMgr,
+		pubsub:       pubsub,
 	}
 }
 
@@ -108,5 +120,9 @@ func (h *TerminalHandler) GetManager() *terminal.Manager {
 
 // Shutdown gracefully shuts down the terminal handler
 func (h *TerminalHandler) Shutdown() {
+	if h.pubsub != nil {
+		log.Printf("[Terminal] Closing pub/sub connections...")
+		h.pubsub.Close()
+	}
 	h.manager.Shutdown()
 }

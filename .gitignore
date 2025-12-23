@@ -53,13 +53,19 @@ htmlcov/
 .pytest_cache/
 .nyc_output/
 
+# Go binaries (never commit compiled binaries)
+desktop/backend-go/server
+desktop/backend-go/main
+desktop/backend-go/businessos-*
+desktop/backend-go/bin/
+
 # Misc
 .local/
 .cache/
 tmp/
 temp/
 .claude/
-.handoffs/ 
+.handoffs/
 .playwright/
 .startup-logs/
 .taskmaster/

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,7 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rhl/businessos-backend/internal/middleware"
+
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	// containerWorkspaceRoot is the root directory in containers
+	containerWorkspaceRoot = "/workspace"
 )
 
 // FileItem represents a file or directory
@@ -55,6 +63,120 @@ func (h *Handlers) ListDirectory(c *gin.Context) {
 		return
 	}
 
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		h.listDirectoryContainer(c, req)
+		return
+	}
+
+	// Fallback to local filesystem (development mode)
+	h.listDirectoryLocal(c, req)
+}
+
+// listDirectoryContainer lists directory contents from user's container workspace
+func (h *Handlers) listDirectoryContainer(c *gin.Context, req ListDirectoryRequest) {
+	// Get user from context
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr := user.ID
+
+	// Get or create filesystem container for this user
+	containerID, err := h.containerMgr.GetOrCreateFilesystemContainer(userIDStr)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to get container for user %s: %v", userIDStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access filesystem"})
+		return
+	}
+
+	// Normalize path - default to workspace root
+	dirPath := req.Path
+	if dirPath == "" || dirPath == "~" || dirPath == "/" {
+		dirPath = containerWorkspaceRoot
+	}
+
+	// Expand ~ to workspace root
+	if strings.HasPrefix(dirPath, "~/") {
+		dirPath = filepath.Join(containerWorkspaceRoot, dirPath[2:])
+	}
+
+	// Ensure path is under workspace
+	if !strings.HasPrefix(dirPath, containerWorkspaceRoot) {
+		dirPath = filepath.Join(containerWorkspaceRoot, dirPath)
+	}
+
+	// List directory in container
+	files, err := h.containerMgr.ListDirectoryInContainer(containerID, dirPath)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to list directory %s: %v", dirPath, err)
+		if strings.Contains(err.Error(), "not a directory") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Path is not a directory"})
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "Directory not found"})
+		return
+	}
+
+	// Convert container.FileInfo to FileItem
+	items := make([]FileItem, 0, len(files))
+	for _, f := range files {
+		name := f.Name
+		isHidden := strings.HasPrefix(name, ".")
+
+		// Skip hidden files unless requested
+		if isHidden && !req.ShowHidden {
+			continue
+		}
+
+		// Skip the base directory entry itself
+		if name == "" || name == "." || name == filepath.Base(dirPath) {
+			continue
+		}
+
+		item := FileItem{
+			ID:       generateFileID(f.Path),
+			Name:     name,
+			Path:     f.Path,
+			IsHidden: isHidden,
+			Modified: &f.ModTime,
+		}
+
+		if f.IsDir {
+			item.Type = "folder"
+		} else {
+			item.Type = "file"
+			item.Size = f.Size
+			item.Extension = strings.TrimPrefix(filepath.Ext(name), ".")
+		}
+
+		items = append(items, item)
+	}
+
+	// Sort: folders first, then alphabetically (case-insensitive)
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Type != items[j].Type {
+			return items[i].Type == "folder"
+		}
+		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+	})
+
+	// Get parent directory
+	parentDir := filepath.Dir(dirPath)
+	if parentDir == dirPath || parentDir == containerWorkspaceRoot {
+		parentDir = containerWorkspaceRoot // Can't go above workspace
+	}
+
+	c.JSON(http.StatusOK, ListDirectoryResponse{
+		Path:      dirPath,
+		Items:     items,
+		ParentDir: parentDir,
+	})
+}
+
+// listDirectoryLocal lists directory contents from local filesystem (fallback)
+func (h *Handlers) listDirectoryLocal(c *gin.Context, req ListDirectoryRequest) {
 	// Default to home directory if no path specified
 	dirPath := req.Path
 	if dirPath == "" || dirPath == "~" {
@@ -163,6 +285,68 @@ func (h *Handlers) ReadFile(c *gin.Context) {
 		return
 	}
 
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		h.readFileContainer(c, filePath)
+		return
+	}
+
+	// Fallback to local filesystem
+	h.readFileLocal(c, filePath)
+}
+
+// readFileContainer reads file content from user's container workspace
+func (h *Handlers) readFileContainer(c *gin.Context, filePath string) {
+	// Get user from context
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr := user.ID
+
+	// Get or create filesystem container
+	containerID, err := h.containerMgr.GetOrCreateFilesystemContainer(userIDStr)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to get container for user %s: %v", userIDStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access filesystem"})
+		return
+	}
+
+	// Normalize path
+	if strings.HasPrefix(filePath, "~/") {
+		filePath = filepath.Join(containerWorkspaceRoot, filePath[2:])
+	}
+	if !strings.HasPrefix(filePath, containerWorkspaceRoot) {
+		filePath = filepath.Join(containerWorkspaceRoot, filePath)
+	}
+
+	// Read file from container
+	content, err := h.containerMgr.ReadFileFromContainer(containerID, filePath)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to read file %s: %v", filePath, err)
+		if strings.Contains(err.Error(), "file too large") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "File too large for preview"})
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		return
+	}
+
+	// Detect MIME type
+	mimeType := http.DetectContentType(content)
+
+	c.JSON(http.StatusOK, FileContentResponse{
+		Path:     filePath,
+		Name:     filepath.Base(filePath),
+		Content:  string(content),
+		Size:     int64(len(content)),
+		MimeType: mimeType,
+	})
+}
+
+// readFileLocal reads file content from local filesystem (fallback)
+func (h *Handlers) readFileLocal(c *gin.Context, filePath string) {
 	// Expand ~ to home directory
 	if strings.HasPrefix(filePath, "~/") {
 		homeDir, _ := os.UserHomeDir()
@@ -324,14 +508,71 @@ func (h *Handlers) CreateDirectory(c *gin.Context) {
 		return
 	}
 
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		h.createDirectoryContainer(c, req.Path, req.Name)
+		return
+	}
+
+	// Fallback to local filesystem
+	h.createDirectoryLocal(c, req.Path, req.Name)
+}
+
+// createDirectoryContainer creates a directory in user's container workspace
+func (h *Handlers) createDirectoryContainer(c *gin.Context, basePath, name string) {
+	// Get user from context
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr := user.ID
+
+	// Get or create filesystem container
+	containerID, err := h.containerMgr.GetOrCreateFilesystemContainer(userIDStr)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to get container for user %s: %v", userIDStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access filesystem"})
+		return
+	}
+
+	// Normalize path
+	if strings.HasPrefix(basePath, "~/") {
+		basePath = filepath.Join(containerWorkspaceRoot, basePath[2:])
+	}
+	if !strings.HasPrefix(basePath, containerWorkspaceRoot) {
+		basePath = filepath.Join(containerWorkspaceRoot, basePath)
+	}
+
+	newDirPath := filepath.Join(basePath, name)
+
+	// Create directory in container
+	if err := h.containerMgr.CreateDirectoryInContainer(containerID, newDirPath); err != nil {
+		log.Printf("[Filesystem] Failed to create directory %s: %v", newDirPath, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create directory"})
+		return
+	}
+
+	now := time.Now()
+	c.JSON(http.StatusCreated, FileItem{
+		ID:       generateFileID(newDirPath),
+		Name:     name,
+		Type:     "folder",
+		Path:     newDirPath,
+		IsHidden: strings.HasPrefix(name, "."),
+		Modified: &now,
+	})
+}
+
+// createDirectoryLocal creates a directory on local filesystem (fallback)
+func (h *Handlers) createDirectoryLocal(c *gin.Context, basePath, name string) {
 	// Expand ~ to home directory
-	basePath := req.Path
 	if strings.HasPrefix(basePath, "~/") {
 		homeDir, _ := os.UserHomeDir()
 		basePath = filepath.Join(homeDir, basePath[2:])
 	}
 
-	newDirPath := filepath.Join(basePath, req.Name)
+	newDirPath := filepath.Join(basePath, name)
 
 	// Check if already exists
 	if _, err := os.Stat(newDirPath); err == nil {
@@ -351,10 +592,10 @@ func (h *Handlers) CreateDirectory(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, FileItem{
 		ID:       generateFileID(newDirPath),
-		Name:     req.Name,
+		Name:     name,
 		Type:     "folder",
 		Path:     newDirPath,
-		IsHidden: strings.HasPrefix(req.Name, "."),
+		IsHidden: strings.HasPrefix(name, "."),
 		Modified: &modTime,
 	})
 }
@@ -367,6 +608,60 @@ func (h *Handlers) DeleteFileOrDir(c *gin.Context) {
 		return
 	}
 
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		h.deleteFileOrDirContainer(c, filePath)
+		return
+	}
+
+	// Fallback to local filesystem
+	h.deleteFileOrDirLocal(c, filePath)
+}
+
+// deleteFileOrDirContainer deletes a file/directory from user's container workspace
+func (h *Handlers) deleteFileOrDirContainer(c *gin.Context, filePath string) {
+	// Get user from context
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr := user.ID
+
+	// Get or create filesystem container
+	containerID, err := h.containerMgr.GetOrCreateFilesystemContainer(userIDStr)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to get container for user %s: %v", userIDStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access filesystem"})
+		return
+	}
+
+	// Normalize path
+	if strings.HasPrefix(filePath, "~/") {
+		filePath = filepath.Join(containerWorkspaceRoot, filePath[2:])
+	}
+	if !strings.HasPrefix(filePath, containerWorkspaceRoot) {
+		filePath = filepath.Join(containerWorkspaceRoot, filePath)
+	}
+
+	// Safety: prevent deleting workspace root
+	if filePath == containerWorkspaceRoot || filePath == containerWorkspaceRoot+"/" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete workspace root"})
+		return
+	}
+
+	// Delete in container
+	if err := h.containerMgr.DeletePathInContainer(containerID, filePath); err != nil {
+		log.Printf("[Filesystem] Failed to delete %s: %v", filePath, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Deleted successfully", "path": filePath})
+}
+
+// deleteFileOrDirLocal deletes a file/directory from local filesystem (fallback)
+func (h *Handlers) deleteFileOrDirLocal(c *gin.Context, filePath string) {
 	// Expand ~ to home directory
 	if strings.HasPrefix(filePath, "~/") {
 		homeDir, _ := os.UserHomeDir()
@@ -427,12 +722,6 @@ func (h *Handlers) UploadFile(c *gin.Context) {
 		return
 	}
 
-	// Expand ~ to home directory
-	if strings.HasPrefix(destPath, "~/") {
-		homeDir, _ := os.UserHomeDir()
-		destPath = filepath.Join(homeDir, destPath[2:])
-	}
-
 	// Get uploaded file
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
@@ -441,8 +730,81 @@ func (h *Handlers) UploadFile(c *gin.Context) {
 	}
 	defer file.Close()
 
+	// Read file content
+	content, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read uploaded file"})
+		return
+	}
+
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		h.uploadFileContainer(c, destPath, header.Filename, content)
+		return
+	}
+
+	// Fallback to local filesystem
+	h.uploadFileLocal(c, destPath, header.Filename, content)
+}
+
+// uploadFileContainer uploads a file to user's container workspace
+func (h *Handlers) uploadFileContainer(c *gin.Context, destPath, filename string, content []byte) {
+	// Get user from context
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+	userIDStr := user.ID
+
+	// Get or create filesystem container
+	containerID, err := h.containerMgr.GetOrCreateFilesystemContainer(userIDStr)
+	if err != nil {
+		log.Printf("[Filesystem] Failed to get container for user %s: %v", userIDStr, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to access filesystem"})
+		return
+	}
+
+	// Normalize path
+	if strings.HasPrefix(destPath, "~/") {
+		destPath = filepath.Join(containerWorkspaceRoot, destPath[2:])
+	}
+	if !strings.HasPrefix(destPath, containerWorkspaceRoot) {
+		destPath = filepath.Join(containerWorkspaceRoot, destPath)
+	}
+
+	fullPath := filepath.Join(destPath, filename)
+
+	// Write file to container
+	if err := h.containerMgr.WriteFileToContainer(containerID, fullPath, content, 0644); err != nil {
+		log.Printf("[Filesystem] Failed to upload file %s: %v", fullPath, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
+	now := time.Now()
+	c.JSON(http.StatusCreated, FileItem{
+		ID:        generateFileID(fullPath),
+		Name:      filename,
+		Type:      "file",
+		Path:      fullPath,
+		Size:      int64(len(content)),
+		Modified:  &now,
+		Extension: strings.TrimPrefix(filepath.Ext(filename), "."),
+		IsHidden:  strings.HasPrefix(filename, "."),
+	})
+}
+
+// uploadFileLocal uploads a file to local filesystem (fallback)
+func (h *Handlers) uploadFileLocal(c *gin.Context, destPath, filename string, content []byte) {
+	// Expand ~ to home directory
+	if strings.HasPrefix(destPath, "~/") {
+		homeDir, _ := os.UserHomeDir()
+		destPath = filepath.Join(homeDir, destPath[2:])
+	}
+
 	// Create full file path
-	fullPath := filepath.Join(destPath, header.Filename)
+	fullPath := filepath.Join(destPath, filename)
 
 	// Create destination file
 	dst, err := os.Create(fullPath)
@@ -452,8 +814,8 @@ func (h *Handlers) UploadFile(c *gin.Context) {
 	}
 	defer dst.Close()
 
-	// Copy content
-	if _, err := io.Copy(dst, file); err != nil {
+	// Write content
+	if _, err := dst.Write(content); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}
@@ -464,18 +826,36 @@ func (h *Handlers) UploadFile(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, FileItem{
 		ID:        generateFileID(fullPath),
-		Name:      header.Filename,
+		Name:      filename,
 		Type:      "file",
 		Path:      fullPath,
 		Size:      info.Size(),
 		Modified:  &modTime,
-		Extension: strings.TrimPrefix(filepath.Ext(header.Filename), "."),
-		IsHidden:  strings.HasPrefix(header.Filename, "."),
+		Extension: strings.TrimPrefix(filepath.Ext(filename), "."),
+		IsHidden:  strings.HasPrefix(filename, "."),
 	})
 }
 
 // GetQuickAccessPaths returns commonly used paths
 func (h *Handlers) GetQuickAccessPaths(c *gin.Context) {
+	// Check if container isolation is enabled
+	if h.containerMgr != nil {
+		// Return container workspace paths
+		paths := []struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+			Icon string `json:"icon"`
+		}{
+			{Name: "Workspace", Path: containerWorkspaceRoot, Icon: "home"},
+			{Name: "Documents", Path: filepath.Join(containerWorkspaceRoot, "documents"), Icon: "document"},
+			{Name: "Projects", Path: filepath.Join(containerWorkspaceRoot, "projects"), Icon: "folder"},
+			{Name: "Downloads", Path: filepath.Join(containerWorkspaceRoot, "downloads"), Icon: "download"},
+		}
+		c.JSON(http.StatusOK, gin.H{"paths": paths})
+		return
+	}
+
+	// Fallback to local filesystem paths
 	homeDir, _ := os.UserHomeDir()
 
 	paths := []struct {

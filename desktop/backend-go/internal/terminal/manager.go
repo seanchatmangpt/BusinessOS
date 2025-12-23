@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -20,6 +21,7 @@ type Manager struct {
 	containerMgr   *container.ContainerManager
 	useContainers  bool
 	securityConfig *SessionSecurityConfig
+	pubsub         *TerminalPubSub // Optional pub/sub for horizontal scaling
 }
 
 // NewManager creates a new terminal session manager
@@ -49,6 +51,23 @@ func NewManager(containerMgr *container.ContainerManager) *Manager {
 	m.startCleanup()
 
 	return m
+}
+
+// SetPubSub configures optional pub/sub for horizontal scaling
+func (m *Manager) SetPubSub(pubsub *TerminalPubSub) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.pubsub = pubsub
+	if pubsub != nil {
+		log.Printf("[Terminal] Pub/sub enabled for horizontal scaling (instance: %s)", pubsub.InstanceID())
+	}
+}
+
+// GetPubSub returns the pub/sub manager (may be nil)
+func (m *Manager) GetPubSub() *TerminalPubSub {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.pubsub
 }
 
 // GetSecurityConfig returns the current security configuration
@@ -133,6 +152,14 @@ func (m *Manager) CreateSession(userID string, cols, rows int, shell, workingDir
 
 	// Store session
 	m.sessions[session.ID] = session
+
+	// Publish session created event for horizontal scaling
+	if m.pubsub != nil {
+		ctx := context.Background()
+		if err := m.pubsub.PublishSessionEvent(ctx, "session_created", session.ID, session.UserID); err != nil {
+			log.Printf("[Terminal] Warning: Failed to publish session_created event: %v", err)
+		}
+	}
 
 	return session, nil
 }
@@ -262,6 +289,14 @@ func (m *Manager) CloseSession(sessionID string) error {
 		return fmt.Errorf("session not found")
 	}
 
+	// Publish session closed event before cleanup for horizontal scaling
+	if m.pubsub != nil {
+		ctx := context.Background()
+		if err := m.pubsub.PublishSessionEvent(ctx, "session_closed", session.ID, session.UserID); err != nil {
+			log.Printf("[Terminal] Warning: Failed to publish session_closed event: %v", err)
+		}
+	}
+
 	// Close container or PTY based on session type
 	if session.IsContainerized() {
 		m.closeContainer(session)
@@ -292,14 +327,25 @@ func (m *Manager) ResizeSession(sessionID string, cols, rows int) error {
 	session.Rows = rows
 
 	// Resize container exec or PTY based on session type
+	var err error
 	if session.IsContainerized() {
 		if session.ExecID == "" {
 			return fmt.Errorf("exec ID not set for containerized session")
 		}
-		return m.containerMgr.ResizeExec(session.ExecID, uint(rows), uint(cols))
+		err = m.containerMgr.ResizeExec(session.ExecID, uint(rows), uint(cols))
+	} else {
+		err = resizePTY(session, cols, rows)
 	}
 
-	return resizePTY(session, cols, rows)
+	// Publish resize event after successful resize for horizontal scaling
+	if err == nil && m.pubsub != nil {
+		ctx := context.Background()
+		if pubErr := m.pubsub.PublishResize(ctx, sessionID, cols, rows); pubErr != nil {
+			log.Printf("[Terminal] Warning: Failed to publish resize event: %v", pubErr)
+		}
+	}
+
+	return err
 }
 
 // Shutdown closes all sessions and stops cleanup

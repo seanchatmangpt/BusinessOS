@@ -6,21 +6,34 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/database"
 	"github.com/rhl/businessos-backend/internal/handlers"
 	"github.com/rhl/businessos-backend/internal/middleware"
+	redisClient "github.com/rhl/businessos-backend/internal/redis"
+	"github.com/rhl/businessos-backend/internal/terminal"
 )
 
+// Note: middleware package now provides SessionCache for Redis-backed session validation
+
 func main() {
+	// Create background context for the application
+	ctx := context.Background()
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Generate unique instance ID for pub/sub (avoid message echo)
+	instanceID := uuid.New().String()[:8]
+	log.Printf("Server instance ID: %s", instanceID)
 
 	// Connect to database
 	pool, err := database.Connect(cfg)
@@ -29,8 +42,47 @@ func main() {
 	}
 	defer database.Close()
 
+	// Connect to Redis (optional - for session storage and horizontal scaling)
+	redisConnected := false
+	var sessionCache *middleware.SessionCache
+	var terminalPubSub *terminal.TerminalPubSub
+	if cfg.RedisURL != "" {
+		// Configure Redis with security settings
+		redisCfg := redisClient.DefaultConfig()
+		redisCfg.URL = cfg.RedisURL
+		redisCfg.Password = cfg.RedisPassword
+		redisCfg.TLSEnabled = cfg.RedisTLSEnabled
+
+		// In development, allow insecure TLS for self-signed certs
+		// NEVER do this in production
+		if !cfg.IsProduction() && cfg.RedisTLSEnabled {
+			redisCfg.TLSInsecure = true
+		}
+
+		if err := redisClient.Connect(ctx, redisCfg); err != nil {
+			log.Printf("Warning: Redis unavailable: %v", err)
+			log.Printf("Sessions will use direct DB auth (not optimal for horizontal scaling)")
+		} else {
+			redisConnected = true
+			log.Printf("Redis connected successfully")
+			defer redisClient.Close()
+
+			// Create session cache for auth middleware with secure HMAC key
+			sessionCacheConfig := &middleware.SessionCacheConfig{
+				KeyPrefix:  "auth_session:",
+				TTL:        15 * time.Minute,
+				HMACSecret: cfg.RedisKeyHMACSecret, // Load from environment (CRITICAL for production)
+			}
+			sessionCache = middleware.NewSessionCache(redisClient.Client(), sessionCacheConfig)
+			log.Printf("Session cache enabled (TTL=15m, HMAC-secured keys)")
+
+			// Create terminal pub/sub for horizontal scaling
+			terminalPubSub = terminal.NewTerminalPubSub(redisClient.Client(), instanceID)
+			log.Printf("Terminal pub/sub enabled (instance=%s)", instanceID)
+		}
+	}
+
 	// Initialize container manager (optional - for Docker-based terminal isolation)
-	ctx := context.Background()
 	var containerMonitor *container.ContainerMonitor
 	containerMgr, err := container.NewContainerManager(ctx, "businessos-workspace:latest")
 	if err != nil {
@@ -57,12 +109,81 @@ func main() {
 	// Apply middleware
 	router.Use(middleware.CORSMiddleware(cfg))
 
+	// Apply global rate limiting (100 req/sec per IP, 200 req/sec per authenticated user)
+	globalRateLimiter := middleware.GetGlobalHTTPRateLimiter()
+	router.Use(middleware.RateLimitMiddleware(globalRateLimiter))
+	log.Printf("Rate limiting enabled (100 req/s per IP, 200 req/s per user)")
+
 	// Health check (no auth required)
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "Business OS API", "version": "1.0.0"})
+		c.JSON(200, gin.H{"message": "Business OS API", "version": "1.0.0", "instance_id": instanceID})
 	})
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy"})
+	})
+
+	// Readiness check (includes dependencies)
+	router.GET("/ready", func(c *gin.Context) {
+		status := gin.H{
+			"status":      "ready",
+			"instance_id": instanceID,
+			"database":    "connected",
+			"redis":       "disconnected",
+			"containers":  "unavailable",
+		}
+
+		// Check Redis
+		if redisConnected && redisClient.IsConnected(c.Request.Context()) {
+			status["redis"] = "connected"
+		}
+
+		// Check container manager
+		if containerMgr != nil {
+			status["containers"] = "available"
+		}
+
+		c.JSON(200, status)
+	})
+
+	// Detailed health check for monitoring
+	router.GET("/health/detailed", func(c *gin.Context) {
+		health := gin.H{
+			"status":      "healthy",
+			"instance_id": instanceID,
+			"components":  gin.H{},
+		}
+
+		components := health["components"].(gin.H)
+
+		// Database health
+		components["database"] = gin.H{
+			"status": "connected",
+		}
+
+		// Redis health
+		if redisConnected {
+			redisHealth, err := redisClient.HealthCheck(c.Request.Context())
+			if err != nil {
+				components["redis"] = gin.H{"status": "error", "error": err.Error()}
+			} else {
+				components["redis"] = gin.H{
+					"status":     "connected",
+					"latency_ms": redisHealth.Latency.Milliseconds(),
+					"pool_stats": redisHealth.PoolStats,
+				}
+			}
+		} else {
+			components["redis"] = gin.H{"status": "not_configured"}
+		}
+
+		// Container manager health
+		if containerMgr != nil {
+			components["containers"] = gin.H{"status": "available"}
+		} else {
+			components["containers"] = gin.H{"status": "unavailable"}
+		}
+
+		c.JSON(200, health)
 	})
 
 	// Serve uploaded files (profile photos, backgrounds) - no auth needed
@@ -71,8 +192,8 @@ func main() {
 	// API routes group
 	api := router.Group("/api")
 
-	// Initialize handlers with container manager
-	h := handlers.NewHandlers(pool, cfg, containerMgr)
+	// Initialize handlers with container manager, session cache, and terminal pub/sub
+	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub)
 
 	// Register routes
 	h.RegisterRoutes(api)

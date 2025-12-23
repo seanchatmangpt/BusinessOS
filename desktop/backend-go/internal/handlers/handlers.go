@@ -7,28 +7,40 @@ import (
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
+	"github.com/rhl/businessos-backend/internal/terminal"
 )
 
 // Handlers contains all HTTP handlers
 type Handlers struct {
-	pool         *pgxpool.Pool
-	cfg          *config.Config
-	containerMgr *container.ContainerManager
+	pool            *pgxpool.Pool
+	cfg             *config.Config
+	containerMgr    *container.ContainerManager
+	sessionCache    *middleware.SessionCache    // Redis session cache for horizontal scaling
+	terminalPubSub  *terminal.TerminalPubSub    // Redis pub/sub for terminal scaling
 }
 
 // NewHandlers creates a new Handlers instance
-func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager) *Handlers {
+func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub) *Handlers {
 	return &Handlers{
-		pool:         pool,
-		cfg:          cfg,
-		containerMgr: containerMgr,
+		pool:           pool,
+		cfg:            cfg,
+		containerMgr:   containerMgr,
+		sessionCache:   sessionCache,
+		terminalPubSub: terminalPubSub,
 	}
 }
 
 // RegisterRoutes registers all API routes
 func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
-	// Auth middleware for protected routes
-	auth := middleware.AuthMiddleware(h.pool)
+	// Auth middleware for protected routes - uses Redis cache if available
+	var auth gin.HandlerFunc
+	if h.sessionCache != nil {
+		// Use Redis-cached auth for horizontal scaling
+		auth = middleware.CachedAuthMiddleware(h.pool, h.sessionCache)
+	} else {
+		// Fallback to direct DB auth (single instance mode)
+		auth = middleware.AuthMiddleware(h.pool)
+	}
 	_ = middleware.OptionalAuthMiddleware(h.pool) // Available for routes that need optional auth
 
 	// Chat routes - /api/chat
@@ -315,7 +327,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	}
 
 	// Terminal routes - /api/terminal
-	terminalHandler := NewTerminalHandler(h.containerMgr)
+	terminalHandler := NewTerminalHandler(h.containerMgr, h.terminalPubSub)
 	terminalRoutes := api.Group("/terminal")
 	terminalRoutes.Use(auth)
 	{
@@ -339,13 +351,16 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	}
 
 	// Authentication routes - /api/auth
-	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg)
+	// Apply strict rate limiting to prevent brute force attacks
+	strictRateLimit := middleware.StrictRateLimitMiddleware()
+
+	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg, h.sessionCache)
 	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg)
 	authRoutes := api.Group("/auth")
 	{
-		// Email/Password auth (public)
-		authRoutes.POST("/sign-up/email", emailAuthHandler.SignUp)
-		authRoutes.POST("/sign-in/email", emailAuthHandler.SignIn)
+		// Email/Password auth (public) - strict rate limiting
+		authRoutes.POST("/sign-up/email", strictRateLimit, emailAuthHandler.SignUp)
+		authRoutes.POST("/sign-in/email", strictRateLimit, emailAuthHandler.SignIn)
 
 		// Google OAuth (public)
 		authRoutes.GET("/google", googleAuthHandler.InitiateGoogleLogin)
@@ -356,5 +371,12 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		authRoutes.GET("/get-session", googleAuthHandler.GetCurrentSession) // Alias for better-auth compatibility
 		authRoutes.POST("/logout", googleAuthHandler.Logout)
 		authRoutes.POST("/sign-out", googleAuthHandler.Logout) // Alias for better-auth compatibility
+
+		// Protected: Force logout all sessions (requires authentication)
+		protectedAuth := authRoutes.Group("")
+		protectedAuth.Use(auth)
+		{
+			protectedAuth.POST("/logout-all", googleAuthHandler.LogoutAllSessions)
+		}
 	}
 }

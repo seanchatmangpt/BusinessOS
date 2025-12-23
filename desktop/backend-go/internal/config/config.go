@@ -47,7 +47,14 @@ type Config struct {
 	OllamaMode string `mapstructure:"OLLAMA_MODE"`
 
 	// Redis
-	RedisURL string `mapstructure:"REDIS_URL"`
+	RedisURL        string `mapstructure:"REDIS_URL"`
+	RedisPassword   string `mapstructure:"REDIS_PASSWORD"`
+	RedisTLSEnabled bool   `mapstructure:"REDIS_TLS_ENABLED"`
+
+	// Security: HMAC secret for Redis key derivation (prevents token enumeration attacks)
+	// CRITICAL: Must be set in production to a strong random value (min 32 bytes)
+	// Used to hash session tokens before storing as Redis keys
+	RedisKeyHMACSecret string `mapstructure:"REDIS_KEY_HMAC_SECRET"`
 
 	// Supermemory
 	SupermemoryAPIKey string `mapstructure:"SUPERMEMORY_API_KEY"`
@@ -102,8 +109,13 @@ func Load() (*Config, error) {
 	// Legacy
 	viper.SetDefault("OLLAMA_MODE", "cloud")
 
-	// Other services
+	// Redis
 	viper.SetDefault("REDIS_URL", "redis://localhost:6379/0")
+	viper.SetDefault("REDIS_PASSWORD", "")
+	viper.SetDefault("REDIS_TLS_ENABLED", false)
+	viper.SetDefault("REDIS_KEY_HMAC_SECRET", "") // CRITICAL: Set strong value in production (min 32 bytes)
+
+	// Other services
 	viper.SetDefault("SUPERMEMORY_API_KEY", "")
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_CLIENT_SECRET", "")

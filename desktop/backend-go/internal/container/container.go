@@ -379,6 +379,132 @@ func newInt64(i int64) *int64 {
 	return &i
 }
 
+// GetOrCreateFilesystemContainer gets an existing or creates a new lightweight container
+// for filesystem operations. Unlike terminal containers, these are long-lived and shared
+// for all filesystem operations for a user.
+//
+// Parameters:
+//   - userID: Unique identifier for the user
+//
+// Returns:
+//   - containerID: Unique identifier for the filesystem container
+//   - error: Error if container creation/retrieval fails
+func (m *ContainerManager) GetOrCreateFilesystemContainer(userID string) (string, error) {
+	// Check for existing filesystem container
+	containerName := fmt.Sprintf("filesystem-%s", userID)
+	volumeName := fmt.Sprintf("workspace_%s", userID)
+
+	// First, check if container already exists and is running
+	ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
+	defer cancel()
+
+	// List containers with our label
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("name", containerName)
+
+	containers, err := m.cli.ContainerList(ctx, container.ListOptions{
+		All:     true,
+		Filters: filterArgs,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to list containers: %w", err)
+	}
+
+	// If container exists
+	if len(containers) > 0 {
+		c := containers[0]
+		if c.State == "running" {
+			log.Printf("[Container] Reusing existing filesystem container: %s", containerName)
+			return c.ID, nil
+		}
+		// Container exists but not running - start it
+		log.Printf("[Container] Starting existing filesystem container: %s", containerName)
+		if err := m.StartContainer(c.ID); err != nil {
+			// If we can't start, remove and recreate
+			_ = m.cli.ContainerRemove(ctx, c.ID, container.RemoveOptions{Force: true})
+		} else {
+			return c.ID, nil
+		}
+	}
+
+	log.Printf("[Container] Creating filesystem container '%s' for user '%s'", containerName, userID)
+
+	// Ensure volume exists
+	if err := m.ensureVolume(volumeName, userID); err != nil {
+		return "", fmt.Errorf("failed to ensure volume: %w", err)
+	}
+
+	// Configure lightweight filesystem container
+	config := &container.Config{
+		Image: m.defaultImage,
+		Tty:   false,
+		Env: []string{
+			"TERM=xterm-256color",
+		},
+		Labels: map[string]string{
+			"app":     "businessos",
+			"type":    "filesystem",
+			"user_id": userID,
+		},
+		// Keep container running with minimal overhead
+		Cmd: strslice.StrSlice{"/bin/sh", "-c", "while true; do sleep 3600; done"},
+	}
+
+	// Minimal host configuration for filesystem operations
+	hostConfig := &container.HostConfig{
+		Resources: container.Resources{
+			Memory:    128 * 1024 * 1024, // 128MB - minimal for filesystem ops
+			CPUQuota:  10000,              // 10% CPU
+			CPUPeriod: 100000,
+			PidsLimit: newInt64(10), // Minimal processes
+		},
+		CapDrop: strslice.StrSlice{"ALL"},
+		CapAdd: strslice.StrSlice{
+			"CHOWN",
+			"FOWNER",
+		},
+		SecurityOpt: []string{
+			"no-new-privileges:true",
+			"seccomp=" + SeccompProfile,
+		},
+		NetworkMode:    "none",
+		ReadonlyRootfs: true,
+		Tmpfs: map[string]string{
+			"/tmp": "rw,noexec,nosuid,size=16m",
+		},
+		Mounts: []mount.Mount{
+			{
+				Type:   mount.TypeVolume,
+				Source: volumeName,
+				Target: defaultWorkspaceMount,
+			},
+		},
+		AutoRemove: false,
+		RestartPolicy: container.RestartPolicy{
+			Name: container.RestartPolicyUnlessStopped,
+		},
+	}
+
+	// Create container
+	createCtx, createCancel := context.WithTimeout(m.ctx, 30*time.Second)
+	defer createCancel()
+
+	resp, err := m.cli.ContainerCreate(createCtx, config, hostConfig, nil, nil, containerName)
+	if err != nil {
+		return "", fmt.Errorf("failed to create filesystem container: %w", err)
+	}
+
+	// Start the container
+	if err := m.StartContainer(resp.ID); err != nil {
+		// Cleanup on failure
+		_ = m.cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true})
+		return "", fmt.Errorf("failed to start filesystem container: %w", err)
+	}
+
+	log.Printf("[Container] Filesystem container created and started: %s (ID: %s)", containerName, resp.ID[:12])
+	return resp.ID, nil
+}
+
 // Helper type for port bindings (not used currently, but useful for future)
 type PortBinding struct {
 	HostIP   string

@@ -6,21 +6,26 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
+	"github.com/rhl/businessos-backend/internal/middleware"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
 // GoogleAuthHandler handles Google OAuth for authentication
 type GoogleAuthHandler struct {
-	pool        *pgxpool.Pool
-	cfg         *config.Config
-	oauthConfig *oauth2.Config
+	pool         *pgxpool.Pool
+	cfg          *config.Config
+	oauthConfig  *oauth2.Config
+	sessionCache *middleware.SessionCache // Redis session cache for horizontal scaling
 }
 
 // GoogleUserInfo represents the user info from Google
@@ -35,7 +40,7 @@ type GoogleUserInfo struct {
 }
 
 // NewGoogleAuthHandler creates a new Google Auth handler
-func NewGoogleAuthHandler(pool *pgxpool.Pool, cfg *config.Config) *GoogleAuthHandler {
+func NewGoogleAuthHandler(pool *pgxpool.Pool, cfg *config.Config, sessionCache *middleware.SessionCache) *GoogleAuthHandler {
 	oauthConfig := &oauth2.Config{
 		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
@@ -48,6 +53,7 @@ func NewGoogleAuthHandler(pool *pgxpool.Pool, cfg *config.Config) *GoogleAuthHan
 	}
 
 	return &GoogleAuthHandler{
+		sessionCache: sessionCache,
 		pool:        pool,
 		cfg:         cfg,
 		oauthConfig: oauthConfig,
@@ -259,20 +265,86 @@ func (h *GoogleAuthHandler) GetCurrentSession(c *gin.Context) {
 	})
 }
 
-// Logout clears the session
+// Logout clears the current session
 func (h *GoogleAuthHandler) Logout(c *gin.Context) {
 	sessionCookie, err := c.Cookie("better-auth.session_token")
 	if err == nil && sessionCookie != "" {
+		// URL decode the cookie
+		sessionCookie, _ = url.QueryUnescape(sessionCookie)
+
+		// Extract token (before HMAC signature dot)
+		sessionToken := sessionCookie
+		if idx := strings.Index(sessionCookie, "."); idx != -1 {
+			sessionToken = sessionCookie[:idx]
+		}
+
+		// Invalidate Redis cache first (if available)
+		if h.sessionCache != nil {
+			if err := h.sessionCache.Invalidate(c.Request.Context(), sessionToken); err != nil {
+				log.Printf("Logout: cache invalidation error: %v", err)
+			}
+		}
+
 		// Delete session from database
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 		defer cancel()
-		h.pool.Exec(ctx, `DELETE FROM session WHERE token = $1`, sessionCookie)
+		h.pool.Exec(ctx, `DELETE FROM session WHERE token = $1`, sessionToken)
 	}
 
 	// Clear cookie
 	c.SetCookie("better-auth.session_token", "", -1, "/", "", false, true)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
+}
+
+// LogoutAllSessions invalidates all sessions for the current user
+// This is a critical security feature for:
+// - Password changes
+// - Suspected account compromise
+// - Permission/role changes
+// - User-initiated "logout from all devices"
+func (h *GoogleAuthHandler) LogoutAllSessions(c *gin.Context) {
+	// Get current user from context (set by auth middleware)
+	userInterface, exists := c.Get(middleware.UserContextKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+
+	user, ok := userInterface.(*middleware.BetterAuthUser)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user context"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	// Invalidate all Redis cached sessions first
+	if h.sessionCache != nil {
+		if err := h.sessionCache.InvalidateUserSessions(ctx, user.ID); err != nil {
+			log.Printf("LogoutAllSessions: cache invalidation error for user %s: %v", user.ID, err)
+			// Continue to database cleanup even if cache fails
+		}
+	}
+
+	// Delete all sessions from database
+	result, err := h.pool.Exec(ctx, `DELETE FROM session WHERE "userId" = $1`, user.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to invalidate sessions"})
+		return
+	}
+
+	rowsAffected := result.RowsAffected()
+	log.Printf("LogoutAllSessions: deleted %d database sessions for user %s", rowsAffected, user.ID)
+
+	// Clear current session cookie
+	c.SetCookie("better-auth.session_token", "", -1, "/", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":          "All sessions invalidated",
+		"sessions_removed": rowsAffected,
+	})
 }
 
 // Helper functions
