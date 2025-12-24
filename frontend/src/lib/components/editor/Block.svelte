@@ -363,7 +363,7 @@
 	{#if !readonly}
 		<div class="absolute -left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
 			<button
-				class="p-0.5 rounded hover:bg-gray-100 text-gray-400 cursor-grab"
+				class="p-0.5 rounded hover:bg-gray-700 text-gray-500 cursor-grab"
 				title="Drag to move"
 				tabindex="-1"
 			>
@@ -388,18 +388,18 @@
 			onkeydown={handleDividerKeydown}
 			class="py-2 outline-none group cursor-pointer"
 		>
-			<hr class="border-gray-200 group-focus:border-blue-400 transition-colors" />
+			<hr class="border-gray-600 group-focus:border-blue-400 transition-colors" />
 		</div>
 	{:else if block.type === 'page'}
 		<!-- Page block - compact link to sub-page -->
 		<a
 			href={block.properties?.pageId ? `/contexts/${block.properties.pageId}` : '#'}
-			class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+			class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors text-sm"
 		>
-			<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 			</svg>
-			<span class="text-gray-700">{block.content || 'Untitled'}</span>
+			<span class="text-gray-200">{block.content || 'Untitled'}</span>
 		</a>
 	{:else if block.type === 'heading1'}
 		<h1
@@ -411,7 +411,7 @@
 			onblur={handleBlur}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="text-3xl font-bold text-gray-900 outline-none min-h-[1.2em] block-editable"
+			class="text-3xl font-bold text-gray-100 outline-none min-h-[1.2em] block-editable"
 			class:is-empty={isEmpty}
 		></h1>
 	{:else if block.type === 'heading2'}
@@ -424,7 +424,7 @@
 			onblur={handleBlur}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="text-2xl font-semibold text-gray-800 outline-none min-h-[1.2em] block-editable"
+			class="text-2xl font-semibold text-gray-100 outline-none min-h-[1.2em] block-editable"
 			class:is-empty={isEmpty}
 		></h2>
 	{:else if block.type === 'heading3'}
@@ -437,12 +437,12 @@
 			onblur={handleBlur}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="text-xl font-semibold text-gray-700 outline-none min-h-[1.2em] block-editable"
+			class="text-xl font-semibold text-gray-200 outline-none min-h-[1.2em] block-editable"
 			class:is-empty={isEmpty}
 		></h3>
 	{:else if block.type === 'bulletList'}
 		<div class="flex items-start gap-2">
-			<span class="mt-2 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0"></span>
+			<span class="mt-2 w-1.5 h-1.5 rounded-full bg-gray-500 flex-shrink-0"></span>
 			<div
 				bind:this={blockElement}
 				contenteditable={!readonly}
@@ -452,13 +452,13 @@
 				onblur={handleBlur}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="flex-1 text-gray-600 outline-none min-h-[1.5em] block-editable"
+				class="flex-1 text-gray-300 outline-none min-h-[1.5em] block-editable"
 				class:is-empty={isEmpty}
 			></div>
 		</div>
 	{:else if block.type === 'numberedList'}
 		<div class="flex items-start gap-2">
-			<span class="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-xs flex items-center justify-center flex-shrink-0">
+			<span class="w-5 h-5 rounded-full bg-blue-900/50 text-blue-400 text-xs flex items-center justify-center flex-shrink-0">
 				{index + 1}
 			</span>
 			<div
@@ -470,7 +470,7 @@
 				onblur={handleBlur}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="flex-1 text-gray-600 outline-none min-h-[1.5em] block-editable"
+				class="flex-1 text-gray-300 outline-none min-h-[1.5em] block-editable"
 				class:is-empty={isEmpty}
 			></div>
 		</div>
@@ -481,7 +481,7 @@
 				class="w-4 h-4 mt-1 rounded border flex items-center justify-center transition-colors flex-shrink-0
 					{block.properties?.checked
 						? 'bg-blue-500 border-blue-500'
-						: 'border-gray-300 hover:border-blue-400'}"
+						: 'border-gray-500 hover:border-blue-400'}"
 				tabindex="-1"
 			>
 				{#if block.properties?.checked}
@@ -500,12 +500,12 @@
 				oninput={handleInput}
 				onkeydown={handleKeydown}
 				class="flex-1 outline-none min-h-[1.5em] block-editable
-					{block.properties?.checked ? 'line-through text-gray-400' : 'text-gray-600'}"
+					{block.properties?.checked ? 'line-through text-gray-500' : 'text-gray-300'}"
 				class:is-empty={isEmpty}
 			></div>
 		</div>
 	{:else if block.type === 'quote'}
-		<blockquote class="border-l-4 border-gray-300 pl-4 py-1">
+		<blockquote class="border-l-4 border-gray-600 pl-4 py-1">
 			<div
 				bind:this={blockElement}
 				contenteditable={!readonly}
@@ -515,12 +515,12 @@
 				onblur={handleBlur}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="text-gray-600 italic outline-none min-h-[1.5em] block-editable"
+				class="text-gray-400 italic outline-none min-h-[1.5em] block-editable"
 				class:is-empty={isEmpty}
 			></div>
 		</blockquote>
 	{:else if block.type === 'code'}
-		<div class="bg-gray-100 rounded-lg p-3 font-mono text-sm">
+		<div class="bg-[#0d0d0d] rounded-lg p-3 font-mono text-sm border border-gray-700">
 			<pre
 				bind:this={blockElement}
 				contenteditable={!readonly}
@@ -530,13 +530,13 @@
 				onblur={handleBlur}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="text-gray-800 outline-none min-h-[1.5em] whitespace-pre-wrap block-editable"
+				class="text-gray-200 outline-none min-h-[1.5em] whitespace-pre-wrap block-editable"
 				class:is-empty={isEmpty}
 			></pre>
 		</div>
 	{:else if block.type === 'callout'}
-		<div class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-			<span class="text-blue-500">💡</span>
+		<div class="bg-blue-900/30 border border-blue-700/50 rounded-lg p-3 flex items-start gap-2">
+			<span class="text-blue-400">💡</span>
 			<div
 				bind:this={blockElement}
 				contenteditable={!readonly}
@@ -546,7 +546,7 @@
 				onblur={handleBlur}
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				class="flex-1 text-blue-800 outline-none min-h-[1.5em] block-editable"
+				class="flex-1 text-blue-200 outline-none min-h-[1.5em] block-editable"
 				class:is-empty={isEmpty}
 			></div>
 		</div>
@@ -561,7 +561,7 @@
 			onblur={handleBlur}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="text-gray-600 outline-none min-h-[1.5em] block-editable"
+			class="text-gray-100 outline-none min-h-[1.5em] block-editable"
 			class:is-empty={isEmpty}
 		></p>
 	{/if}
@@ -570,29 +570,29 @@
 	{#if showSlashMenu && !readonly}
 		<div
 			data-slash-menu
-			class="absolute left-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden w-64"
+			class="absolute left-0 top-full mt-1 bg-[#2c2c2e] rounded-lg shadow-xl border border-gray-700 z-50 overflow-hidden w-64"
 		>
 			<div class="py-1 max-h-64 overflow-auto">
 				{#each getFilteredBlockTypes() as blockType, idx}
 					<button
 						onclick={() => selectBlockType(blockType.type)}
 						class="w-full px-3 py-2 flex items-center gap-3 text-left transition-colors
-							{idx === slashSelectedIndex ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'}"
+							{idx === slashSelectedIndex ? 'bg-blue-900/40 text-blue-300' : 'hover:bg-gray-700 text-gray-200'}"
 					>
-						<span class="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-sm">
+						<span class="w-8 h-8 rounded bg-gray-700 flex items-center justify-center text-sm text-gray-300">
 							{blockType.icon}
 						</span>
 						<div class="flex-1 min-w-0">
 							<div class="text-sm font-medium">{blockType.label}</div>
-							<div class="text-xs text-gray-400">{blockType.description}</div>
+							<div class="text-xs text-gray-500">{blockType.description}</div>
 						</div>
 						{#if idx === slashSelectedIndex}
-							<span class="text-xs text-gray-400">Enter</span>
+							<span class="text-xs text-gray-500">Enter</span>
 						{/if}
 					</button>
 				{/each}
 				{#if getFilteredBlockTypes().length === 0}
-					<div class="px-3 py-4 text-sm text-gray-400 text-center">
+					<div class="px-3 py-4 text-sm text-gray-500 text-center">
 						No matching blocks
 					</div>
 				{/if}
@@ -616,10 +616,27 @@
 	h2.block-editable.is-empty:before,
 	h3.block-editable.is-empty:before {
 		content: attr(data-placeholder);
-		color: #d1d5db;
+		color: #6b7280;
 		pointer-events: none;
 		position: absolute;
 		font-style: normal;
 		font-weight: normal;
+	}
+
+	/* Dark mode text selection */
+	.block-editable::selection {
+		background-color: rgba(59, 130, 246, 0.4);
+		color: #ffffff;
+	}
+
+	/* For webkit browsers (Chrome, Safari) */
+	.block-editable::-webkit-selection {
+		background-color: rgba(59, 130, 246, 0.4);
+		color: #ffffff;
+	}
+
+	/* Ensure no weird background on focus */
+	.block-editable:focus {
+		background-color: transparent;
 	}
 </style>

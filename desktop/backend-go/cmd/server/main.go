@@ -16,6 +16,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/handlers"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
+	"github.com/rhl/businessos-backend/internal/services"
 	"github.com/rhl/businessos-backend/internal/terminal"
 )
 
@@ -192,8 +193,24 @@ func main() {
 	// API routes group
 	api := router.Group("/api")
 
-	// Initialize handlers with container manager, session cache, and terminal pub/sub
-	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub)
+	// Initialize embedding service for RAG (semantic search)
+	var embeddingService *services.EmbeddingService
+	var contextBuilder *services.ContextBuilder
+	var tieredContextService *services.TieredContextService
+	embeddingService = services.NewEmbeddingService(pool, cfg.OllamaLocalURL)
+	if embeddingService.HealthCheck(ctx) {
+		contextBuilder = services.NewContextBuilder(pool, embeddingService)
+		tieredContextService = services.NewTieredContextService(pool, embeddingService)
+		log.Printf("Embedding service initialized (model=nomic-embed-text, dimensions=768)")
+		log.Printf("Tiered context service enabled (scoped RAG, Level 1/2/3 context)")
+	} else {
+		log.Printf("Warning: Embedding service unavailable (Ollama not running or nomic-embed-text model not pulled)")
+		log.Printf("RAG features will be disabled. Run: ollama pull nomic-embed-text")
+		embeddingService = nil
+	}
+
+	// Initialize handlers with container manager, session cache, terminal pub/sub, and embedding services
+	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService)
 
 	// Register routes
 	h.RegisterRoutes(api)
