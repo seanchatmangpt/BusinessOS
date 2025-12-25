@@ -12,21 +12,27 @@ import (
 
 // Handlers contains all HTTP handlers
 type Handlers struct {
-	pool            *pgxpool.Pool
-	cfg             *config.Config
-	containerMgr    *container.ContainerManager
-	sessionCache    *middleware.SessionCache    // Redis session cache for horizontal scaling
-	terminalPubSub  *terminal.TerminalPubSub    // Redis pub/sub for terminal scaling
+	pool                  *pgxpool.Pool
+	cfg                   *config.Config
+	containerMgr          *container.ContainerManager
+	sessionCache          *middleware.SessionCache         // Redis session cache for horizontal scaling
+	terminalPubSub        *terminal.TerminalPubSub         // Redis pub/sub for terminal scaling
+	embeddingService      *services.EmbeddingService       // Vector embedding service for RAG
+	contextBuilder        *services.ContextBuilder         // Hierarchical context builder for AI
+	tieredContextService  *services.TieredContextService   // Tiered context builder for scoped AI queries
 }
 
 // NewHandlers creates a new Handlers instance
-func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub) *Handlers {
+func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService) *Handlers {
 	return &Handlers{
-		pool:           pool,
-		cfg:            cfg,
-		containerMgr:   containerMgr,
-		sessionCache:   sessionCache,
-		terminalPubSub: terminalPubSub,
+		pool:                  pool,
+		cfg:                   cfg,
+		containerMgr:          containerMgr,
+		sessionCache:          sessionCache,
+		terminalPubSub:        terminalPubSub,
+		embeddingService:      embeddingService,
+		contextBuilder:        contextBuilder,
+		tieredContextService:  tieredContextService,
 	}
 }
 
@@ -247,6 +253,21 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		usage.GET("/trend", h.GetUsageTrend)
 		usage.GET("/recent", h.GetRecentAIUsage)
 		usage.GET("/mcp", h.GetMCPUsage)
+	}
+
+	// Embeddings routes - /api/embeddings (for RAG and semantic search)
+	if h.embeddingService != nil && h.contextBuilder != nil {
+		embeddingHandler := NewEmbeddingHandler(h.embeddingService, h.contextBuilder)
+		embeddings := api.Group("/embeddings")
+		embeddings.Use(auth)
+		{
+			embeddings.POST("/index/:id", embeddingHandler.IndexDocument)
+			embeddings.POST("/search", embeddingHandler.SemanticSearch)
+			embeddings.POST("/context", embeddingHandler.BuildAIContext)
+			embeddings.GET("/context/:id", embeddingHandler.GetDocumentContext)
+			embeddings.GET("/stats", embeddingHandler.GetStats)
+			embeddings.GET("/health", embeddingHandler.HealthCheck)
+		}
 	}
 
 	// Transcription routes - /api/transcribe

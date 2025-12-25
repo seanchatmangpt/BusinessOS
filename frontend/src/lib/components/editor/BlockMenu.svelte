@@ -44,29 +44,29 @@
 
 {#if $editor.slashMenuPosition}
 	<div
-		class="fixed bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden w-72"
+		class="block-menu fixed rounded-xl shadow-2xl border z-50 overflow-hidden w-72"
 		style="left: {$editor.slashMenuPosition.x}px; top: {$editor.slashMenuPosition.y}px;"
 	>
-		<div class="px-3 py-2 border-b border-gray-100">
-			<p class="text-xs text-gray-400 uppercase tracking-wider font-medium">Basic blocks</p>
+		<div class="menu-header px-3 py-2 border-b">
+			<p class="text-xs uppercase tracking-wider font-medium">Basic blocks</p>
 		</div>
 		<div class="py-1 max-h-80 overflow-auto">
 			{#each filteredTypes as blockType, idx}
 				<button
 					onclick={() => selectBlockType(blockType.type)}
 					onmouseenter={() => selectedIndex = idx}
-					class="w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors
-						{idx === selectedIndex ? 'bg-gray-100' : 'hover:bg-gray-50'}"
+					class="menu-item w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors
+						{idx === selectedIndex ? 'selected' : ''}"
 				>
-					<span class="w-10 h-10 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-base font-medium text-gray-600">
+					<span class="icon-box w-10 h-10 rounded-lg border flex items-center justify-center text-base font-medium">
 						{blockType.icon}
 					</span>
 					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-gray-900">{blockType.label}</div>
-						<div class="text-xs text-gray-500">{blockType.description}</div>
+						<div class="item-label text-sm font-medium">{blockType.label}</div>
+						<div class="item-desc text-xs">{blockType.description}</div>
 					</div>
 					{#if idx === selectedIndex}
-						<kbd class="px-1.5 py-0.5 text-xs bg-gray-200 rounded text-gray-500">Enter</kbd>
+						<kbd class="kbd-hint px-1.5 py-0.5 text-xs rounded">Enter</kbd>
 					{/if}
 				</button>
 			{/each}
@@ -78,3 +78,95 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Light mode (default) */
+	.block-menu {
+		background-color: white;
+		border-color: #e5e7eb;
+	}
+
+	.menu-header {
+		border-color: #f3f4f6;
+	}
+
+	.menu-header p {
+		color: #9ca3af;
+	}
+
+	.menu-item {
+		color: #374151;
+	}
+
+	.menu-item:hover {
+		background-color: #f9fafb;
+	}
+
+	.menu-item.selected {
+		background-color: #f3f4f6;
+	}
+
+	.icon-box {
+		background-color: #f9fafb;
+		border-color: #e5e7eb;
+		color: #4b5563;
+	}
+
+	.item-label {
+		color: #111827;
+	}
+
+	.item-desc {
+		color: #6b7280;
+	}
+
+	.kbd-hint {
+		background-color: #e5e7eb;
+		color: #6b7280;
+	}
+
+	/* Dark mode */
+	:global(.dark) .block-menu {
+		background-color: #2c2c2e;
+		border-color: #374151;
+	}
+
+	:global(.dark) .menu-header {
+		border-color: rgba(55, 65, 81, 0.5);
+	}
+
+	:global(.dark) .menu-header p {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .menu-item {
+		color: #e5e7eb;
+	}
+
+	:global(.dark) .menu-item:hover {
+		background-color: rgba(55, 65, 81, 0.5);
+	}
+
+	:global(.dark) .menu-item.selected {
+		background-color: #374151;
+	}
+
+	:global(.dark) .icon-box {
+		background-color: #1f2937;
+		border-color: #4b5563;
+		color: #d1d5db;
+	}
+
+	:global(.dark) .item-label {
+		color: #f3f4f6;
+	}
+
+	:global(.dark) .item-desc {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .kbd-hint {
+		background-color: #4b5563;
+		color: #d1d5db;
+	}
+</style>

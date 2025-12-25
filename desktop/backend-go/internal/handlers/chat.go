@@ -20,18 +20,20 @@ import (
 
 // SendMessageRequest represents the request body for sending a message
 type SendMessageRequest struct {
-	Message        string             `json:"message" binding:"required"`
-	ConversationID *string            `json:"conversation_id"`
-	ContextID      *string            `json:"context_id"`
-	ProjectID      *string            `json:"project_id"`
-	Model          *string            `json:"model"`
-	AgentType      *string            `json:"agent_type"`      // orchestrator, document, analysis, planning
-	FocusMode      *string            `json:"focus_mode"`      // research, analyze, write, build, general
-	FocusOptions   map[string]string  `json:"focus_options"`   // depth, output, searchScope, etc.
-	Command        *string            `json:"command"`         // slash command: analyze, summarize, explain, etc.
-	Temperature    *float64           `json:"temperature"`
-	MaxTokens      *int               `json:"max_tokens"`
-	TopP           *float64           `json:"top_p"`
+	Message        string            `json:"message" binding:"required"`
+	ConversationID *string           `json:"conversation_id"`
+	ContextID      *string           `json:"context_id"`       // Legacy: single context ID
+	ContextIDs     []string          `json:"context_ids"`      // NEW: Multiple context IDs for tiered context
+	ProjectID      *string           `json:"project_id"`
+	NodeID         *string           `json:"node_id"`          // NEW: Business node context
+	Model          *string           `json:"model"`
+	AgentType      *string           `json:"agent_type"`       // orchestrator, document, analysis, planning
+	FocusMode      *string           `json:"focus_mode"`       // research, analyze, write, build, general
+	FocusOptions   map[string]string `json:"focus_options"`    // depth, output, searchScope, etc.
+	Command        *string           `json:"command"`          // slash command: analyze, summarize, explain, etc.
+	Temperature    *float64          `json:"temperature"`
+	MaxTokens      *int              `json:"max_tokens"`
+	TopP           *float64          `json:"top_p"`
 }
 
 // ListConversations returns all conversations for the current user
@@ -284,15 +286,38 @@ func (h *Handlers) SendMessage(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// Parse optional IDs
-	var contextID, projectID *uuid.UUID
+	var contextID, projectID, nodeID *uuid.UUID
+	var contextIDs []uuid.UUID
+
+	// Legacy single context ID
 	if req.ContextID != nil {
 		if parsed, err := uuid.Parse(*req.ContextID); err == nil {
 			contextID = &parsed
 		}
 	}
+
+	// NEW: Multiple context IDs for tiered context
+	for _, cidStr := range req.ContextIDs {
+		if parsed, err := uuid.Parse(cidStr); err == nil {
+			contextIDs = append(contextIDs, parsed)
+		}
+	}
+
+	// If no contextIDs but legacy contextID exists, use it
+	if len(contextIDs) == 0 && contextID != nil {
+		contextIDs = append(contextIDs, *contextID)
+	}
+
 	if req.ProjectID != nil {
 		if parsed, err := uuid.Parse(*req.ProjectID); err == nil {
 			projectID = &parsed
+		}
+	}
+
+	// NEW: Business node ID
+	if req.NodeID != nil {
+		if parsed, err := uuid.Parse(*req.NodeID); err == nil {
+			nodeID = &parsed
 		}
 	}
 
@@ -438,15 +463,57 @@ func (h *Handlers) SendMessage(c *gin.Context) {
 		llmOptions.TopP = *req.TopP
 	}
 
+	// Build context for AI - prefer tiered context if available and contexts are selected
+	var ragContext string
+
+	// Use tiered context system if available and user has selected contexts or project
+	if h.tieredContextService != nil && (len(contextIDs) > 0 || projectID != nil || nodeID != nil) {
+		tieredReq := services.TieredContextRequest{
+			UserID:     user.ID,
+			ContextIDs: contextIDs,
+			ProjectID:  projectID,
+			NodeID:     nodeID,
+		}
+
+		tieredCtx, err := h.tieredContextService.BuildTieredContext(streamCtx, tieredReq)
+		if err == nil && tieredCtx != nil {
+			// Perform scoped RAG search within selected contexts
+			if len(contextIDs) > 0 {
+				relevantBlocks, err := h.tieredContextService.ScopedRAGSearch(streamCtx, req.Message, contextIDs, user.ID, 5)
+				if err == nil && len(relevantBlocks) > 0 {
+					tieredCtx.Level1.RelevantRAG = relevantBlocks
+					fmt.Printf("[Chat] Tiered context: scoped RAG found %d relevant blocks\n", len(relevantBlocks))
+				}
+			}
+
+			ragContext = tieredCtx.FormatForAI()
+			fmt.Printf("[Chat] Tiered context built: Level1(project=%v, contexts=%d), Level2(projects=%d, siblings=%d)\n",
+				tieredCtx.Level1.Project != nil, len(tieredCtx.Level1.Contexts),
+				len(tieredCtx.Level2.OtherProjects), len(tieredCtx.Level2.SiblingContexts))
+		}
+	} else if h.contextBuilder != nil {
+		// Fallback to legacy global RAG search
+		hc, err := h.contextBuilder.BuildContext(streamCtx, req.Message, user.ID, 5)
+		if err == nil && len(hc.RelevantBlocks) > 0 {
+			ragContext = hc.FormatForAI()
+			fmt.Printf("[Chat] RAG context retrieved (legacy): %d relevant blocks\n", len(hc.RelevantBlocks))
+		}
+	}
+
 	if customPrompt && contextID != nil {
 		// Use direct LLM service with custom prompt
 		contextDoc, _ := queries.GetContext(ctx, sqlc.GetContextParams{
 			ID:     pgtype.UUID{Bytes: *contextID, Valid: true},
 			UserID: user.ID,
 		})
+		// Combine RAG context with custom prompt
+		systemPrompt := *contextDoc.SystemPromptTemplate
+		if ragContext != "" {
+			systemPrompt = ragContext + "\n\n---\n\n" + systemPrompt
+		}
 		llm := services.NewLLMService(h.cfg, model)
 		llm.SetOptions(llmOptions)
-		chunks, errs = llm.StreamChat(streamCtx, chatMessages, *contextDoc.SystemPromptTemplate)
+		chunks, errs = llm.StreamChat(streamCtx, chatMessages, systemPrompt)
 		agentName = "custom_prompt"
 	} else {
 		// Get project context if project is selected
@@ -468,10 +535,21 @@ func (h *Handlers) SendMessage(c *gin.Context) {
 			}
 		}
 
+		// Inject RAG context as a system message if available
+		messagesWithRAG := chatMessages
+		if ragContext != "" {
+			// Prepend RAG context as a system message
+			ragMessage := services.ChatMessage{
+				Role:    "system",
+				Content: ragContext,
+			}
+			messagesWithRAG = append([]services.ChatMessage{ragMessage}, chatMessages...)
+		}
+
 		// Use agent system with context
 		agent := agents.GetAgentWithContext(agentType, h.pool, h.cfg, user.ID, convUUID, model, user.Name, projectCtx)
 		agent.SetOptions(llmOptions)
-		chunks, errs = agent.Run(streamCtx, chatMessages)
+		chunks, errs = agent.Run(streamCtx, messagesWithRAG)
 		agentName = string(agentType)
 	}
 
