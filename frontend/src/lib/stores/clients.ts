@@ -17,6 +17,7 @@ import {
 	type CreateDealData,
 	type UpdateDealData
 } from '$lib/api/clients';
+import { getAllDeals, updateDealStage } from '$lib/api/deals';
 
 export type ViewMode = 'table' | 'cards' | 'kanban';
 
@@ -297,7 +298,7 @@ function createClientsStore() {
 		async loadAllDeals(stage?: DealStage) {
 			update((s) => ({ ...s, loading: true, error: null }));
 			try {
-				const deals = await api.getAllDeals(stage);
+				const deals = await getAllDeals(stage);
 				update((s) => ({ ...s, allDeals: deals, loading: false }));
 			} catch (error) {
 				console.error('Failed to load deals:', error);
@@ -362,7 +363,7 @@ function createClientsStore() {
 
 		async updateDealStage(dealId: string, stage: DealStage) {
 			try {
-				const deal = await api.updateDealStage(dealId, stage);
+				const deal = await updateDealStage(dealId, stage);
 				update((s) => ({
 					...s,
 					currentClient: s.currentClient
