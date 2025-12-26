@@ -1,0 +1,19 @@
+# AUTO-GENERATED PRIME CONTEXT
+# Generated: Sun Dec 21 03:04:46 +07 2025
+# Project: BusinessOS
+# Type: unknown
+
+## Project Detection
+- Directory: /Users/rhl/Desktop/BusinessOS
+- Type: unknown
+- Package Manager: unknown
+
+## Recommended Agents
+- @explorer (to understand codebase)
+- @codebase-analyzer (to detect patterns)
+
+## Framework Context
+- Unknown project type
+- Run @codebase-analyzer to understand structure
+
+## Key Files Detected

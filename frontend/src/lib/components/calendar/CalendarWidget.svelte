@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { api, type CalendarEvent } from '$lib/api/client';
+	import type { CalendarEvent } from '$lib/api/calendar';
+	import type { GoogleConnectionStatus } from '$lib/api/integrations';
+	import { getTodayEvents } from '$lib/api/calendar';
+	import { getGoogleConnectionStatus } from '$lib/api/integrations';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -21,11 +24,11 @@
 
 	async function checkConnectionAndLoadEvents() {
 		try {
-			const status = await api.getGoogleConnectionStatus();
+			const status = await getGoogleConnectionStatus();
 			isConnected = status.connected;
 
 			if (status.connected) {
-				const todayEvents = await api.getTodayEvents();
+				const todayEvents = await getTodayEvents();
 				events = todayEvents.slice(0, maxEvents);
 			}
 		} catch (err) {

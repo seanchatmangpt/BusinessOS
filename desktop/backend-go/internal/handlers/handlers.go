@@ -110,10 +110,18 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	{
 		projects.GET("", h.ListProjects)
 		projects.POST("", h.CreateProject)
+		projects.GET("/stats", h.GetProjectStats)
+		projects.GET("/overdue", h.GetOverdueProjects)
+		projects.GET("/upcoming", h.GetUpcomingProjects)
 		projects.GET("/:id", h.GetProject)
 		projects.PUT("/:id", h.UpdateProject)
 		projects.DELETE("/:id", h.DeleteProject)
 		projects.POST("/:id/notes", h.AddProjectNote)
+		// Project members (team assignment)
+		projects.GET("/:id/members", h.ListProjectMembers)
+		projects.POST("/:id/members", h.AddProjectMember)
+		projects.PUT("/:id/members/:memberId", h.UpdateProjectMemberRole)
+		projects.DELETE("/:id/members/:memberId", h.RemoveProjectMember)
 	}
 
 	// Clients routes - /api/clients
@@ -319,9 +327,17 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	googleOAuthHandler := NewGoogleOAuthHandler(calendarService)
 	calendarHandler := NewCalendarHandler(h, calendarService)
 
-	// Google OAuth integration routes - /api/integrations/google
+	slackService := services.NewSlackService(h.pool)
+	slackOAuthHandler := NewSlackOAuthHandler(slackService)
+
+	// Initialize Notion service and handlers
+	notionService := services.NewNotionService(h.pool)
+	notionOAuthHandler := NewNotionOAuthHandler(notionService)
+
+	// Integration routes - /api/integrations
 	integrations := api.Group("/integrations")
 	{
+		// Google OAuth integration routes - /api/integrations/google
 		google := integrations.Group("/google")
 		google.Use(auth)
 		{
@@ -331,6 +347,31 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		}
 		// Callback doesn't need auth (user redirected from Google)
 		integrations.GET("/google/callback", googleOAuthHandler.HandleGoogleCallback)
+
+		// Slack OAuth integration routes - /api/integrations/slack
+		slackRoutes := integrations.Group("/slack")
+		slackRoutes.Use(auth)
+		{
+			slackRoutes.GET("/auth", slackOAuthHandler.InitiateSlackAuth)
+			slackRoutes.GET("/status", slackOAuthHandler.GetSlackConnectionStatus)
+			slackRoutes.DELETE("", slackOAuthHandler.DisconnectSlack)
+		}
+		// Callback doesn't need auth (user redirected from Slack)
+		integrations.GET("/slack/callback", slackOAuthHandler.HandleSlackCallback)
+
+		// Notion OAuth integration routes - /api/integrations/notion
+		notionRoutes := integrations.Group("/notion")
+		notionRoutes.Use(auth)
+		{
+			notionRoutes.GET("/auth", notionOAuthHandler.InitiateNotionAuth)
+			notionRoutes.GET("/status", notionOAuthHandler.GetNotionConnectionStatus)
+			notionRoutes.GET("/databases", notionOAuthHandler.GetNotionDatabases)
+			notionRoutes.GET("/pages", notionOAuthHandler.GetNotionPages)
+			notionRoutes.GET("/search", notionOAuthHandler.SearchNotion)
+			notionRoutes.DELETE("", notionOAuthHandler.DisconnectNotion)
+		}
+		// Callback doesn't need auth (user redirected from Notion)
+		integrations.GET("/notion/callback", notionOAuthHandler.HandleNotionCallback)
 	}
 
 	// Calendar routes - /api/calendar
@@ -370,6 +411,30 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		filesystem.POST("/upload", h.UploadFile)
 		filesystem.DELETE("/delete", h.DeleteFileOrDir)
 	}
+
+	// Sync routes - /api/sync
+	syncRoutes := api.Group("/sync")
+	syncRoutes.Use(auth)
+	{
+		syncRoutes.GET("/status", h.GetSyncStatus)
+		syncRoutes.GET("/full", h.FullSync)
+		syncRoutes.GET("/:table", h.GetSyncChanges)
+	}
+
+	// Also add sync endpoints on individual tables for the sync engine
+	// These return changes since a given timestamp
+	api.GET("/contexts/sync", auth, h.createTableSyncHandler("contexts"))
+	api.GET("/conversations/sync", auth, h.createTableSyncHandler("conversations"))
+	api.GET("/projects/sync", auth, h.createTableSyncHandler("projects"))
+	api.GET("/tasks/sync", auth, h.createTableSyncHandler("tasks"))
+	api.GET("/nodes/sync", auth, h.createTableSyncHandler("nodes"))
+	api.GET("/clients/sync", auth, h.createTableSyncHandler("clients"))
+	api.GET("/calendar_events/sync", auth, h.createTableSyncHandler("calendar_events"))
+	api.GET("/daily_logs/sync", auth, h.createTableSyncHandler("daily_logs"))
+	api.GET("/team_members/sync", auth, h.createTableSyncHandler("team_members"))
+	api.GET("/artifacts/sync", auth, h.createTableSyncHandler("artifacts"))
+	api.GET("/focus_items/sync", auth, h.createTableSyncHandler("focus_items"))
+	api.GET("/user_settings/sync", auth, h.createTableSyncHandler("user_settings"))
 
 	// Authentication routes - /api/auth
 	// Apply strict rate limiting to prevent brute force attacks

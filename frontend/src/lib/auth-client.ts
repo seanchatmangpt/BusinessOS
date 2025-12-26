@@ -7,8 +7,9 @@ const isElectron = typeof window !== 'undefined' && 'electron' in window;
 const isDev = typeof window !== 'undefined' &&
 	(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-// Local backend URL for development
+// Backend URLs
 const LOCAL_BACKEND_URL = 'http://localhost:8001';
+const CLOUD_RUN_URL = 'https://businessos-api-460433387676.us-central1.run.app';
 
 // App mode store - 'cloud' or 'local'
 export const appMode = writable<'cloud' | 'local' | null>(null);
@@ -19,11 +20,12 @@ if (typeof window !== 'undefined') {
 	let savedMode = localStorage.getItem('businessos_mode') as 'cloud' | 'local' | null;
 	let savedUrl = localStorage.getItem('businessos_cloud_url') || '';
 
-	// In dev mode, automatically use local backend if no URL is configured
-	if (isDev && !savedUrl) {
-		savedUrl = LOCAL_BACKEND_URL;
+	// Auto-configure backend URL based on environment
+	if (!savedUrl) {
+		// In dev mode, use local backend; in production, use Cloud Run
+		savedUrl = isDev ? LOCAL_BACKEND_URL : CLOUD_RUN_URL;
 		localStorage.setItem('businessos_cloud_url', savedUrl);
-		// Auto-set to cloud mode pointing to local backend for dev
+		// Auto-set to cloud mode
 		if (!savedMode) {
 			savedMode = 'cloud';
 			localStorage.setItem('businessos_mode', 'cloud');
@@ -47,11 +49,12 @@ export function setAppMode(mode: 'cloud' | 'local', serverUrl?: string) {
 }
 
 // Google OAuth - initiate OAuth flow
-export function initiateGoogleOAuth(serverUrl?: string) {
+// Returns true on success, false on failure
+export function initiateGoogleOAuth(serverUrl?: string): boolean {
 	const baseUrl = serverUrl || get(cloudServerUrl);
 	if (!baseUrl) {
 		console.error('No cloud server URL configured');
-		return;
+		return false;
 	}
 
 	// In Electron, open system browser for OAuth
@@ -66,6 +69,7 @@ export function initiateGoogleOAuth(serverUrl?: string) {
 		// Standard web redirect
 		window.location.href = authUrl;
 	}
+	return true;
 }
 
 // Email/Password Sign Up
@@ -147,26 +151,49 @@ export async function getSession(serverUrl?: string) {
 }
 
 // Sign out
-export async function signOutFromServer(serverUrl?: string) {
+// Returns { success: true } or { success: false, error: string }
+export async function signOutFromServer(serverUrl?: string): Promise<{ success: boolean; error?: string }> {
 	const baseUrl = serverUrl || get(cloudServerUrl);
-	if (!baseUrl) return;
+	if (!baseUrl) {
+		console.error('No cloud server URL configured for sign out');
+		// Still redirect to clear client-side state
+		window.location.href = '/';
+		return { success: false, error: 'No cloud server URL configured' };
+	}
 
 	try {
-		await fetch(`${baseUrl}/api/auth/logout`, {
+		const response = await fetch(`${baseUrl}/api/auth/logout`, {
 			method: 'POST',
 			credentials: 'include'
 		});
+
+		if (!response.ok) {
+			const errorText = await response.text().catch(() => 'Unknown error');
+			console.error(`Sign out failed with status ${response.status}: ${errorText}`);
+			// Still redirect to clear client-side state even if server fails
+			window.location.href = '/';
+			return { success: false, error: `Server returned ${response.status}` };
+		}
 	} catch (err) {
-		console.error('Sign out error:', err);
+		const errorMessage = err instanceof Error ? err.message : 'Network error';
+		console.error('Sign out error:', errorMessage);
+		// Still redirect to clear client-side state
+		window.location.href = '/';
+		return { success: false, error: errorMessage };
 	}
 
 	// Clear local session state
 	window.location.href = '/';
+	return { success: true };
 }
 
-// For Local mode: Create a fake "logged in" session
+// For Local mode: Create a local-only session
+// IMPORTANT: This is a synthetic session for Electron local mode only.
+// It does NOT represent actual server authentication.
+// The `isLocalMode` flag distinguishes this from real authenticated sessions.
 const localSession = writable({
 	isPending: false,
+	isLocalMode: true, // Flag to indicate this is a synthetic local session
 	data: {
 		user: {
 			id: 'local-user',
@@ -179,6 +206,14 @@ const localSession = writable({
 	},
 	error: null
 });
+
+// Log when local mode session is used (helps debug auth issues)
+if (typeof window !== 'undefined' && isElectron) {
+	const mode = localStorage.getItem('businessos_mode');
+	if (mode === 'local') {
+		console.info('[Auth] Using local mode - no server authentication required');
+	}
+}
 
 // For when mode is not yet selected - return a "pending" state
 const pendingSession = writable({
