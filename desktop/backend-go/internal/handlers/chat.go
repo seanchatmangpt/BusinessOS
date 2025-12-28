@@ -869,6 +869,13 @@ func (h *Handlers) AnalyzeContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"analysis": response})
 }
 
+// TeamMember represents a team member for task assignment
+type TeamMember struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Role string `json:"role"`
+}
+
 // ExtractTasks extracts actionable tasks from content
 func (h *Handlers) ExtractTasks(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
@@ -878,11 +885,27 @@ func (h *Handlers) ExtractTasks(c *gin.Context) {
 	}
 
 	var req struct {
-		Content string  `json:"content" binding:"required"`
-		Model   *string `json:"model"`
+		// Support both formats: legacy "content" and new artifact format
+		Content         string       `json:"content"`
+		ArtifactTitle   string       `json:"artifact_title"`
+		ArtifactContent string       `json:"artifact_content"`
+		ArtifactType    string       `json:"artifact_type"`
+		TeamMembers     []TeamMember `json:"team_members"`
+		Model           *string      `json:"model"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Use artifact_content if provided, fallback to content
+	content := req.Content
+	if req.ArtifactContent != "" {
+		content = req.ArtifactContent
+	}
+
+	if content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content or artifact_content is required"})
 		return
 	}
 
@@ -891,15 +914,36 @@ func (h *Handlers) ExtractTasks(c *gin.Context) {
 		model = *req.Model
 	}
 
+	// Build team member context if available
+	teamContext := ""
+	if len(req.TeamMembers) > 0 {
+		teamContext = "\n\nAvailable team members for task assignment:\n"
+		for _, tm := range req.TeamMembers {
+			teamContext += fmt.Sprintf("- %s (ID: %s, Role: %s)\n", tm.Name, tm.ID, tm.Role)
+		}
+		teamContext += "\nWhen appropriate, suggest an assignee_id from the available team members."
+	}
+
 	// Use Planning agent for task extraction
 	agent := agents.NewPlanningAgent(h.pool, h.cfg, user.ID, nil, model)
 
-	prompt := `Extract actionable tasks from the following content. Return them as a JSON array of objects with "title", "description", and "priority" (high/medium/low) fields.
+	artifactContext := ""
+	if req.ArtifactTitle != "" {
+		artifactContext = fmt.Sprintf("\nArtifact Title: %s\nArtifact Type: %s\n", req.ArtifactTitle, req.ArtifactType)
+	}
 
-Content:
-` + req.Content + `
+	prompt := fmt.Sprintf(`Extract actionable tasks from the following content. Return them as a JSON array of objects with these fields:
+- "title": string (concise task title)
+- "description": string (detailed description)
+- "priority": string ("high", "medium", or "low")
+- "assignee_id": string (optional, ID of suggested assignee from team members)
+- "due_date": string (optional, suggested due date in YYYY-MM-DD format)
+%s
+%sContent:
+%s
 
-Return only valid JSON, no other text.`
+Return only valid JSON array, no other text. Example: [{"title": "...", "description": "...", "priority": "high"}]`,
+		teamContext, artifactContext, content)
 
 	messages := []services.ChatMessage{
 		{Role: "user", Content: prompt},

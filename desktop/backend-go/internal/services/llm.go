@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"github.com/rhl/businessos-backend/internal/config"
@@ -78,8 +79,67 @@ type LLMService interface {
 	GetOptions() LLMOptions
 }
 
+// InferProviderFromModel determines the appropriate provider based on model name
+// This allows users to select models from different providers without changing global config
+func InferProviderFromModel(model string) string {
+	lowerModel := strings.ToLower(model)
+
+	// Anthropic/Claude models
+	if strings.HasPrefix(lowerModel, "claude") {
+		return "anthropic"
+	}
+
+	// Groq models - common model identifiers
+	groqModels := []string{
+		"llama-3.3-70b", "llama-3.1-70b", "llama-3.1-8b",
+		"llama3-70b", "llama3-8b", "llama3-groq",
+		"mixtral-8x7b", "gemma2-9b-it", "gemma-7b-it",
+		"whisper-large", "llama-guard",
+	}
+	for _, groqModel := range groqModels {
+		if strings.Contains(lowerModel, groqModel) {
+			return "groq"
+		}
+	}
+
+	// OpenRouter-style models (provider/model format) - route through Groq
+	if strings.Contains(model, "/") {
+		return "groq"
+	}
+
+	// Models with -cloud suffix use Ollama Cloud
+	if strings.HasSuffix(lowerModel, "-cloud") {
+		return "ollama_cloud"
+	}
+
+	// Return empty to use default/global provider
+	return ""
+}
+
 // NewLLMService creates the appropriate LLM service based on configuration
+// It first tries to infer the provider from the model name, falling back to global config
 func NewLLMService(cfg *config.Config, model string) LLMService {
+	// First try to infer provider from model name
+	inferredProvider := InferProviderFromModel(model)
+	if inferredProvider != "" {
+		switch inferredProvider {
+		case "anthropic":
+			if cfg.AnthropicAPIKey != "" {
+				return NewAnthropicService(cfg, model)
+			}
+		case "groq":
+			if cfg.GroqAPIKey != "" {
+				return NewGroqService(cfg, model)
+			}
+		case "ollama_cloud":
+			if cfg.OllamaCloudAPIKey != "" {
+				return NewOllamaCloudService(cfg, model)
+			}
+		}
+		// If inferred provider doesn't have API key, fall through to global config
+	}
+
+	// Fall back to global config
 	switch cfg.GetActiveProvider() {
 	case "ollama_cloud":
 		return NewOllamaCloudService(cfg, model)

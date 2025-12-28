@@ -77,6 +77,8 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		artifacts.PATCH("/:id", h.UpdateArtifact)
 		artifacts.PATCH("/:id/link", h.LinkArtifact)
 		artifacts.DELETE("/:id", h.DeleteArtifact)
+		artifacts.GET("/:id/versions", h.GetArtifactVersions)
+		artifacts.POST("/:id/restore", h.RestoreArtifactVersion)
 	}
 
 	// Contexts routes - /api/contexts

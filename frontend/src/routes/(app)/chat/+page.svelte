@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick, onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { api, apiClient, type ArtifactListItem, type Artifact, type Node, type ContextListItem } from '$lib/api';
+	import { api, apiClient, type ArtifactListItem, type Artifact, type ArtifactVersion, type Node, type ContextListItem } from '$lib/api';
 	import FocusModeSelector from '$lib/components/chat/FocusModeSelector.svelte';
 	import ProgressPanel, { type DelegatedTask } from '$lib/components/chat/ProgressPanel.svelte';
 	import ContextPanel, { type ActiveResource } from '$lib/components/chat/ContextPanel.svelte';
@@ -80,7 +80,7 @@
 		id: string;
 		role: 'user' | 'assistant';
 		content: string;
-		artifacts?: { title: string; type: string; content: string }[];
+		artifacts?: { id?: string; title: string; type: string; content: string }[];
 		usage?: UsageData;
 	}
 
@@ -104,6 +104,7 @@
 	let aiTemperature = $state(0.7);
 	let aiMaxTokens = $state(8192);
 	let aiTopP = $state(0.9);
+	let aiContextWindow = $state(0); // 0 = use model default, otherwise use saved setting
 
 	// Focus Mode state
 	let focusModeEnabled = $state(true); // Focus vs Classic mode
@@ -209,7 +210,7 @@
 	let rightPanelResizeStartWidth = $state(0);
 
 	// Currently viewing artifact in panel
-	let viewingArtifactFromMessage: { title: string; type: string; content: string } | null = $state(null);
+	let viewingArtifactFromMessage: { id?: string; title: string; type: string; content: string } | null = $state(null);
 
 	// Derived: Whether we're actively viewing/generating an artifact (use split view)
 	let isArtifactFocused = $derived(viewingArtifactFromMessage !== null || generatingArtifact || selectedArtifact !== null);
@@ -261,6 +262,18 @@
 	let selectedProfileForSave: string = $state('');
 	let savingArtifactToProfile = $state(false);
 
+	// Artifact version history
+	let showVersionHistory = $state(false);
+	let artifactVersions = $state<ArtifactVersion[]>([]);
+	let loadingVersions = $state(false);
+	let restoringVersion = $state(false);
+
+	// Sync to KB state
+	let showSyncToKBDropdown = $state(false);
+	let availableContextsForSync = $state<ContextListItem[]>([]);
+	let loadingContextsForSync = $state(false);
+	let syncingToKB = $state(false);
+
 	// Legacy - keeping for compatibility
 	let showSaveToNodeModal = $state(false);
 	let availableNodes: Node[] = $state([]);
@@ -298,7 +311,7 @@
 	let generatingTasks = $state(false);
 	let generatedTasks = $state<GeneratedTask[]>([]);
 	let selectedProjectForTasks = $state<string>('');
-	let taskGenerationArtifact = $state<{ title: string; type: string; content: string } | null>(null);
+	let taskGenerationArtifact = $state<{ id?: string; title: string; type: string; content: string } | null>(null);
 	let availableProjects = $state<{ id: string; name: string }[]>([]);
 	let availableTeamMembers = $state<{ id: string; name: string; role: string }[]>([]);
 
@@ -306,6 +319,17 @@
 	let showInlineTaskCreation = $state(false);
 	let inlineTasksForArtifact = $state<GeneratedTask[]>([]);
 	let creatingInlineTasks = $state(false);
+
+	// Artifact dropdown state
+	let openArtifactDropdownId = $state<string | null>(null);
+
+	function toggleArtifactDropdown(artifactId: string) {
+		openArtifactDropdownId = openArtifactDropdownId === artifactId ? null : artifactId;
+	}
+
+	function closeArtifactDropdown() {
+		openArtifactDropdownId = null;
+	}
 
 	// Load available nodes for saving
 	async function loadAvailableNodes() {
@@ -456,8 +480,24 @@
 	}
 
 	// Generate tasks from artifact
-	async function generateTasksFromArtifact(artifact: { title: string; type: string; content: string }) {
-		taskGenerationArtifact = artifact;
+	async function generateTasksFromArtifact(artifact: { id?: string; title: string; type: string; content: string }) {
+		// If artifact has ID but no content, load content first
+		let artifactWithContent = artifact;
+		if (artifact.id && !artifact.content) {
+			try {
+				const fullArtifact = await api.getArtifact(artifact.id);
+				artifactWithContent = {
+					id: fullArtifact.id,
+					title: fullArtifact.title,
+					type: fullArtifact.type,
+					content: fullArtifact.content
+				};
+			} catch (e) {
+				console.error('Failed to load artifact content:', e);
+			}
+		}
+
+		taskGenerationArtifact = artifactWithContent;
 		showTaskGenerationModal = true;
 		generatingTasks = true;
 		generatedTasks = [];
@@ -485,8 +525,8 @@
 				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',
 				body: JSON.stringify({
-					artifact_title: artifact.title,
-					artifact_content: artifact.content,
+					artifact_title: artifactWithContent.title,
+					artifact_content: artifactWithContent.content,
 					artifact_type: artifact.type,
 					team_members: availableTeamMembers
 				})
@@ -853,7 +893,11 @@ Use this context to inform your responses.`;
 					if (typeof settings.model_settings.top_p === 'number') {
 						aiTopP = settings.model_settings.top_p;
 					}
-					console.log('[Chat] Loaded AI settings:', { temperature: aiTemperature, max_tokens: aiMaxTokens, top_p: aiTopP });
+					// Load context window setting
+					if (typeof settings.model_settings.contextWindow === 'number' && settings.model_settings.contextWindow > 0) {
+						aiContextWindow = settings.model_settings.contextWindow;
+					}
+					console.log('[Chat] Loaded AI settings:', { temperature: aiTemperature, max_tokens: aiMaxTokens, top_p: aiTopP, contextWindow: aiContextWindow });
 				}
 			}
 		} catch (error) {
@@ -1136,6 +1180,84 @@ Use this context to inform your responses.`;
 
 	function closeArtifactDetail() {
 		selectedArtifact = null;
+		showVersionHistory = false;
+		artifactVersions = [];
+	}
+
+	async function loadVersionHistory(artifactId: string) {
+		loadingVersions = true;
+		try {
+			const versions = await api.getArtifactVersions(artifactId);
+			artifactVersions = versions;
+			showVersionHistory = true;
+		} catch (error) {
+			console.error('Failed to load version history:', error);
+			artifactVersions = [];
+		} finally {
+			loadingVersions = false;
+		}
+	}
+
+	async function restoreVersion(version: number) {
+		if (!selectedArtifact) return;
+		restoringVersion = true;
+		try {
+			const restored = await api.restoreArtifactVersion(selectedArtifact.id, version);
+			selectedArtifact = restored;
+			showVersionHistory = false;
+		} catch (error) {
+			console.error('Failed to restore version:', error);
+		} finally {
+			restoringVersion = false;
+		}
+	}
+
+	function formatVersionDate(dateStr: string): string {
+		const date = new Date(dateStr);
+		const now = new Date();
+		const diff = now.getTime() - date.getTime();
+		const minutes = Math.floor(diff / 60000);
+		const hours = Math.floor(diff / 3600000);
+		const days = Math.floor(diff / 86400000);
+
+		if (minutes < 1) return 'Just now';
+		if (minutes < 60) return `${minutes}m ago`;
+		if (hours < 24) return `${hours}h ago`;
+		if (days < 7) return `${days}d ago`;
+		return date.toLocaleDateString();
+	}
+
+	async function loadContextsForSync() {
+		loadingContextsForSync = true;
+		try {
+			const contexts = await api.getContexts();
+			// Filter to document-type contexts or any that can hold artifact content
+			availableContextsForSync = contexts.filter(c => !c.is_archived);
+			showSyncToKBDropdown = true;
+		} catch (error) {
+			console.error('Failed to load contexts:', error);
+			availableContextsForSync = [];
+		} finally {
+			loadingContextsForSync = false;
+		}
+	}
+
+	async function syncArtifactToContext(contextId: string) {
+		if (!selectedArtifact) return;
+		syncingToKB = true;
+		try {
+			await api.linkArtifact(selectedArtifact.id, {
+				context_id: contextId,
+				sync_to_kb: true
+			});
+			showSyncToKBDropdown = false;
+			// Refresh the artifact to get updated context_id
+			selectedArtifact = await api.getArtifact(selectedArtifact.id);
+		} catch (error) {
+			console.error('Failed to sync artifact to KB:', error);
+		} finally {
+			syncingToKB = false;
+		}
 	}
 
 	function getArtifactIcon(type: string) {
@@ -1152,13 +1274,13 @@ Use this context to inform your responses.`;
 
 	function getArtifactColor(type: string) {
 		switch (type) {
-			case 'proposal': return 'text-blue-500 bg-blue-50';
-			case 'sop': return 'text-green-500 bg-green-50';
-			case 'framework': return 'text-purple-500 bg-purple-50';
-			case 'agenda': return 'text-orange-500 bg-orange-50';
-			case 'report': return 'text-red-500 bg-red-50';
-			case 'plan': return 'text-teal-500 bg-teal-50';
-			default: return 'text-gray-500 bg-gray-50';
+			case 'proposal': return 'text-blue-500 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30';
+			case 'sop': return 'text-green-500 bg-green-50 dark:text-green-400 dark:bg-green-900/30';
+			case 'framework': return 'text-purple-500 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/30';
+			case 'agenda': return 'text-orange-500 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/30';
+			case 'report': return 'text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-900/30';
+			case 'plan': return 'text-teal-500 bg-teal-50 dark:text-teal-400 dark:bg-teal-900/30';
+			default: return 'text-gray-500 bg-gray-50 dark:text-gray-400 dark:bg-gray-800';
 		}
 	}
 
@@ -1558,6 +1680,10 @@ Use this context to inform your responses.`;
 
 	// Get context limit for current model (default to 8192 if unknown)
 	let currentContextLimit = $derived(() => {
+		// If user has set a custom context window in settings, use that
+		if (aiContextWindow > 0) {
+			return aiContextWindow;
+		}
 		// Try exact match first
 		if (modelContextLimits[selectedModel]) {
 			return modelContextLimits[selectedModel];
@@ -1797,8 +1923,37 @@ Use this context to inform your responses.`;
 				return;
 			}
 
+			// Load artifacts for this conversation to associate with messages
+			let conversationArtifacts: Awaited<ReturnType<typeof api.getArtifacts>> = [];
+			try {
+				conversationArtifacts = await api.getArtifacts({ conversationId: id });
+				console.log('[selectConversation] Loaded', conversationArtifacts.length, 'artifacts for conversation');
+			} catch (e) {
+				console.error('[selectConversation] Failed to load conversation artifacts:', e);
+			}
+
+			// Create a map of message_id -> artifacts for quick lookup
+			const artifactsByMessage = new Map<string, typeof conversationArtifacts>();
+			for (const artifact of conversationArtifacts) {
+				if (artifact.message_id) {
+					const existing = artifactsByMessage.get(artifact.message_id) || [];
+					existing.push(artifact);
+					artifactsByMessage.set(artifact.message_id, existing);
+				}
+			}
+
 			messages = conv.messages.map(m => {
 				console.log('[selectConversation] Processing message:', m.id, m.role);
+
+				// Get saved artifacts for this message
+				const savedArtifacts = artifactsByMessage.get(String(m.id)) || [];
+				const savedArtifactObjs = savedArtifacts.map(a => ({
+					id: a.id,
+					title: a.title,
+					type: a.type,
+					content: '' // Content will be loaded when artifact is selected
+				}));
+
 				if (m.role === 'assistant') {
 					// Parse artifacts from assistant messages
 					const hasArtifactBlock = m.content?.includes('```artifact') ?? false;
@@ -1806,25 +1961,29 @@ Use this context to inform your responses.`;
 						console.log('[selectConversation] Content preview:', m.content.substring(0, 500));
 					}
 
-					const { cleanContent, artifacts } = parseArtifactsFromContent(m.content || '');
+					const { cleanContent, artifacts: parsedArtifacts } = parseArtifactsFromContent(m.content || '');
+
+					// Combine parsed artifacts with saved artifacts (saved ones take priority as they have IDs)
+					const allArtifacts = savedArtifactObjs.length > 0 ? savedArtifactObjs : parsedArtifacts;
 
 					return {
 						id: String(m.id),
 						role: m.role as 'user' | 'assistant',
 						content: cleanContent,
-						artifacts: artifacts.length > 0 ? artifacts : undefined
+						artifacts: allArtifacts.length > 0 ? allArtifacts : undefined
 					};
 				}
 				return {
 					id: String(m.id),
 					role: m.role as 'user' | 'assistant',
-					content: m.content || ''
+					content: m.content || '',
+					artifacts: savedArtifactObjs.length > 0 ? savedArtifactObjs : undefined
 				};
 			});
 
 			console.log('[selectConversation] Final messages state:', messages.length, 'messages');
 
-			// Load artifacts for this conversation
+			// Load all artifacts for panel (this loads artifacts for the artifact side panel)
 			loadArtifacts();
 		} catch (e) {
 			console.error('[selectConversation] Failed to load conversation:', e);
@@ -2552,8 +2711,24 @@ Use this context to inform your responses.`;
 		document.body.style.userSelect = '';
 	}
 
-	function viewArtifactInPanel(artifact: { title: string; type: string; content: string }) {
-		viewingArtifactFromMessage = artifact;
+	async function viewArtifactInPanel(artifact: { id?: string; title: string; type: string; content: string }) {
+		// If artifact has an ID (saved in database), load full content via API
+		if (artifact.id && !artifact.content) {
+			try {
+				const fullArtifact = await api.getArtifact(artifact.id);
+				viewingArtifactFromMessage = {
+					id: fullArtifact.id,
+					title: fullArtifact.title,
+					type: fullArtifact.type,
+					content: fullArtifact.content
+				};
+			} catch (e) {
+				console.error('Failed to load artifact content:', e);
+				viewingArtifactFromMessage = artifact;
+			}
+		} else {
+			viewingArtifactFromMessage = artifact;
+		}
 		selectedArtifact = null;
 		artifactsPanelOpen = true;
 	}
@@ -2894,14 +3069,14 @@ Use this context to inform your responses.`;
 	{/if}
 
 	<!-- Main Chat Area - fills remaining space (or 50% when artifact is focused) -->
-	<div class="{artifactsPanelOpen && isArtifactFocused ? 'w-1/2' : 'flex-1'} flex flex-col min-w-0 h-full bg-gray-50">
+	<div class="{artifactsPanelOpen && isArtifactFocused ? 'w-1/2' : 'flex-1'} flex flex-col min-w-0 h-full bg-gray-50 dark:bg-gray-900">
 		<!-- Toggle button - fixed header -->
-		<div class="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-gray-100 min-w-0">
+		<div class="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-gray-100 dark:border-gray-800 min-w-0">
 			<!-- Left group: Hamburger + Model Selector -->
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
 					onclick={() => chatSidebarOpen = !chatSidebarOpen}
-					class="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-colors flex-shrink-0"
+					class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors flex-shrink-0"
 				>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						{#if chatSidebarOpen}
@@ -3414,71 +3589,88 @@ Use this context to inform your responses.`;
 										{#each message.artifacts as artifact}
 											{#if artifact.content === '__generating__'}
 												<!-- Artifact is being generated - show loading card -->
-												<div class="my-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl animate-pulse">
-													<div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-														<svg class="w-5 h-5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+												<div class="my-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-xl animate-pulse">
+													<div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+														<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
 															<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 															<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 														</svg>
 													</div>
 													<div class="flex-1 min-w-0">
 														<p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{artifact.title}</p>
-														<p class="text-xs text-gray-500 capitalize">{artifact.type} &bull; Creating...</p>
+														<p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{artifact.type} &bull; Creating...</p>
 													</div>
-													<div class="h-2 w-16 bg-blue-200 rounded-full overflow-hidden">
+													<div class="h-2 w-16 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
 														<div class="h-full bg-blue-500 rounded-full animate-pulse" style="width: 60%"></div>
 													</div>
 												</div>
 											{:else}
-												<!-- Completed artifact card -->
-												<div class="my-3">
+												<!-- Completed artifact card - clean minimal design -->
+												<div class="my-3 group/artifact relative">
 													<button
 														onclick={() => viewArtifactInPanel(artifact)}
-														class="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-t-xl hover:shadow-md hover:border-blue-300 transition-all cursor-pointer w-full text-left group"
+														class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all cursor-pointer w-full text-left"
 													>
-														<div class="w-10 h-10 rounded-lg {getArtifactColor(artifact.type)} flex items-center justify-center flex-shrink-0">
-															<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<div class="w-9 h-9 rounded-lg {getArtifactColor(artifact.type)} flex items-center justify-center flex-shrink-0">
+															<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getArtifactIcon(artifact.type)} />
 															</svg>
 														</div>
 														<div class="flex-1 min-w-0">
 															<p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{artifact.title}</p>
-															<p class="text-xs text-gray-500 capitalize">{artifact.type} &bull; Click to view</p>
+															<p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{artifact.type}</p>
 														</div>
-														<svg class="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover/artifact:text-blue-500 dark:group-hover/artifact:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 														</svg>
 													</button>
-													<!-- Action buttons for artifact -->
-													<div class="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-t-0 border-gray-200 rounded-b-xl">
-														<button
-															onclick={() => generateTasksFromArtifact(artifact)}
-															class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-														>
-															<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-															</svg>
-															Generate Tasks
-														</button>
-														<button
-															onclick={() => viewArtifactInPanel(artifact)}
-															class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-														>
-															<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-															</svg>
-															View
-														</button>
-														<button
-															onclick={() => { viewingArtifactFromMessage = artifact; openSaveToProfileModal(); }}
-															class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-														>
-															<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-															</svg>
-															Save to Profile
-														</button>
+													<!-- Actions dropdown trigger - appears on hover -->
+													<div class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/artifact:opacity-100 transition-opacity">
+														<div class="relative">
+															<button
+																onclick={(e) => { e.stopPropagation(); toggleArtifactDropdown(artifact.title); }}
+																class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+															>
+																<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																	<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+																</svg>
+															</button>
+															<!-- Dropdown menu -->
+															{#if openArtifactDropdownId === artifact.title}
+																<div class="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+																	<div class="py-1">
+																		<button
+																			onclick={() => { viewArtifactInPanel(artifact); closeArtifactDropdown(); }}
+																			class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+																		>
+																			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+																				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+																			</svg>
+																			View Full
+																		</button>
+																		<button
+																			onclick={() => { generateTasksFromArtifact(artifact); closeArtifactDropdown(); }}
+																			class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+																		>
+																			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+																			</svg>
+																			Generate Tasks
+																		</button>
+																		<button
+																			onclick={() => { viewingArtifactFromMessage = artifact; openSaveToProfileModal(); closeArtifactDropdown(); }}
+																			class="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+																		>
+																			<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+																			</svg>
+																			Save to Profile
+																		</button>
+																	</div>
+																</div>
+															{/if}
+														</div>
 													</div>
 												</div>
 											{/if}
@@ -3491,23 +3683,23 @@ Use this context to inform your responses.`;
 											{#if part.type === 'artifact' && part.artifact}
 												<button
 													onclick={() => viewArtifactInPanel(part.artifact!)}
-													class="my-3 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl hover:shadow-md hover:border-blue-300 transition-all cursor-pointer w-full text-left group"
+													class="my-3 flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all cursor-pointer w-full text-left group"
 												>
-													<div class="w-10 h-10 rounded-lg {getArtifactColor(part.artifact.type)} flex items-center justify-center flex-shrink-0">
-														<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<div class="w-9 h-9 rounded-lg {getArtifactColor(part.artifact.type)} flex items-center justify-center flex-shrink-0">
+														<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getArtifactIcon(part.artifact.type)} />
 														</svg>
 													</div>
 													<div class="flex-1 min-w-0">
-														<p class="text-sm font-medium text-gray-900 truncate">{part.artifact.title}</p>
-														<p class="text-xs text-gray-500 capitalize">{part.artifact.type} &bull; Click to view</p>
+														<p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{part.artifact.title}</p>
+														<p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{part.artifact.type}</p>
 													</div>
-													<svg class="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 													</svg>
 												</button>
 											{:else if part.type === 'text' && part.text && !message.content}
-												<p class="text-[15px] leading-relaxed text-gray-800 whitespace-pre-wrap">{part.text}</p>
+												<p class="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{part.text}</p>
 											{/if}
 										{/each}
 									{/if}
@@ -3516,17 +3708,19 @@ Use this context to inform your responses.`;
 
 								<!-- Inline Task Creation (after artifact) -->
 								{#if isLastMessage && showInlineTaskCreation}
-									<div class="my-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+									<div class="my-4 p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl">
 										<div class="flex items-center justify-between mb-3">
 											<div class="flex items-center gap-2">
-												<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-												</svg>
-												<h4 class="font-medium text-gray-900">Create Tasks from Artifact?</h4>
+												<div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+													<svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+													</svg>
+												</div>
+												<h4 class="font-medium text-gray-900 dark:text-gray-100">Generated Tasks</h4>
 											</div>
 											<button
 												onclick={dismissInlineTasks}
-												class="p-1 text-gray-400 hover:text-gray-600 rounded"
+												class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
 											>
 												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -3536,37 +3730,37 @@ Use this context to inform your responses.`;
 
 										{#if creatingInlineTasks}
 											<div class="flex items-center gap-2 py-4 justify-center">
-												<svg class="w-5 h-5 animate-spin text-green-600" fill="none" viewBox="0 0 24 24">
+												<svg class="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
 													<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 													<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 												</svg>
-												<span class="text-sm text-gray-600">Analyzing artifact and generating tasks...</span>
+												<span class="text-sm text-gray-600 dark:text-gray-300">Analyzing artifact and generating tasks...</span>
 											</div>
 										{:else if inlineTasksForArtifact.length === 0}
-											<p class="text-sm text-gray-500 text-center py-3">No actionable tasks found in this artifact.</p>
+											<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-3">No actionable tasks found in this artifact.</p>
 											<button
 												onclick={dismissInlineTasks}
-												class="w-full mt-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+												class="w-full mt-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
 											>
 												Dismiss
 											</button>
 										{:else}
 											<div class="space-y-2 mb-4 max-h-64 overflow-y-auto">
 												{#each inlineTasksForArtifact as task, i}
-													<div class="flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200">
+													<div class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
 														<div class="flex-1 min-w-0">
-															<p class="text-sm font-medium text-gray-900">{task.title}</p>
+															<p class="text-sm font-medium text-gray-900 dark:text-gray-100">{task.title}</p>
 															{#if task.description}
-																<p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{task.description}</p>
+																<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{task.description}</p>
 															{/if}
 															<div class="flex items-center gap-2 mt-2">
-																<span class="px-2 py-0.5 text-xs rounded-full {task.priority === 'high' ? 'bg-red-100 text-red-700' : task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}">
+																<span class="px-2 py-0.5 text-xs rounded-full {task.priority === 'high' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : task.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}">
 																	{task.priority}
 																</span>
 																<select
 																	value={task.assignee_id || ''}
 																	onchange={(e) => updateInlineTaskAssignee(i, (e.target as HTMLSelectElement).value)}
-																	class="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
+																	class="text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 dark:text-gray-200"
 																>
 																	<option value="">Unassigned</option>
 																	{#each availableTeamMembers as member}
@@ -3577,7 +3771,7 @@ Use this context to inform your responses.`;
 														</div>
 														<button
 															onclick={() => removeInlineTask(i)}
-															class="p-1 text-gray-400 hover:text-red-500 rounded"
+															class="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded"
 														>
 															<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -3590,14 +3784,14 @@ Use this context to inform your responses.`;
 											<div class="flex gap-2">
 												<button
 													onclick={dismissInlineTasks}
-													class="flex-1 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+													class="flex-1 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
 												>
 													Skip
 												</button>
 												<button
 													onclick={confirmInlineTasks}
 													disabled={creatingInlineTasks}
-													class="flex-1 px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+													class="flex-1 px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
 												>
 													{#if creatingInlineTasks}
 														<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -3618,7 +3812,7 @@ Use this context to inform your responses.`;
 									<div class="flex items-center gap-2 mt-3">
 										<button
 											onclick={() => copyMessage(message.content, message.id)}
-											class="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+											class="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
 										>
 											{#if copiedMessageId === message.id}
 												<svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4689,7 +4883,7 @@ Use this context to inform your responses.`;
 								<p class="text-xs text-gray-400 capitalize">{selectedArtifact.type} &bull; v{selectedArtifact.version}</p>
 							</div>
 							<!-- Action icons -->
-							<div class="flex items-center gap-1">
+							<div class="flex items-center gap-1 relative">
 								<button
 									onclick={() => { copyToClipboard(selectedArtifact?.content || ''); }}
 									class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors"
@@ -4700,6 +4894,26 @@ Use this context to inform your responses.`;
 									</svg>
 								</button>
 								<button
+									onclick={() => {
+										if (selectedArtifact && !showVersionHistory) {
+											loadVersionHistory(selectedArtifact.id);
+										} else {
+											showVersionHistory = false;
+										}
+									}}
+									class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors {showVersionHistory ? 'bg-white/10 text-gray-200' : ''}"
+									title="Version History"
+									disabled={loadingVersions}
+								>
+									{#if loadingVersions}
+										<div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+									{:else}
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+									{/if}
+								</button>
+								<button
 									class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors"
 									title="Export"
 								>
@@ -4707,6 +4921,110 @@ Use this context to inform your responses.`;
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
 									</svg>
 								</button>
+								<button
+									onclick={() => {
+										if (!showSyncToKBDropdown) {
+											loadContextsForSync();
+										} else {
+											showSyncToKBDropdown = false;
+										}
+									}}
+									class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-colors {showSyncToKBDropdown ? 'bg-white/10 text-gray-200' : ''}"
+									title="Sync to Knowledge Base"
+									disabled={loadingContextsForSync}
+								>
+									{#if loadingContextsForSync}
+										<div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+									{:else}
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+										</svg>
+									{/if}
+								</button>
+
+								<!-- Sync to KB Dropdown -->
+								{#if showSyncToKBDropdown}
+									<div class="absolute top-full right-0 mt-2 w-72 bg-[#2c2c2e] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+										<div class="p-3 border-b border-white/10">
+											<h5 class="text-sm font-medium text-gray-100">Sync to Knowledge Base</h5>
+											<p class="text-xs text-gray-500 mt-0.5">Select a context to sync this artifact</p>
+										</div>
+										<div class="max-h-64 overflow-y-auto">
+											{#if availableContextsForSync.length === 0}
+												<div class="p-4 text-center">
+													<p class="text-sm text-gray-400">No contexts available</p>
+													<p class="text-xs text-gray-500 mt-1">Create a context in the KB first</p>
+												</div>
+											{:else}
+												{#each availableContextsForSync as context (context.id)}
+													<button
+														onclick={() => syncArtifactToContext(context.id)}
+														disabled={syncingToKB}
+														class="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-b-0 disabled:opacity-50"
+													>
+														<div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+															<svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+															</svg>
+														</div>
+														<div class="flex-1 min-w-0">
+															<p class="text-sm text-gray-200 truncate">{context.name}</p>
+															<p class="text-xs text-gray-500 capitalize">{context.type}</p>
+														</div>
+														{#if syncingToKB}
+															<div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+														{:else}
+															<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+															</svg>
+														{/if}
+													</button>
+												{/each}
+											{/if}
+										</div>
+									</div>
+								{/if}
+
+								<!-- Version History Dropdown -->
+								{#if showVersionHistory}
+									<div class="absolute top-full right-0 mt-2 w-72 bg-[#2c2c2e] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden">
+										<div class="p-3 border-b border-white/10">
+											<h5 class="text-sm font-medium text-gray-100">Version History</h5>
+											<p class="text-xs text-gray-500 mt-0.5">Click to restore a previous version</p>
+										</div>
+										<div class="max-h-64 overflow-y-auto">
+											{#if artifactVersions.length === 0}
+												<div class="p-4 text-center">
+													<p class="text-sm text-gray-400">No previous versions</p>
+													<p class="text-xs text-gray-500 mt-1">Versions are saved when you edit</p>
+												</div>
+											{:else}
+												{#each artifactVersions as version (version.id)}
+													<button
+														onclick={() => restoreVersion(version.version)}
+														disabled={restoringVersion}
+														class="w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-b-0 disabled:opacity-50"
+													>
+														<div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+															<span class="text-xs font-medium text-gray-300">v{version.version}</span>
+														</div>
+														<div class="flex-1 min-w-0">
+															<p class="text-sm text-gray-200">{formatVersionDate(version.created_at)}</p>
+															<p class="text-xs text-gray-500 truncate">{version.content.substring(0, 50)}...</p>
+														</div>
+														{#if restoringVersion}
+															<div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+														{:else}
+															<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+															</svg>
+														{/if}
+													</button>
+												{/each}
+											{/if}
+										</div>
+									</div>
+								{/if}
 							</div>
 						</div>
 					</div>
