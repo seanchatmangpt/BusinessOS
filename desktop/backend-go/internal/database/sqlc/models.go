@@ -235,6 +235,50 @@ func (ns NullDealstage) Value() (driver.Value, error) {
 	return string(ns.Dealstage), nil
 }
 
+type Dependencytype string
+
+const (
+	DependencytypeFinishToStart  Dependencytype = "finish_to_start"
+	DependencytypeStartToStart   Dependencytype = "start_to_start"
+	DependencytypeFinishToFinish Dependencytype = "finish_to_finish"
+	DependencytypeStartToFinish  Dependencytype = "start_to_finish"
+)
+
+func (e *Dependencytype) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Dependencytype(s)
+	case string:
+		*e = Dependencytype(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Dependencytype: %T", src)
+	}
+	return nil
+}
+
+type NullDependencytype struct {
+	Dependencytype Dependencytype `json:"dependencytype"`
+	Valid          bool           `json:"valid"` // Valid is true if Dependencytype is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDependencytype) Scan(value interface{}) error {
+	if value == nil {
+		ns.Dependencytype, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Dependencytype.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDependencytype) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Dependencytype), nil
+}
+
 type Interactiontype string
 
 const (
@@ -731,6 +775,52 @@ func (ns NullTaskstatus) Value() (driver.Value, error) {
 	return string(ns.Taskstatus), nil
 }
 
+type Thinkingtype string
+
+const (
+	ThinkingtypeAnalysis   Thinkingtype = "analysis"
+	ThinkingtypePlanning   Thinkingtype = "planning"
+	ThinkingtypeReflection Thinkingtype = "reflection"
+	ThinkingtypeToolUse    Thinkingtype = "tool_use"
+	ThinkingtypeReasoning  Thinkingtype = "reasoning"
+	ThinkingtypeEvaluation Thinkingtype = "evaluation"
+)
+
+func (e *Thinkingtype) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Thinkingtype(s)
+	case string:
+		*e = Thinkingtype(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Thinkingtype: %T", src)
+	}
+	return nil
+}
+
+type NullThinkingtype struct {
+	Thinkingtype Thinkingtype `json:"thinkingtype"`
+	Valid        bool         `json:"valid"` // Valid is true if Thinkingtype is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullThinkingtype) Scan(value interface{}) error {
+	if value == nil {
+		ns.Thinkingtype, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Thinkingtype.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullThinkingtype) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Thinkingtype), nil
+}
+
 type AiUsageLog struct {
 	ID              pgtype.UUID        `json:"id"`
 	UserID          string             `json:"user_id"`
@@ -1071,6 +1161,18 @@ type ProjectNote struct {
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
+type ProjectStatus struct {
+	ID          pgtype.UUID        `json:"id"`
+	ProjectID   pgtype.UUID        `json:"project_id"`
+	Name        string             `json:"name"`
+	Color       *string            `json:"color"`
+	Position    *int32             `json:"position"`
+	IsDoneState *bool              `json:"is_done_state"`
+	IsDefault   *bool              `json:"is_default"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type ProjectTag struct {
 	ID        pgtype.UUID        `json:"id"`
 	UserID    string             `json:"user_id"`
@@ -1096,6 +1198,23 @@ type ProjectTemplate struct {
 	IsPublic        *bool               `json:"is_public"`
 	CreatedAt       pgtype.Timestamptz  `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz  `json:"updated_at"`
+}
+
+type ReasoningTemplate struct {
+	ID                  pgtype.UUID        `json:"id"`
+	UserID              string             `json:"user_id"`
+	Name                string             `json:"name"`
+	Description         *string            `json:"description"`
+	SystemPrompt        *string            `json:"system_prompt"`
+	ThinkingInstruction *string            `json:"thinking_instruction"`
+	OutputFormat        *string            `json:"output_format"`
+	ShowThinking        *bool              `json:"show_thinking"`
+	SaveThinking        *bool              `json:"save_thinking"`
+	MaxThinkingTokens   *int32             `json:"max_thinking_tokens"`
+	TimesUsed           *int32             `json:"times_used"`
+	IsDefault           *bool              `json:"is_default"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
 type SlackOauthToken struct {
@@ -1129,18 +1248,40 @@ type SystemEventLog struct {
 }
 
 type Task struct {
-	ID          pgtype.UUID      `json:"id"`
-	UserID      string           `json:"user_id"`
-	Title       string           `json:"title"`
-	Description *string          `json:"description"`
-	Status      NullTaskstatus   `json:"status"`
-	Priority    NullTaskpriority `json:"priority"`
-	DueDate     pgtype.Timestamp `json:"due_date"`
-	CompletedAt pgtype.Timestamp `json:"completed_at"`
-	ProjectID   pgtype.UUID      `json:"project_id"`
-	AssigneeID  pgtype.UUID      `json:"assignee_id"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	ID             pgtype.UUID      `json:"id"`
+	UserID         string           `json:"user_id"`
+	Title          string           `json:"title"`
+	Description    *string          `json:"description"`
+	Status         NullTaskstatus   `json:"status"`
+	Priority       NullTaskpriority `json:"priority"`
+	DueDate        pgtype.Timestamp `json:"due_date"`
+	StartDate      pgtype.Timestamp `json:"start_date"`
+	CompletedAt    pgtype.Timestamp `json:"completed_at"`
+	ProjectID      pgtype.UUID      `json:"project_id"`
+	AssigneeID     pgtype.UUID      `json:"assignee_id"`
+	ParentTaskID   pgtype.UUID      `json:"parent_task_id"`
+	CustomStatusID pgtype.UUID      `json:"custom_status_id"`
+	Position       *int32           `json:"position"`
+	CreatedAt      pgtype.Timestamp `json:"created_at"`
+	UpdatedAt      pgtype.Timestamp `json:"updated_at"`
+}
+
+type TaskAssignee struct {
+	ID           pgtype.UUID        `json:"id"`
+	TaskID       pgtype.UUID        `json:"task_id"`
+	TeamMemberID pgtype.UUID        `json:"team_member_id"`
+	Role         *string            `json:"role"`
+	AssignedAt   pgtype.Timestamptz `json:"assigned_at"`
+	AssignedBy   *string            `json:"assigned_by"`
+}
+
+type TaskDependency struct {
+	ID             pgtype.UUID        `json:"id"`
+	PredecessorID  pgtype.UUID        `json:"predecessor_id"`
+	SuccessorID    pgtype.UUID        `json:"successor_id"`
+	DependencyType NullDependencytype `json:"dependency_type"`
+	LagDays        *int32             `json:"lag_days"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
 type TeamMember struct {
@@ -1168,6 +1309,24 @@ type TeamMemberActivity struct {
 	ActivityType string           `json:"activity_type"`
 	Description  string           `json:"description"`
 	CreatedAt    pgtype.Timestamp `json:"created_at"`
+}
+
+type ThinkingTrace struct {
+	ID                  pgtype.UUID        `json:"id"`
+	UserID              string             `json:"user_id"`
+	ConversationID      pgtype.UUID        `json:"conversation_id"`
+	MessageID           pgtype.UUID        `json:"message_id"`
+	ThinkingContent     string             `json:"thinking_content"`
+	ThinkingType        NullThinkingtype   `json:"thinking_type"`
+	StepNumber          *int32             `json:"step_number"`
+	StartedAt           pgtype.Timestamptz `json:"started_at"`
+	CompletedAt         pgtype.Timestamptz `json:"completed_at"`
+	DurationMs          *int32             `json:"duration_ms"`
+	ThinkingTokens      *int32             `json:"thinking_tokens"`
+	ModelUsed           *string            `json:"model_used"`
+	ReasoningTemplateID pgtype.UUID        `json:"reasoning_template_id"`
+	Metadata            []byte             `json:"metadata"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
 }
 
 type UsageDailySummary struct {
@@ -1209,18 +1368,68 @@ type UserCommand struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
+type CustomAgent struct {
+	ID               pgtype.UUID        `json:"id"`
+	UserID           string             `json:"user_id"`
+	Name             string             `json:"name"`
+	DisplayName      string             `json:"display_name"`
+	Description      *string            `json:"description"`
+	Avatar           *string            `json:"avatar"`
+	SystemPrompt     string             `json:"system_prompt"`
+	ModelPreference  *string            `json:"model_preference"`
+	Temperature      pgtype.Numeric     `json:"temperature"`
+	MaxTokens        *int32             `json:"max_tokens"`
+	Capabilities     []string           `json:"capabilities"`
+	ToolsEnabled     []string           `json:"tools_enabled"`
+	ContextSources   []string           `json:"context_sources"`
+	ThinkingEnabled  *bool              `json:"thinking_enabled"`
+	StreamingEnabled *bool              `json:"streaming_enabled"`
+	Category         *string            `json:"category"`
+	IsPublic         *bool              `json:"is_public"`
+	IsActive         *bool              `json:"is_active"`
+	TimesUsed        *int32             `json:"times_used"`
+	LastUsedAt       pgtype.Timestamptz `json:"last_used_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AgentPreset struct {
+	ID              pgtype.UUID        `json:"id"`
+	Name            string             `json:"name"`
+	DisplayName     string             `json:"display_name"`
+	Description     *string            `json:"description"`
+	Avatar          *string            `json:"avatar"`
+	SystemPrompt    string             `json:"system_prompt"`
+	ModelPreference *string            `json:"model_preference"`
+	Temperature     pgtype.Numeric     `json:"temperature"`
+	MaxTokens       *int32             `json:"max_tokens"`
+	Capabilities    []string           `json:"capabilities"`
+	ToolsEnabled    []string           `json:"tools_enabled"`
+	ContextSources  []string           `json:"context_sources"`
+	ThinkingEnabled *bool              `json:"thinking_enabled"`
+	Category        *string            `json:"category"`
+	TimesCopied     *int32             `json:"times_copied"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
 type UserSetting struct {
-	ID                 pgtype.UUID      `json:"id"`
-	UserID             string           `json:"user_id"`
-	DefaultModel       *string          `json:"default_model"`
-	EmailNotifications *bool            `json:"email_notifications"`
-	DailySummary       *bool            `json:"daily_summary"`
-	Theme              *string          `json:"theme"`
-	SidebarCollapsed   *bool            `json:"sidebar_collapsed"`
-	ShareAnalytics     *bool            `json:"share_analytics"`
-	CustomSettings     []byte           `json:"custom_settings"`
-	CreatedAt          pgtype.Timestamp `json:"created_at"`
-	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
+	ID                        pgtype.UUID      `json:"id"`
+	UserID                    string           `json:"user_id"`
+	DefaultModel              *string          `json:"default_model"`
+	EmailNotifications        *bool            `json:"email_notifications"`
+	DailySummary              *bool            `json:"daily_summary"`
+	Theme                     *string          `json:"theme"`
+	SidebarCollapsed          *bool            `json:"sidebar_collapsed"`
+	ShareAnalytics            *bool            `json:"share_analytics"`
+	CustomSettings            []byte           `json:"custom_settings"`
+	ThinkingEnabled           *bool            `json:"thinking_enabled"`
+	ThinkingShowInUi          *bool            `json:"thinking_show_in_ui"`
+	ThinkingSaveTraces        *bool            `json:"thinking_save_traces"`
+	ThinkingDefaultTemplateID pgtype.UUID      `json:"thinking_default_template_id"`
+	ThinkingMaxTokens         *int32           `json:"thinking_max_tokens"`
+	CreatedAt                 pgtype.Timestamp `json:"created_at"`
+	UpdatedAt                 pgtype.Timestamp `json:"updated_at"`
 }
 
 type VoiceNote struct {

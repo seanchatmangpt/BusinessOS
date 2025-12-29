@@ -226,14 +226,69 @@ CREATE TABLE tasks (
     status taskstatus DEFAULT 'todo',
     priority taskpriority DEFAULT 'medium',
     due_date TIMESTAMP,
+    start_date TIMESTAMP,
     completed_at TIMESTAMP,
     project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
     assignee_id UUID REFERENCES team_members(id) ON DELETE SET NULL,
+    parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+    custom_status_id UUID,
+    position INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX idx_tasks_parent ON tasks(parent_task_id);
+CREATE INDEX idx_tasks_position ON tasks(user_id, position);
+
+-- Project custom statuses
+CREATE TABLE project_statuses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    color VARCHAR(7) DEFAULT '#6B7280',
+    position INT DEFAULT 0,
+    is_done_state BOOLEAN DEFAULT FALSE,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(project_id, name)
+);
+
+CREATE INDEX idx_project_statuses_project ON project_statuses(project_id);
+
+-- Add FK from tasks to project_statuses
+ALTER TABLE tasks ADD CONSTRAINT fk_tasks_custom_status FOREIGN KEY (custom_status_id) REFERENCES project_statuses(id) ON DELETE SET NULL;
+
+-- Task assignees (many-to-many)
+CREATE TABLE task_assignees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    team_member_id UUID NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+    role VARCHAR(50) DEFAULT 'assignee',
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    assigned_by VARCHAR(255),
+    UNIQUE(task_id, team_member_id)
+);
+
+CREATE INDEX idx_task_assignees_task ON task_assignees(task_id);
+CREATE INDEX idx_task_assignees_member ON task_assignees(team_member_id);
+
+-- Task dependencies
+CREATE TYPE dependencytype AS ENUM ('finish_to_start', 'start_to_start', 'finish_to_finish', 'start_to_finish');
+
+CREATE TABLE task_dependencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    predecessor_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    successor_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    dependency_type dependencytype DEFAULT 'finish_to_start',
+    lag_days INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(predecessor_id, successor_id)
+);
+
+CREATE INDEX idx_task_deps_predecessor ON task_dependencies(predecessor_id);
+CREATE INDEX idx_task_deps_successor ON task_dependencies(successor_id);
 
 -- Focus items table
 CREATE TABLE focus_items (
@@ -277,6 +332,12 @@ CREATE TABLE user_settings (
     sidebar_collapsed BOOLEAN DEFAULT FALSE,
     share_analytics BOOLEAN DEFAULT TRUE,
     custom_settings JSONB,
+    -- Thinking/COT settings
+    thinking_enabled BOOLEAN DEFAULT false,
+    thinking_show_in_ui BOOLEAN DEFAULT true,
+    thinking_save_traces BOOLEAN DEFAULT true,
+    thinking_default_template_id UUID,
+    thinking_max_tokens INT DEFAULT 4096,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -658,6 +719,75 @@ CREATE TABLE user_commands (
 CREATE INDEX idx_user_commands_user_id ON user_commands(user_id);
 CREATE INDEX idx_user_commands_name ON user_commands(user_id, name);
 
+-- ===== CUSTOM AGENTS =====
+
+-- User-defined custom agents with custom system prompts and configurations
+CREATE TABLE custom_agents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+
+    -- Agent Identity
+    name VARCHAR(50) NOT NULL,              -- e.g., "code-reviewer" (internal name, lowercase)
+    display_name VARCHAR(100) NOT NULL,     -- e.g., "Code Reviewer" (shown in UI)
+    description TEXT,                       -- What the agent does
+    avatar VARCHAR(50),                     -- emoji or icon identifier
+
+    -- Agent Configuration
+    system_prompt TEXT NOT NULL,            -- Base system prompt for the agent
+    model_preference VARCHAR(100),          -- Preferred model (e.g., "claude-3-opus")
+    temperature DECIMAL(3,2) DEFAULT 0.7,   -- Default temperature
+    max_tokens INTEGER DEFAULT 4096,        -- Default max tokens
+
+    -- Capabilities
+    capabilities TEXT[] DEFAULT '{}',       -- e.g., ["code_review", "analysis", "writing"]
+    tools_enabled TEXT[] DEFAULT '{}',      -- Which tools the agent can use
+    context_sources TEXT[] DEFAULT '{}',    -- What context to auto-load: documents, projects, etc.
+
+    -- Behavior Settings
+    thinking_enabled BOOLEAN DEFAULT FALSE,  -- Enable COT for this agent
+    streaming_enabled BOOLEAN DEFAULT TRUE,  -- Enable streaming responses
+
+    -- Agent Type/Category
+    category VARCHAR(50) DEFAULT 'general', -- general, coding, writing, analysis, business, custom
+    is_public BOOLEAN DEFAULT FALSE,        -- Whether to share with team (future)
+
+    -- Usage & Status
+    is_active BOOLEAN DEFAULT TRUE,
+    times_used INTEGER DEFAULT 0,
+    last_used_at TIMESTAMP WITH TIME ZONE,
+
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    UNIQUE(user_id, name)
+);
+
+CREATE INDEX idx_custom_agents_user_id ON custom_agents(user_id);
+CREATE INDEX idx_custom_agents_name ON custom_agents(user_id, name);
+CREATE INDEX idx_custom_agents_category ON custom_agents(category);
+
+-- Agent presets (built-in templates users can copy)
+CREATE TABLE agent_presets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    avatar VARCHAR(50),
+    system_prompt TEXT NOT NULL,
+    model_preference VARCHAR(100),
+    temperature DECIMAL(3,2) DEFAULT 0.7,
+    max_tokens INTEGER DEFAULT 4096,
+    capabilities TEXT[] DEFAULT '{}',
+    tools_enabled TEXT[] DEFAULT '{}',
+    context_sources TEXT[] DEFAULT '{}',
+    thinking_enabled BOOLEAN DEFAULT FALSE,
+    category VARCHAR(50) DEFAULT 'general',
+    times_copied INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ===== VOICE NOTES =====
 
 -- Voice transcription history with stats
@@ -756,3 +886,70 @@ CREATE TABLE project_templates (
 
 CREATE INDEX idx_templates_user ON project_templates(user_id);
 CREATE INDEX idx_templates_public ON project_templates(is_public) WHERE is_public = TRUE;
+
+-- ===== CHAIN OF THOUGHT (COT) THINKING SYSTEM =====
+
+-- Thinking type enum
+CREATE TYPE thinkingtype AS ENUM ('analysis', 'planning', 'reflection', 'tool_use', 'reasoning', 'evaluation');
+
+-- Thinking/reasoning tracking
+CREATE TABLE thinking_traces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+
+    -- Thinking content
+    thinking_content TEXT NOT NULL,
+    thinking_type thinkingtype DEFAULT 'reasoning',
+    step_number INT DEFAULT 1,
+
+    -- Timing
+    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    completed_at TIMESTAMP WITH TIME ZONE,
+    duration_ms INT,
+
+    -- Token tracking
+    thinking_tokens INT DEFAULT 0,
+
+    -- Metadata
+    model_used VARCHAR(100),
+    reasoning_template_id UUID,
+    metadata JSONB DEFAULT '{}',
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_thinking_traces_user ON thinking_traces(user_id);
+CREATE INDEX idx_thinking_traces_conversation ON thinking_traces(conversation_id);
+CREATE INDEX idx_thinking_traces_message ON thinking_traces(message_id);
+CREATE INDEX idx_thinking_traces_template ON thinking_traces(reasoning_template_id);
+
+-- Custom reasoning templates/systems
+CREATE TABLE reasoning_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    -- Template configuration
+    system_prompt TEXT,
+    thinking_instruction TEXT,
+    output_format VARCHAR(50) DEFAULT 'streaming',
+
+    -- Options
+    show_thinking BOOLEAN DEFAULT true,
+    save_thinking BOOLEAN DEFAULT true,
+    max_thinking_tokens INT DEFAULT 4096,
+
+    -- Usage tracking
+    times_used INT DEFAULT 0,
+
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_reasoning_templates_user ON reasoning_templates(user_id);
+CREATE INDEX idx_reasoning_templates_default ON reasoning_templates(user_id, is_default) WHERE is_default = true;

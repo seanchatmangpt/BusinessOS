@@ -12,27 +12,27 @@ import (
 
 // Handlers contains all HTTP handlers
 type Handlers struct {
-	pool                  *pgxpool.Pool
-	cfg                   *config.Config
-	containerMgr          *container.ContainerManager
-	sessionCache          *middleware.SessionCache         // Redis session cache for horizontal scaling
-	terminalPubSub        *terminal.TerminalPubSub         // Redis pub/sub for terminal scaling
-	embeddingService      *services.EmbeddingService       // Vector embedding service for RAG
-	contextBuilder        *services.ContextBuilder         // Hierarchical context builder for AI
-	tieredContextService  *services.TieredContextService   // Tiered context builder for scoped AI queries
+	pool                 *pgxpool.Pool
+	cfg                  *config.Config
+	containerMgr         *container.ContainerManager
+	sessionCache         *middleware.SessionCache       // Redis session cache for horizontal scaling
+	terminalPubSub       *terminal.TerminalPubSub       // Redis pub/sub for terminal scaling
+	embeddingService     *services.EmbeddingService     // Vector embedding service for RAG
+	contextBuilder       *services.ContextBuilder       // Hierarchical context builder for AI
+	tieredContextService *services.TieredContextService // Tiered context builder for scoped AI queries
 }
 
 // NewHandlers creates a new Handlers instance
 func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService) *Handlers {
 	return &Handlers{
-		pool:                  pool,
-		cfg:                   cfg,
-		containerMgr:          containerMgr,
-		sessionCache:          sessionCache,
-		terminalPubSub:        terminalPubSub,
-		embeddingService:      embeddingService,
-		contextBuilder:        contextBuilder,
-		tieredContextService:  tieredContextService,
+		pool:                 pool,
+		cfg:                  cfg,
+		containerMgr:         containerMgr,
+		sessionCache:         sessionCache,
+		terminalPubSub:       terminalPubSub,
+		embeddingService:     embeddingService,
+		contextBuilder:       contextBuilder,
+		tieredContextService: tieredContextService,
 	}
 }
 
@@ -58,7 +58,8 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		chat.GET("/conversations/:id", h.GetConversation)
 		chat.PUT("/conversations/:id", h.UpdateConversation)
 		chat.DELETE("/conversations/:id", h.DeleteConversation)
-		chat.POST("/message", h.SendMessage)
+		chat.POST("/message", h.SendMessageV2)    // V1 redirected to V2
+		chat.POST("/v2/message", h.SendMessageV2) // V2 with COT and SSE events
 		chat.GET("/search", h.SearchConversations)
 		// AI-powered endpoints
 		chat.POST("/ai/document", h.DocumentAI)
@@ -226,6 +227,31 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		settings.GET("/system", h.GetSystemSettings)
 	}
 
+	// Thinking/COT routes - /api/thinking
+	thinking := api.Group("/thinking")
+	thinking.Use(auth)
+	{
+		// Thinking traces
+		thinking.GET("/traces/:conversationId", h.ListThinkingTraces)
+		thinking.GET("/trace/:messageId", h.GetThinkingTraceByMessage)
+		thinking.DELETE("/traces/:conversationId", h.DeleteThinkingTraces)
+		// Thinking settings
+		thinking.GET("/settings", h.GetThinkingSettings)
+		thinking.PUT("/settings", h.UpdateThinkingSettings)
+	}
+
+	// Reasoning templates routes - /api/reasoning
+	reasoning := api.Group("/reasoning")
+	reasoning.Use(auth)
+	{
+		reasoning.GET("/templates", h.ListReasoningTemplates)
+		reasoning.POST("/templates", h.CreateReasoningTemplate)
+		reasoning.GET("/templates/:id", h.GetReasoningTemplate)
+		reasoning.PUT("/templates/:id", h.UpdateReasoningTemplate)
+		reasoning.DELETE("/templates/:id", h.DeleteReasoningTemplate)
+		reasoning.POST("/templates/:id/default", h.SetDefaultReasoningTemplate)
+	}
+
 	// AI configuration routes - /api/ai
 	ai := api.Group("/ai")
 	ai.Use(auth)
@@ -238,9 +264,20 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		ai.GET("/system", h.GetSystemInfo)
 		ai.POST("/api-key", h.SaveAPIKey)
 		ai.PUT("/provider", h.UpdateAIProvider)
-		// Agent prompts
+		// Agent prompts (built-in)
 		ai.GET("/agents", h.GetAgentPrompts)
 		ai.GET("/agents/:id", h.GetAgentPrompt)
+		// Agent presets (templates for custom agents)
+		ai.GET("/agents/presets", h.ListAgentPresets)
+		ai.GET("/agents/presets/:id", h.GetAgentPreset)
+		// Custom user agents CRUD
+		ai.GET("/custom-agents", h.ListCustomAgents)
+		ai.POST("/custom-agents", h.CreateCustomAgent)
+		ai.GET("/custom-agents/:id", h.GetCustomAgent)
+		ai.PUT("/custom-agents/:id", h.UpdateCustomAgent)
+		ai.DELETE("/custom-agents/:id", h.DeleteCustomAgent)
+		ai.GET("/custom-agents/category/:category", h.ListCustomAgentsByCategory)
+		ai.POST("/custom-agents/from-preset/:presetId", h.CreateAgentFromPreset)
 		// Slash commands (built-in + custom)
 		ai.GET("/commands", h.ListCommands)
 		// Custom user commands CRUD
@@ -311,7 +348,6 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		profile.GET("/background/:filename", h.GetBackground)
 		profile.DELETE("/background", h.DeleteBackground)
 	}
-
 
 	// MCP routes - /api/mcp
 	mcp := api.Group("/mcp")
