@@ -29,7 +29,7 @@ This document outlines the comprehensive implementation of BusinessOS's **Memory
 > "I don't want generic ass outputs like they have to be real ass outputs."
 
 ---
-
+Nick
 ## PART 1: Episodic Memory System
 
 ### 1.1 Core Requirements
@@ -41,7 +41,7 @@ Roberto's exact requirements:
 > "We need to have a place in the knowledge base right in a database where we're able to view the memory as well, because it's not just artifacts and stuff that are going to be created or generated or whatever inside of the knowledge base. There'll be memories too, so we need to add that."
 
 > "And our system must contain these memories and know when to pull from them."
-
+Nick / Pedro 
 ### 1.2 Database Schema
 
 ```sql
@@ -178,7 +178,7 @@ CREATE INDEX idx_user_facts_type ON user_facts(fact_type);
 | `insight` | AI-generated insights | "Project X has recurring deadline issues" |
 | `interaction` | Important conversation moments | "Discussed pricing strategy with client" |
 | `learning` | Things the system learned | "User corrected AI on terminology X" |
-
+  Nick / Pedro
 ### 1.4 API Endpoints
 
 ```
@@ -206,7 +206,7 @@ GET    /api/memories/stats              # Memory statistics
 GET    /api/memories/recent             # Recently accessed memories
 GET    /api/memories/frequent           # Most accessed memories
 ```
-
+Pedro
 ### 1.5 Memory Service
 
 ```go
@@ -316,7 +316,7 @@ NODE (Top Level - Most Comprehensive Context)
 3. **Context Profiles contain multiple document types** - Not just text, but PDFs, markdown, SOPs, frameworks
 4. **Users can upload files** - The system handles PDFs, markdown, and other document formats
 5. **Chat history is context** - Conversation history is just as important as voice notes
-
+nick / pedro
 ### 2.3 Database Schema
 
 ```sql
@@ -468,7 +468,7 @@ CREATE TABLE context_retrieval_log (
 CREATE INDEX idx_context_retrieval_session ON context_retrieval_log(session_id);
 CREATE INDEX idx_context_retrieval_item ON context_retrieval_log(item_id);
 ```
-
+Pedro
 ### 2.4 Tree Search Tool for Agents
 
 Roberto's requirement:
@@ -652,7 +652,7 @@ type TokenUsage struct {
     Breakdown       map[string]int // memory: X, context: Y, etc.
 }
 ```
-
+Pedro
 ### 2.6 Context Tracking for Agents
 
 Roberto's requirement:
@@ -754,7 +754,7 @@ Roberto's exact requirements:
 > "When sometimes I needed to output in really good formats like paragraph forms or styles because we have a block system that the documents and the text and everything go inside of."
 
 > "So I'd ask to make sure it relates with the blocks as well, and also if there's anything we need to add, then we add those."
-
+nick/ Pedro
 ### 3.2 Database Schema
 
 ```sql
@@ -826,7 +826,7 @@ CREATE TABLE user_output_preferences (
 
 CREATE INDEX idx_user_output_prefs ON user_output_preferences(user_id);
 ```
-
+Nick
 ### 3.3 Pre-seeded Output Styles
 
 ```sql
@@ -903,7 +903,7 @@ ON CONFLICT (name) DO UPDATE SET
     block_mapping = EXCLUDED.block_mapping,
     updated_at = NOW();
 ```
-
+Pedro
 ### 3.4 Block Type Mapping
 
 ```go
@@ -947,9 +947,9 @@ func (m *BlockMapper) ConvertResponseToBlocks(response string, style OutputStyle
 // - callout (info, warning, tip)
 // - divider
 // - image
-// - embed
+// - enickmbed
 ```
-
+nick / pedro
 ### 3.5 API Endpoints
 
 ```
@@ -986,7 +986,7 @@ Roberto's exact requirements:
 > "And so the node system context and everything the database is to be set up perfectly where when that node is selected, that particular context is loaded into that model or into that conversation for example with the system."
 
 **Critical Clarification**: Both chat history AND voice notes are context sources. They may contain different information and both need to be searchable and loadable into agent context.
-
+Pedro
 ### 4.2 Chat History as Context Source
 
 ```sql
@@ -1028,7 +1028,7 @@ CREATE TABLE conversation_summaries (
 CREATE INDEX idx_conv_summaries_conv ON conversation_summaries(conversation_id);
 CREATE INDEX idx_conv_summaries_user ON conversation_summaries(user_id);
 ```
-
+nick / Pedro
 ### 4.3 Voice Note Context Integration
 
 ```sql
@@ -1042,7 +1042,7 @@ ALTER TABLE voice_notes ADD COLUMN IF NOT EXISTS embedding vector(1536);
 CREATE INDEX IF NOT EXISTS idx_voice_notes_project ON voice_notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_voice_notes_node ON voice_notes(node_id);
 ```
-
+Pedro
 ### 4.4 File Upload & Document Management
 
 Roberto's clarification:
@@ -1126,7 +1126,7 @@ CREATE TABLE document_chunks (
 CREATE INDEX idx_doc_chunks_document ON document_chunks(document_id);
 CREATE INDEX idx_doc_chunks_embedding ON document_chunks USING ivfflat (embedding vector_cosine_ops);
 ```
-
+Pedro
 ### 4.5 Context Profiles with Multiple Document Types
 
 ```sql
@@ -1159,7 +1159,7 @@ CREATE TABLE context_profile_items (
 CREATE INDEX idx_profile_items_profile ON context_profile_items(context_profile_id);
 CREATE INDEX idx_profile_items_type ON context_profile_items(item_type, item_id);
 ```
-
+Pedro
 ### 4.6 Document Processing Service
 
 ```go
@@ -1208,7 +1208,7 @@ type PageContent struct {
     TokenCount int
 }
 ```
-
+nick / pedro
 ### 4.7 File Upload API Endpoints
 
 ```
@@ -1227,7 +1227,7 @@ POST   /api/context-profiles/:id/documents    # Add document to profile
 GET    /api/context-profiles/:id/documents    # List documents in profile
 DELETE /api/context-profiles/:id/documents/:docId  # Remove from profile
 ```
-
+Nick / Pedro
 ### 4.8 Project/Node Context Loading
 
 ```go
@@ -1292,7 +1292,7 @@ func (s *ProjectContextService) LoadNodeContext(ctx context.Context, userID stri
     }, nil
 }
 ```
-
+Pedro
 ### 4.9 Conversation Context Injection
 
 When a conversation starts or context changes:
@@ -1348,7 +1348,7 @@ Roberto's exact requirements:
 > "So we need all of that type of stuff stored where we create a context profile on the application where it's like a tree in a way."
 
 > "We need to make sure there's a way for the users to see that tree of how their context might be organized based off of let's just say if it's the tasks right or let's just say if it's the module for their projects right. They should be able to see the tree breakdown and all that stuff in some sort of way."
-
+nick / pedro
 ### 5.2 API Endpoints for Tree Visualization
 
 ```
@@ -1361,7 +1361,7 @@ GET    /api/context-tree/node/:nodeId             # Get tree for specific node
 GET    /api/context-tree/stats                    # Overall stats
 GET    /api/context-tree/stats/project/:projectId # Project-specific stats
 ```
-
+pedro
 ### 5.3 Tree Response Format
 
 ```go
@@ -1519,7 +1519,7 @@ Roberto's exact requirements:
 > "So we need to implement the self-learning aspect into this as well so that it knows and grows about the user."
 
 > "I don't want generic ass outputs like they have to be real ass outputs."
-
+nick / pedro
 ### 6.2 Database Schema
 
 ```sql
@@ -1613,7 +1613,7 @@ CREATE TABLE feedback_log (
 CREATE INDEX idx_feedback_log_user ON feedback_log(user_id);
 CREATE INDEX idx_feedback_log_target ON feedback_log(target_type, target_id);
 ```
-
+Pedro
 ### 6.3 Learning Service
 
 ```go
@@ -1669,7 +1669,7 @@ type CommunicationStyle struct {
     PrefersAnalogies  bool
 }
 ```
-
+nick / pedro
 ### 6.4 Automatic Learning Triggers
 
 ```go
@@ -1716,7 +1716,7 @@ func (t *LearningTrigger) OnCorrection(ctx context.Context, userID string, origi
 ```
 
 ---
-
+Nick
 ## PART 7: Orchestrator System Prompt Enhancement
 
 ### 7.1 Core Requirements
@@ -1914,7 +1914,7 @@ Roberto's exact requirements:
 > "I need to make it so that we set this up perfectly where if we want to integrate in the future, now we're going to integrate our OS agent, our actual system for a coding model."
 
 > "I need to have it be able to access the context of this business OS for example and understand where everything is, what the icons and components are, what are the modules that are developed inside of it."
-
+nick / pedro
 ### 8.2 Application Context Profile Schema
 
 ```sql
@@ -1971,7 +1971,7 @@ CREATE TABLE application_profiles (
 CREATE INDEX idx_app_profiles_user ON application_profiles(user_id);
 CREATE INDEX idx_app_profiles_type ON application_profiles(app_type);
 ```
-
+Pedro
 ### 8.3 Auto-Profile Generation
 
 ```go
