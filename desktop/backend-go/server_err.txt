@@ -1,0 +1,207 @@
+2025/12/30 18:43:45 Server instance ID: 115174ab
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:45 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:46 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+redis: 2025/12/30 18:43:47 pool.go:419: redis: connection pool: failed to dial after 5 attempts: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+2025/12/30 18:43:47 Warning: Redis unavailable: failed to ping Redis: dial tcp [::1]:6379: connectex: Nenhuma conexão pôde ser feita porque a máquina de destino as recusou ativamente.
+2025/12/30 18:43:47 Sessions will use direct DB auth (not optimal for horizontal scaling)
+2025/12/30 18:43:47 [Container] Creating new container manager with image: businessos-workspace:latest
+2025/12/30 18:43:47 [Container] Docker daemon connection verified
+2025/12/30 18:43:47 [Container] Container manager initialized successfully
+2025/12/30 18:43:47 Container manager initialized successfully
+2025/12/30 18:43:47 [Monitor] Starting container monitoring (health_check=30s, cleanup=5m0s, idle_timeout=30m0s)
+2025/12/30 18:43:47 Container monitor started (cleanup=5m0s, idle_timeout=30m0s)
+2025/12/30 18:43:47 [Monitor] Health check loop started (interval=30s)
+2025/12/30 18:43:47 [Monitor] Cleanup loop started (interval=5m0s)
+2025/12/30 18:43:47 Rate limiting enabled (100 req/s per IP, 200 req/s per user)
+2025/12/30 18:43:47 Warning: Embedding service unavailable (Ollama not running or nomic-embed-text model not pulled)
+2025/12/30 18:43:47 RAG features will be disabled. Run: ollama pull nomic-embed-text
+2025/12/30 18:43:47 [Terminal] Manager initialized with Docker container support
+2025/12/30 18:43:47 [Terminal] Security: max_duration=8h0m0s, idle_timeout=30m0s, ip_binding=true
+2025/12/30 18:43:47 [Terminal] Pub/sub disabled - single instance mode
+2025/12/30 18:43:47 Server starting on port 8001
+2025/12/30 18:46:24 ListTeamMembers: found 0 members for user hc3SY8hz1_I8D4OI1WGJiw
+2025/12/30 18:46:29 [ChatV2] Request: msg="how manus works?" focus=deep cot=0xc0002408b6
+2025/12/30 18:46:29 [ChatV2] @Agent parsing - message: "how manus works?", found 0 mentions
+2025/12/30 18:46:30 [ChatV2] FocusMode received: deep
+2025/12/30 18:46:30 INFO Web search service initialized primary=duckduckgo providers=1 available=[duckduckgo]
+2025/12/30 18:46:31 [ChatV2] Web search returned 10 results for focus mode
+2025/12/30 18:46:31 [ChatV2] Applied focus settings: temp=0.70, maxTokens=8192, thinking=true, model=0xc000362100, searchResults=10
+2025/12/30 18:46:31 [ChatV2] Injected search context (1871 chars) into focus prompt
+2025/12/30 18:46:31 [ChatV2] Applied focus mode prompt prefix (2315 chars)
+2025/12/30 18:46:31 [ChatV2] Custom agent check: customAgent=false, promptLen=0
+2025/12/30 18:46:31 [ChatV2] NOT using custom agent - customAgent=false, promptLen=0
+2025/12/30 18:46:31 [ChatV2] Augmenting for non-Claude model: llama-3.3-70b-versatile
+2025/12/30 18:46:31 [ChatV2] Augmented with 1871 chars
+2025/12/30 18:48:47 [Monitor] Starting cleanup cycle
+2025/12/30 18:48:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=12.0015ms)
+2025/12/30 18:49:04 ListTeamMembers: found 0 members for user hc3SY8hz1_I8D4OI1WGJiw
+2025/12/30 18:49:11 [ChatV2] Request: msg="how manus works?" focus=deep cot=0xc000506d26
+2025/12/30 18:49:11 [ChatV2] @Agent parsing - message: "how manus works?", found 0 mentions
+2025/12/30 18:49:11 [ChatV2] FocusMode received: deep
+2025/12/30 18:49:11 INFO Web search service initialized primary=duckduckgo providers=1 available=[duckduckgo]
+2025/12/30 18:49:12 [ChatV2] Web search returned 10 results for focus mode
+2025/12/30 18:49:12 [ChatV2] Applied focus settings: temp=0.70, maxTokens=8192, thinking=true, model=0xc000363860, searchResults=10
+2025/12/30 18:49:12 [ChatV2] Injected search context (1871 chars) into focus prompt
+2025/12/30 18:49:12 [ChatV2] Applied focus mode prompt prefix (2315 chars)
+2025/12/30 18:49:12 [ChatV2] Custom agent check: customAgent=false, promptLen=0
+2025/12/30 18:49:12 [ChatV2] NOT using custom agent - customAgent=false, promptLen=0
+2025/12/30 18:49:12 [ChatV2] Augmenting for non-Claude model: llama-3.3-70b-versatile
+2025/12/30 18:49:12 [ChatV2] Augmented with 1871 chars
+2025/12/30 18:53:47 [Monitor] Starting cleanup cycle
+2025/12/30 18:53:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.2246ms)
+2025/12/30 18:58:47 [Monitor] Starting cleanup cycle
+2025/12/30 18:58:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.716ms)
+2025/12/30 19:03:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:03:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.2004ms)
+2025/12/30 19:08:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:08:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.6901ms)
+2025/12/30 19:10:45 ListTeamMembers: found 0 members for user hc3SY8hz1_I8D4OI1WGJiw
+2025/12/30 19:10:55 [ChatV2] Request: msg="how manus works?" focus=deep cot=0xc00027f0e6
+2025/12/30 19:10:56 [ChatV2] @Agent parsing - message: "how manus works?", found 0 mentions
+2025/12/30 19:10:56 [ChatV2] FocusMode received: deep
+2025/12/30 19:10:56 INFO Web search service initialized primary=duckduckgo providers=1 available=[duckduckgo]
+2025/12/30 19:10:57 [ChatV2] Web search returned 10 results for focus mode
+2025/12/30 19:10:57 [ChatV2] Applied focus settings: temp=0.70, maxTokens=8192, thinking=true, model=0xc000236080, searchResults=10
+2025/12/30 19:10:57 [ChatV2] Injected search context (1871 chars) into focus prompt
+2025/12/30 19:10:57 [ChatV2] Applied focus mode prompt prefix (2315 chars)
+2025/12/30 19:10:57 [ChatV2] Custom agent check: customAgent=false, promptLen=0
+2025/12/30 19:10:57 [ChatV2] NOT using custom agent - customAgent=false, promptLen=0
+2025/12/30 19:10:57 [ChatV2] Augmenting for non-Claude model: llama-3.3-70b-versatile
+2025/12/30 19:10:57 [ChatV2] Augmented with 1871 chars
+2025/12/30 19:13:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:13:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.6106ms)
+2025/12/30 19:18:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:18:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.3319ms)
+2025/12/30 19:23:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:23:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.1443ms)
+2025/12/30 19:28:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:28:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.9353ms)
+2025/12/30 19:33:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:33:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.3928ms)
+2025/12/30 19:38:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:38:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.0015ms)
+2025/12/30 19:43:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:43:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.8224ms)
+2025/12/30 19:48:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:48:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=2.8117ms)
+2025/12/30 19:53:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:53:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.9131ms)
+2025/12/30 19:58:47 [Monitor] Starting cleanup cycle
+2025/12/30 19:58:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.8009ms)
+2025/12/30 20:03:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:03:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3644ms)
+2025/12/30 20:08:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:08:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.0029ms)
+2025/12/30 20:13:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:13:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3215ms)
+2025/12/30 20:18:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:18:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.9124ms)
+2025/12/30 20:23:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:23:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=6.8963ms)
+2025/12/30 20:28:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:28:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.81ms)
+2025/12/30 20:33:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:33:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.5064ms)
+2025/12/30 20:38:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:38:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.6064ms)
+2025/12/30 20:43:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:43:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.5685ms)
+2025/12/30 20:48:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:48:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.5704ms)
+2025/12/30 20:53:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:53:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.0471ms)
+2025/12/30 20:58:47 [Monitor] Starting cleanup cycle
+2025/12/30 20:58:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.2972ms)
+2025/12/30 21:03:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:03:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.2626ms)
+2025/12/30 21:08:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:08:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.6782ms)
+2025/12/30 21:13:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:13:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.7661ms)
+2025/12/30 21:18:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:18:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=7.2441ms)
+2025/12/30 21:23:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:23:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3303ms)
+2025/12/30 21:28:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:28:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=5.6137ms)
+2025/12/30 21:33:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:33:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.5097ms)
+2025/12/30 21:38:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:38:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=6.9689ms)
+2025/12/30 21:43:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:43:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.1934ms)
+2025/12/30 21:48:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:48:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3233ms)
+2025/12/30 21:53:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:53:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.2508ms)
+2025/12/30 21:58:47 [Monitor] Starting cleanup cycle
+2025/12/30 21:58:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=5.002ms)
+2025/12/30 22:03:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:03:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3911ms)
+2025/12/30 22:08:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:08:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.7778ms)
+2025/12/30 22:13:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:13:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.7618ms)
+2025/12/30 22:18:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:18:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.738ms)
+2025/12/30 22:23:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:23:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.181ms)
+2025/12/30 22:28:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:28:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.0036ms)
+2025/12/30 22:33:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:33:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.8625ms)
+2025/12/30 22:38:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:38:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.8211ms)
+2025/12/30 22:43:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:43:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.9127ms)
+2025/12/30 22:48:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:48:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.4836ms)
+2025/12/30 22:53:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:53:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.2584ms)
+2025/12/30 22:58:47 [Monitor] Starting cleanup cycle
+2025/12/30 22:58:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=3.5703ms)
+2025/12/30 23:03:47 [Monitor] Starting cleanup cycle
+2025/12/30 23:03:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.3457ms)
+2025/12/30 23:08:47 [Monitor] Starting cleanup cycle
+2025/12/30 23:08:47 [Monitor] Cleanup cycle completed (idle_removed=0, orphans_removed=0, duration=4.2688ms)

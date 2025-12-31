@@ -1,0 +1,90 @@
+# ===========================================
+# DATABASE
+# ===========================================
+DATABASE_URL=postgresql://postgres:yasdas230321@db.fuqhjbgbjamtxcdphjpp.supabase.co:5432/postgres
+
+# ===========================================
+# SERVER
+# ===========================================
+SERVER_PORT=8001
+API_PORT=8080
+FRONTEND_PORT=3000
+ENVIRONMENT=development
+
+# ===========================================
+# CORS
+# ===========================================
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:3000,app://localhost
+
+# ===========================================
+# AUTHENTICATION
+# ===========================================
+JWT_SECRET=g+6BWMxnO7wpy8gX/lD2hpFB6XnvSNTHw/ACpU8urt0=
+
+# ===========================================
+# REDIS
+# ===========================================
+REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=
+REDIS_TLS_ENABLED=false
+REDIS_KEY_HMAC_SECRET=dev-hmac-secret-change-in-production
+
+# ===========================================
+# AI PROVIDERS
+# ===========================================
+AI_PROVIDER=groq
+
+# Model Configuration
+DEFAULT_MODEL=llama-3.3-70b-versatile
+FAST_MODEL=llama-3.3-70b-versatile
+DEEP_MODEL=llama-3.3-70b-versatile
+CODE_MODEL=mixtral-8x7b-32768
+
+# Ollama Local
+OLLAMA_LOCAL_URL=http://localhost:11434
+
+# Groq
+GROQ_API_KEY=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
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# Anthropic Claude
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+
+# OpenAI
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o
+
+# ===========================================
+# EXTERNAL SERVICES
+# ===========================================
+E2B_API_KEY=e2b_dc0c9a629a4e513a2620326f7fef2a90ae3645ca
+GITHUB_TOKEN=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
+GITHUB_OWNER=miosa-projects
+RENDER_API_KEY=e2b_314c6c53d157428a52abfcdbb814d28023e81b4e
+RENDER_API_TOKEN=rnd_h0FaySf7vwpdWQv61ZuZ51kSZf4n
+RENDER_OWNER_ID=tea-d2fld93ipnbc739kagj0
+SUPERMEMORY_API_KEY=
+
+# ===========================================
+# FEATURE FLAGS
+# ===========================================
+ENABLE_LOCAL_MODELS=true
+USE_ENHANCED_AGENTS=true
+ENABLE_FILE_GENERATION=true
+ENABLE_E2B_TESTING=true
+ENABLE_SELF_LEARNING=true
+
+# ===========================================
+# AGENT CONFIGURATION
+# ===========================================
+MIN_CONFIDENCE_THRESHOLD=0.7
+MAX_RETRY_ATTEMPTS=10
+GENERATED_PLATFORMS_DIR=generated-platforms
+
+# ===========================================
+# MCP SERVER (Optional)
+# ===========================================
+MCP_TOKEN=
+MCP_IDE_ROOT=
+MCP_PEERS='[]'

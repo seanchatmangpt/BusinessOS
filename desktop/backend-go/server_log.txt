@@ -1,0 +1,363 @@
+[GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
+
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /                         --> main.main.func1 (5 handlers)
+[GIN-debug] GET    /health                   --> main.main.func2 (5 handlers)
+[GIN-debug] GET    /ready                    --> main.main.func3 (5 handlers)
+[GIN-debug] GET    /health/detailed          --> main.main.func4 (5 handlers)
+[GIN-debug] GET    /uploads/*filepath        --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (5 handlers)
+[GIN-debug] HEAD   /uploads/*filepath        --> github.com/gin-gonic/gin.(*RouterGroup).createStaticHandler.func1 (5 handlers)
+[GIN-debug] GET    /api/chat/conversations   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListConversations-fm (6 handlers)
+[GIN-debug] POST   /api/chat/conversations   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateConversation-fm (6 handlers)
+[GIN-debug] GET    /api/chat/conversations/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetConversation-fm (6 handlers)
+[GIN-debug] PUT    /api/chat/conversations/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateConversation-fm (6 handlers)
+[GIN-debug] DELETE /api/chat/conversations/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteConversation-fm (6 handlers)
+[GIN-debug] POST   /api/chat/message         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).SendMessageV2-fm (6 handlers)
+[GIN-debug] POST   /api/chat/v2/message      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).SendMessageV2-fm (6 handlers)
+[GIN-debug] GET    /api/chat/search          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).SearchConversations-fm (6 handlers)
+[GIN-debug] POST   /api/chat/ai/document     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DocumentAI-fm (6 handlers)
+[GIN-debug] POST   /api/chat/ai/analyze      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).AnalyzeContent-fm (6 handlers)
+[GIN-debug] POST   /api/chat/ai/extract-tasks --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ExtractTasks-fm (6 handlers)
+[GIN-debug] POST   /api/chat/ai/plan         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreatePlan-fm (6 handlers)
+[GIN-debug] GET    /api/artifacts            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListArtifacts-fm (6 handlers)
+[GIN-debug] POST   /api/artifacts            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateArtifact-fm (6 handlers)
+[GIN-debug] GET    /api/artifacts/:id        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetArtifact-fm (6 handlers)
+[GIN-debug] PATCH  /api/artifacts/:id        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateArtifact-fm (6 handlers)
+[GIN-debug] PATCH  /api/artifacts/:id/link   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).LinkArtifact-fm (6 handlers)
+[GIN-debug] DELETE /api/artifacts/:id        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteArtifact-fm (6 handlers)
+[GIN-debug] GET    /api/contexts/public/:shareId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetPublicContext-fm (5 handlers)
+[GIN-debug] GET    /api/contexts             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListContexts-fm (6 handlers)
+[GIN-debug] POST   /api/contexts             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateContext-fm (6 handlers)
+[GIN-debug] GET    /api/contexts/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetContext-fm (6 handlers)
+[GIN-debug] PUT    /api/contexts/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateContext-fm (6 handlers)
+[GIN-debug] PATCH  /api/contexts/:id/blocks  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateContextBlocks-fm (6 handlers)
+[GIN-debug] POST   /api/contexts/:id/share   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ShareContext-fm (6 handlers)
+[GIN-debug] DELETE /api/contexts/:id/share   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UnshareContext-fm (6 handlers)
+[GIN-debug] POST   /api/contexts/:id/duplicate --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DuplicateContext-fm (6 handlers)
+[GIN-debug] PATCH  /api/contexts/:id/archive --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ArchiveContext-fm (6 handlers)
+[GIN-debug] PATCH  /api/contexts/:id/unarchive --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UnarchiveContext-fm (6 handlers)
+[GIN-debug] DELETE /api/contexts/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteContext-fm (6 handlers)
+[GIN-debug] POST   /api/contexts/aggregate   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).AggregateContext-fm (6 handlers)
+[GIN-debug] GET    /api/projects             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListProjects-fm (6 handlers)
+[GIN-debug] POST   /api/projects             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateProject-fm (6 handlers)
+[GIN-debug] GET    /api/projects/stats       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetProjectStats-fm (6 handlers)
+[GIN-debug] GET    /api/projects/overdue     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetOverdueProjects-fm (6 handlers)
+[GIN-debug] GET    /api/projects/upcoming    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUpcomingProjects-fm (6 handlers)
+[GIN-debug] GET    /api/projects/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetProject-fm (6 handlers)
+[GIN-debug] PUT    /api/projects/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateProject-fm (6 handlers)
+[GIN-debug] DELETE /api/projects/:id         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteProject-fm (6 handlers)
+[GIN-debug] POST   /api/projects/:id/notes   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).AddProjectNote-fm (6 handlers)
+[GIN-debug] GET    /api/projects/:id/members --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListProjectMembers-fm (6 handlers)
+[GIN-debug] POST   /api/projects/:id/members --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).AddProjectMember-fm (6 handlers)
+[GIN-debug] PUT    /api/projects/:id/members/:memberId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateProjectMemberRole-fm (6 handlers)
+[GIN-debug] DELETE /api/projects/:id/members/:memberId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RemoveProjectMember-fm (6 handlers)
+[GIN-debug] GET    /api/clients              --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListClients-fm (6 handlers)
+[GIN-debug] POST   /api/clients              --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateClient-fm (6 handlers)
+[GIN-debug] GET    /api/clients/:id          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetClient-fm (6 handlers)
+[GIN-debug] PUT    /api/clients/:id          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateClient-fm (6 handlers)
+[GIN-debug] PATCH  /api/clients/:id/status   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateClientStatus-fm (6 handlers)
+[GIN-debug] DELETE /api/clients/:id          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteClient-fm (6 handlers)
+[GIN-debug] GET    /api/clients/:id/contacts --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListClientContacts-fm (6 handlers)
+[GIN-debug] POST   /api/clients/:id/contacts --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateClientContact-fm (6 handlers)
+[GIN-debug] PUT    /api/clients/:id/contacts/:contactId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateClientContact-fm (6 handlers)
+[GIN-debug] DELETE /api/clients/:id/contacts/:contactId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteClientContact-fm (6 handlers)
+[GIN-debug] GET    /api/clients/:id/interactions --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListClientInteractions-fm (6 handlers)
+[GIN-debug] POST   /api/clients/:id/interactions --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateClientInteraction-fm (6 handlers)
+[GIN-debug] GET    /api/clients/:id/deals    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListClientDeals-fm (6 handlers)
+[GIN-debug] POST   /api/clients/:id/deals    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateClientDeal-fm (6 handlers)
+[GIN-debug] PUT    /api/clients/:id/deals/:dealId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateClientDeal-fm (6 handlers)
+[GIN-debug] GET    /api/deals                --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListDeals-fm (6 handlers)
+[GIN-debug] PATCH  /api/deals/:id/stage      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateDealStage-fm (6 handlers)
+[GIN-debug] GET    /api/dashboard/summary    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetDashboardSummary-fm (6 handlers)
+[GIN-debug] GET    /api/dashboard/focus      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListFocusItems-fm (6 handlers)
+[GIN-debug] POST   /api/dashboard/focus      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateFocusItem-fm (6 handlers)
+[GIN-debug] PUT    /api/dashboard/focus/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateFocusItem-fm (6 handlers)
+[GIN-debug] DELETE /api/dashboard/focus/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteFocusItem-fm (6 handlers)
+[GIN-debug] GET    /api/dashboard/tasks      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListTasks-fm (6 handlers)
+[GIN-debug] POST   /api/dashboard/tasks      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateTask-fm (6 handlers)
+[GIN-debug] PUT    /api/dashboard/tasks/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateTask-fm (6 handlers)
+[GIN-debug] POST   /api/dashboard/tasks/:id/toggle --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ToggleTask-fm (6 handlers)
+[GIN-debug] DELETE /api/dashboard/tasks/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteTask-fm (6 handlers)
+[GIN-debug] GET    /api/team                 --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListTeamMembers-fm (6 handlers)
+[GIN-debug] POST   /api/team                 --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateTeamMember-fm (6 handlers)
+[GIN-debug] GET    /api/team/:id             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetTeamMember-fm (6 handlers)
+[GIN-debug] PUT    /api/team/:id             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateTeamMember-fm (6 handlers)
+[GIN-debug] PATCH  /api/team/:id/status      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateTeamMemberStatus-fm (6 handlers)
+[GIN-debug] PATCH  /api/team/:id/capacity    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateTeamMemberCapacity-fm (6 handlers)
+[GIN-debug] POST   /api/team/:id/activity    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).AddTeamMemberActivity-fm (6 handlers)
+[GIN-debug] DELETE /api/team/:id             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteTeamMember-fm (6 handlers)
+[GIN-debug] GET    /api/nodes                --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListNodes-fm (6 handlers)
+[GIN-debug] GET    /api/nodes/tree           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetNodeTree-fm (6 handlers)
+[GIN-debug] GET    /api/nodes/active         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetActiveNode-fm (6 handlers)
+[GIN-debug] POST   /api/nodes                --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateNode-fm (6 handlers)
+[GIN-debug] GET    /api/nodes/:id            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetNode-fm (6 handlers)
+[GIN-debug] PATCH  /api/nodes/:id            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateNode-fm (6 handlers)
+[GIN-debug] POST   /api/nodes/:id/activate   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ActivateNode-fm (6 handlers)
+[GIN-debug] POST   /api/nodes/:id/deactivate --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeactivateNode-fm (6 handlers)
+[GIN-debug] DELETE /api/nodes/:id            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteNode-fm (6 handlers)
+[GIN-debug] GET    /api/nodes/:id/children   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetNodeChildren-fm (6 handlers)
+[GIN-debug] POST   /api/nodes/:id/reorder    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ReorderNodes-fm (6 handlers)
+[GIN-debug] GET    /api/daily/logs           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListDailyLogs-fm (6 handlers)
+[GIN-debug] GET    /api/daily/logs/today     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetTodayLog-fm (6 handlers)
+[GIN-debug] GET    /api/daily/logs/:date     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetDailyLogByDate-fm (6 handlers)
+[GIN-debug] POST   /api/daily/logs           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateOrUpdateDailyLog-fm (6 handlers)
+[GIN-debug] PUT    /api/daily/logs/:id       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateDailyLog-fm (6 handlers)
+[GIN-debug] DELETE /api/daily/logs/:id       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteDailyLog-fm (6 handlers)
+[GIN-debug] GET    /api/settings             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSettings-fm (6 handlers)
+[GIN-debug] PUT    /api/settings             --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateSettings-fm (6 handlers)
+[GIN-debug] GET    /api/settings/system      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSystemSettings-fm (6 handlers)
+[GIN-debug] GET    /api/thinking/traces/:conversationId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListThinkingTraces-fm (6 handlers)
+[GIN-debug] GET    /api/thinking/trace/:messageId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetThinkingTraceByMessage-fm (6 handlers)
+[GIN-debug] DELETE /api/thinking/traces/:conversationId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteThinkingTraces-fm (6 handlers)
+[GIN-debug] GET    /api/thinking/settings    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetThinkingSettings-fm (6 handlers)
+[GIN-debug] PUT    /api/thinking/settings    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateThinkingSettings-fm (6 handlers)
+[GIN-debug] GET    /api/reasoning/templates  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListReasoningTemplates-fm (6 handlers)
+[GIN-debug] POST   /api/reasoning/templates  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateReasoningTemplate-fm (6 handlers)
+[GIN-debug] GET    /api/reasoning/templates/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetReasoningTemplate-fm (6 handlers)
+[GIN-debug] PUT    /api/reasoning/templates/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateReasoningTemplate-fm (6 handlers)
+[GIN-debug] DELETE /api/reasoning/templates/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteReasoningTemplate-fm (6 handlers)
+[GIN-debug] POST   /api/reasoning/templates/:id/default --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).SetDefaultReasoningTemplate-fm (6 handlers)
+[GIN-debug] GET    /api/focus/templates      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetFocusModeTemplates-fm (6 handlers)
+[GIN-debug] GET    /api/focus/settings       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetEffectiveFocusSettings-fm (6 handlers)
+[GIN-debug] POST   /api/focus/preflight      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).BuildPreflightContext-fm (6 handlers)
+[GIN-debug] GET    /api/search/web           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).WebSearch-fm (6 handlers)
+[GIN-debug] GET    /api/search/context       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).WebSearchWithContext-fm (6 handlers)
+[GIN-debug] GET    /api/search/history       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListSearchHistory-fm (6 handlers)
+[GIN-debug] GET    /api/search/history/:id   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSearchHistoryEntry-fm (6 handlers)
+[GIN-debug] DELETE /api/search/history/:id   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteSearchHistoryEntry-fm (6 handlers)
+[GIN-debug] DELETE /api/search/history       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ClearSearchHistory-fm (6 handlers)
+[GIN-debug] GET    /api/ai/providers         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetLLMProviders-fm (6 handlers)
+[GIN-debug] GET    /api/ai/models            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetAllModels-fm (6 handlers)
+[GIN-debug] GET    /api/ai/models/local      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetLocalModels-fm (6 handlers)
+[GIN-debug] POST   /api/ai/models/pull       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).PullModel-fm (6 handlers)
+[GIN-debug] POST   /api/ai/models/warmup     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).WarmupModel-fm (6 handlers)
+[GIN-debug] GET    /api/ai/system            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSystemInfo-fm (6 handlers)
+[GIN-debug] POST   /api/ai/api-key           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).SaveAPIKey-fm (6 handlers)
+[GIN-debug] PUT    /api/ai/provider          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateAIProvider-fm (6 handlers)
+[GIN-debug] GET    /api/ai/agents/presets    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListAgentPresets-fm (6 handlers)
+[GIN-debug] GET    /api/ai/agents/presets/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetAgentPreset-fm (6 handlers)
+[GIN-debug] GET    /api/ai/agents            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetAgentPrompts-fm (6 handlers)
+[GIN-debug] GET    /api/ai/agents/:id        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetAgentPrompt-fm (6 handlers)
+[GIN-debug] GET    /api/ai/custom-agents     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListCustomAgents-fm (6 handlers)
+[GIN-debug] POST   /api/ai/custom-agents     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateCustomAgent-fm (6 handlers)
+[GIN-debug] POST   /api/ai/custom-agents/sandbox --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).TestCustomAgent-fm (6 handlers)
+[GIN-debug] GET    /api/ai/custom-agents/category/:category --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListCustomAgentsByCategory-fm (6 handlers)
+[GIN-debug] POST   /api/ai/custom-agents/from-preset/:presetId --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateAgentFromPreset-fm (6 handlers)
+[GIN-debug] GET    /api/ai/custom-agents/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetCustomAgent-fm (6 handlers)
+[GIN-debug] PUT    /api/ai/custom-agents/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateCustomAgent-fm (6 handlers)
+[GIN-debug] DELETE /api/ai/custom-agents/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteCustomAgent-fm (6 handlers)
+[GIN-debug] POST   /api/ai/custom-agents/:id/test --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).TestCustomAgent-fm (6 handlers)
+[GIN-debug] GET    /api/ai/commands          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListCommands-fm (6 handlers)
+[GIN-debug] POST   /api/ai/commands          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateUserCommand-fm (6 handlers)
+[GIN-debug] GET    /api/ai/commands/:id      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUserCommand-fm (6 handlers)
+[GIN-debug] PUT    /api/ai/commands/:id      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateUserCommand-fm (6 handlers)
+[GIN-debug] DELETE /api/ai/commands/:id      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteUserCommand-fm (6 handlers)
+[GIN-debug] GET    /api/ai/delegation/agents --> github.com/rhl/businessos-backend/internal/handlers.(*DelegationHandler).ListAgents-fm (6 handlers)
+[GIN-debug] GET    /api/ai/delegation/resolve/:mention --> github.com/rhl/businessos-backend/internal/handlers.(*DelegationHandler).ResolveAgentMention-fm (6 handlers)
+[GIN-debug] POST   /api/ai/delegation/mentions --> github.com/rhl/businessos-backend/internal/handlers.(*DelegationHandler).ExtractMentions-fm (6 handlers)
+[GIN-debug] POST   /api/ai/delegation/delegate --> github.com/rhl/businessos-backend/internal/handlers.(*DelegationHandler).Delegate-fm (6 handlers)
+[GIN-debug] POST   /api/ai/router/analyze    --> github.com/rhl/businessos-backend/internal/handlers.(*RouterHandler).AnalyzeMessage-fm (6 handlers)
+[GIN-debug] POST   /api/ai/router/batch      --> github.com/rhl/businessos-backend/internal/handlers.(*RouterHandler).AnalyzeBatch-fm (6 handlers)
+[GIN-debug] GET    /api/ai/router/intents    --> github.com/rhl/businessos-backend/internal/handlers.(*RouterHandler).ListIntents-fm (6 handlers)
+[GIN-debug] GET    /api/ai/workflows         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListWorkflows-fm (6 handlers)
+[GIN-debug] POST   /api/ai/workflows         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateWorkflow-fm (6 handlers)
+[GIN-debug] GET    /api/ai/workflows/:id     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetWorkflow-fm (6 handlers)
+[GIN-debug] DELETE /api/ai/workflows/:id     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteWorkflow-fm (6 handlers)
+[GIN-debug] POST   /api/ai/workflows/:id/execute --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ExecuteWorkflow-fm (6 handlers)
+[GIN-debug] POST   /api/ai/workflows/trigger/:trigger --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ExecuteWorkflowByTrigger-fm (6 handlers)
+[GIN-debug] GET    /api/ai/workflows/executions --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListWorkflowExecutions-fm (6 handlers)
+[GIN-debug] GET    /api/ai/workflows/executions/:id --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetWorkflowExecution-fm (6 handlers)
+[GIN-debug] GET    /api/usage/summary        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUsageSummary-fm (6 handlers)
+[GIN-debug] GET    /api/usage/providers      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUsageByProvider-fm (6 handlers)
+[GIN-debug] GET    /api/usage/models         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUsageByModel-fm (6 handlers)
+[GIN-debug] GET    /api/usage/agents         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUsageByAgent-fm (6 handlers)
+[GIN-debug] GET    /api/usage/trend          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetUsageTrend-fm (6 handlers)
+[GIN-debug] GET    /api/usage/recent         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetRecentAIUsage-fm (6 handlers)
+[GIN-debug] GET    /api/usage/mcp            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetMCPUsage-fm (6 handlers)
+Whisper service init: binary=whisper, model=
+[GIN-debug] POST   /api/transcribe           --> github.com/rhl/businessos-backend/internal/handlers.(*TranscriptionHandler).TranscribeAudio-fm (6 handlers)
+[GIN-debug] GET    /api/transcribe/status    --> github.com/rhl/businessos-backend/internal/handlers.(*TranscriptionHandler).GetTranscriptionStatus-fm (6 handlers)
+Whisper service init: binary=whisper, model=
+[GIN-debug] GET    /api/voice-notes          --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).ListVoiceNotes-fm (6 handlers)
+[GIN-debug] POST   /api/voice-notes          --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).UploadVoiceNote-fm (6 handlers)
+[GIN-debug] GET    /api/voice-notes/stats    --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).GetVoiceNoteStats-fm (6 handlers)
+[GIN-debug] GET    /api/voice-notes/:id      --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).GetVoiceNote-fm (6 handlers)
+[GIN-debug] DELETE /api/voice-notes/:id      --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).DeleteVoiceNote-fm (6 handlers)
+[GIN-debug] POST   /api/voice-notes/:id/retranscribe --> github.com/rhl/businessos-backend/internal/handlers.(*VoiceNotesHandler).RetranscribeVoiceNote-fm (6 handlers)
+[GIN-debug] PUT    /api/profile              --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UpdateProfile-fm (6 handlers)
+[GIN-debug] POST   /api/profile/photo        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UploadProfilePhoto-fm (6 handlers)
+[GIN-debug] DELETE /api/profile/photo        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteProfilePhoto-fm (6 handlers)
+[GIN-debug] POST   /api/profile/background   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UploadBackground-fm (6 handlers)
+[GIN-debug] GET    /api/profile/background/:filename --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetBackground-fm (6 handlers)
+[GIN-debug] DELETE /api/profile/background   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteBackground-fm (6 handlers)
+[GIN-debug] GET    /api/mcp/tools            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListMCPTools-fm (6 handlers)
+[GIN-debug] POST   /api/mcp/execute          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ExecuteMCPTool-fm (6 handlers)
+[GIN-debug] GET    /api/mcp/health           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).MCPHealth-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/google/auth --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleOAuthHandler).InitiateGoogleAuth-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/google/status --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleOAuthHandler).GetGoogleConnectionStatus-fm (6 handlers)
+[GIN-debug] DELETE /api/integrations/google  --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleOAuthHandler).DisconnectGoogle-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/google/callback --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleOAuthHandler).HandleGoogleCallback-fm (5 handlers)
+[GIN-debug] GET    /api/integrations/slack/auth --> github.com/rhl/businessos-backend/internal/handlers.(*SlackOAuthHandler).InitiateSlackAuth-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/slack/status --> github.com/rhl/businessos-backend/internal/handlers.(*SlackOAuthHandler).GetSlackConnectionStatus-fm (6 handlers)
+[GIN-debug] DELETE /api/integrations/slack   --> github.com/rhl/businessos-backend/internal/handlers.(*SlackOAuthHandler).DisconnectSlack-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/slack/callback --> github.com/rhl/businessos-backend/internal/handlers.(*SlackOAuthHandler).HandleSlackCallback-fm (5 handlers)
+[GIN-debug] GET    /api/integrations/notion/auth --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).InitiateNotionAuth-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/notion/status --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).GetNotionConnectionStatus-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/notion/databases --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).GetNotionDatabases-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/notion/pages --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).GetNotionPages-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/notion/search --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).SearchNotion-fm (6 handlers)
+[GIN-debug] DELETE /api/integrations/notion  --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).DisconnectNotion-fm (6 handlers)
+[GIN-debug] GET    /api/integrations/notion/callback --> github.com/rhl/businessos-backend/internal/handlers.(*NotionOAuthHandler).HandleNotionCallback-fm (5 handlers)
+[GIN-debug] GET    /api/calendar/events      --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).ListEvents-fm (6 handlers)
+[GIN-debug] GET    /api/calendar/events/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).GetEvent-fm (6 handlers)
+[GIN-debug] POST   /api/calendar/events      --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).CreateEvent-fm (6 handlers)
+[GIN-debug] PUT    /api/calendar/events/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).UpdateEvent-fm (6 handlers)
+[GIN-debug] DELETE /api/calendar/events/:id  --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).DeleteEvent-fm (6 handlers)
+[GIN-debug] POST   /api/calendar/sync        --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).SyncCalendar-fm (6 handlers)
+[GIN-debug] GET    /api/calendar/today       --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).GetTodayEvents-fm (6 handlers)
+[GIN-debug] GET    /api/calendar/upcoming    --> github.com/rhl/businessos-backend/internal/handlers.(*CalendarHandler).GetUpcomingEvents-fm (6 handlers)
+[GIN-debug] GET    /api/terminal/ws          --> github.com/rhl/businessos-backend/internal/handlers.(*TerminalHandler).HandleWebSocket-fm (6 handlers)
+[GIN-debug] GET    /api/terminal/sessions    --> github.com/rhl/businessos-backend/internal/handlers.(*TerminalHandler).ListSessions-fm (6 handlers)
+[GIN-debug] DELETE /api/terminal/sessions/:id --> github.com/rhl/businessos-backend/internal/handlers.(*TerminalHandler).CloseSession-fm (6 handlers)
+[GIN-debug] GET    /api/filesystem/list      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ListDirectory-fm (6 handlers)
+[GIN-debug] GET    /api/filesystem/read      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).ReadFile-fm (6 handlers)
+[GIN-debug] GET    /api/filesystem/download  --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DownloadFile-fm (6 handlers)
+[GIN-debug] GET    /api/filesystem/info      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetFileInfo-fm (6 handlers)
+[GIN-debug] GET    /api/filesystem/quick-access --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetQuickAccessPaths-fm (6 handlers)
+[GIN-debug] POST   /api/filesystem/mkdir     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).CreateDirectory-fm (6 handlers)
+[GIN-debug] POST   /api/filesystem/upload    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).UploadFile-fm (6 handlers)
+[GIN-debug] DELETE /api/filesystem/delete    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).DeleteFileOrDir-fm (6 handlers)
+[GIN-debug] GET    /api/sync/status          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSyncStatus-fm (6 handlers)
+[GIN-debug] GET    /api/sync/full            --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).FullSync-fm (6 handlers)
+[GIN-debug] GET    /api/sync/:table          --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).GetSyncChanges-fm (6 handlers)
+[GIN-debug] GET    /api/contexts/sync        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func4 (6 handlers)
+[GIN-debug] GET    /api/conversations/sync   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func5 (6 handlers)
+[GIN-debug] GET    /api/projects/sync        --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func6 (6 handlers)
+[GIN-debug] GET    /api/tasks/sync           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func7 (6 handlers)
+[GIN-debug] GET    /api/nodes/sync           --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func8 (6 handlers)
+[GIN-debug] GET    /api/clients/sync         --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func9 (6 handlers)
+[GIN-debug] GET    /api/calendar_events/sync --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func10 (6 handlers)
+[GIN-debug] GET    /api/daily_logs/sync      --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func11 (6 handlers)
+[GIN-debug] GET    /api/team_members/sync    --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func12 (6 handlers)
+[GIN-debug] GET    /api/artifacts/sync       --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func13 (6 handlers)
+[GIN-debug] GET    /api/focus_items/sync     --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func14 (6 handlers)
+[GIN-debug] GET    /api/user_settings/sync   --> github.com/rhl/businessos-backend/internal/handlers.(*Handlers).RegisterRoutes.(*Handlers).createTableSyncHandler.func15 (6 handlers)
+[GIN-debug] POST   /api/auth/sign-up/email   --> github.com/rhl/businessos-backend/internal/handlers.(*EmailAuthHandler).SignUp-fm (6 handlers)
+[GIN-debug] POST   /api/auth/sign-in/email   --> github.com/rhl/businessos-backend/internal/handlers.(*EmailAuthHandler).SignIn-fm (6 handlers)
+[GIN-debug] GET    /api/auth/google          --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).InitiateGoogleLogin-fm (5 handlers)
+[GIN-debug] GET    /api/auth/google/callback/login --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).HandleGoogleLoginCallback-fm (5 handlers)
+[GIN-debug] GET    /api/auth/session         --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).GetCurrentSession-fm (5 handlers)
+[GIN-debug] GET    /api/auth/get-session     --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).GetCurrentSession-fm (5 handlers)
+[GIN-debug] POST   /api/auth/logout          --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).Logout-fm (5 handlers)
+[GIN-debug] POST   /api/auth/sign-out        --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).Logout-fm (5 handlers)
+[GIN-debug] POST   /api/auth/logout-all      --> github.com/rhl/businessos-backend/internal/handlers.(*GoogleAuthHandler).LogoutAllSessions-fm (6 handlers)
+[GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
+Please check https://github.com/gin-gonic/gin/blob/master/docs/doc.md#dont-trust-all-proxies for details.
+[GIN-debug] Listening and serving HTTP on :8001
+[GIN] 2025/12/30 - 18:46:24 | 200 |     20.5728ms |             ::1 | GET      "/api/auth/session"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      6.2924ms |             ::1 | GET      "/api/projects?status_filter=active"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      6.3011ms |             ::1 | GET      "/api/settings"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      6.8829ms |             ::1 | GET      "/api/ai/providers"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      3.2245ms |             ::1 | GET      "/api/ai/models/local"
+[GIN] 2025/12/30 - 18:46:24 | 204 |            0s |             ::1 | OPTIONS  "/api/settings"
+[GIN] 2025/12/30 - 18:46:24 | 200 |       532.6µs |             ::1 | GET      "/api/projects"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      4.3063ms |             ::1 | GET      "/api/team"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      5.9098ms |             ::1 | GET      "/api/chat/conversations"
+[GIN] 2025/12/30 - 18:46:24 | 404 |      6.0127ms |             ::1 | GET      "/api/nodes/active"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      2.2242ms |             ::1 | GET      "/api/ai/commands"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      3.2849ms |             ::1 | GET      "/api/ai/agents/presets"
+[GIN] 2025/12/30 - 18:46:24 | 200 |      8.6555ms |             ::1 | GET      "/api/contexts"
+[GIN] 2025/12/30 - 18:46:24 | 500 |      8.1233ms |             ::1 | PUT      "/api/settings"
+[GIN] 2025/12/30 - 18:46:24 | 200 |     134.119ms |             ::1 | GET      "/api/transcribe/status"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[Agent 0xc0001c4280] buildSystemPromptWithThinking called - systemPrompt length: 13562
+[Agent 0xc0001c4280] systemPrompt preview: ## SYSTEM IDENTITY
+
+You are **OSA (Operating System Agent)**, the AI assistant powering Business OS - an internal command center for managing business
+[Agent] ThinkingEnabled=true, using default thinking instruction (870 chars)
+[Groq] Message role: original="USER", normalized="user"
+[Groq] Sending 2 messages to API
+[Groq] Final message[0]: role="system", content_len=14434
+[Groq] Final message[1]: role="user", content_len=2283
+[Groq] Using max_tokens=8192 for streaming request
+[Groq] Stream finish_reason: stop
+[Groq] Stream completed: [DONE]
+[GIN] 2025/12/30 - 18:46:33 | 204 |            0s |             ::1 | OPTIONS  "/api/artifacts"
+[GIN] 2025/12/30 - 18:46:33 | 200 |    3.8727973s |             ::1 | POST     "/api/chat/v2/message"
+[GIN] 2025/12/30 - 18:46:33 | 201 |      8.5901ms |             ::1 | POST     "/api/artifacts"
+[GIN] 2025/12/30 - 18:46:33 | 200 |      5.3906ms |             ::1 | GET      "/api/artifacts"
+[GIN] 2025/12/30 - 18:46:33 | 200 |      2.1131ms |             ::1 | GET      "/api/artifacts"
+[GIN] 2025/12/30 - 18:49:03 | 200 |       604.7µs |             ::1 | GET      "/api/auth/session"
+[GIN] 2025/12/30 - 18:49:04 | 200 |       1.708ms |             ::1 | GET      "/api/settings"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      2.9072ms |             ::1 | GET      "/api/projects?status_filter=active"
+[GIN] 2025/12/30 - 18:49:04 | 200 |     13.2766ms |             ::1 | GET      "/api/ai/providers"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      1.8915ms |             ::1 | GET      "/api/ai/models/local"
+[GIN] 2025/12/30 - 18:49:04 | 204 |            0s |             ::1 | OPTIONS  "/api/settings"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      3.3981ms |             ::1 | GET      "/api/contexts"
+[GIN] 2025/12/30 - 18:49:04 | 404 |      1.7487ms |             ::1 | GET      "/api/nodes/active"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      4.4591ms |             ::1 | GET      "/api/chat/conversations"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      1.0483ms |             ::1 | GET      "/api/ai/agents/presets"
+[GIN] 2025/12/30 - 18:49:04 | 200 |       2.797ms |             ::1 | GET      "/api/projects"
+[GIN] 2025/12/30 - 18:49:04 | 200 |            0s |             ::1 | GET      "/api/transcribe/status"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      9.7252ms |             ::1 | GET      "/api/team"
+[GIN] 2025/12/30 - 18:49:04 | 200 |      5.8024ms |             ::1 | GET      "/api/ai/commands"
+[GIN] 2025/12/30 - 18:49:04 | 500 |      9.7252ms |             ::1 | PUT      "/api/settings"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[Agent 0xc00021fa40] buildSystemPromptWithThinking called - systemPrompt length: 13562
+[Agent 0xc00021fa40] systemPrompt preview: ## SYSTEM IDENTITY
+
+You are **OSA (Operating System Agent)**, the AI assistant powering Business OS - an internal command center for managing business
+[Agent] ThinkingEnabled=true, using default thinking instruction (870 chars)
+[Groq] Message role: original="USER", normalized="user"
+[Groq] Sending 2 messages to API
+[Groq] Final message[0]: role="system", content_len=14434
+[Groq] Final message[1]: role="user", content_len=2283
+[Groq] Using max_tokens=8192 for streaming request
+[Groq] Stream finish_reason: stop
+[Groq] Stream completed: [DONE]
+[GIN] 2025/12/30 - 18:49:15 | 204 |            0s |             ::1 | OPTIONS  "/api/artifacts"
+[GIN] 2025/12/30 - 18:49:15 | 201 |     32.7023ms |             ::1 | POST     "/api/artifacts"
+[GIN] 2025/12/30 - 18:49:15 | 200 |    4.2062267s |             ::1 | POST     "/api/chat/v2/message"
+[GIN] 2025/12/30 - 18:49:15 | 200 |     10.8119ms |             ::1 | GET      "/api/artifacts"
+[GIN] 2025/12/30 - 18:49:15 | 200 |      4.6238ms |             ::1 | GET      "/api/artifacts"
+[GIN] 2025/12/30 - 19:09:45 | 404 |            0s |             ::1 | GET      "/api/health"
+[GIN] 2025/12/30 - 19:09:51 | 401 |            0s |             ::1 | GET      "/api/ai/providers"
+[GIN] 2025/12/30 - 19:10:45 | 200 |       526.9µs |             ::1 | GET      "/api/auth/session"
+[GIN] 2025/12/30 - 19:10:45 | 200 |       717.3µs |             ::1 | GET      "/api/projects?status_filter=active"
+[GIN] 2025/12/30 - 19:10:45 | 200 |            0s |             ::1 | GET      "/api/settings"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      6.8888ms |             ::1 | GET      "/api/ai/providers"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      2.1308ms |             ::1 | GET      "/api/ai/models/local"
+[GIN] 2025/12/30 - 19:10:45 | 204 |            0s |             ::1 | OPTIONS  "/api/settings"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      1.0558ms |             ::1 | GET      "/api/contexts"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      1.0531ms |             ::1 | GET      "/api/projects"
+[GIN] 2025/12/30 - 19:10:45 | 404 |      4.1321ms |             ::1 | GET      "/api/nodes/active"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      3.6094ms |             ::1 | GET      "/api/ai/agents/presets"
+[GIN] 2025/12/30 - 19:10:45 | 500 |      3.0813ms |             ::1 | PUT      "/api/settings"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      6.7764ms |             ::1 | GET      "/api/chat/conversations"
+[GIN] 2025/12/30 - 19:10:45 | 200 |      7.3171ms |             ::1 | GET      "/api/team"
+[GIN] 2025/12/30 - 19:10:45 | 200 |       7.864ms |             ::1 | GET      "/api/transcribe/status"
+[GIN] 2025/12/30 - 19:10:45 | 200 |     34.6825ms |             ::1 | GET      "/api/ai/commands"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[LLM] Creating service for provider="groq", model="llama-3.3-70b-versatile"
+[Agent 0xc00010c780] buildSystemPromptWithThinking called - systemPrompt length: 13562
+[Agent 0xc00010c780] systemPrompt preview: ## SYSTEM IDENTITY
+
+You are **OSA (Operating System Agent)**, the AI assistant powering Business OS - an internal command center for managing business
+[Agent] ThinkingEnabled=true, using default thinking instruction (870 chars)
+[Groq] Message role: original="USER", normalized="user"
+[Groq] Sending 2 messages to API
+[Groq] Final message[0]: role="system", content_len=14434
+[Groq] Final message[1]: role="user", content_len=2283
+[Groq] Using max_tokens=8192 for streaming request
+[Groq] Stream finish_reason: stop
+[Groq] Stream completed: [DONE]
+[GIN] 2025/12/30 - 19:11:00 | 204 |            0s |             ::1 | OPTIONS  "/api/artifacts"
+[GIN] 2025/12/30 - 19:11:00 | 201 |       16.31ms |             ::1 | POST     "/api/artifacts"
+[GIN] 2025/12/30 - 19:11:00 | 200 |    4.2867465s |             ::1 | POST     "/api/chat/v2/message"
+[GIN] 2025/12/30 - 19:11:00 | 200 |      2.7666ms |             ::1 | GET      "/api/artifacts"
+[GIN] 2025/12/30 - 19:11:00 | 200 |      3.3265ms |             ::1 | GET      "/api/artifacts"
