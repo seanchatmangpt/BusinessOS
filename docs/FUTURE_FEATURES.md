@@ -1,4 +1,4 @@
-# BusinessOS Future Features - Comprehensive Development Roadmap
+### BusinessOS Future Features - Comprehensive Development Roadmap
 
 **Created:** December 31, 2025
 **Assigned To:** Nick (Primary), Team
@@ -55,9 +55,9 @@ Roberto's exact requirements:
 > "It'll be individual personalized memory from when they use the system. The system's not personal, so it'll just be personal to what they're working on, to their tasks in relation."
 
 > "If they have a role, it's been specific to their profile and stuff. The agent will know based off their role and everything what they're able to do based on the project. That way, people don't do things outside their role."
-Pedro
-### 1.2 Key Concepts
 Pedro / Nick discuss best routes 
+### 1.2 Key Concepts
+
 #### Memory Hierarchy
 ```
 WORKSPACE MEMORY (Shared across team)
@@ -329,7 +329,7 @@ CREATE TABLE project_members (
 CREATE INDEX idx_project_members_project ON project_members(project_id);
 CREATE INDEX idx_project_members_user ON project_members(user_id);
 ```
-
+Pedro;
 ### 1.4 Role-Based Agent Context
 
 The agent system MUST inject role information into context:
@@ -421,7 +421,7 @@ POST   /api/projects/:id/members              # Add member to project
 PUT    /api/projects/:id/members/:userId      # Update project role
 DELETE /api/projects/:id/members/:userId      # Remove from project
 ```
-
+javaris 
 ### 1.6 Testing Checklist
 
 - [ ] Workspace creation with default roles
@@ -435,9 +435,10 @@ DELETE /api/projects/:id/members/:userId      # Remove from project
 - [ ] Role hierarchy is respected
 
 ---
+nick / pedro
 
 ## FEATURE 2: Mobile API (HIGH PRIORITY)
-Javaris 
+javaris 
 ### 2.1 Core Requirements
 
 > "The mobile thing will be important."
@@ -472,7 +473,7 @@ type MobileTaskResponse struct {
 // GET /api/mobile/v1/tasks/:id/details   (full task)
 // GET /api/mobile/v1/tasks/:id/comments  (paginated)
 ```
-
+javaris
 ### 2.3 Mobile-Specific Endpoints
 
 ```
@@ -521,13 +522,13 @@ type Change struct {
 ```
 
 ---
-
+nick
 ## FEATURE 3: MCP Tool Integration (HIGH PRIORITY)
-
+nick
 ### 3.1 Core Requirements
 
 Better tool server management for the 20+ MCP servers.
-pedro
+nick
 ### 3.2 Tool Registry System
 
 ```sql
@@ -623,7 +624,7 @@ GET    /api/mcp/tools/:id/schema              # Get tool input schema
 Roberto's exact requirement:
 
 > "The Dashboards of course I want them to be custom where you have to use the OS agent or something to tell the users. Because everyone has different data in some cases, sometimes you want to view it in a different way."
-Javaris 
+Javaris / nick
 ### 4.2 Key Concept: Agent-Configured Dashboards
 
 Instead of static dashboards:
@@ -702,7 +703,7 @@ CREATE TABLE dashboard_widgets (
 -- recent_activity, upcoming_deadlines
 -- custom_query (for power users)
 ```
-pedro
+pedro / nick / javaris
 ### 4.4 Agent Dashboard Commands
 
 ```go
@@ -758,7 +759,7 @@ Would you like me to add anything else, like a project progress chart?"
 ```
 
 ---
-javaris
+javaris 
 ## FEATURE 5: Notifications System
 
 ### 5.1 Database Schema
@@ -910,7 +911,7 @@ nick
 - Meeting scheduling via agent
 - Availability checking
 - Calendar-based task suggestions
-
+nick
 ### 8.2 API Endpoints
 
 ```
@@ -924,7 +925,7 @@ POST   /api/calendar/sync                     # Force sync with Google
 ---
 
 ## FEATURE 9: Webhooks & External Integrations
-nick / pedro
+nick / javaris
 ### 9.1 Database Schema
 
 ```sql
