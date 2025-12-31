@@ -4,6 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
+	"io"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -65,6 +71,9 @@ func (r *AgentToolRegistry) registerTools() {
 	r.tools["update_client"] = &UpdateClientTool{pool: r.pool, userID: r.userID}
 	r.tools["log_activity"] = &LogActivityTool{pool: r.pool, userID: r.userID}
 	r.tools["create_artifact"] = &CreateArtifactTool{pool: r.pool, userID: r.userID}
+
+	// Search tools
+	r.tools["web_search"] = &WebSearchTool{pool: r.pool, userID: r.userID}
 }
 
 // GetTool returns a tool by name
@@ -557,10 +566,12 @@ func (t *CreateTaskTool) Execute(ctx context.Context, input json.RawMessage) (st
 		params.Priority = "medium"
 	}
 
+	// Generate UUID for task
+	taskID := uuid.New()
+
 	// Build query dynamically
-	query := `INSERT INTO tasks (user_id, title, description, status, priority, project_id, due_date, created_at, updated_at)
-	          VALUES ($1, $2, $3, 'todo', $4, $5, $6, NOW(), NOW())
-	          RETURNING id`
+	query := `INSERT INTO tasks (id, user_id, title, description, status, priority, project_id, due_date, created_at, updated_at)
+	          VALUES ($1, $2, $3, $4, 'todo', $5, $6, $7, NOW(), NOW())`
 
 	var projectID interface{} = nil
 	if params.ProjectID != "" {
@@ -581,8 +592,7 @@ func (t *CreateTaskTool) Execute(ctx context.Context, input json.RawMessage) (st
 		description = params.Description
 	}
 
-	var taskID uuid.UUID
-	err := t.pool.QueryRow(ctx, query, t.userID, params.Title, description, params.Priority, projectID, dueDate).Scan(&taskID)
+	_, err := t.pool.Exec(ctx, query, taskID, t.userID, params.Title, description, params.Priority, projectID, dueDate)
 	if err != nil {
 		return "", fmt.Errorf("failed to create task: %w", err)
 	}
@@ -887,7 +897,8 @@ func (t *CreateProjectTool) InputSchema() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"name":        map[string]interface{}{"type": "string", "description": "Project name"},
 			"description": map[string]interface{}{"type": "string", "description": "Project description"},
-			"status":      map[string]interface{}{"type": "string", "enum": []string{"active", "planning", "on_hold", "completed"}, "description": "Project status"},
+			"status":      map[string]interface{}{"type": "string", "enum": []string{"ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"}, "description": "Project status (default: ACTIVE)"},
+			"priority":    map[string]interface{}{"type": "string", "enum": []string{"CRITICAL", "HIGH", "MEDIUM", "LOW"}, "description": "Project priority (default: MEDIUM)"},
 		},
 		"required": []string{"name"},
 	}
@@ -897,23 +908,28 @@ func (t *CreateProjectTool) Execute(ctx context.Context, input json.RawMessage) 
 		Name        string `json:"name"`
 		Description string `json:"description"`
 		Status      string `json:"status"`
+		Priority    string `json:"priority"`
 	}
 	if err := json.Unmarshal(input, &params); err != nil {
 		return "", err
 	}
 	if params.Status == "" {
-		params.Status = "active"
+		params.Status = "ACTIVE"
+	}
+	if params.Priority == "" {
+		params.Priority = "MEDIUM"
 	}
 
-	query := `INSERT INTO projects (user_id, name, description, status, created_at, updated_at) 
-	          VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id`
-	var projectID uuid.UUID
-	err := t.pool.QueryRow(ctx, query, t.userID, params.Name, params.Description, params.Status).Scan(&projectID)
+	// Generate UUID for project
+	projectID := uuid.New()
+	query := `INSERT INTO projects (id, user_id, name, description, status, priority, created_at, updated_at)
+	          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`
+	_, err := t.pool.Exec(ctx, query, projectID, t.userID, params.Name, params.Description, params.Status, params.Priority)
 	if err != nil {
 		return "", fmt.Errorf("failed to create project: %w", err)
 	}
 
-	return fmt.Sprintf("✅ Project created!\n\n**Name:** %s\n**ID:** %s\n**Status:** %s", params.Name, projectID, params.Status), nil
+	return fmt.Sprintf("✅ Project created!\n\n**Name:** %s\n**ID:** %s\n**Status:** %s\n**Priority:** %s", params.Name, projectID, params.Status, params.Priority), nil
 }
 
 // UpdateProjectTool updates an existing project
@@ -1047,9 +1063,11 @@ func (t *BulkCreateTasksTool) Execute(ctx context.Context, input json.RawMessage
 			priority = "medium"
 		}
 
-		query := `INSERT INTO tasks (user_id, project_id, title, description, priority, status, created_at, updated_at) 
-		          VALUES ($1, $2, $3, $4, $5, 'todo', NOW(), NOW())`
-		_, err := t.pool.Exec(ctx, query, t.userID, projectUUID, task.Title, task.Description, priority)
+		// Generate UUID for each task
+		taskID := uuid.New()
+		query := `INSERT INTO tasks (id, user_id, project_id, title, description, priority, status, created_at, updated_at)
+		          VALUES ($1, $2, $3, $4, $5, $6, 'todo', NOW(), NOW())`
+		_, err := t.pool.Exec(ctx, query, taskID, t.userID, projectUUID, task.Title, task.Description, priority)
 		if err == nil {
 			created++
 		}
@@ -1500,10 +1518,13 @@ func (t *LogActivityTool) Execute(ctx context.Context, input json.RawMessage) (s
 		params.Type = "note"
 	}
 
-	query := `INSERT INTO daily_log (user_id, content, type, created_at) 
-	          VALUES ($1, $2, $3, NOW()) RETURNING id`
-	var logID uuid.UUID
-	err := t.pool.QueryRow(ctx, query, t.userID, params.Content, params.Type).Scan(&logID)
+	// Generate UUID for log entry
+	logID := uuid.New()
+
+	// daily_logs table requires date field
+	query := `INSERT INTO daily_logs (id, user_id, date, content, created_at, updated_at)
+	          VALUES ($1, $2, CURRENT_DATE, $3, NOW(), NOW())`
+	_, err := t.pool.Exec(ctx, query, logID, t.userID, params.Content)
 	if err != nil {
 		return "", fmt.Errorf("failed to log activity: %w", err)
 	}
@@ -1565,4 +1586,150 @@ func (t *CreateArtifactTool) Execute(ctx context.Context, input json.RawMessage)
 
 	// Return a marker that the handler will use to capture content
 	return fmt.Sprintf("ARTIFACT_START::%s::%s::Now write the complete document content below. Everything you write will be saved to the artifact.", params.Type, params.Title), nil
+}
+
+// ========== SEARCH TOOLS ==========
+
+// WebSearchTool performs web searches using DuckDuckGo and other providers
+type WebSearchTool struct {
+	pool   *pgxpool.Pool
+	userID string
+}
+
+func (t *WebSearchTool) Name() string { return "web_search" }
+func (t *WebSearchTool) Description() string {
+	return "Search the web for current information. Use this when you need up-to-date information, facts, news, or data that might not be in your training data. Returns search results with titles, URLs, and snippets."
+}
+func (t *WebSearchTool) InputSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"query": map[string]interface{}{
+				"type":        "string",
+				"description": "The search query. Be specific and use keywords for better results.",
+			},
+			"max_results": map[string]interface{}{
+				"type":        "integer",
+				"description": "Maximum number of results to return (default: 5, max: 10)",
+			},
+		},
+		"required": []string{"query"},
+	}
+}
+func (t *WebSearchTool) Execute(ctx context.Context, input json.RawMessage) (string, error) {
+	var params struct {
+		Query      string `json:"query"`
+		MaxResults int    `json:"max_results"`
+	}
+	if err := json.Unmarshal(input, &params); err != nil {
+		return "", fmt.Errorf("invalid input: %w", err)
+	}
+
+	if params.Query == "" {
+		return "", fmt.Errorf("query is required")
+	}
+
+	if params.MaxResults <= 0 {
+		params.MaxResults = 5
+	}
+	if params.MaxResults > 10 {
+		params.MaxResults = 10
+	}
+
+	// Use the WebSearchService from services package
+	// We need to import the services package and use it here
+	// For now, we'll use a simple HTTP call to DuckDuckGo Lite
+
+	results, err := t.performDuckDuckGoSearch(ctx, params.Query, params.MaxResults)
+	if err != nil {
+		return "", fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(results) == 0 {
+		return fmt.Sprintf("No results found for: %s", params.Query), nil
+	}
+
+	// Format results
+	var output string
+	output = fmt.Sprintf("## Web Search Results for: \"%s\"\n\n", params.Query)
+	for i, result := range results {
+		output += fmt.Sprintf("### %d. %s\n", i+1, result.Title)
+		output += fmt.Sprintf("**URL:** %s\n", result.URL)
+		output += fmt.Sprintf("%s\n\n", result.Snippet)
+	}
+
+	return output, nil
+}
+
+// SearchResult represents a single search result
+type SearchResult struct {
+	Title   string
+	URL     string
+	Snippet string
+}
+
+// performDuckDuckGoSearch performs a search using DuckDuckGo Lite HTML
+func (t *WebSearchTool) performDuckDuckGoSearch(ctx context.Context, query string, maxResults int) ([]SearchResult, error) {
+	// Build the DuckDuckGo Lite URL
+	searchURL := fmt.Sprintf("https://lite.duckduckgo.com/lite/?q=%s", url.QueryEscape(query))
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+
+	// Execute request
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Read body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse results from HTML
+	results := t.parseDuckDuckGoLiteHTML(string(body), maxResults)
+
+	return results, nil
+}
+
+// parseDuckDuckGoLiteHTML parses the DuckDuckGo Lite HTML response
+func (t *WebSearchTool) parseDuckDuckGoLiteHTML(htmlContent string, maxResults int) []SearchResult {
+	var results []SearchResult
+
+	// DuckDuckGo Lite uses a table with class "result-link" for links
+	// Pattern: <a rel="nofollow" href="URL" class="result-link">TITLE</a>
+	// Snippet is in the next <td class="result-snippet">
+
+	linkPattern := regexp.MustCompile(`<a[^>]*class="result-link"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>`)
+	snippetPattern := regexp.MustCompile(`<td[^>]*class="result-snippet"[^>]*>([^<]+)</td>`)
+
+	linkMatches := linkPattern.FindAllStringSubmatch(htmlContent, -1)
+	snippetMatches := snippetPattern.FindAllStringSubmatch(htmlContent, -1)
+
+	for i := 0; i < len(linkMatches) && i < maxResults; i++ {
+		result := SearchResult{
+			URL:   html.UnescapeString(linkMatches[i][1]),
+			Title: html.UnescapeString(strings.TrimSpace(linkMatches[i][2])),
+		}
+
+		// Get corresponding snippet if available
+		if i < len(snippetMatches) {
+			result.Snippet = html.UnescapeString(strings.TrimSpace(snippetMatches[i][1]))
+		}
+
+		// Skip empty results
+		if result.URL != "" && result.Title != "" {
+			results = append(results, result)
+		}
+	}
+
+	return results
 }

@@ -35,10 +35,13 @@ type AgentV2 interface {
 
 	// Execution - returns streaming events instead of raw strings
 	Run(ctx context.Context, input AgentInput) (<-chan streaming.StreamEvent, <-chan error)
+	RunWithTools(ctx context.Context, input AgentInput) (<-chan streaming.StreamEvent, <-chan error)
 
 	// Options
 	SetModel(model string)
 	SetOptions(opts services.LLMOptions)
+	SetCustomSystemPrompt(prompt string) // For custom agents with user-defined prompts
+	SetFocusModePrompt(prompt string)    // For focus mode specific prompt prefix
 }
 
 // ContextRequirements declares what context an agent needs
