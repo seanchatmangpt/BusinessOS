@@ -26,8 +26,8 @@ type EmbeddingService struct {
 	dimensions int
 }
 
-// Block represents a document block for embedding
-type Block struct {
+// EmbeddingBlock represents a document block for embedding
+type EmbeddingBlock struct {
 	ID      string `json:"id"`
 	Type    string `json:"type"`
 	Content string `json:"content"`

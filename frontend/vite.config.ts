@@ -117,6 +117,27 @@ export default defineConfig({
 				target: 'http://localhost:8001',
 				changeOrigin: true,
 			},
+			// Pedro Tasks APIs
+			'/api/documents': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
+			'/api/memories': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
+			'/api/learning': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
+			'/api/app-profiles': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
+			'/api/intelligence': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
 			'/health': {
 				target: 'http://localhost:8001',
 				changeOrigin: true,

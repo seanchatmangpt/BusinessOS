@@ -5,9 +5,11 @@
 	import FocusModeSelector from '$lib/components/chat/FocusModeSelector.svelte';
 	import ProgressPanel, { type DelegatedTask } from '$lib/components/chat/ProgressPanel.svelte';
 	import ContextPanel, { type ActiveResource } from '$lib/components/chat/ContextPanel.svelte';
+	import DocumentUploadModal from '$lib/components/chat/DocumentUploadModal.svelte';
 	import { FOCUS_MODES, getDefaultOptions, getAgentForFocusMode } from '$lib/components/chat/focusModes';
 	import ArtifactEditor from '$lib/components/artifacts/ArtifactEditor.svelte';
 	import { markdownToBlocks } from '$lib/utils/markdown-blocks';
+	import { MessageActions } from '$lib/components/ai-elements';
 
 	// Extract thinking content from message
 	// Uses flexible regex to match variations like <thinking>, <thinkingng>, <thinkingg>, etc.
@@ -156,10 +158,14 @@
 		type: string;
 		size: number;
 		content?: string; // base64 for images
+		documentId?: string; // ID returned from document upload API
+		uploading?: boolean; // Upload in progress
+		uploadError?: string; // Upload error message
 	}
 	let attachedFiles = $state<AttachedFile[]>([]);
 	let fileInputRef: HTMLInputElement | undefined = $state(undefined);
 	let showPlusMenu = $state(false);
+	let showDocumentUploadModal = $state(false);
 
 	// Voice recording state
 	let isRecording = $state(false);
@@ -1925,36 +1931,84 @@ Use this context to inform your responses.`;
 	}
 
 	// File attachment handlers
-	function handleFileSelect(event: Event) {
+	async function handleFileSelect(event: Event) {
+		console.log('[Chat] handleFileSelect triggered');
 		const input = event.target as HTMLInputElement;
 		const files = input.files;
-		if (!files) return;
+		if (!files) {
+			console.log('[Chat] No files selected');
+			return;
+		}
+		console.log('[Chat] Files selected:', files.length);
 
 		for (const file of Array.from(files)) {
-			// Check file size (max 10MB)
-			if (file.size > 10 * 1024 * 1024) {
-				alert(`File "${file.name}" is too large. Maximum size is 10MB.`);
+			// Check file size (max 50MB for documents)
+			if (file.size > 50 * 1024 * 1024) {
+				alert(`File "${file.name}" is too large. Maximum size is 50MB.`);
 				continue;
 			}
 
+			const fileId = crypto.randomUUID();
 			const newFile: AttachedFile = {
-				id: crypto.randomUUID(),
+				id: fileId,
 				name: file.name,
 				type: file.type,
-				size: file.size
+				size: file.size,
+				uploading: true
 			};
 
-			// For images, convert to base64
+			// For images, convert to base64 for preview
 			if (file.type.startsWith('image/')) {
 				const reader = new FileReader();
 				reader.onload = () => {
-					const base64 = reader.result as string;
-					newFile.content = base64;
-					attachedFiles = [...attachedFiles, newFile];
+					newFile.content = reader.result as string;
 				};
 				reader.readAsDataURL(file);
-			} else {
-				attachedFiles = [...attachedFiles, newFile];
+			}
+
+			// Add to UI immediately (with uploading state)
+			attachedFiles = [...attachedFiles, newFile];
+			console.log('[Chat] File added to attachedFiles:', fileId, 'total:', attachedFiles.length);
+
+			// Upload document to backend for RAG processing
+			try {
+				console.log('[Chat] Starting upload for:', file.name, 'size:', file.size);
+				const formData = new FormData();
+				formData.append('file', file);
+				formData.append('display_name', file.name);
+				if (selectedProjectId) {
+					formData.append('project_id', selectedProjectId);
+				}
+
+				console.log('[Chat] Sending POST to /api/documents');
+				const response = await fetch('/api/documents', {
+					method: 'POST',
+					credentials: 'include',
+					body: formData
+				});
+
+				if (!response.ok) {
+					throw new Error(`Upload failed: ${response.status}`);
+				}
+
+				const doc = await response.json();
+				console.log('[Chat] Document uploaded:', doc);
+
+				// Update file with document ID
+				attachedFiles = attachedFiles.map(f =>
+					f.id === fileId
+						? { ...f, documentId: doc.id, uploading: false }
+						: f
+				);
+				console.log('[Chat] Document ID set:', doc.id, 'attachedFiles count:', attachedFiles.length, 'files:', attachedFiles.map(f => ({ id: f.id, documentId: f.documentId })));
+			} catch (err) {
+				console.error('[Chat] Document upload error:', err);
+				// Update file with error state
+				attachedFiles = attachedFiles.map(f =>
+					f.id === fileId
+						? { ...f, uploading: false, uploadError: err instanceof Error ? err.message : 'Upload failed' }
+						: f
+				);
 			}
 		}
 
@@ -1973,6 +2027,7 @@ Use this context to inform your responses.`;
 	}
 
 	function startNewConversation() {
+		console.log('[Chat] startNewConversation called - clearing attachedFiles');
 		conversationId = null;
 		activeConversationId = null;
 		messages = [];
@@ -2180,11 +2235,113 @@ Use this context to inform your responses.`;
 		}
 	}
 
-	// Handle Focus Mode submission
-	function handleFocusModeSubmit(message: string, focusMode: string | null, options: Record<string, string>) {
+	// Interface for files coming from FocusModeSelector (without documentId)
+	interface FocusModeFile {
+		id: string;
+		name: string;
+		type: string;
+		size: number;
+		content?: string;
+	}
+
+	// Handle Focus Mode submission - accepts files from FocusModeSelector
+	async function handleFocusModeSubmit(
+		message: string,
+		focusMode: string | null,
+		options: Record<string, string>,
+		files?: FocusModeFile[]
+	) {
+		console.log('[Chat] handleFocusModeSubmit called with files:', files?.length || 0);
+
 		selectedFocusId = focusMode;
 		focusOptions = options;
 		inputValue = message;
+
+		// If files were attached in FocusModeSelector, upload them first
+		if (files && files.length > 0) {
+			console.log('[Chat] Processing', files.length, 'files from FocusModeSelector');
+
+			// Clear any existing attached files and process new ones
+			attachedFiles = [];
+
+			for (const file of files) {
+				const newFile: AttachedFile = {
+					id: file.id,
+					name: file.name,
+					type: file.type,
+					size: file.size,
+					content: file.content,
+					uploading: true
+				};
+
+				// Add to UI immediately
+				attachedFiles = [...attachedFiles, newFile];
+
+				// Upload to document API for RAG processing
+				try {
+					console.log('[Chat] Uploading file from FocusMode:', file.name);
+
+					// Convert content to blob for upload
+					let blob: Blob;
+					if (file.content && file.content.startsWith('data:')) {
+						// Base64 content (images)
+						const base64Data = file.content.split(',')[1];
+						const binaryData = atob(base64Data);
+						const bytes = new Uint8Array(binaryData.length);
+						for (let i = 0; i < binaryData.length; i++) {
+							bytes[i] = binaryData.charCodeAt(i);
+						}
+						blob = new Blob([bytes], { type: file.type });
+					} else if (file.content) {
+						// Text content
+						blob = new Blob([file.content], { type: file.type || 'text/plain' });
+					} else {
+						// No content available, skip upload but keep in list
+						console.log('[Chat] No content for file, skipping upload:', file.name);
+						attachedFiles = attachedFiles.map(f =>
+							f.id === file.id ? { ...f, uploading: false } : f
+						);
+						continue;
+					}
+
+					const formData = new FormData();
+					formData.append('file', blob, file.name);
+					formData.append('display_name', file.name);
+					if (selectedProjectId) {
+						formData.append('project_id', selectedProjectId);
+					}
+
+					const response = await fetch('/api/documents', {
+						method: 'POST',
+						credentials: 'include',
+						body: formData
+					});
+
+					if (!response.ok) {
+						throw new Error(`Upload failed: ${response.status}`);
+					}
+
+					const doc = await response.json();
+					console.log('[Chat] FocusMode document uploaded:', doc.id);
+
+					// Update with document ID
+					attachedFiles = attachedFiles.map(f =>
+						f.id === file.id ? { ...f, documentId: doc.id, uploading: false } : f
+					);
+				} catch (err) {
+					console.error('[Chat] FocusMode document upload error:', err);
+					attachedFiles = attachedFiles.map(f =>
+						f.id === file.id
+							? { ...f, uploading: false, uploadError: err instanceof Error ? err.message : 'Upload failed' }
+							: f
+					);
+				}
+			}
+
+			console.log('[Chat] All FocusMode files processed. attachedFiles:', attachedFiles.length,
+				'with documentIds:', attachedFiles.filter(f => f.documentId).length);
+		}
+
 		handleSendMessage();
 	}
 
@@ -2253,6 +2410,22 @@ Use this context to inform your responses.`;
 				focus_mode: selectedFocusId,
 				focus_options: Object.keys(focusOptions).length > 0 ? focusOptions : undefined,
 			};
+
+			// Include attached document IDs for context injection
+			console.log('[Chat] Attached files at send time:', attachedFiles.length, attachedFiles);
+			const uploadedDocIds = attachedFiles
+				.filter(f => f.documentId && !f.uploadError)
+				.map(f => f.documentId);
+			console.log('[Chat] Filtered document IDs:', uploadedDocIds);
+			if (uploadedDocIds.length > 0) {
+				requestBody.document_ids = uploadedDocIds;
+				console.log('[Chat] Including document IDs in request:', uploadedDocIds);
+			} else {
+				console.log('[Chat] No document IDs to include');
+			}
+
+			// Clear attached files after including in request
+			attachedFiles = [];
 
 			// Include node context if there's an active node
 			if (nodeContextPrompt) {
@@ -3940,22 +4113,14 @@ Use this context to inform your responses.`;
 
 								{#if (message.content || message.artifacts?.length || parsedParts.length > 0) && (!isStreaming || !isLastMessage || artifactCompletedInStream)}
 									<div class="flex items-center gap-2 mt-3">
-										<button
-											onclick={() => copyMessage(message.content, message.id)}
-											class="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-										>
-											{#if copiedMessageId === message.id}
-												<svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-												</svg>
-												<span class="text-green-600">Copied</span>
-											{:else}
-												<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-												</svg>
-												<span>Copy</span>
-											{/if}
-										</button>
+										<MessageActions 
+											messageId={message.id}
+											conversationId={conversationId || undefined}
+											agentType={selectedModel}
+											originalContent={message.content}
+											onCopy={() => copyMessage(message.content, message.id)}
+											copied={copiedMessageId === message.id}
+										/>
 
 										<!-- Usage stats display -->
 										{#if message.usage && showUsageInChat}
@@ -4322,7 +4487,16 @@ Use this context to inform your responses.`;
 												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
 												</svg>
-												Attach file
+												Attach image
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; showDocumentUploadModal = true; }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+												</svg>
+												Upload document
 											</button>
 										</div>
 									{/if}
@@ -4332,7 +4506,7 @@ Use this context to inform your responses.`;
 								<button
 									onclick={(e) => { e.stopPropagation(); fileInputRef?.click(); }}
 									class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-									aria-label="Attach file"
+									aria-label="Attach image"
 								>
 									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -4864,7 +5038,16 @@ Use this context to inform your responses.`;
 												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
 												</svg>
-												Attach file
+												Attach image
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; showDocumentUploadModal = true; }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+												</svg>
+												Upload document
 											</button>
 										</div>
 									{/if}
@@ -4874,7 +5057,7 @@ Use this context to inform your responses.`;
 								<button
 									onclick={(e) => { e.stopPropagation(); fileInputRef?.click(); }}
 									class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-									aria-label="Attach file"
+									aria-label="Attach image"
 								>
 									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -5682,6 +5865,23 @@ Use this context to inform your responses.`;
 		</div>
 	</div>
 {/if}
+
+<!-- Document Upload Modal -->
+<DocumentUploadModal
+	bind:open={showDocumentUploadModal}
+	onClose={() => showDocumentUploadModal = false}
+	onUploadComplete={(doc) => {
+		console.log('Document uploaded:', doc);
+		// Optionally add to active resources or show notification
+		activeResources = [...activeResources, {
+			id: doc.id,
+			type: 'document',
+			title: doc.display_name || doc.original_filename,
+			contextId: doc.id,
+			tokenCount: doc.word_count ? doc.word_count * 2 : undefined
+		}];
+	}}
+/>
 
 <style>
 	@keyframes blink {

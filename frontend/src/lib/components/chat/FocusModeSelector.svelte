@@ -204,27 +204,22 @@
 				size: file.size
 			};
 
-			// If it's an image, read as base64
-			if (file.type.startsWith('image/')) {
-				const reader = new FileReader();
-				reader.onload = (e) => {
-					newFile.content = e.target?.result as string;
-					attachedFiles = [...attachedFiles, newFile];
-				};
-				reader.readAsDataURL(file);
-			} else {
-				// For non-images, read as text if possible
-				if (file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.txt')) {
-					const reader = new FileReader();
-					reader.onload = (e) => {
-						newFile.content = e.target?.result as string;
-						attachedFiles = [...attachedFiles, newFile];
-					};
-					reader.readAsText(file);
-				} else {
-					attachedFiles = [...attachedFiles, newFile];
-				}
-			}
+			// Read all files as base64 so they can be uploaded later
+			// Images and binary files (like PDFs) are read as data URLs
+			// Text files are also read as data URLs for consistency
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				newFile.content = e.target?.result as string;
+				attachedFiles = [...attachedFiles, newFile];
+				console.log('[FocusMode] File added:', file.name, 'size:', file.size, 'type:', file.type);
+			};
+			reader.onerror = (e) => {
+				console.error('[FocusMode] Error reading file:', file.name, e);
+				// Add file without content as fallback
+				attachedFiles = [...attachedFiles, newFile];
+			};
+			// Read all files as base64 data URLs
+			reader.readAsDataURL(file);
 		}
 	}
 

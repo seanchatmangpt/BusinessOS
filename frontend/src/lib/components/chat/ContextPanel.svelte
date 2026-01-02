@@ -66,8 +66,10 @@
 		return groups;
 	});
 
-	// View mode: contexts or resources
-	let viewMode = $state<'contexts' | 'resources'>('contexts');
+	// View mode: contexts, resources, or memories
+	let viewMode = $state<'contexts' | 'resources' | 'memories'>('contexts');
+
+	import MemoryPanel from './MemoryPanel.svelte';
 </script>
 
 <div class="context-panel">
@@ -103,6 +105,12 @@
 			{#if resources.length > 0}
 				<span class="tab-badge">{resources.length}</span>
 			{/if}
+		</button>
+		<button
+			class="view-tab {viewMode === 'memories' ? 'active' : ''}"
+			onclick={() => viewMode = 'memories'}
+		>
+			Memories
 		</button>
 	</div>
 
@@ -145,7 +153,7 @@
 					{/each}
 				</div>
 			{/if}
-		{:else}
+		{:else if viewMode === 'resources'}
 			<!-- Active Resources View -->
 			{#if resources.length === 0}
 				<div class="empty-state">
@@ -177,6 +185,13 @@
 					</div>
 				{/each}
 			{/if}
+		{:else if viewMode === 'memories'}
+			<MemoryPanel 
+				onMemoryClick={(memory) => {
+					// Handle memory click if needed
+					console.log('Memory clicked:', memory);
+				}}
+			/>
 		{/if}
 	</div>
 </div>

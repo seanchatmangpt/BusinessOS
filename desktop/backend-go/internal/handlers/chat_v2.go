@@ -99,6 +99,7 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	var projectID *uuid.UUID
 	var nodeID *uuid.UUID
 	var contextIDs []uuid.UUID
+	var documentIDs []uuid.UUID
 
 	if req.ContextID != nil {
 		if parsed, err := uuid.Parse(*req.ContextID); err == nil {
@@ -114,6 +115,16 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 
 	if len(contextIDs) == 0 && contextID != nil {
 		contextIDs = append(contextIDs, *contextID)
+	}
+
+	// Parse document IDs for attached files
+	for _, docIDStr := range req.DocumentIDs {
+		if parsed, err := uuid.Parse(docIDStr); err == nil {
+			documentIDs = append(documentIDs, parsed)
+		}
+	}
+	if len(documentIDs) > 0 {
+		log.Printf("[ChatV2] Attached documents: %v", documentIDs)
 	}
 
 	if req.ProjectID != nil {
@@ -256,12 +267,13 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 
 	// Build tiered context
 	var tieredCtx *services.TieredContext
-	if h.tieredContextService != nil && (len(contextIDs) > 0 || projectID != nil || nodeID != nil) {
+	if h.tieredContextService != nil && (len(contextIDs) > 0 || projectID != nil || nodeID != nil || len(documentIDs) > 0) {
 		tieredReq := services.TieredContextRequest{
-			UserID:     user.ID,
-			ContextIDs: contextIDs,
-			ProjectID:  projectID,
-			NodeID:     nodeID,
+			UserID:      user.ID,
+			ContextIDs:  contextIDs,
+			ProjectID:   projectID,
+			NodeID:      nodeID,
+			DocumentIDs: documentIDs,
 		}
 		tieredCtx, _ = h.tieredContextService.BuildTieredContext(ctx, tieredReq)
 	}

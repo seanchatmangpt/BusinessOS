@@ -155,19 +155,16 @@ func (s *GroqService) StreamChat(ctx context.Context, messages []ChatMessage, sy
 		// Convert messages to Groq format
 		groqMsgs := make([]GroqMessage, 0, len(messages)+1)
 
-		// Add system message first if provided
-		if systemPrompt != "" {
-			groqMsgs = append(groqMsgs, GroqMessage{
-				Role:    "system",
-				Content: systemPrompt,
-			})
-		}
-
 		for _, msg := range messages {
 			role := strings.ToLower(msg.Role)
 			fmt.Printf("[Groq] Message role: original=%q, normalized=%q\n", msg.Role, role)
 			if role == "system" {
 				// Combine with existing system prompt
+				if systemPrompt != "" {
+					systemPrompt = systemPrompt + "\n\n" + msg.Content
+				} else {
+					systemPrompt = msg.Content
+				}
 				continue
 			}
 			// Ensure valid role for Groq API
@@ -179,6 +176,14 @@ func (s *GroqService) StreamChat(ctx context.Context, messages []ChatMessage, sy
 				Role:    role,
 				Content: msg.Content,
 			})
+		}
+
+		// Add system message first if provided/combined
+		if systemPrompt != "" {
+			groqMsgs = append([]GroqMessage{{
+				Role:    "system",
+				Content: systemPrompt,
+			}}, groqMsgs...)
 		}
 		fmt.Printf("[Groq] Sending %d messages to API\n", len(groqMsgs))
 
@@ -277,21 +282,26 @@ func (s *GroqService) ChatComplete(ctx context.Context, messages []ChatMessage, 
 	// Convert messages to Groq format
 	groqMsgs := make([]GroqMessage, 0, len(messages)+1)
 
-	if systemPrompt != "" {
-		groqMsgs = append(groqMsgs, GroqMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
-
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		groqMsgs = append(groqMsgs, GroqMessage{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		groqMsgs = append([]GroqMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, groqMsgs...)
 	}
 
 	reqBody := GroqRequest{
@@ -366,21 +376,26 @@ func (s *GroqService) StreamChatWithUsage(ctx context.Context, messages []ChatMe
 		defer close(errs)
 
 		groqMsgs := make([]GroqMessage, 0, len(messages)+1)
-		if systemPrompt != "" {
-			groqMsgs = append(groqMsgs, GroqMessage{
-				Role:    "system",
-				Content: systemPrompt,
-			})
-		}
-
 		for _, msg := range messages {
 			if msg.Role == "system" {
+				if systemPrompt != "" {
+					systemPrompt = systemPrompt + "\n\n" + msg.Content
+				} else {
+					systemPrompt = msg.Content
+				}
 				continue
 			}
 			groqMsgs = append(groqMsgs, GroqMessage{
 				Role:    msg.Role,
 				Content: msg.Content,
 			})
+		}
+
+		if systemPrompt != "" {
+			groqMsgs = append([]GroqMessage{{
+				Role:    "system",
+				Content: systemPrompt,
+			}}, groqMsgs...)
 		}
 
 		maxTokens := s.options.MaxTokens
@@ -472,21 +487,26 @@ func (s *GroqService) StreamChatWithUsage(ctx context.Context, messages []ChatMe
 func (s *GroqService) ChatCompleteWithUsage(ctx context.Context, messages []ChatMessage, systemPrompt string) (string, *TokenUsage, error) {
 	groqMsgs := make([]GroqMessage, 0, len(messages)+1)
 
-	if systemPrompt != "" {
-		groqMsgs = append(groqMsgs, GroqMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
-
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		groqMsgs = append(groqMsgs, GroqMessage{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		groqMsgs = append([]GroqMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, groqMsgs...)
 	}
 
 	reqBody := GroqRequest{
@@ -564,21 +584,27 @@ type ChatWithToolsResponse struct {
 // ChatWithTools sends a chat request with tool definitions and returns tool calls if any
 func (s *GroqService) ChatWithTools(ctx context.Context, messages []ChatMessage, systemPrompt string, tools []ToolDefinition) (*ChatWithToolsResponse, error) {
 	groqMsgs := make([]GroqMessage, 0, len(messages)+1)
-	if systemPrompt != "" {
-		groqMsgs = append(groqMsgs, GroqMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
 
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		groqMsgs = append(groqMsgs, GroqMessage{
 			Role:    strings.ToLower(msg.Role),
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		groqMsgs = append([]GroqMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, groqMsgs...)
 	}
 
 	// Convert tool definitions to Groq format
@@ -660,21 +686,27 @@ func (s *GroqService) ChatWithTools(ctx context.Context, messages []ChatMessage,
 // ContinueWithToolResults continues the conversation after tool execution
 func (s *GroqService) ContinueWithToolResults(ctx context.Context, messages []ChatMessage, systemPrompt string, toolResults map[string]string) (string, error) {
 	groqMsgs := make([]GroqMessage, 0, len(messages)+len(toolResults)+1)
-	if systemPrompt != "" {
-		groqMsgs = append(groqMsgs, GroqMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
 
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		groqMsgs = append(groqMsgs, GroqMessage{
 			Role:    strings.ToLower(msg.Role),
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		groqMsgs = append([]GroqMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, groqMsgs...)
 	}
 
 	// Add tool results as tool messages

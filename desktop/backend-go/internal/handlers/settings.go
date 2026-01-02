@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -120,7 +121,7 @@ func (h *Handlers) GetSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// UpdateSettings updates or creates user settings
+// UpdateSettings updates or creates user settings using atomic upsert
 func (h *Handlers) UpdateSettings(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
 	if user == nil {
@@ -146,133 +147,111 @@ func (h *Handlers) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	// Merge model_settings, agent_settings, focus_settings into custom_settings
-	if req.ModelSettings != nil || req.AgentSettings != nil || req.FocusSettings != nil {
-		if req.CustomSettings == nil {
-			req.CustomSettings = make(map[string]interface{})
-		}
-		if req.ModelSettings != nil {
-			req.CustomSettings["model_settings"] = req.ModelSettings
-		}
-		if req.AgentSettings != nil {
-			req.CustomSettings["agent_settings"] = req.AgentSettings
-		}
-		if req.FocusSettings != nil {
-			req.CustomSettings["focus_settings"] = req.FocusSettings
-		}
-	}
-
 	queries := sqlc.New(h.pool)
+	ctx := c.Request.Context()
 
-	// Try to get existing settings first for PATCH-like behavior
-	existing, err := queries.GetUserSettings(c.Request.Context(), user.ID)
-	if err != nil {
-		// Create new settings with defaults merged with request
-		defaultModel := "llama3.2"
-		if req.DefaultModel != nil {
-			defaultModel = *req.DefaultModel
-		}
+	// Try to get existing settings for merging
+	existing, existsErr := queries.GetUserSettings(ctx, user.ID)
 
-		emailNotifications := true
-		if req.EmailNotifications != nil {
-			emailNotifications = *req.EmailNotifications
-		}
-
-		dailySummary := false
-		if req.DailySummary != nil {
-			dailySummary = *req.DailySummary
-		}
-
-		theme := "system"
-		if req.Theme != nil {
-			theme = *req.Theme
-		}
-
-		sidebarCollapsed := false
-		if req.SidebarCollapsed != nil {
-			sidebarCollapsed = *req.SidebarCollapsed
-		}
-
-		shareAnalytics := false
-		if req.ShareAnalytics != nil {
-			shareAnalytics = *req.ShareAnalytics
-		}
-
-		customSettings := []byte("{}")
-		if req.CustomSettings != nil {
-			if settingsJSON, err := json.Marshal(req.CustomSettings); err == nil {
-				customSettings = settingsJSON
-			}
-		}
-
-		settings, err := queries.CreateUserSettings(c.Request.Context(), sqlc.CreateUserSettingsParams{
-			UserID:             user.ID,
-			DefaultModel:       &defaultModel,
-			EmailNotifications: &emailNotifications,
-			DailySummary:       &dailySummary,
-			Theme:              &theme,
-			SidebarCollapsed:   &sidebarCollapsed,
-			ShareAnalytics:     &shareAnalytics,
-			CustomSettings:     customSettings,
-		})
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create settings"})
-			return
-		}
-		c.JSON(http.StatusCreated, settings)
-		return
+	// Build custom_settings by merging with existing
+	var customSettings map[string]interface{}
+	if existsErr == nil && existing.CustomSettings != nil {
+		// Parse existing custom_settings
+		json.Unmarshal(existing.CustomSettings, &customSettings)
+	}
+	if customSettings == nil {
+		customSettings = make(map[string]interface{})
 	}
 
-	// Merge with existing values
-	defaultModel := existing.DefaultModel
-	if req.DefaultModel != nil {
-		defaultModel = req.DefaultModel
+	// Merge new settings into custom_settings
+	if req.ModelSettings != nil {
+		customSettings["model_settings"] = req.ModelSettings
 	}
-
-	emailNotifications := existing.EmailNotifications
-	if req.EmailNotifications != nil {
-		emailNotifications = req.EmailNotifications
+	if req.AgentSettings != nil {
+		customSettings["agent_settings"] = req.AgentSettings
 	}
-
-	dailySummary := existing.DailySummary
-	if req.DailySummary != nil {
-		dailySummary = req.DailySummary
+	if req.FocusSettings != nil {
+		customSettings["focus_settings"] = req.FocusSettings
 	}
-
-	theme := existing.Theme
-	if req.Theme != nil {
-		theme = req.Theme
-	}
-
-	sidebarCollapsed := existing.SidebarCollapsed
-	if req.SidebarCollapsed != nil {
-		sidebarCollapsed = req.SidebarCollapsed
-	}
-
-	shareAnalytics := existing.ShareAnalytics
-	if req.ShareAnalytics != nil {
-		shareAnalytics = req.ShareAnalytics
-	}
-
-	customSettings := existing.CustomSettings
+	// Also merge any direct custom_settings provided
 	if req.CustomSettings != nil {
-		if settingsJSON, err := json.Marshal(req.CustomSettings); err == nil {
-			customSettings = settingsJSON
+		for k, v := range req.CustomSettings {
+			customSettings[k] = v
 		}
 	}
 
-	settings, err := queries.UpdateUserSettings(c.Request.Context(), sqlc.UpdateUserSettingsParams{
+	// Serialize custom_settings
+	customSettingsJSON := []byte("{}")
+	if len(customSettings) > 0 {
+		if settingsJSON, err := json.Marshal(customSettings); err == nil {
+			customSettingsJSON = settingsJSON
+		}
+	}
+
+	// Build final values with defaults
+	defaultModel := "llama3.2"
+	emailNotifications := true
+	dailySummary := false
+	theme := "system"
+	sidebarCollapsed := false
+	shareAnalytics := false
+
+	// Use existing values if available
+	if existsErr == nil {
+		if existing.DefaultModel != nil {
+			defaultModel = *existing.DefaultModel
+		}
+		if existing.EmailNotifications != nil {
+			emailNotifications = *existing.EmailNotifications
+		}
+		if existing.DailySummary != nil {
+			dailySummary = *existing.DailySummary
+		}
+		if existing.Theme != nil {
+			theme = *existing.Theme
+		}
+		if existing.SidebarCollapsed != nil {
+			sidebarCollapsed = *existing.SidebarCollapsed
+		}
+		if existing.ShareAnalytics != nil {
+			shareAnalytics = *existing.ShareAnalytics
+		}
+	}
+
+	// Apply request values (override existing/defaults)
+	if req.DefaultModel != nil {
+		defaultModel = *req.DefaultModel
+	}
+	if req.EmailNotifications != nil {
+		emailNotifications = *req.EmailNotifications
+	}
+	if req.DailySummary != nil {
+		dailySummary = *req.DailySummary
+	}
+	if req.Theme != nil {
+		theme = *req.Theme
+	}
+	if req.SidebarCollapsed != nil {
+		sidebarCollapsed = *req.SidebarCollapsed
+	}
+	if req.ShareAnalytics != nil {
+		shareAnalytics = *req.ShareAnalytics
+	}
+
+	// Use atomic upsert to avoid race conditions
+	settings, err := queries.UpsertUserSettings(ctx, sqlc.UpsertUserSettingsParams{
 		UserID:             user.ID,
-		DefaultModel:       defaultModel,
-		EmailNotifications: emailNotifications,
-		DailySummary:       dailySummary,
-		Theme:              theme,
-		SidebarCollapsed:   sidebarCollapsed,
-		ShareAnalytics:     shareAnalytics,
-		CustomSettings:     customSettings,
+		DefaultModel:       &defaultModel,
+		EmailNotifications: &emailNotifications,
+		DailySummary:       &dailySummary,
+		Theme:              &theme,
+		SidebarCollapsed:   &sidebarCollapsed,
+		ShareAnalytics:     &shareAnalytics,
+		CustomSettings:     customSettingsJSON,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update settings"})
+		log.Printf("UpsertUserSettings error for user %s: %v", user.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save settings"})
 		return
 	}
 

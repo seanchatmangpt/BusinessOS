@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -21,10 +23,11 @@ const (
 
 // TieredContextRequest contains all context selection parameters
 type TieredContextRequest struct {
-	UserID     string
-	ContextIDs []uuid.UUID // Selected contexts (Level 1)
-	ProjectID  *uuid.UUID  // Selected project (Level 1)
-	NodeID     *uuid.UUID  // Business node context
+	UserID      string
+	ContextIDs  []uuid.UUID // Selected contexts (Level 1)
+	ProjectID   *uuid.UUID  // Selected project (Level 1)
+	NodeID      *uuid.UUID  // Business node context
+	DocumentIDs []uuid.UUID // Attached document IDs for RAG
 }
 
 // TieredContext contains all context organized by tier
@@ -42,6 +45,17 @@ type FullContext struct {
 	LinkedClient *ClientFullContext   `json:"linked_client,omitempty"`
 	TeamMembers  []TeamMemberContext  `json:"team_members,omitempty"`
 	RelevantRAG  []RelevantBlock      `json:"relevant_rag,omitempty"`
+	Documents    []DocumentContext    `json:"documents,omitempty"` // Attached documents for RAG
+}
+
+// DocumentContext contains document information for context injection
+type DocumentContext struct {
+	ID          uuid.UUID `json:"id"`
+	Filename    string    `json:"filename"`
+	DisplayName string    `json:"display_name,omitempty"`
+	Content     string    `json:"content,omitempty"`
+	ChunkCount  int       `json:"chunk_count"`
+	MimeType    string    `json:"mime_type,omitempty"`
 }
 
 // ProjectFullContext contains complete project information
@@ -215,7 +229,86 @@ func (s *TieredContextService) buildLevel1(
 		}
 	}
 
+	// 3. Get attached documents with full content
+	for _, docID := range req.DocumentIDs {
+		doc, err := s.getDocumentFull(ctx, docID, req.UserID)
+		if err == nil {
+			level1.Documents = append(level1.Documents, *doc)
+		}
+	}
+
 	return nil
+}
+
+// getDocumentFull retrieves full document content for context injection
+// Waits for document processing to complete if needed
+func (s *TieredContextService) getDocumentFull(ctx context.Context, docID uuid.UUID, userID string) (*DocumentContext, error) {
+	// Query from uploaded_documents table with extracted_text column
+	query := `
+		SELECT d.id, d.original_filename, d.display_name, d.mime_type,
+			   COALESCE(d.extracted_text, '') as content,
+			   d.processing_status,
+			   (SELECT COUNT(*) FROM document_chunks WHERE document_id = d.id) as chunk_count
+		FROM uploaded_documents d
+		WHERE d.id = $1 AND d.user_id = $2
+	`
+
+	// Poll for document processing completion (max 10 seconds)
+	maxWait := 10
+	for attempt := 0; attempt < maxWait; attempt++ {
+		row := s.pool.QueryRow(ctx, query, docID, userID)
+
+		var doc DocumentContext
+		var content string
+		var status string
+		err := row.Scan(&doc.ID, &doc.Filename, &doc.DisplayName, &doc.MimeType, &content, &status, &doc.ChunkCount)
+		if err != nil {
+			if attempt < maxWait-1 {
+				// Document might not be inserted yet, wait and retry
+				slog.Info("Document not found, waiting...", "docID", docID, "attempt", attempt+1)
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(time.Second):
+					continue
+				}
+			}
+			slog.Error("Failed to get document for context", "docID", docID, "userID", userID, "error", err)
+			return nil, err
+		}
+
+		// If still processing and content is empty, wait for extraction
+		if status == "processing" && content == "" {
+			if attempt < maxWait-1 {
+				slog.Info("Document still processing, waiting...", "docID", docID, "status", status, "attempt", attempt+1)
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(time.Second):
+					continue
+				}
+			}
+		}
+
+		slog.Info("Document retrieved for context injection",
+			"docID", docID,
+			"filename", doc.Filename,
+			"status", status,
+			"contentLength", len(content),
+			"chunkCount", doc.ChunkCount)
+
+		// Truncate content if too large (max 50KB for context injection)
+		const maxContentLen = 50 * 1024
+		if len(content) > maxContentLen {
+			doc.Content = content[:maxContentLen] + "\n\n[Content truncated - document is too large]"
+		} else {
+			doc.Content = content
+		}
+
+		return &doc, nil
+	}
+
+	return nil, fmt.Errorf("timeout waiting for document processing")
 }
 
 // buildLevel2 populates awareness context for related items
@@ -398,6 +491,24 @@ func (tc *TieredContext) FormatForAI() string {
 				sb.WriteString(fmt.Sprintf("%d. From \"%s\" (%.0f%% match):\n",
 					i+1, block.DocumentName, block.Similarity*100))
 				sb.WriteString(fmt.Sprintf("   > %s\n", truncateText(block.BlockContent, 300)))
+			}
+			sb.WriteString("\n")
+		}
+
+		// Attached Documents (uploaded by user)
+		if len(tc.Level1.Documents) > 0 {
+			sb.WriteString("**Attached Documents (uploaded by user):**\n")
+			for _, doc := range tc.Level1.Documents {
+				displayName := doc.DisplayName
+				if displayName == "" {
+					displayName = doc.Filename
+				}
+				sb.WriteString(fmt.Sprintf("\n--- Document: %s ---\n", displayName))
+				if doc.Content != "" {
+					sb.WriteString(fmt.Sprintf("%s\n", doc.Content))
+				} else {
+					sb.WriteString(fmt.Sprintf("[Document has %d chunks - use RAG search for content]\n", doc.ChunkCount))
+				}
 			}
 			sb.WriteString("\n")
 		}

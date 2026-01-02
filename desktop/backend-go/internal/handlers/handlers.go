@@ -20,6 +20,12 @@ type Handlers struct {
 	embeddingService     *services.EmbeddingService     // Vector embedding service for RAG
 	contextBuilder       *services.ContextBuilder       // Hierarchical context builder for AI
 	tieredContextService *services.TieredContextService // Tiered context builder for scoped AI queries
+	// Pedro tasks services
+	documentProcessor        *services.DocumentProcessor               // Document processing with chunking
+	learningService          *services.LearningService                 // Learning and personalization
+	appProfilerService       *services.AppProfilerService              // Application profiling
+	conversationIntelligence *services.ConversationIntelligenceService // Conversation analysis
+	memoryExtractor          *services.MemoryExtractorService          // Memory extraction
 }
 
 // NewHandlers creates a new Handlers instance
@@ -34,6 +40,21 @@ func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container
 		contextBuilder:       contextBuilder,
 		tieredContextService: tieredContextService,
 	}
+}
+
+// SetPedroServices sets the Pedro task services (optional, to avoid breaking existing code)
+func (h *Handlers) SetPedroServices(
+	documentProcessor *services.DocumentProcessor,
+	learningService *services.LearningService,
+	appProfilerService *services.AppProfilerService,
+	conversationIntelligence *services.ConversationIntelligenceService,
+	memoryExtractor *services.MemoryExtractorService,
+) {
+	h.documentProcessor = documentProcessor
+	h.learningService = learningService
+	h.appProfilerService = appProfilerService
+	h.conversationIntelligence = conversationIntelligence
+	h.memoryExtractor = memoryExtractor
 }
 
 // RegisterRoutes registers all API routes
@@ -357,6 +378,52 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		}
 	}
 
+	// Memory routes - /api/memories (episodic memory system)
+	memoryHandler := NewMemoryHandler(h.pool, h.embeddingService)
+	memories := api.Group("/memories")
+	memories.Use(auth)
+	{
+		memories.GET("", memoryHandler.ListMemories)
+		memories.POST("", memoryHandler.CreateMemory)
+		memories.GET("/stats", memoryHandler.GetMemoryStats)
+		memories.POST("/search", memoryHandler.SearchMemories)
+		memories.POST("/relevant", memoryHandler.GetRelevantMemories)
+		memories.GET("/project/:projectId", memoryHandler.GetProjectMemories)
+		memories.GET("/node/:nodeId", memoryHandler.GetNodeMemories)
+		memories.GET("/:id", memoryHandler.GetMemory)
+		memories.PUT("/:id", memoryHandler.UpdateMemory)
+		memories.DELETE("/:id", memoryHandler.DeleteMemory)
+		memories.POST("/:id/pin", memoryHandler.PinMemory)
+	}
+
+	// User Facts routes - /api/user-facts
+	userFacts := api.Group("/user-facts")
+	userFacts.Use(auth)
+	{
+		userFacts.GET("", memoryHandler.ListUserFacts)
+		userFacts.PUT("/:key", memoryHandler.UpdateUserFact)
+		userFacts.DELETE("/:key", memoryHandler.DeleteUserFact)
+	}
+
+	// Context Tree routes - /api/context-tree (hierarchical context for agents)
+	contextTreeHandler := NewContextTreeHandler(h.pool, h.embeddingService)
+	contextTree := api.Group("/context-tree")
+	contextTree.Use(auth)
+	{
+		// Tree retrieval
+		contextTree.GET("/:entityType/:entityId", contextTreeHandler.GetContextTree)
+		contextTree.POST("/search", contextTreeHandler.SearchContextTree)
+		contextTree.POST("/load", contextTreeHandler.LoadContextItem)
+		contextTree.GET("/stats", contextTreeHandler.GetContextStats)
+		// Loading rules
+		contextTree.GET("/rules/:entityType/:entityId", contextTreeHandler.GetLoadingRules)
+		// Context sessions
+		contextTree.POST("/session", contextTreeHandler.CreateContextSession)
+		contextTree.GET("/session/:sessionId", contextTreeHandler.GetContextSession)
+		contextTree.PUT("/session/:sessionId", contextTreeHandler.UpdateContextSession)
+		contextTree.DELETE("/session/:sessionId", contextTreeHandler.EndContextSession)
+	}
+
 	// Transcription routes - /api/transcribe
 	transcriptionHandler := NewTranscriptionHandler(h.pool)
 	transcribe := api.Group("/transcribe")
@@ -542,5 +609,37 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		{
 			protectedAuth.POST("/logout-all", googleAuthHandler.LogoutAllSessions)
 		}
+	}
+
+	// Pedro Tasks - Document Processing routes - /api/documents
+	if h.documentProcessor != nil {
+		documentHandler := NewDocumentHandler(h.documentProcessor)
+		protectedDocs := api.Group("")
+		protectedDocs.Use(auth)
+		RegisterDocumentRoutes(protectedDocs, documentHandler)
+	}
+
+	// Pedro Tasks - Learning/Personalization routes - /api/learning
+	if h.learningService != nil {
+		learningHandler := NewLearningHandler(h.learningService)
+		protectedLearning := api.Group("")
+		protectedLearning.Use(auth)
+		RegisterLearningRoutes(protectedLearning, learningHandler)
+	}
+
+	// Pedro Tasks - App Profiler routes - /api/app-profiles
+	if h.appProfilerService != nil {
+		appProfilerHandler := NewAppProfilerHandler(h.appProfilerService)
+		protectedProfiler := api.Group("")
+		protectedProfiler.Use(auth)
+		RegisterAppProfilerRoutes(protectedProfiler, appProfilerHandler)
+	}
+
+	// Pedro Tasks - Conversation Intelligence routes - /api/intelligence
+	if h.conversationIntelligence != nil && h.memoryExtractor != nil {
+		intelligenceHandler := NewConversationIntelligenceHandler(h.conversationIntelligence, h.memoryExtractor)
+		protectedIntel := api.Group("")
+		protectedIntel.Use(auth)
+		RegisterConversationIntelligenceRoutes(protectedIntel, intelligenceHandler)
 	}
 }

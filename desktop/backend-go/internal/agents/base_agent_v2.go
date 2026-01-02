@@ -36,18 +36,19 @@ type BaseAgentV2 struct {
 
 // BaseAgentV2Config holds configuration for creating a BaseAgentV2
 type BaseAgentV2Config struct {
-	Pool           *pgxpool.Pool
-	Config         *config.Config
-	UserID         string
-	UserName       string
-	ConversationID *uuid.UUID
-	Model          string
-	AgentType      AgentTypeV2
-	AgentName      string
-	Description    string
-	SystemPrompt   string
-	ContextReqs    ContextRequirements
-	EnabledTools   []string // Tool names this agent can use
+	Pool             *pgxpool.Pool
+	Config           *config.Config
+	UserID           string
+	UserName         string
+	ConversationID   *uuid.UUID
+	Model            string
+	AgentType        AgentTypeV2
+	AgentName        string
+	Description      string
+	SystemPrompt     string
+	ContextReqs      ContextRequirements
+	EnabledTools     []string                   // Tool names this agent can use
+	EmbeddingService *services.EmbeddingService // For context tools (tree_search, browse_tree, load_context)
 }
 
 // NewBaseAgentV2 creates a new base agent with the given configuration
@@ -60,7 +61,12 @@ func NewBaseAgentV2(cfg BaseAgentV2Config) *BaseAgentV2 {
 	// Create tool registry if pool is available
 	var toolRegistry *tools.AgentToolRegistry
 	if cfg.Pool != nil && cfg.UserID != "" {
-		toolRegistry = tools.NewAgentToolRegistry(cfg.Pool, cfg.UserID)
+		if cfg.EmbeddingService != nil {
+			// Use embedding-enabled registry for context tools (tree_search, browse_tree, load_context)
+			toolRegistry = tools.NewAgentToolRegistryWithEmbedding(cfg.Pool, cfg.UserID, cfg.EmbeddingService)
+		} else {
+			toolRegistry = tools.NewAgentToolRegistry(cfg.Pool, cfg.UserID)
+		}
 	}
 
 	return &BaseAgentV2{
@@ -490,15 +496,16 @@ func NewOrchestratorV2(ctx *AgentContextV2) AgentV2 {
 		ctx.UserName, "", "",
 	)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Orchestrator,
-		AgentName:      "OSA Orchestrator",
-		Description:    "Primary interface that handles general requests and routes to specialists",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Orchestrator,
+		AgentName:        "OSA Orchestrator",
+		Description:      "Primary interface that handles general requests and routes to specialists",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects:  true,
 			NeedsTasks:     true,
@@ -509,6 +516,7 @@ func NewOrchestratorV2(ctx *AgentContextV2) AgentV2 {
 			"search_documents", "get_project", "get_task", "get_client",
 			"create_task", "create_project", "create_client",
 			"create_artifact", "log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }
@@ -517,15 +525,16 @@ func NewOrchestratorV2(ctx *AgentContextV2) AgentV2 {
 func NewDocumentAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.DefaultComposer.ComposeForDocument(prompts_agents.DocumentAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Document,
-		AgentName:      "Document Specialist",
-		Description:    "Creates formal business documents: proposals, SOPs, reports, frameworks",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Document,
+		AgentName:        "Document Specialist",
+		Description:      "Creates formal business documents: proposals, SOPs, reports, frameworks",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects:  true,
 			NeedsKnowledge: true,
@@ -534,6 +543,7 @@ func NewDocumentAgentV2(ctx *AgentContextV2) AgentV2 {
 		EnabledTools: []string{
 			"create_artifact", "search_documents", "get_project", "get_client",
 			"log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }
@@ -542,15 +552,16 @@ func NewDocumentAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewProjectAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.ProjectAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Project,
-		AgentName:      "Project Specialist",
-		Description:    "Project management and planning specialist",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Project,
+		AgentName:        "Project Specialist",
+		Description:      "Project management and planning specialist",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects: true,
 			NeedsTasks:    true,
@@ -562,6 +573,7 @@ func NewProjectAgentV2(ctx *AgentContextV2) AgentV2 {
 			"create_task", "bulk_create_tasks", "assign_task",
 			"get_team_capacity", "search_documents",
 			"create_artifact", "log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }
@@ -570,15 +582,16 @@ func NewProjectAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewClientAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.ClientAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Client,
-		AgentName:      "Client Specialist",
-		Description:    "Client relationship and pipeline specialist",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Client,
+		AgentName:        "Client Specialist",
+		Description:      "Client relationship and pipeline specialist",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsClients:   true,
 			NeedsProjects:  true,
@@ -589,6 +602,7 @@ func NewClientAgentV2(ctx *AgentContextV2) AgentV2 {
 			"log_client_interaction", "update_client_pipeline",
 			"search_documents", "get_project",
 			"create_artifact", "log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }
@@ -597,15 +611,16 @@ func NewClientAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewAnalystAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.DefaultComposer.ComposeForAnalysis(prompts_agents.AnalystAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Analyst,
-		AgentName:      "Analyst Specialist",
-		Description:    "Data analysis and insights specialist",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Analyst,
+		AgentName:        "Analyst Specialist",
+		Description:      "Data analysis and insights specialist",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects: true,
 			NeedsTasks:    true,
@@ -617,6 +632,7 @@ func NewAnalystAgentV2(ctx *AgentContextV2) AgentV2 {
 			"list_projects", "list_tasks", "get_project",
 			"search_documents", "create_artifact",
 			"log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }
@@ -625,15 +641,16 @@ func NewAnalystAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewTaskAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.TaskAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:           ctx.Pool,
-		Config:         ctx.Config,
-		UserID:         ctx.UserID,
-		UserName:       ctx.UserName,
-		ConversationID: ctx.ConversationID,
-		AgentType:      AgentTypeV2Task,
-		AgentName:      "Task Specialist",
-		Description:    "Task management, prioritization, scheduling, and dependencies",
-		SystemPrompt:   systemPrompt,
+		Pool:             ctx.Pool,
+		Config:           ctx.Config,
+		UserID:           ctx.UserID,
+		UserName:         ctx.UserName,
+		ConversationID:   ctx.ConversationID,
+		EmbeddingService: ctx.EmbeddingService,
+		AgentType:        AgentTypeV2Task,
+		AgentName:        "Task Specialist",
+		Description:      "Task management, prioritization, scheduling, and dependencies",
+		SystemPrompt:     systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects: true,
 			NeedsTasks:    true,
@@ -644,6 +661,7 @@ func NewTaskAgentV2(ctx *AgentContextV2) AgentV2 {
 			"bulk_create_tasks", "move_task", "assign_task",
 			"get_team_capacity", "get_project",
 			"log_activity",
+			"tree_search", "browse_tree", "load_context", // Context tools for knowledge base
 		},
 	})
 }

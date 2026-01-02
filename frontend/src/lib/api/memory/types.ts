@@ -1,0 +1,133 @@
+// Memory API Types
+
+export type MemoryType = 'fact' | 'preference' | 'decision' | 'event' | 'learning' | 'context' | 'relationship';
+
+export interface Memory {
+  id: string;
+  user_id: string;
+  title: string;
+  summary: string;
+  content: string;
+  memory_type: MemoryType;
+  importance_score: number;
+  is_pinned: boolean;
+  is_active: boolean;
+  tags: string[];
+  metadata: Record<string, unknown>;
+  source_type: string | null;
+  source_id: string | null;
+  project_id: string | null;
+  node_id: string | null;
+  expires_at: string | null;
+  access_count: number;
+  last_accessed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemoryListItem {
+  id: string;
+  title: string;
+  summary: string;
+  memory_type: MemoryType;
+  importance_score: number;
+  is_pinned: boolean;
+  is_active: boolean;
+  tags: string[];
+  project_id: string | null;
+  node_id: string | null;
+  access_count: number;
+  last_accessed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateMemoryData {
+  title: string;
+  summary?: string;
+  content: string;
+  memory_type?: MemoryType;
+  importance_score?: number;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+  source_type?: string;
+  source_id?: string;
+  project_id?: string;
+  node_id?: string;
+  expires_at?: string;
+}
+
+export interface UpdateMemoryData {
+  title?: string;
+  summary?: string;
+  content?: string;
+  memory_type?: MemoryType;
+  importance_score?: number;
+  is_pinned?: boolean;
+  is_active?: boolean;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+  expires_at?: string;
+}
+
+export interface MemoryFilters {
+  memory_type?: MemoryType;
+  project_id?: string;
+  node_id?: string;
+  is_pinned?: boolean;
+  is_active?: boolean;
+  min_importance?: number;
+  tags?: string[];
+  limit?: number;
+  offset?: number;
+}
+
+export interface MemorySearchParams {
+  query: string;
+  memory_types?: MemoryType[];
+  project_id?: string;
+  node_id?: string;
+  min_score?: number;
+  limit?: number;
+}
+
+export interface MemorySearchResult extends MemoryListItem {
+  relevance_score: number;
+  match_highlights?: string[];
+}
+
+export interface RelevantMemoryParams {
+  query: string;
+  conversation_id?: string;
+  project_id?: string;
+  node_id?: string;
+  memory_types?: MemoryType[];
+  limit?: number;
+  min_relevance?: number;
+}
+
+export interface MemoryStats {
+  total_memories: number;
+  active_memories: number;
+  pinned_memories: number;
+  by_type: Record<MemoryType, number>;
+  avg_importance: number;
+  total_access_count: number;
+}
+
+export interface UserFact {
+  key: string;
+  value: string;
+  category: string;
+  confidence: number;
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateUserFactData {
+  value: string;
+  category?: string;
+  confidence?: number;
+  source?: string;
+}

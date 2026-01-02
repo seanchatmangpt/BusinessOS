@@ -17,6 +17,14 @@ export * from './voice-notes';
 export * from './usage';
 export * from './ai';
 export * from './profile';
+export * from './memory';
+export * from './context-tree';
+
+// Pedro Tasks API modules
+export * from './learning';
+export * from './pedro-documents';
+export * from './intelligence';
+export * from './app-profiles';
 
 import * as projectsApi from './projects';
 import * as conversationsApi from './conversations';
@@ -35,9 +43,11 @@ import * as voiceNotesApi from './voice-notes';
 import * as usageApi from './usage';
 import * as aiApi from './ai';
 import * as profileApi from './profile';
+import * as memoryApi from './memory';
+import * as contextTreeApi from './context-tree';
 import * as base from './base';
 
-// Consolidated `api` object exposing common domain functions for backward compatibility.
+// Consolidated api object exposing common domain functions for backward compatibility.
 export const api = {
   // Projects
   getProjects: projectsApi.getProjects,
@@ -98,7 +108,6 @@ export const api = {
   syncCalendar: calendarApi.syncCalendar,
   getTodayEvents: calendarApi.getTodayEvents,
   getUpcomingEvents: calendarApi.getUpcomingEvents,
-  // getGoogleConnectionStatus moved to integrations section below
   getGoogleConnectionStatus: integrationsApi.getGoogleConnectionStatus,
 
   // Team
@@ -135,7 +144,7 @@ export const api = {
   getNodeChildren: nodesApi.getNodeChildren,
   reorderNode: nodesApi.reorderNode,
 
-  // Deals (standalone pipeline)
+  // Deals
   getAllDeals: dealsApi.getAllDeals,
   updateDealStage: dealsApi.updateDealStage,
 
@@ -211,7 +220,34 @@ export const api = {
   uploadProfilePhoto: profileApi.uploadProfilePhoto,
   deleteProfilePhoto: profileApi.deleteProfilePhoto,
 
-  // Raw helper to inspect base URL if needed
+  // Memory (Episodic Memory System)
+  getMemories: memoryApi.getMemories,
+  getMemory: memoryApi.getMemory,
+  createMemory: memoryApi.createMemory,
+  updateMemory: memoryApi.updateMemory,
+  deleteMemory: memoryApi.deleteMemory,
+  pinMemory: memoryApi.pinMemory,
+  searchMemories: memoryApi.searchMemories,
+  getRelevantMemories: memoryApi.getRelevantMemories,
+  getProjectMemories: memoryApi.getProjectMemories,
+  getNodeMemories: memoryApi.getNodeMemories,
+  getMemoryStats: memoryApi.getMemoryStats,
+  getUserFacts: memoryApi.getUserFacts,
+  updateUserFact: memoryApi.updateUserFact,
+  deleteUserFact: memoryApi.deleteUserFact,
+
+  // Context Tree (Hierarchical Context Management)
+  getContextTree: contextTreeApi.getContextTree,
+  searchContextTree: contextTreeApi.searchContextTree,
+  loadContextItem: contextTreeApi.loadContextItem,
+  getContextStats: contextTreeApi.getContextStats,
+  getLoadingRules: contextTreeApi.getLoadingRules,
+  createContextSession: contextTreeApi.createContextSession,
+  getContextSession: contextTreeApi.getContextSession,
+  updateContextSession: contextTreeApi.updateContextSession,
+  endContextSession: contextTreeApi.endContextSession,
+
+  // Raw helper
   apiBase: base.getApiBaseUrl,
 };
 

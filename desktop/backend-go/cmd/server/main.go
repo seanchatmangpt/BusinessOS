@@ -209,8 +209,57 @@ func main() {
 		embeddingService = nil
 	}
 
+	// Initialize Pedro Tasks services (Memory, Context & Intelligence System)
+	var documentProcessor *services.DocumentProcessor
+	var learningService *services.LearningService
+	var appProfilerService *services.AppProfilerService
+	var conversationIntelligence *services.ConversationIntelligenceService
+	var memoryExtractor *services.MemoryExtractorService
+
+	// Document Processor - requires embedding service for semantic search
+	if embeddingService != nil {
+		documentProcessor = services.NewDocumentProcessor(pool, embeddingService, "./uploads/documents")
+		log.Printf("Document processor initialized (chunking + semantic search)")
+	}
+
+	// Learning Service - always available
+	learningService = services.NewLearningService(pool)
+	log.Printf("Learning service initialized (feedback + personalization)")
+
+	// App Profiler Service - always available
+	appProfilerService = services.NewAppProfilerService(pool)
+	log.Printf("App profiler service initialized (codebase analysis)")
+
+	// Conversation Intelligence - requires embedding service
+	if embeddingService != nil {
+		conversationIntelligence = services.NewConversationIntelligenceService(pool, embeddingService)
+		log.Printf("Conversation intelligence initialized (analysis + summarization)")
+	}
+
+	// Memory Extractor - requires embedding service
+	if embeddingService != nil {
+		memoryExtractor = services.NewMemoryExtractorService(pool, embeddingService)
+
+		// Wire LLM service for enhanced memory extraction (using Groq for speed/cost)
+		if cfg.GroqAPIKey != "" {
+			groqLLM := services.NewGroqService(cfg, "llama-3.1-8b-instant") // Fast model for extraction
+			if groqLLM.HealthCheck(ctx) {
+				memoryExtractor.SetLLMService(groqLLM)
+				log.Printf("Memory extractor initialized with LLM-enhanced extraction (Groq llama-3.1-8b-instant)")
+			} else {
+				log.Printf("Memory extractor initialized (regex-only, Groq unavailable)")
+			}
+		} else {
+			log.Printf("Memory extractor initialized (regex-only, no Groq API key)")
+		}
+	}
+
 	// Initialize handlers with container manager, session cache, terminal pub/sub, and embedding services
 	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService)
+
+	// Set Pedro Tasks services
+	h.SetPedroServices(documentProcessor, learningService, appProfilerService, conversationIntelligence, memoryExtractor)
+	log.Printf("Pedro Tasks services registered (documents, learning, profiles, intelligence)")
 
 	// Register routes
 	h.RegisterRoutes(api)

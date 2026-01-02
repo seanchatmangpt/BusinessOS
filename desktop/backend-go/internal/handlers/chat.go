@@ -24,7 +24,8 @@ type SendMessageRequest struct {
 	ContextID      *string           `json:"context_id"`  // Legacy: single context ID
 	ContextIDs     []string          `json:"context_ids"` // NEW: Multiple context IDs for tiered context
 	ProjectID      *string           `json:"project_id"`
-	NodeID         *string           `json:"node_id"` // NEW: Business node context
+	NodeID         *string           `json:"node_id"`      // NEW: Business node context
+	DocumentIDs    []string          `json:"document_ids"` // NEW: Attached document IDs for RAG
 	Model          *string           `json:"model"`
 	AgentType      *string           `json:"agent_type"`    // orchestrator, document, analysis, planning
 	FocusMode      *string           `json:"focus_mode"`    // research, analyze, write, build, general

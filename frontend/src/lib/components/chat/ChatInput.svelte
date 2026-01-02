@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
 	import { fly, fade } from 'svelte/transition';
+	import DocumentUploadModal from './DocumentUploadModal.svelte';
 
 	interface Props {
 		value?: string;
@@ -52,6 +53,14 @@
 			textareaRef.style.height = Math.min(textareaRef.scrollHeight, 160) + 'px';
 		}
 	}
+
+	let showUploadModal = $state(false);
+
+	function handleUploadComplete(doc: any) {
+		showUploadModal = false;
+		// Optionally append a message or notify the user
+		console.log('Document uploaded:', doc);
+	}
 </script>
 
 <div class="border-t border-gray-100 bg-white">
@@ -75,7 +84,7 @@
 					>
 						<DropdownMenu.Item
 							class="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
-							onclick={onAttach}
+							onclick={() => showUploadModal = true}
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -173,3 +182,9 @@
 		</div>
 	</div>
 </div>
+
+<DocumentUploadModal 
+	open={showUploadModal} 
+	onClose={() => showUploadModal = false} 
+	onUploadComplete={handleUploadComplete}
+/>

@@ -5,3 +5,7 @@ export { default as ChatInput } from './ChatInput.svelte';
 export { default as ConversationListItem } from './ConversationListItem.svelte';
 export { default as ConversationListPanel } from './ConversationListPanel.svelte';
 export { default as EmptyState } from './EmptyState.svelte';
+export { default as MemoryPanel } from './MemoryPanel.svelte';
+export { default as MemoryCard } from './MemoryCard.svelte';
+export { default as DocumentUploadModal } from './DocumentUploadModal.svelte';
+export { default as FeedbackPanel } from './FeedbackPanel.svelte';

@@ -109,22 +109,27 @@ func (s *OllamaCloudService) StreamChat(ctx context.Context, messages []ChatMess
 		// Convert messages to OpenAI format
 		cloudMsgs := make([]OllamaCloudMessage, 0, len(messages)+1)
 
-		// Add system message first if provided
-		if systemPrompt != "" {
-			cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
-				Role:    "system",
-				Content: systemPrompt,
-			})
-		}
-
 		for _, msg := range messages {
 			if msg.Role == "system" {
+				if systemPrompt != "" {
+					systemPrompt = systemPrompt + "\n\n" + msg.Content
+				} else {
+					systemPrompt = msg.Content
+				}
 				continue
 			}
 			cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
 				Role:    msg.Role,
 				Content: msg.Content,
 			})
+		}
+
+		// Add system message first if provided/combined
+		if systemPrompt != "" {
+			cloudMsgs = append([]OllamaCloudMessage{{
+				Role:    "system",
+				Content: systemPrompt,
+			}}, cloudMsgs...)
 		}
 
 		reqBody := OllamaCloudRequest{
@@ -200,21 +205,26 @@ func (s *OllamaCloudService) StreamChat(ctx context.Context, messages []ChatMess
 func (s *OllamaCloudService) ChatComplete(ctx context.Context, messages []ChatMessage, systemPrompt string) (string, error) {
 	cloudMsgs := make([]OllamaCloudMessage, 0, len(messages)+1)
 
-	if systemPrompt != "" {
-		cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
-
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		cloudMsgs = append([]OllamaCloudMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, cloudMsgs...)
 	}
 
 	reqBody := OllamaCloudRequest{
@@ -289,21 +299,27 @@ func (s *OllamaCloudService) StreamChatWithUsage(ctx context.Context, messages [
 		defer close(errs)
 
 		cloudMsgs := make([]OllamaCloudMessage, 0, len(messages)+1)
-		if systemPrompt != "" {
-			cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
-				Role:    "system",
-				Content: systemPrompt,
-			})
-		}
 
 		for _, msg := range messages {
 			if msg.Role == "system" {
+				if systemPrompt != "" {
+					systemPrompt = systemPrompt + "\n\n" + msg.Content
+				} else {
+					systemPrompt = msg.Content
+				}
 				continue
 			}
 			cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
 				Role:    msg.Role,
 				Content: msg.Content,
 			})
+		}
+
+		if systemPrompt != "" {
+			cloudMsgs = append([]OllamaCloudMessage{{
+				Role:    "system",
+				Content: systemPrompt,
+			}}, cloudMsgs...)
 		}
 
 		reqBody := OllamaCloudRequest{
@@ -391,21 +407,26 @@ func (s *OllamaCloudService) StreamChatWithUsage(ctx context.Context, messages [
 func (s *OllamaCloudService) ChatCompleteWithUsage(ctx context.Context, messages []ChatMessage, systemPrompt string) (string, *TokenUsage, error) {
 	cloudMsgs := make([]OllamaCloudMessage, 0, len(messages)+1)
 
-	if systemPrompt != "" {
-		cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
-			Role:    "system",
-			Content: systemPrompt,
-		})
-	}
-
 	for _, msg := range messages {
 		if msg.Role == "system" {
+			if systemPrompt != "" {
+				systemPrompt = systemPrompt + "\n\n" + msg.Content
+			} else {
+				systemPrompt = msg.Content
+			}
 			continue
 		}
 		cloudMsgs = append(cloudMsgs, OllamaCloudMessage{
 			Role:    msg.Role,
 			Content: msg.Content,
 		})
+	}
+
+	if systemPrompt != "" {
+		cloudMsgs = append([]OllamaCloudMessage{{
+			Role:    "system",
+			Content: systemPrompt,
+		}}, cloudMsgs...)
 	}
 
 	reqBody := OllamaCloudRequest{
