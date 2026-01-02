@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { contexts } from '$lib/stores/contexts';
 	import { kbPreferences, type KBSection, type KBViewMode } from '$lib/stores/kb-preferences';
+	import { learning } from '$lib/stores/learning';
 	import { api, type Block, type Conversation, type ArtifactListItem, type CalendarEvent } from '$lib/api/client';
 	import { Dialog, Popover } from 'bits-ui';
 	import type { ContextType, Context, ContextListItem } from '$lib/api/client';
@@ -65,6 +66,7 @@
 
 	// Selected profile for KB view (for profile database view instead of document editor)
 	let kbSelectedProfile = $state<ContextListItem | null>(null);
+	let kbSelectedMemory = $state<any | null>(null);
 
 	// Check if a type is a profile type (shows database view)
 	const PROFILE_TYPES = ['business', 'person', 'project', 'custom'];
@@ -232,6 +234,7 @@
 
 	onMount(async () => {
 		contexts.loadContexts();
+		learning.loadLearnings();
 		try {
 			clients = await api.getClients();
 		} catch (e) {
@@ -645,12 +648,21 @@
 		if (isProfileType(page.type)) {
 			// Show profile database view
 			kbSelectedProfile = page;
+			kbSelectedMemory = null;
+			inlineDocument = null;
+			showDocumentPeek = false;
+			peekDocument = null;
+		} else if (page.type === ('memory' as any)) {
+			// Show memory view
+			kbSelectedMemory = $learning.learnings.find(m => m.id === page.id);
+			kbSelectedProfile = null;
 			inlineDocument = null;
 			showDocumentPeek = false;
 			peekDocument = null;
 		} else {
 			// Open document INLINE (in main content area, not side peek)
 			kbSelectedProfile = null;
+			kbSelectedMemory = null;
 			inlineDocument = page;
 			showDocumentPeek = false;
 			peekDocument = null;
@@ -892,7 +904,8 @@
 			pages={activeContexts}
 			favorites={favoritePages}
 			{recentPages}
-			selectedPageId={inlineDocument?.id || kbSelectedProfile?.id || null}
+			memories={$learning.learnings}
+			selectedPageId={inlineDocument?.id || kbSelectedProfile?.id || kbSelectedMemory?.id || null}
 			expandedSections={kbExpandedSections}
 			expandedPages={kbExpandedPagesArray}
 			favoriteIds={kbFavoriteIdsArray}
@@ -940,7 +953,14 @@
 				<HomeView
 					pages={activeContexts}
 					recentPages={recentPages}
+					memories={$learning.learnings}
 					onSelectPage={(page) => handleKBPageSelect(page)}
+					onSelectMemory={(memory) => handleKBPageSelect({
+						id: memory.id,
+						name: memory.learning_summary || memory.learning_content,
+						type: 'memory' as any,
+						updated_at: memory.updated_at
+					} as any)}
 					onCreatePage={() => handleKBAddPage()}
 				/>
 			{:else if kbSelectedProfile}
@@ -970,6 +990,70 @@
 							}
 						}}
 					/>
+				</div>
+			{:else if kbSelectedMemory}
+				<!-- Memory View -->
+				<div class="flex-1 flex flex-col h-full bg-white dark:bg-[#1c1c1e] overflow-hidden">
+					<div class="px-8 py-10 max-w-4xl mx-auto w-full space-y-8 h-full overflow-y-auto">
+						<div class="flex items-center gap-4">
+							<div class="w-12 h-12 rounded-2xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+								<span class="text-2xl">🧠</span>
+							</div>
+							<div>
+								<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+									{kbSelectedMemory.learning_summary || 'Extracted Memory'}
+								</h2>
+								<p class="text-sm text-gray-500 dark:text-gray-400">
+									Learned on {new Date(kbSelectedMemory.created_at).toLocaleDateString()}
+								</p>
+							</div>
+						</div>
+
+						<div class="bg-gray-50 dark:bg-[#2c2c2e] rounded-2xl p-6 border border-gray-200 dark:border-gray-700/50">
+							<h3 class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Content</h3>
+							<p class="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+								{kbSelectedMemory.learning_content}
+							</p>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div class="p-4 rounded-xl bg-gray-50 dark:bg-[#2c2c2e] border border-gray-200 dark:border-gray-700/50">
+								<span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Confidence</span>
+								<div class="mt-2 flex items-center gap-2">
+									<div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+										<div class="h-full bg-pink-500" style="width: {(kbSelectedMemory.confidence_score || 0) * 100}%"></div>
+									</div>
+									<span class="text-sm font-semibold text-gray-700 dark:text-gray-300">{((kbSelectedMemory.confidence_score || 0) * 100).toFixed(0)}%</span>
+								</div>
+							</div>
+							<div class="p-4 rounded-xl bg-gray-50 dark:bg-[#2c2c2e] border border-gray-200 dark:border-gray-700/50">
+								<span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Status</span>
+								<div class="mt-1 flex items-center gap-2">
+									<span class="px-2 py-0.5 rounded-full text-xs font-medium {kbSelectedMemory.was_validated ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}">
+										{kbSelectedMemory.was_validated ? 'Validated' : 'Pending Validation'}
+									</span>
+									{#if kbSelectedMemory.is_active}
+										<span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+											Active In Context
+										</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+
+						{#if kbSelectedMemory.tags && kbSelectedMemory.tags.length > 0}
+							<div class="space-y-2">
+								<span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase">Tags</span>
+								<div class="flex flex-wrap gap-2">
+									{#each kbSelectedMemory.tags as tag}
+										<span class="px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-xs border border-gray-200 dark:border-gray-700">
+											#{tag}
+										</span>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					</div>
 				</div>
 			{:else if inlineDocument}
 				<!-- Inline Document Editor (full width in main content area) -->

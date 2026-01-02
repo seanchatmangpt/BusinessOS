@@ -6,17 +6,22 @@
 	interface Props {
 		pages: ContextListItem[];
 		recentPages: ContextListItem[];
+		memories: any[];
 		onSelectPage: (page: ContextListItem) => void;
+		onSelectMemory: (memory: any) => void;
 		onCreatePage: () => void;
 	}
 
-	let { pages, recentPages, onSelectPage, onCreatePage }: Props = $props();
+	let { pages, recentPages, memories, onSelectPage, onSelectMemory, onCreatePage }: Props = $props();
 
 	let searchQuery = $state('');
 	let viewMode = $state<'grid' | 'list'>('list');
 
 	// Recent pages (last 8)
 	const displayRecentPages = $derived(recentPages.slice(0, 8));
+
+	// Recent memories (last 4)
+	const displayRecentMemories = $derived(memories.slice(0, 4));
 
 	// Filtered and sorted pages
 	const filteredPages = $derived.by(() => {
@@ -118,6 +123,31 @@
 							</div>
 							<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{page.name || 'New page'}</span>
 							<span class="text-xs text-gray-400 dark:text-gray-500">{formatDate(page.updated_at)}</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Recent Memories -->
+		{#if displayRecentMemories.length > 0}
+			<div class="mb-12">
+				<h2 class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4">Learned Memories</h2>
+				<div class="grid grid-cols-2 gap-3">
+					{#each displayRecentMemories as memory (memory.id)}
+						<button
+							onclick={() => onSelectMemory(memory)}
+							class="group flex flex-col p-4 bg-pink-50/50 dark:bg-pink-900/10 rounded-xl border border-pink-100 dark:border-pink-900/30 hover:border-pink-200 dark:hover:border-pink-800 transition-all text-left"
+						>
+							<div class="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mb-3">
+								<span class="text-lg">🧠</span>
+							</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2 mb-1">
+								{memory.learning_summary || memory.learning_content}
+							</div>
+							<div class="text-xs text-gray-400 dark:text-gray-500 mt-auto">
+								Learned {formatDate(memory.created_at)}
+							</div>
 						</button>
 					{/each}
 				</div>
