@@ -221,7 +221,7 @@
 	<T.MeshBasicMaterial visible={false} side={THREE.BackSide} />
 </T.Mesh>
 
-<!-- Lighting - soft ambient for pickledOS floating room aesthetic -->
+<!-- Lighting - soft ambient for Node Viewer floating room aesthetic -->
 <T.AmbientLight intensity={1.1} />
 <T.DirectionalLight position={[10, 50, 20]} intensity={0.6} color="#ffffff" />
 <T.DirectionalLight position={[-15, 30, -10]} intensity={0.3} color="#ffffff" />
@@ -230,7 +230,7 @@
 <!-- Background - white (gradient is handled by CSS container) -->
 <T.Color args={['#ffffff']} attach="background" />
 
-<!-- Connection lines (only when selected) - pickledOS style thin lines -->
+<!-- Connection lines (only when selected) - Node Viewer style thin lines -->
 {#each connections as conn}
 	{@const points = [
 		new THREE.Vector3(...conn.from),

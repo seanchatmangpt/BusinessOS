@@ -121,7 +121,7 @@
 		return icons[type.toLowerCase()] || '📌';
 	}
 
-	// Get SVG icon path based on memory type (pickledOS style)
+	// Get SVG icon path based on memory type (Node Viewer style)
 	function getMemoryIcon(type: string): string {
 		const icons: Record<string, string> = {
 			'fact': 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', // document
@@ -136,7 +136,7 @@
 	}
 </script>
 
-<!-- Main bubble group - Glass bubble like pickledOS (no shadows) -->
+<!-- Main bubble group - Glass bubble like Node Viewer (no shadows) -->
 <T.Group position={[position[0], position[1] + floatOffset, position[2]]}>
 	<!-- Soft outer glow for selection/hover -->
 	{#if isSelected || hovered}
@@ -150,7 +150,7 @@
 		</T.Mesh>
 	{/if}
 
-	<!-- Glass bubble sphere - pickledOS marble style with soft transparency -->
+	<!-- Glass bubble sphere - Node Viewer marble style with soft transparency -->
 	<T.Mesh
 		scale={[$animatedScale, $animatedScale, $animatedScale]}
 		onclick={handleClick}
@@ -177,7 +177,7 @@
 		/>
 	</T.Mesh>
 
-	<!-- Icon or Cover Image inside bubble - pickledOS style large centered image -->
+	<!-- Icon or Cover Image inside bubble - Node Viewer style large centered image -->
 	<HTML
 		position={[0, 0, baseRadius * 0.5]}
 		center
@@ -187,7 +187,7 @@
 		scale={$animatedScale * 1.2}
 	>
 		{#if hasCoverImage}
-			<!-- Cover image display - larger for pickledOS style -->
+			<!-- Cover image display - larger for Node Viewer style -->
 			<div class="bubble-image" style="opacity: {isDimmed ? 0.3 : 1};">
 				<img src={memory.cover_image} alt={memory.title || 'Memory'} />
 			</div>

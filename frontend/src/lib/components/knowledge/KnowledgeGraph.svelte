@@ -59,7 +59,7 @@
 		};
 	}
 
-	// pickledOS-style layout: SPHERICAL distribution - bubbles on surface of invisible sphere
+	// Node Viewer-style layout: SPHERICAL distribution - bubbles on surface of invisible sphere
 	function layoutNodes(mems: Memory[]): LayoutNode[] {
 		const layoutNodes: LayoutNode[] = [];
 		const count = mems.length;
@@ -77,7 +77,7 @@
 		};
 
 		// Spherical configuration - bubbles on surface of sphere, nothing in center
-		// Larger radius for better spacing - pickledOS style has well-spaced bubbles
+		// Larger radius for better spacing - Node Viewer style has well-spaced bubbles
 		const sphereRadius = Math.min(80, 40 + count * 1.5); // Much larger for better spacing
 		const centerY = 0; // Sphere centered at origin
 
@@ -120,7 +120,7 @@
 
 	let layoutResult = $derived(layoutNodes(memories));
 
-	// Generate connections for SELECTED bubble only (pickledOS style)
+	// Generate connections for SELECTED bubble only (Node Viewer style)
 	let connections = $derived.by(() => {
 		const conns: MemoryConnection[] = [];
 
@@ -159,7 +159,7 @@
 	// Auto-rotate like a globe by default
 	let autoRotate = $state(true);
 
-	// Warm earth-tone color palette for bubbles - pickledOS style
+	// Warm earth-tone color palette for bubbles - Node Viewer style
 	const warmPalette = [
 		'#8B7355',   // Warm brown
 		'#C4A77D',   // Tan/beige
@@ -287,7 +287,7 @@
 		width: 100%;
 		height: 100%;
 		min-height: 500px;
-		/* pickledOS style: white top, gray bottom - floating room effect */
+		/* Node Viewer style: white top, gray bottom - floating room effect */
 		background: linear-gradient(180deg,
 			#ffffff 0%,
 			#fafafa 30%,

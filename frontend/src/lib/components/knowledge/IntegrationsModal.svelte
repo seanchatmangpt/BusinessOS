@@ -115,7 +115,7 @@
 		return 'available';
 	}
 
-	// All available integrations - organized like pickledOS
+	// All available integrations - organized like Node Viewer
 	const integrations: Integration[] = [
 		// Productivity - Email & Calendar (Auto Live-sync capable)
 		{

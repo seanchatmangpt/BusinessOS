@@ -86,7 +86,7 @@
 </script>
 
 <div class="flex flex-col h-full">
-	<!-- Header - pickledOS style -->
+	<!-- Header - Node Viewer style -->
 	<div class="px-6 py-5 flex items-center justify-between border-b border-gray-50">
 		<div class="flex items-center gap-2 text-gray-800 font-medium">
 			<div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
@@ -110,7 +110,7 @@
 		class="flex-1 overflow-y-auto px-6 py-6 space-y-8"
 	>
 		{#if messages.length === 0}
-			<!-- Welcome state - pickledOS style -->
+			<!-- Welcome state - Node Viewer style -->
 			<div class="pt-4">
 				<p class="text-lg font-semibold text-gray-900 mb-4">Welcome.</p>
 				<p class="text-sm text-gray-600 mb-6 leading-relaxed">
@@ -156,9 +156,9 @@
 		{/if}
 	</div>
 
-	<!-- Input Area - pickledOS style -->
+	<!-- Input Area - Node Viewer style -->
 	<div class="p-5 pt-2 bg-white">
-		<!-- Tag Chips - context tags like pickledOS -->
+		<!-- Tag Chips - context tags like Node Viewer -->
 		{#if tagChips.length > 0}
 			<div class="flex flex-wrap gap-2 mb-3 px-1">
 				{#each tagChips as chip (chip.id)}
@@ -189,7 +189,7 @@
 			<div class="flex items-center justify-between px-4 pb-3">
 				<div class="flex items-center gap-2">
 					<span class="text-[10px] text-gray-400">Knowledge</span>
-					<!-- Create Bubble button - pickledOS style -->
+					<!-- Create Bubble button - Node Viewer style -->
 					{#if messages.length > 0 && onCreateBubble}
 						<button
 							onclick={onCreateBubble}

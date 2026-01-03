@@ -757,6 +757,12 @@
 		// Hide home view when selecting a page
 		showHome = false;
 
+		// Switch from graph to list view when selecting a page
+		if (kbViewMode === 'graph') {
+			kbViewMode = 'list';
+			kbPreferences.setViewMode('list');
+		}
+
 		// Check if this is a profile type (business, person, project, custom)
 		if (isProfileType(page.type)) {
 			// Show profile database view
@@ -1301,9 +1307,9 @@
 		<!-- Main Content Area -->
 		<div class="flex-1 flex flex-col min-w-0">
 			{#if kbViewMode === 'graph'}
-				<!-- pickledOS-style Knowledge Graph View - Docked Layout -->
+				<!-- Node Viewer-style Knowledge Graph View - Docked Layout -->
 				<div class="flex-1 flex overflow-hidden bg-[#f5f1ed]">
-					<!-- LEFT: Docked Chat Panel (pickledOS style) -->
+					<!-- LEFT: Docked Chat Panel (Node Viewer style) -->
 					<div
 						class="h-full bg-white flex flex-col transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] {isChatPanelOpen ? 'w-[420px]' : 'w-16'} flex-shrink-0 relative"
 					>
@@ -1368,7 +1374,8 @@
 							{/if}
 						</div>
 
-					<!-- RIGHT: Floating Controls Toolbar -->
+					<!-- RIGHT: Floating Controls Toolbar (hidden when integrations modal open) -->
+					{#if !showIntegrationsModal}
 					<div
 						class="fixed top-6 z-50 flex flex-col gap-3 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto"
 						style="right: {selectedGraphMemory ? '520px' : '24px'}"
@@ -1421,6 +1428,7 @@
 							</button>
 						</div>
 					</div>
+					{/if}
 
 					<!-- RIGHT: Floating Node Detail Panel -->
 					<div
@@ -1436,7 +1444,7 @@
 						</div>
 					</div>
 
-					<!-- Bottom Add Button - pickledOS style with recessed hole -->
+					<!-- Bottom Add Button - Node Viewer style with recessed hole -->
 						<div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
 							<!-- Recessed hole effect (elliptical shadow) -->
 							<div class="relative">
@@ -2751,7 +2759,7 @@
 
 <!-- Integrations Modal is now rendered inline within the graph area -->
 
-<!-- Create Bubble Modal - pickledOS style -->
+<!-- Create Bubble Modal - Node Viewer style -->
 <Dialog.Root open={showCreateBubbleModal} onOpenChange={(open) => showCreateBubbleModal = open}>
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50" />
