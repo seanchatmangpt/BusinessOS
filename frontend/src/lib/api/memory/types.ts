@@ -23,6 +23,12 @@ export interface Memory {
   last_accessed_at: string | null;
   created_at: string;
   updated_at: string;
+
+  // Visualization customization
+  icon?: string | null;        // Custom icon (SVG path or emoji)
+  color?: string | null;       // Custom bubble color (hex)
+  cover_image?: string | null; // Image URL to display inside bubble
+  learning_summary?: string;   // Short learning-focused summary for display
 }
 
 export interface MemoryListItem {
@@ -68,6 +74,10 @@ export interface UpdateMemoryData {
   tags?: string[];
   metadata?: Record<string, unknown>;
   expires_at?: string;
+  // Visualization customization
+  icon?: string;
+  color?: string;
+  cover_image?: string;
 }
 
 export interface MemoryFilters {
