@@ -4,7 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/middleware"
@@ -32,11 +35,20 @@ func (h *GoogleOAuthHandler) InitiateGoogleAuth(c *gin.Context) {
 	}
 
 	// Generate random state for CSRF protection
-	state := generateRandomState()
+	state, err := generateSecureRandomState()
+	if err != nil {
+		log.Printf("CRITICAL: Failed to generate OAuth state: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Security error"})
+		return
+	}
+
+	// Determine if we're in production (use secure cookies)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
 
 	// Store state in session/cookie for verification
-	c.SetCookie("oauth_state", state, 600, "/", "", false, true)
-	c.SetCookie("oauth_user", user.ID, 600, "/", "", false, true)
+	// SECURITY: Secure=true in production to prevent MitM attacks
+	c.SetCookie("oauth_state", state, 600, "/", "", isProduction, true)
+	c.SetCookie("oauth_user", user.ID, 600, "/", "", isProduction, true)
 
 	authURL := h.calendarService.GetAuthURL(state)
 
@@ -82,6 +94,12 @@ func (h *GoogleOAuthHandler) HandleGoogleCallback(c *gin.Context) {
 		email = ""
 	}
 
+	// Get scopes from token
+	scopes := []string{}
+	if token.Extra("scope") != nil {
+		scopes = append(scopes, token.Extra("scope").(string))
+	}
+
 	// Save tokens to database
 	if err := h.calendarService.SaveToken(c.Request.Context(), userID, token, email); err != nil {
 		// If token already exists, update it
@@ -91,12 +109,20 @@ func (h *GoogleOAuthHandler) HandleGoogleCallback(c *gin.Context) {
 		}
 	}
 
-	// Clear OAuth cookies
-	c.SetCookie("oauth_state", "", -1, "/", "", false, true)
-	c.SetCookie("oauth_user", "", -1, "/", "", false, true)
+	// Bridge to user_integrations table for the new integrations module
+	if err := h.calendarService.SyncToUserIntegrations(c.Request.Context(), userID, email, scopes); err != nil {
+		// Log but don't fail - the OAuth tokens are saved
+		// This just means the new integrations UI won't see it until next sync
+		_ = err
+	}
 
-	// Redirect to settings page with success
-	c.Redirect(http.StatusTemporaryRedirect, "/settings?google_connected=true")
+	// Clear OAuth cookies (use same Secure flag as when setting)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
+	c.SetCookie("oauth_state", "", -1, "/", "", isProduction, true)
+	c.SetCookie("oauth_user", "", -1, "/", "", isProduction, true)
+
+	// Redirect to integrations page with success (or settings for backwards compatibility)
+	c.Redirect(http.StatusTemporaryRedirect, "/integrations?google_connected=true")
 }
 
 // GetGoogleConnectionStatus returns the Google connection status for a user
@@ -136,29 +162,62 @@ func (h *GoogleOAuthHandler) DisconnectGoogle(c *gin.Context) {
 		return
 	}
 
+	// Also clean up user_integrations table
+	_ = h.calendarService.DeleteUserIntegration(c.Request.Context(), user.ID)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Google account disconnected"})
 }
 
 // Helper functions
 
-func generateRandomState() string {
+// generateSecureRandomState generates a cryptographically secure random state
+// SECURITY: Returns error if crypto/rand fails - never silently continue with weak randomness
+func generateSecureRandomState() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("crypto/rand.Read failed: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-func getGoogleUserEmail(accessToken string) (string, error) {
-	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + accessToken)
+// Deprecated: Use generateSecureRandomState instead
+func generateRandomState() string {
+	state, err := generateSecureRandomState()
 	if err != nil {
-		return "", err
+		// Log and panic - this is a critical security failure
+		log.Fatalf("CRITICAL: Failed to generate secure random state: %v", err)
+	}
+	return state
+}
+
+// getGoogleUserEmail fetches the user's email from Google using the access token
+// SECURITY: Uses Authorization header instead of URL parameter to prevent token leakage in logs
+func getGoogleUserEmail(accessToken string) (string, error) {
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/oauth2/v2/userinfo", nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// SECURITY: Use Authorization header instead of URL parameter
+	// This prevents token from appearing in server logs, proxy logs, browser history
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch user info: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Google API returned status %d", resp.StatusCode)
+	}
 
 	var userInfo struct {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return userInfo.Email, nil

@@ -56,6 +56,25 @@ export const api = {
   updateMCPConnector: integrationsApi.updateMCPConnector,
   deleteMCPConnector: integrationsApi.deleteMCPConnector,
   testMCPConnector: integrationsApi.testMCPConnector,
+  // Sorx Integration Module
+  getProviders: integrationsApi.getProviders,
+  getProvider: integrationsApi.getProvider,
+  getConnectedIntegrations: integrationsApi.getConnectedIntegrations,
+  getUserIntegration: integrationsApi.getUserIntegration,
+  updateIntegrationSettings: integrationsApi.updateIntegrationSettings,
+  disconnectUserIntegration: integrationsApi.disconnectUserIntegration,
+  triggerIntegrationSync: integrationsApi.triggerIntegrationSync,
+  getModuleIntegrations: integrationsApi.getModuleIntegrations,
+  // AI Model Preferences
+  getAIModelPreferences: integrationsApi.getAIModelPreferences,
+  updateAIModelPreferences: integrationsApi.updateAIModelPreferences,
+  // Sorx Decisions
+  getPendingDecisions: integrationsApi.getPendingDecisions,
+  getPendingDecision: integrationsApi.getPendingDecision,
+  respondToDecision: integrationsApi.respondToDecision,
+  // Sorx Skill Execution
+  triggerSkill: integrationsApi.triggerSkill,
+  getSkillExecution: integrationsApi.getSkillExecution,
 };
 
 export default api;

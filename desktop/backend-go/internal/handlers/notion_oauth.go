@@ -3,8 +3,10 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/middleware"
@@ -28,10 +30,19 @@ func (h *NotionOAuthHandler) InitiateNotionAuth(c *gin.Context) {
 		return
 	}
 
-	state := generateNotionRandomState()
+	state, err := generateNotionSecureRandomState()
+	if err != nil {
+		log.Printf("CRITICAL: Failed to generate Notion OAuth state: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Security error"})
+		return
+	}
 
-	c.SetCookie("notion_oauth_state", state, 600, "/", "", false, true)
-	c.SetCookie("notion_oauth_user", user.ID, 600, "/", "", false, true)
+	// Determine if we're in production (use secure cookies)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
+
+	// SECURITY: Secure=true in production to prevent MitM attacks
+	c.SetCookie("notion_oauth_state", state, 600, "/", "", isProduction, true)
+	c.SetCookie("notion_oauth_user", user.ID, 600, "/", "", isProduction, true)
 
 	authURL := h.notionService.GetAuthURL(state)
 
@@ -78,12 +89,16 @@ func (h *NotionOAuthHandler) HandleNotionCallback(c *gin.Context) {
 		}
 	}
 
-	// Clear OAuth cookies
-	c.SetCookie("notion_oauth_state", "", -1, "/", "", false, true)
-	c.SetCookie("notion_oauth_user", "", -1, "/", "", false, true)
+	// Bridge to user_integrations table for the new integrations module
+	_ = h.notionService.SyncToUserIntegrations(c.Request.Context(), userID, response.WorkspaceName)
 
-	// Redirect to settings page with success
-	c.Redirect(http.StatusTemporaryRedirect, "/settings?notion_connected=true")
+	// Clear OAuth cookies (use same Secure flag as when setting)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
+	c.SetCookie("notion_oauth_state", "", -1, "/", "", isProduction, true)
+	c.SetCookie("notion_oauth_user", "", -1, "/", "", isProduction, true)
+
+	// Redirect to integrations page with success
+	c.Redirect(http.StatusTemporaryRedirect, "/integrations?notion_connected=true")
 }
 
 func (h *NotionOAuthHandler) GetNotionConnectionStatus(c *gin.Context) {
@@ -124,6 +139,9 @@ func (h *NotionOAuthHandler) DisconnectNotion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disconnect Notion workspace"})
 		return
 	}
+
+	// Also clean up user_integrations table
+	_ = h.notionService.DeleteUserIntegration(c.Request.Context(), user.ID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Notion workspace disconnected"})
 }
@@ -242,9 +260,21 @@ func (h *NotionOAuthHandler) SearchNotion(c *gin.Context) {
 	})
 }
 
-// Helper function for generating random state
-func generateNotionRandomState() string {
+// generateNotionSecureRandomState generates a cryptographically secure random state
+// SECURITY: Returns error if crypto/rand fails - never silently continue with weak randomness
+func generateNotionSecureRandomState() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("crypto/rand.Read failed: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// Deprecated: Use generateNotionSecureRandomState instead
+func generateNotionRandomState() string {
+	state, err := generateNotionSecureRandomState()
+	if err != nil {
+		log.Fatalf("CRITICAL: Failed to generate secure random state: %v", err)
+	}
+	return state
 }

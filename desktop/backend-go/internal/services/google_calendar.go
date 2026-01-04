@@ -25,10 +25,15 @@ type GoogleCalendarService struct {
 // NewGoogleCalendarService creates a new Google Calendar service
 func NewGoogleCalendarService(pool *pgxpool.Pool) *GoogleCalendarService {
 	cfg := config.AppConfig
+	// Use integration-specific redirect URI (separate from login OAuth)
+	redirectURI := cfg.GoogleIntegrationRedirectURI
+	if redirectURI == "" {
+		redirectURI = cfg.GoogleRedirectURI // Fallback for backwards compatibility
+	}
 	oauthConfig := &oauth2.Config{
 		ClientID:     cfg.GoogleClientID,
 		ClientSecret: cfg.GoogleClientSecret,
-		RedirectURL:  cfg.GoogleRedirectURI,
+		RedirectURL:  redirectURI,
 		Scopes: []string{
 			calendar.CalendarReadonlyScope,
 			calendar.CalendarEventsScope,
@@ -257,6 +262,35 @@ func (s *GoogleCalendarService) GetConnectionStatus(ctx context.Context, userID 
 		return nil, err
 	}
 	return &status, nil
+}
+
+// SyncToUserIntegrations bridges legacy OAuth to user_integrations table
+// This creates or updates a record in user_integrations when OAuth completes
+func (s *GoogleCalendarService) SyncToUserIntegrations(ctx context.Context, userID, email string, scopes []string) error {
+	// Insert or update user_integrations record
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO user_integrations (
+			user_id, provider_id, status, connected_at,
+			external_account_name, scopes, settings
+		) VALUES (
+			$1, 'google_calendar', 'connected', NOW(),
+			$2, $3, '{"enabledSkills": ["google_calendar.sync_daily_log", "google_calendar.create_event", "google_calendar.get_events"], "notifications": true}'::jsonb
+		)
+		ON CONFLICT (user_id, provider_id) DO UPDATE SET
+			status = 'connected',
+			external_account_name = EXCLUDED.external_account_name,
+			scopes = EXCLUDED.scopes,
+			updated_at = NOW()
+	`, userID, email, scopes)
+	return err
+}
+
+// DeleteUserIntegration removes the user_integrations record when OAuth is disconnected
+func (s *GoogleCalendarService) DeleteUserIntegration(ctx context.Context, userID string) error {
+	_, err := s.pool.Exec(ctx, `
+		DELETE FROM user_integrations WHERE user_id = $1 AND provider_id = 'google_calendar'
+	`, userID)
+	return err
 }
 
 // Helper functions

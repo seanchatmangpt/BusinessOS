@@ -245,20 +245,28 @@ func CachedAuthMiddleware(pool *pgxpool.Pool, cache *SessionCache) gin.HandlerFu
 		// Extract session token
 		sessionCookie, err := c.Cookie(SessionCookieName)
 		if err != nil || sessionCookie == "" {
+			log.Printf("[CachedAuth] No cookie found, err=%v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 			return
 		}
 
+		log.Printf("[CachedAuth] Raw cookie: %q", sessionCookie)
+
 		sessionCookie, err = url.QueryUnescape(sessionCookie)
 		if err != nil {
+			log.Printf("[CachedAuth] URL decode failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid session cookie"})
 			return
 		}
+
+		log.Printf("[CachedAuth] Decoded cookie: %q", sessionCookie)
 
 		sessionToken := sessionCookie
 		if idx := strings.Index(sessionCookie, "."); idx != -1 {
 			sessionToken = sessionCookie[:idx]
 		}
+
+		log.Printf("[CachedAuth] Token after strip: %q", sessionToken)
 
 		ctx := c.Request.Context()
 
@@ -267,9 +275,10 @@ func CachedAuthMiddleware(pool *pgxpool.Pool, cache *SessionCache) gin.HandlerFu
 			cached, err := cache.Get(ctx, sessionToken)
 			if err != nil {
 				// Log but don't fail - fall through to DB
-				log.Printf("SessionCache: get error: %v", err)
+				log.Printf("[CachedAuth] Redis get error: %v", err)
 			} else if cached != nil {
 				// Cache hit - convert to BetterAuthUser and continue
+				log.Printf("[CachedAuth] Cache HIT for user: %s (%s)", cached.Name, cached.Email)
 				user := &BetterAuthUser{
 					ID:            cached.ID,
 					Name:          cached.Name,
@@ -283,6 +292,7 @@ func CachedAuthMiddleware(pool *pgxpool.Pool, cache *SessionCache) gin.HandlerFu
 				c.Next()
 				return
 			}
+			log.Printf("[CachedAuth] Cache MISS, querying DB")
 		}
 
 		// Cache miss or no cache - query PostgreSQL
@@ -306,9 +316,12 @@ func CachedAuthMiddleware(pool *pgxpool.Pool, cache *SessionCache) gin.HandlerFu
 		)
 
 		if err != nil {
+			log.Printf("[CachedAuth] DB query failed: %v, token=%q", err, sessionToken)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
 			return
 		}
+
+		log.Printf("[CachedAuth] DB found user: %s (%s)", user.Name, user.Email)
 
 		// Cache the result for next time (if cache available)
 		if cache != nil {

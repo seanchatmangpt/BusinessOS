@@ -343,3 +343,209 @@ export async function testMCPConnector(id: string) {
     method: 'POST'
   });
 }
+
+// ============================================
+// Sorx Integration Module
+// ============================================
+
+import type {
+  IntegrationProviderInfo,
+  UserIntegration,
+  ModuleIntegrations,
+  AIModelPreferences,
+  IntegrationSettings,
+  PendingDecision,
+  SkillExecution,
+  IntegrationCategory
+} from './types';
+
+/**
+ * Get all available integration providers
+ */
+export async function getProviders(options?: {
+  category?: IntegrationCategory;
+  module?: string;
+  status?: string;
+}) {
+  const params = new URLSearchParams();
+  if (options?.category) params.set('category', options.category);
+  if (options?.module) params.set('module', options.module);
+  if (options?.status) params.set('status', options.status);
+  const query = params.toString();
+  return request<{ success: boolean; providers: IntegrationProviderInfo[]; count: number }>(
+    `/integrations/providers${query ? `?${query}` : ''}`
+  );
+}
+
+/**
+ * Get a specific provider's details
+ */
+export async function getProvider(providerId: string) {
+  return request<{ success: boolean; provider: IntegrationProviderInfo }>(
+    `/integrations/providers/${providerId}`
+  );
+}
+
+/**
+ * Get user's connected integrations
+ */
+export async function getConnectedIntegrations() {
+  return request<{ success: boolean; integrations: UserIntegration[]; count: number }>(
+    '/integrations/connected'
+  );
+}
+
+/**
+ * Get details of a specific user integration
+ */
+export async function getUserIntegration(integrationId: string) {
+  return request<{ success: boolean; integration: UserIntegration }>(
+    `/integrations/${integrationId}`
+  );
+}
+
+/**
+ * Update integration settings
+ */
+export async function updateIntegrationSettings(
+  integrationId: string,
+  settings: Partial<IntegrationSettings>
+) {
+  return request<{ success: boolean; message: string }>(
+    `/integrations/${integrationId}/settings`,
+    {
+      method: 'PATCH',
+      body: settings
+    }
+  );
+}
+
+/**
+ * Disconnect an integration
+ */
+export async function disconnectUserIntegration(integrationId: string) {
+  return request<{ success: boolean; message: string }>(
+    `/integrations/${integrationId}`,
+    { method: 'DELETE' }
+  );
+}
+
+/**
+ * Trigger manual sync for an integration
+ */
+export async function triggerIntegrationSync(integrationId: string, module?: string) {
+  const params = module ? `?module=${module}` : '';
+  return request<{ success: boolean; sync_log_id: string; message: string }>(
+    `/integrations/${integrationId}/sync${params}`,
+    { method: 'POST' }
+  );
+}
+
+/**
+ * Get integrations available for a specific module
+ */
+export async function getModuleIntegrations(moduleId: string) {
+  return request<{ success: boolean } & ModuleIntegrations>(
+    `/modules/${moduleId}/integrations`
+  );
+}
+
+// ============================================
+// AI Model Preferences
+// ============================================
+
+/**
+ * Get user's AI model preferences
+ */
+export async function getAIModelPreferences() {
+  return request<{ success: boolean; preferences: AIModelPreferences }>(
+    '/integrations/ai/preferences'
+  );
+}
+
+/**
+ * Update user's AI model preferences
+ */
+export async function updateAIModelPreferences(preferences: Partial<AIModelPreferences>) {
+  return request<{ success: boolean; message: string }>(
+    '/integrations/ai/preferences',
+    {
+      method: 'PUT',
+      body: preferences
+    }
+  );
+}
+
+// ============================================
+// Sorx Decisions (Human-in-the-loop)
+// ============================================
+
+/**
+ * Get pending decisions requiring human input
+ */
+export async function getPendingDecisions() {
+  return request<{ success: boolean; decisions: PendingDecision[]; count: number }>(
+    '/sorx/decisions'
+  );
+}
+
+/**
+ * Get a specific pending decision
+ */
+export async function getPendingDecision(decisionId: string) {
+  return request<{ success: boolean; decision: PendingDecision }>(
+    `/sorx/decisions/${decisionId}`
+  );
+}
+
+/**
+ * Respond to a pending decision
+ */
+export async function respondToDecision(
+  decisionId: string,
+  response: {
+    decision: string;
+    inputs?: Record<string, unknown>;
+    comment?: string;
+  }
+) {
+  return request<{ success: boolean; message: string }>(
+    `/sorx/decisions/${decisionId}/respond`,
+    {
+      method: 'POST',
+      body: response
+    }
+  );
+}
+
+// ============================================
+// Sorx Skill Execution
+// ============================================
+
+/**
+ * Trigger a skill execution
+ */
+export async function triggerSkill(skillId: string, params?: Record<string, unknown>) {
+  return request<{
+    success: boolean;
+    execution_id: string;
+    skill_id: string;
+    status: string;
+    message: string;
+  }>(
+    '/sorx/execute',
+    {
+      method: 'POST',
+      body: { skill_id: skillId, params }
+    }
+  );
+}
+
+/**
+ * Get skill execution status
+ */
+export async function getSkillExecution(executionId: string) {
+  return request<{ success: boolean; execution: SkillExecution }>(
+    `/sorx/executions/${executionId}`
+  );
+}

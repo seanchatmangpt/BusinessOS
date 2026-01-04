@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log/slog"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
@@ -663,5 +665,79 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		protectedIntel := api.Group("")
 		protectedIntel.Use(auth)
 		RegisterConversationIntelligenceRoutes(protectedIntel, intelligenceHandler)
+	}
+
+	// ============================================================================
+	// Sorx Integration Module
+	// ============================================================================
+
+	// Initialize Sorx service and handler with engine
+	sorxService := services.NewSorxService(h.pool, h.cfg)
+	sorxLogger := slog.Default().With("component", "sorx")
+	sorxHandler := NewSorxHandler(sorxService, h.pool, sorxLogger)
+
+	// Sorx routes - /api/sorx (for Sorx engine callbacks and credentials)
+	sorxRoutes := api.Group("/sorx")
+	{
+		// Credential endpoints (internal API for Sorx engine)
+		sorxRoutes.POST("/credential-ticket", sorxHandler.RequestCredentialTicket)
+		sorxRoutes.POST("/redeem-credential", sorxHandler.RedeemCredential)
+		// Callback endpoint (for skill execution callbacks)
+		sorxRoutes.POST("/callback", sorxHandler.HandleCallback)
+
+		// Public skill catalog (browse available skills)
+		sorxRoutes.GET("/skills", sorxHandler.ListSkills)
+		sorxRoutes.GET("/skills/:id", sorxHandler.GetSkill)
+
+		// Public skill commands catalog (lists available skill commands)
+		sorxRoutes.GET("/commands", sorxHandler.ListSkillCommands)
+
+		// Protected endpoints (require user auth)
+		sorxProtected := sorxRoutes.Group("")
+		sorxProtected.Use(auth)
+		{
+			// Decision endpoints (human-in-the-loop)
+			sorxProtected.GET("/decisions", sorxHandler.GetPendingDecisions)
+			sorxProtected.GET("/decisions/:id", sorxHandler.GetDecision)
+			sorxProtected.POST("/decisions/:id/respond", sorxHandler.RespondToDecision)
+			// Skill execution
+			sorxProtected.POST("/execute", sorxHandler.TriggerSkill)
+			sorxProtected.GET("/executions/:id", sorxHandler.GetSkillExecution)
+			// Skill command execution (slash commands that trigger skills)
+			sorxProtected.POST("/commands/execute", sorxHandler.ExecuteSkillCommand)
+		}
+	}
+
+	// Integrations Module - /api/integrations (for user integration management)
+	integrationsHandler := NewIntegrationsHandler(h.pool)
+	integrationsModule := api.Group("/integrations")
+
+	// Public endpoints - provider catalog (no auth required)
+	// These just list what integrations are available, not user-specific data
+	integrationsModule.GET("/providers", integrationsHandler.GetProviders)
+	integrationsModule.GET("/providers/:id", integrationsHandler.GetProvider)
+
+	// Protected endpoints - user-specific data (auth required)
+	integrationsProtected := integrationsModule.Group("")
+	integrationsProtected.Use(auth)
+	{
+		// Aggregated status (must be before :id to avoid matching)
+		integrationsProtected.GET("/status", integrationsHandler.GetAllIntegrationsStatus)
+		// User's connected integrations
+		integrationsProtected.GET("/connected", integrationsHandler.GetConnectedIntegrations)
+		integrationsProtected.GET("/:id", integrationsHandler.GetIntegration)
+		integrationsProtected.PATCH("/:id/settings", integrationsHandler.UpdateIntegrationSettings)
+		integrationsProtected.DELETE("/:id", integrationsHandler.DisconnectIntegration)
+		integrationsProtected.POST("/:id/sync", integrationsHandler.TriggerSync)
+		// AI Model preferences
+		integrationsProtected.GET("/ai/preferences", integrationsHandler.GetModelPreferences)
+		integrationsProtected.PUT("/ai/preferences", integrationsHandler.UpdateModelPreferences)
+	}
+
+	// Module-specific integration endpoints - /api/modules/:module/integrations
+	modules := api.Group("/modules")
+	modules.Use(optionalAuth) // Optional auth for browsing available integrations
+	{
+		modules.GET("/:module/integrations", integrationsHandler.GetModuleIntegrations)
 	}
 }

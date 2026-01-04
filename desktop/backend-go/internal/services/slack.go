@@ -228,6 +228,33 @@ func (s *SlackService) GetConnectionStatus(ctx context.Context, userID string) (
 	return &status, nil
 }
 
+// SyncToUserIntegrations bridges legacy OAuth to user_integrations table
+func (s *SlackService) SyncToUserIntegrations(ctx context.Context, userID, teamName string, scopes []string) error {
+	_, err := s.pool.Exec(ctx, `
+		INSERT INTO user_integrations (
+			user_id, provider_id, status, connected_at,
+			external_workspace_name, scopes, settings
+		) VALUES (
+			$1, 'slack', 'connected', NOW(),
+			$2, $3, '{"enabledSkills": ["slack.send_message", "slack.message_to_task", "slack.create_channel"], "notifications": true}'::jsonb
+		)
+		ON CONFLICT (user_id, provider_id) DO UPDATE SET
+			status = 'connected',
+			external_workspace_name = EXCLUDED.external_workspace_name,
+			scopes = EXCLUDED.scopes,
+			updated_at = NOW()
+	`, userID, teamName, scopes)
+	return err
+}
+
+// DeleteUserIntegration removes the user_integrations record when disconnected
+func (s *SlackService) DeleteUserIntegration(ctx context.Context, userID string) error {
+	_, err := s.pool.Exec(ctx, `
+		DELETE FROM user_integrations WHERE user_id = $1 AND provider_id = 'slack'
+	`, userID)
+	return err
+}
+
 // ========== Slack API Operations ==========
 
 // ListChannels returns channels the bot has access to

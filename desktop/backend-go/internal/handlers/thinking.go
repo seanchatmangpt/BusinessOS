@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
+	"github.com/rhl/businessos-backend/internal/middleware"
 )
 
 // =========================================================
@@ -17,7 +18,12 @@ import (
 
 // ListThinkingTraces returns thinking traces for a conversation
 func (h *Handlers) ListThinkingTraces(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	conversationID := c.Param("conversationId")
 
 	convUUID, err := uuid.Parse(conversationID)
@@ -44,7 +50,12 @@ func (h *Handlers) ListThinkingTraces(c *gin.Context) {
 
 // GetThinkingTraceByMessage returns thinking trace for a specific message
 func (h *Handlers) GetThinkingTraceByMessage(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	messageID := c.Param("messageId")
 
 	msgUUID, err := uuid.Parse(messageID)
@@ -76,7 +87,12 @@ func (h *Handlers) GetThinkingTraceByMessage(c *gin.Context) {
 
 // DeleteThinkingTraces deletes all thinking traces for a conversation
 func (h *Handlers) DeleteThinkingTraces(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	conversationID := c.Param("conversationId")
 
 	convUUID, err := uuid.Parse(conversationID)
@@ -130,7 +146,12 @@ type UpdateReasoningTemplateRequest struct {
 
 // ListReasoningTemplates returns all reasoning templates for the user
 func (h *Handlers) ListReasoningTemplates(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
@@ -147,7 +168,12 @@ func (h *Handlers) ListReasoningTemplates(c *gin.Context) {
 
 // GetReasoningTemplate returns a specific reasoning template
 func (h *Handlers) GetReasoningTemplate(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	templateID := c.Param("id")
 
 	templateUUID, err := uuid.Parse(templateID)
@@ -174,7 +200,12 @@ func (h *Handlers) GetReasoningTemplate(c *gin.Context) {
 
 // CreateReasoningTemplate creates a new reasoning template
 func (h *Handlers) CreateReasoningTemplate(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 
 	var req CreateReasoningTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -224,7 +255,12 @@ func (h *Handlers) CreateReasoningTemplate(c *gin.Context) {
 
 // UpdateReasoningTemplate updates a reasoning template
 func (h *Handlers) UpdateReasoningTemplate(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	templateID := c.Param("id")
 
 	templateUUID, err := uuid.Parse(templateID)
@@ -274,7 +310,12 @@ func (h *Handlers) UpdateReasoningTemplate(c *gin.Context) {
 
 // DeleteReasoningTemplate deletes a reasoning template
 func (h *Handlers) DeleteReasoningTemplate(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	templateID := c.Param("id")
 
 	templateUUID, err := uuid.Parse(templateID)
@@ -301,7 +342,12 @@ func (h *Handlers) DeleteReasoningTemplate(c *gin.Context) {
 
 // SetDefaultReasoningTemplate sets a template as the default
 func (h *Handlers) SetDefaultReasoningTemplate(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 	templateID := c.Param("id")
 
 	templateUUID, err := uuid.Parse(templateID)
@@ -340,7 +386,12 @@ type UpdateThinkingSettingsRequest struct {
 
 // GetThinkingSettings returns the user's thinking settings
 func (h *Handlers) GetThinkingSettings(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
@@ -370,7 +421,12 @@ func (h *Handlers) GetThinkingSettings(c *gin.Context) {
 
 // UpdateThinkingSettings updates the user's thinking settings
 func (h *Handlers) UpdateThinkingSettings(c *gin.Context) {
-	userID := c.GetString("user_id")
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := user.ID
 
 	var req UpdateThinkingSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

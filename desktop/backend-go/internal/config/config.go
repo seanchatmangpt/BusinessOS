@@ -2,6 +2,8 @@ package config
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -63,9 +65,10 @@ type Config struct {
 	SupermemoryAPIKey string `mapstructure:"SUPERMEMORY_API_KEY"`
 
 	// Google OAuth
-	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
-	GoogleRedirectURI  string `mapstructure:"GOOGLE_REDIRECT_URI"`
+	GoogleClientID               string `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret           string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	GoogleRedirectURI            string `mapstructure:"GOOGLE_REDIRECT_URI"`              // For login flow
+	GoogleIntegrationRedirectURI string `mapstructure:"GOOGLE_INTEGRATION_REDIRECT_URI"` // For calendar integration
 
 	// Slack OAuth
 	SlackClientID     string `mapstructure:"SLACK_CLIENT_ID"`
@@ -154,7 +157,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("SUPERMEMORY_API_KEY", "")
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_CLIENT_SECRET", "")
-	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/integrations/google/callback")
+	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback/login")
+	viper.SetDefault("GOOGLE_INTEGRATION_REDIRECT_URI", "http://localhost:8001/api/integrations/google/callback")
 	viper.SetDefault("SLACK_CLIENT_ID", "")
 	viper.SetDefault("SLACK_CLIENT_SECRET", "")
 	viper.SetDefault("SLACK_REDIRECT_URI", "http://localhost:8001/api/integrations/slack/callback")
@@ -410,4 +414,53 @@ func (c *Config) HasSerper() bool {
 // HasTavily returns true if Tavily API is configured
 func (c *Config) HasTavily() bool {
 	return c.TavilyAPIKey != ""
+}
+
+// Validate checks that the configuration is secure for the current environment
+// SECURITY: This must be called on startup to prevent insecure production deployments
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.IsProduction() {
+		// CRITICAL: SECRET_KEY must be changed from default
+		if c.SecretKey == "your-secret-key-change-this-in-production" {
+			errs = append(errs, "SECRET_KEY must be changed from default value in production")
+		}
+		if len(c.SecretKey) < 32 {
+			errs = append(errs, "SECRET_KEY must be at least 32 characters in production")
+		}
+
+		// CRITICAL: REDIS_KEY_HMAC_SECRET must be set for session security
+		if c.RedisKeyHMACSecret == "" {
+			errs = append(errs, "REDIS_KEY_HMAC_SECRET must be set in production (min 32 bytes)")
+		}
+		if len(c.RedisKeyHMACSecret) > 0 && len(c.RedisKeyHMACSecret) < 32 {
+			errs = append(errs, "REDIS_KEY_HMAC_SECRET must be at least 32 characters")
+		}
+
+		// CRITICAL: Database URL must not be localhost in production
+		if strings.Contains(c.DatabaseURL, "localhost") {
+			errs = append(errs, "DATABASE_URL appears to be a development URL (contains 'localhost')")
+		}
+
+		// WARNING: Local models should typically be disabled in production
+		if c.EnableLocalModels {
+			// This is a warning, not an error - some deployments may need this
+			fmt.Println("WARNING: ENABLE_LOCAL_MODELS is true in production - ensure this is intentional")
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.New("configuration validation failed:\n  - " + strings.Join(errs, "\n  - "))
+	}
+
+	return nil
+}
+
+// MustValidate calls Validate and panics if validation fails
+// Use this in main() to fail fast on misconfiguration
+func (c *Config) MustValidate() {
+	if err := c.Validate(); err != nil {
+		panic(fmt.Sprintf("CRITICAL: %v", err))
+	}
 }

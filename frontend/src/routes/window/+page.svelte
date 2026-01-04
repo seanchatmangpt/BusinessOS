@@ -904,6 +904,8 @@
 								<iframe src="/knowledge?embed=true" title="Knowledge" class="module-iframe"></iframe>
 							{:else if win.module === 'ai-settings'}
 								<iframe src="/settings/ai?embed=true" title="AI Settings" class="module-iframe"></iframe>
+							{:else if win.module === 'integrations'}
+								<iframe src="/integrations?embed=true" title="Integrations" class="module-iframe"></iframe>
 							{:else if win.module === 'files'}
 								<FileBrowser />
 							{:else if win.module === 'finder'}

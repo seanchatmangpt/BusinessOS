@@ -3,7 +3,10 @@ package handlers
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/middleware"
@@ -22,7 +25,7 @@ func NewSlackOAuthHandler(slackService *services.SlackService) *SlackOAuthHandle
 	}
 }
 
-// initiates the Slack OAuth flow
+// InitiateSlackAuth initiates the Slack OAuth flow
 func (h *SlackOAuthHandler) InitiateSlackAuth(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
 	if user == nil {
@@ -31,10 +34,19 @@ func (h *SlackOAuthHandler) InitiateSlackAuth(c *gin.Context) {
 	}
 
 	// Generate random state for CSRF protection
-	state := generateSlackRandomState()
+	state, err := generateSlackSecureRandomState()
+	if err != nil {
+		log.Printf("CRITICAL: Failed to generate Slack OAuth state: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Security error"})
+		return
+	}
 
-	c.SetCookie("slack_oauth_state", state, 600, "/", "", false, true)
-	c.SetCookie("slack_oauth_user", user.ID, 600, "/", "", false, true)
+	// Determine if we're in production (use secure cookies)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
+
+	// SECURITY: Secure=true in production to prevent MitM attacks
+	c.SetCookie("slack_oauth_state", state, 600, "/", "", isProduction, true)
+	c.SetCookie("slack_oauth_user", user.ID, 600, "/", "", isProduction, true)
 
 	authURL := h.slackService.GetAuthURL(state)
 
@@ -80,12 +92,20 @@ func (h *SlackOAuthHandler) HandleSlackCallback(c *gin.Context) {
 		}
 	}
 
-	// Clear OAuth cookies
-	c.SetCookie("slack_oauth_state", "", -1, "/", "", false, true)
-	c.SetCookie("slack_oauth_user", "", -1, "/", "", false, true)
+	// Bridge to user_integrations table for the new integrations module
+	scopes := []string{}
+	if response.Scope != "" {
+		scopes = append(scopes, response.Scope)
+	}
+	_ = h.slackService.SyncToUserIntegrations(c.Request.Context(), userID, response.Team.Name, scopes)
 
-	// Redirect to settings page with success
-	c.Redirect(http.StatusTemporaryRedirect, "/settings?slack_connected=true")
+	// Clear OAuth cookies (use same Secure flag as when setting)
+	isProduction := os.Getenv("ENVIRONMENT") == "production"
+	c.SetCookie("slack_oauth_state", "", -1, "/", "", isProduction, true)
+	c.SetCookie("slack_oauth_user", "", -1, "/", "", isProduction, true)
+
+	// Redirect to integrations page with success
+	c.Redirect(http.StatusTemporaryRedirect, "/integrations?slack_connected=true")
 }
 
 // GetSlackConnectionStatus returns the Slack connection status for a user
@@ -126,12 +146,27 @@ func (h *SlackOAuthHandler) DisconnectSlack(c *gin.Context) {
 		return
 	}
 
+	// Also clean up user_integrations table
+	_ = h.slackService.DeleteUserIntegration(c.Request.Context(), user.ID)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Slack workspace disconnected"})
 }
 
-// Helper function for generating random state
-func generateSlackRandomState() string {
+// generateSlackSecureRandomState generates a cryptographically secure random state
+// SECURITY: Returns error if crypto/rand fails - never silently continue with weak randomness
+func generateSlackSecureRandomState() (string, error) {
 	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("crypto/rand.Read failed: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// Deprecated: Use generateSlackSecureRandomState instead
+func generateSlackRandomState() string {
+	state, err := generateSlackSecureRandomState()
+	if err != nil {
+		log.Fatalf("CRITICAL: Failed to generate secure random state: %v", err)
+	}
+	return state
 }
