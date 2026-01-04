@@ -730,6 +730,909 @@ class SkillHealthMonitor:
 
 ---
 
+## Human-in-the-Loop Architecture
+
+### The Core Principle: Humans Pull, System Doesn't Push
+
+Sorx 2.0 is designed as a **human-centric system** where humans remain in control. The system prepares, suggests, and organizes - but humans dictate when and how things happen.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PULL vs PUSH MODEL                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ❌ PUSH MODEL (What we DON'T do)                                          │
+│   ═══════════════════════════════                                           │
+│                                                                             │
+│   System decides → Executes → Notifies human                               │
+│                                                                             │
+│   Problems:                                                                 │
+│   • Human feels out of control                                             │
+│   • Actions happen without context                                         │
+│   • Overwhelmed with notifications                                         │
+│   • Can't prioritize what matters                                          │
+│   • System runs ahead of human understanding                               │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ✅ PULL MODEL (What we DO)                                                │
+│   ═══════════════════════════                                               │
+│                                                                             │
+│   Human asks → System presents → Human decides → System executes           │
+│                                                                             │
+│   Benefits:                                                                 │
+│   • Human always in control                                                │
+│   • Context provided before action                                         │
+│   • Human pulls when ready                                                 │
+│   • Prioritization by human                                                │
+│   • System waits for human direction                                       │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   PULL INTERACTIONS                                                         │
+│   ═════════════════                                                         │
+│                                                                             │
+│   Human: "What's waiting for me?"                                          │
+│   System: "You have 3 tasks ready for review:                              │
+│            1. Proposal for Acme Corp (draft ready)                         │
+│            2. Invoice approval needed ($15K)                               │
+│            3. New lead qualification (high score)"                         │
+│                                                                             │
+│   Human: "Show me the proposal"                                            │
+│   System: [Displays proposal with context]                                 │
+│                                                                             │
+│   Human: "Looks good, send it"                                             │
+│   System: [Executes send, updates status]                                  │
+│                                                                             │
+│   Human: "What's next?"                                                    │
+│   System: [Presents next item when human is ready]                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Temperature Control: Human Dictates Autonomy
+
+The **Temperature** is the level of autonomy humans grant to the system. Humans control the dial.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         TEMPERATURE CONTROL                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   TEMPERATURE DIAL (Controlled by Human)                                    │
+│   ══════════════════════════════════════                                    │
+│                                                                             │
+│   ❄️──────────────────🌡️──────────────────🔥                                │
+│   COLD              WARM               HOT                                  │
+│   Full Control      Balanced           High Autonomy                        │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ❄️ COLD TEMPERATURE (Full Human Control)                                  │
+│   ═════════════════════════════════════════                                 │
+│                                                                             │
+│   Every action requires explicit approval:                                  │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  TASK: Send follow-up email to John                                  │  │
+│   │                                                                       │  │
+│   │  CONTEXT:                                                            │  │
+│   │  • Last contact: 3 days ago                                          │  │
+│   │  • Deal stage: Proposal sent                                         │  │
+│   │  • Deal value: $25,000                                               │  │
+│   │                                                                       │  │
+│   │  PROPOSED ACTION:                                                    │  │
+│   │  Send email with subject: "Following up on our proposal"            │  │
+│   │                                                                       │  │
+│   │  DRAFT:                                                              │  │
+│   │  "Hi John, I wanted to check in on the proposal I sent..."          │  │
+│   │                                                                       │  │
+│   │  [APPROVE]  [EDIT]  [REJECT]  [SKIP FOR NOW]                        │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│   Use when:                                                                 │
+│   • New to the system                                                      │
+│   • High-stakes actions                                                    │
+│   • Training the system                                                    │
+│   • Want to review everything                                              │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   🌡️ WARM TEMPERATURE (Balanced)                                            │
+│   ═══════════════════════════════                                           │
+│                                                                             │
+│   Routine actions auto-execute, complex decisions wait:                     │
+│                                                                             │
+│   AUTO-EXECUTE (No approval needed):                                        │
+│   ✓ Update CRM fields                                                      │
+│   ✓ Log activities                                                         │
+│   ✓ Send routine notifications                                             │
+│   ✓ Create internal tasks                                                  │
+│                                                                             │
+│   WAIT FOR APPROVAL:                                                        │
+│   ⏸ External communications (emails, messages)                             │
+│   ⏸ Financial actions (invoices, payments)                                 │
+│   ⏸ Commitments (meetings, deadlines)                                      │
+│   ⏸ New client interactions                                                │
+│                                                                             │
+│   OUTPUT DISPLAY:                                                           │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  SUMMARY: 12 actions completed, 3 waiting for you                    │  │
+│   │                                                                       │  │
+│   │  ✅ COMPLETED:                                                        │  │
+│   │  • Updated 5 deal stages                                             │  │
+│   │  • Logged 4 call activities                                          │  │
+│   │  • Created 3 follow-up tasks                                         │  │
+│   │                                                                       │  │
+│   │  ⏳ WAITING FOR YOU:                                                  │  │
+│   │  1. [Review] Email to Acme Corp CEO                                  │  │
+│   │  2. [Approve] Invoice for $15,000                                    │  │
+│   │  3. [Confirm] Meeting with new prospect                              │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   🔥 HOT TEMPERATURE (High Autonomy)                                        │
+│   ════════════════════════════════════                                      │
+│                                                                             │
+│   Most actions auto-execute, only critical decisions escalate:              │
+│                                                                             │
+│   AUTO-EXECUTE:                                                             │
+│   ✓ All routine actions                                                    │
+│   ✓ Standard emails (templates, follow-ups)                                │
+│   ✓ Standard invoices (within parameters)                                  │
+│   ✓ Meeting scheduling (within calendar rules)                             │
+│                                                                             │
+│   ESCALATE ONLY:                                                            │
+│   🚨 Actions above financial threshold                                     │
+│   🚨 First contact with new clients                                        │
+│   🚨 Exceptions to normal process                                          │
+│   🚨 Conflicts or errors                                                   │
+│                                                                             │
+│   Human gets summaries:                                                     │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  DAILY SUMMARY                                                        │  │
+│   │                                                                       │  │
+│   │  47 actions completed today                                          │  │
+│   │  • 15 emails sent                                                    │  │
+│   │  • 8 deals updated                                                   │  │
+│   │  • 12 tasks completed                                                │  │
+│   │  • 5 invoices created                                                │  │
+│   │  • 7 meetings scheduled                                              │  │
+│   │                                                                       │  │
+│   │  🚨 1 item needs your attention:                                      │  │
+│   │  → $50K deal requires manual approval (above threshold)              │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Context Display: What Humans See
+
+Before any action, humans see full context:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CONTEXT DISPLAY FORMAT                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   Every task presented to human includes:                                   │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  📋 TASK: [What needs to happen]                                     │  │
+│   │  ════════════════════════════════                                    │  │
+│   │                                                                       │  │
+│   │  🎯 OBJECTIVE:                                                        │  │
+│   │  [Why this task exists, what data point it satisfies]                │  │
+│   │                                                                       │  │
+│   │  📊 CONTEXT:                                                          │  │
+│   │  [All relevant information gathered from systems]                    │  │
+│   │  • Source 1: [data]                                                  │  │
+│   │  • Source 2: [data]                                                  │  │
+│   │  • Source 3: [data]                                                  │  │
+│   │                                                                       │  │
+│   │  🤖 PROPOSED ACTION:                                                  │  │
+│   │  [What the system recommends doing]                                  │  │
+│   │                                                                       │  │
+│   │  📝 OUTPUT PREVIEW:                                                   │  │
+│   │  [What will be created/sent/modified]                                │  │
+│   │                                                                       │  │
+│   │  ⚡ SKILLS INVOLVED:                                                  │  │
+│   │  [Which skills will execute]                                         │  │
+│   │                                                                       │  │
+│   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │  │
+│   │                                                                       │  │
+│   │  [APPROVE]  [EDIT]  [REJECT]  [ASK QUESTION]  [SKIP]                │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Role-Specific Human Thinking
+
+Different roles need to **think** about different things. The system facilitates this:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ROLE-SPECIFIC THINKING                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   @marketing-role needs human to think about:                               │
+│   ════════════════════════════════════════════                              │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  TASK: Create campaign landing page                                   │  │
+│   │                                                                       │  │
+│   │  CONTEXT:                                                            │  │
+│   │  • Campaign: Q1 Product Launch                                       │  │
+│   │  • Target: Enterprise CTOs                                           │  │
+│   │  • Budget: $50K                                                      │  │
+│   │  • Timeline: 2 weeks                                                 │  │
+│   │                                                                       │  │
+│   │  🧠 HUMAN INPUT NEEDED:                                               │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  The system needs your creative direction:                     │  │  │
+│   │  │                                                                │  │  │
+│   │  │  1. Visual style? [Modern/Corporate/Bold/Minimal]             │  │  │
+│   │  │  2. Key message? [_______________________]                    │  │  │
+│   │  │  3. Primary CTA? [Demo/Trial/Contact/Download]                │  │  │
+│   │  │  4. Hero image concept? [_______________________]             │  │  │
+│   │  │                                                                │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   │  Once you provide direction, skills will:                            │  │
+│   │  • Generate copy variations                                          │  │
+│   │  • Create design mockups                                             │  │
+│   │  • Set up landing page                                               │  │
+│   │  • Configure analytics                                               │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│   @sales-role needs human to think about:                                   │
+│   ═══════════════════════════════════════                                   │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  TASK: Respond to pricing objection                                   │  │
+│   │                                                                       │  │
+│   │  CONTEXT:                                                            │  │
+│   │  • Deal: Acme Corp - $100K                                           │  │
+│   │  • Objection: "Too expensive vs. competitor"                         │  │
+│   │  • Competitor: $75K for similar scope                                │  │
+│   │  • Deal history: 3 meetings, demo completed                          │  │
+│   │                                                                       │  │
+│   │  🧠 HUMAN INPUT NEEDED:                                               │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  Strategy decision:                                            │  │  │
+│   │  │                                                                │  │  │
+│   │  │  ○ Hold price, emphasize value                                │  │  │
+│   │  │  ○ Offer discount: [___]%                                     │  │  │
+│   │  │  ○ Restructure deal (payment terms)                           │  │  │
+│   │  │  ○ Add value (extra services)                                 │  │  │
+│   │  │  ○ Walk away                                                  │  │  │
+│   │  │                                                                │  │  │
+│   │  │  Key point to emphasize? [_______________________]            │  │  │
+│   │  │                                                                │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   │  Once you decide, skills will:                                       │  │
+│   │  • Draft response email                                              │  │
+│   │  • Update deal in CRM                                                │  │
+│   │  • Prepare supporting materials                                      │  │
+│   │  • Schedule follow-up                                                │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Skill Examples: Simple to Complex
+
+### Example 1: Simple Skill (Tier 1 - Deterministic)
+
+A straightforward skill with hardcoded workflow:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 SIMPLE SKILL: slack_send_channel_message                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   METADATA                                                                  │
+│   ════════                                                                  │
+│   ID:             slack_send_channel_message_v2                            │
+│   Name:           Send Slack Channel Message                               │
+│   Tier:           1 (Deterministic)                                        │
+│   Model:          NONE (pure code)                                         │
+│   Success Rate:   100% (when Slack API is up)                              │
+│   Avg Execution:  ~200ms                                                   │
+│   Role:           @any                                                     │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   WORKFLOW (Hardcoded Process)                                              │
+│   ═════════════════════════════                                             │
+│                                                                             │
+│   ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐            │
+│   │  Input  │────▶│  Auth   │────▶│  Send   │────▶│ Return  │            │
+│   │ Params  │     │  Slack  │     │ Message │     │ Result  │            │
+│   └─────────┘     └─────────┘     └─────────┘     └─────────┘            │
+│                                                                             │
+│   Step 1: Receive params (channel_id, message, optional: attachments)      │
+│   Step 2: Get Slack credentials from vault                                 │
+│   Step 3: Call Slack API chat.postMessage                                  │
+│   Step 4: Return message ID and timestamp                                  │
+│                                                                             │
+│   NO AI INVOLVED. NO DECISIONS. PURE EXECUTION.                            │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   CODE                                                                      │
+│   ════                                                                      │
+
+```python
+# skills/slack/send_channel_message_v2.py
+"""
+Skill: Send Slack Channel Message
+Tier: 1 (Deterministic - 100% success when API is up)
+"""
+
+from sorx import get_credential, return_result
+
+def execute(params: dict):
+    # ═══════════════════════════════════════════════════════
+    # STEP 1: VALIDATE INPUT (Hardcoded)
+    # ═══════════════════════════════════════════════════════
+    channel_id = params.get("channel_id")
+    message = params.get("message")
+
+    if not channel_id or not message:
+        return_result({
+            "success": False,
+            "error": "channel_id and message are required"
+        })
+        return
+
+    # ═══════════════════════════════════════════════════════
+    # STEP 2: GET CREDENTIALS (Hardcoded)
+    # ═══════════════════════════════════════════════════════
+    slack_creds = get_credential("slack")
+    token = slack_creds["bot_token"]
+
+    # ═══════════════════════════════════════════════════════
+    # STEP 3: SEND MESSAGE (Hardcoded)
+    # ═══════════════════════════════════════════════════════
+    import requests
+
+    response = requests.post(
+        "https://slack.com/api/chat.postMessage",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "channel": channel_id,
+            "text": message,
+            "attachments": params.get("attachments", [])
+        }
+    )
+
+    result = response.json()
+
+    # ═══════════════════════════════════════════════════════
+    # STEP 4: RETURN RESULT (Hardcoded)
+    # ═══════════════════════════════════════════════════════
+    if result.get("ok"):
+        return_result({
+            "success": True,
+            "message_ts": result["ts"],
+            "channel": result["channel"]
+        })
+    else:
+        return_result({
+            "success": False,
+            "error": result.get("error", "Unknown error")
+        })
+
+metadata = {
+    "id": "slack_send_channel_message_v2",
+    "tier": 1,
+    "model": None,
+    "credentials_needed": ["slack"],
+    "data_points_satisfied": ["notification.sent"],
+    "role_affinity": ["any"]
+}
+```
+
+│                                                                             │
+│   WHAT HUMAN SEES                                                           │
+│   ═══════════════                                                           │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │  ✅ ACTION COMPLETED                                                  │  │
+│   │                                                                       │  │
+│   │  Sent message to #sales-wins:                                        │  │
+│   │  "New deal closed: Acme Corp - $50,000!"                            │  │
+│   │                                                                       │  │
+│   │  Message ID: 1234567890.123456                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Example 2: Complex Skill (Tier 3/4 - Multi-Connector, Agentic)
+
+A sophisticated skill that:
+- Connects to multiple data sources
+- Makes agentic calls to other skills
+- Transforms and combines data
+- Produces a complex output
+- Requires human thinking/input
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│     COMPLEX SKILL: quarterly_business_review_generator                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   METADATA                                                                  │
+│   ════════                                                                  │
+│   ID:             quarterly_business_review_generator_v3                   │
+│   Name:           Generate Quarterly Business Review                       │
+│   Tier:           3-4 (Reasoning + Generative)                             │
+│   Model:          OPUS (complex reasoning required)                         │
+│   Success Rate:   85-90%                                                   │
+│   Avg Execution:  ~45 seconds                                              │
+│   Role:           @ops, @finance, @executive                               │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   DATA CONNECTORS (5 sources)                                               │
+│   ═══════════════════════════                                               │
+│                                                                             │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│   │ HubSpot │  │QuickBooks│  │ ClickUp │  │  Slack  │  │  Notion │        │
+│   │  (CRM)  │  │(Finance) │  │ (Tasks) │  │ (Comms) │  │ (Docs)  │        │
+│   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘        │
+│        │            │            │            │            │              │
+│        └────────────┴────────────┴────────────┴────────────┘              │
+│                                   │                                        │
+│                                   ▼                                        │
+│                          ┌───────────────┐                                 │
+│                          │  Data Fusion  │                                 │
+│                          │    Engine     │                                 │
+│                          └───────────────┘                                 │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   WORKFLOW (Complex, with Agentic Calls)                                    │
+│   ══════════════════════════════════════                                    │
+│                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  PHASE 1: DATA COLLECTION (Parallel)                                 │  │
+│   │  ════════════════════════════════════                                │  │
+│   │                                                                       │  │
+│   │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────┐        │  │
+│   │  │ HubSpot:  │  │QuickBooks:│  │ ClickUp:  │  │  Slack:   │        │  │
+│   │  │ Deals,    │  │ Revenue,  │  │ Projects, │  │ Sentiment,│        │  │
+│   │  │ Pipeline, │  │ Expenses, │  │ Tasks,    │  │ Activity  │        │  │
+│   │  │ Clients   │  │ Cash Flow │  │ Velocity  │  │ Metrics   │        │  │
+│   │  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘        │  │
+│   │        │              │              │              │              │  │
+│   │        └──────────────┴──────────────┴──────────────┘              │  │
+│   │                              │                                      │  │
+│   │                              ▼                                      │  │
+│   │  ┌─────────────────────────────────────────────────────────────┐  │  │
+│   │  │                  RAW DATA COLLECTED                          │  │  │
+│   │  │                                                              │  │  │
+│   │  │  HubSpot:    45 deals, $1.2M pipeline, 23 new clients       │  │  │
+│   │  │  QuickBooks: $890K revenue, $650K expenses, $240K profit    │  │  │
+│   │  │  ClickUp:    156 tasks completed, 89% on-time delivery      │  │  │
+│   │  │  Slack:      12,456 messages, positive sentiment 78%         │  │  │
+│   │  │                                                              │  │  │
+│   │  └─────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  PHASE 2: AGENTIC ANALYSIS (Sequential)                              │  │
+│   │  ═══════════════════════════════════════                             │  │
+│   │                                                                       │  │
+│   │  request_agent("@data-analyst", "Analyze revenue trends")           │  │
+│   │       │                                                              │  │
+│   │       ▼                                                              │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  @data-analyst response:                                       │  │  │
+│   │  │  "Revenue up 15% QoQ, driven by enterprise segment.           │  │  │
+│   │  │   SMB flat. Churn increased 2% - concerning trend."           │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │       │                                                              │  │
+│   │       ▼                                                              │  │
+│   │  request_agent("@finance-analyst", "Analyze profitability")         │  │
+│   │       │                                                              │  │
+│   │       ▼                                                              │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  @finance-analyst response:                                    │  │  │
+│   │  │  "Gross margin improved to 72%. CAC stable at $1,200.         │  │  │
+│   │  │   LTV:CAC ratio at 4.2x - healthy. OpEx up 8%."               │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │       │                                                              │  │
+│   │       ▼                                                              │  │
+│   │  request_agent("@ops-analyst", "Analyze team performance")          │  │
+│   │       │                                                              │  │
+│   │       ▼                                                              │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  @ops-analyst response:                                        │  │  │
+│   │  │  "Task velocity up 23%. On-time delivery at 89%.              │  │  │
+│   │  │   Engineering bottleneck identified. Sales team exceeded."    │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  PHASE 3: HUMAN INPUT REQUIRED                                       │  │
+│   │  ═══════════════════════════════                                     │  │
+│   │                                                                       │  │
+│   │  ⏸️ SKILL PAUSED - WAITING FOR HUMAN                                 │  │
+│   │                                                                       │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │                                                                │  │  │
+│   │  │  📋 CONTEXT GATHERED:                                          │  │  │
+│   │  │  • Revenue: $890K (+15% QoQ)                                  │  │  │
+│   │  │  • Profit: $240K (27% margin)                                 │  │  │
+│   │  │  • New Clients: 23                                            │  │  │
+│   │  │  • Team Performance: 89% on-time                              │  │  │
+│   │  │  • Key Concern: Churn up 2%, Engineering bottleneck           │  │  │
+│   │  │                                                                │  │  │
+│   │  │  🧠 YOUR INPUT NEEDED:                                         │  │  │
+│   │  │                                                                │  │  │
+│   │  │  1. Key wins to highlight?                                    │  │  │
+│   │  │     [________________________________________]                │  │  │
+│   │  │                                                                │  │  │
+│   │  │  2. Challenges to address?                                    │  │  │
+│   │  │     [________________________________________]                │  │  │
+│   │  │                                                                │  │  │
+│   │  │  3. Strategic priorities for next quarter?                    │  │  │
+│   │  │     [________________________________________]                │  │  │
+│   │  │                                                                │  │  │
+│   │  │  4. Audience for this QBR?                                    │  │  │
+│   │  │     ○ Board of Directors                                      │  │  │
+│   │  │     ○ Leadership Team                                         │  │  │
+│   │  │     ○ All Hands                                               │  │  │
+│   │  │     ○ Investors                                               │  │  │
+│   │  │                                                                │  │  │
+│   │  │  5. Tone?                                                     │  │  │
+│   │  │     ○ Optimistic                                              │  │  │
+│   │  │     ○ Balanced                                                │  │  │
+│   │  │     ○ Cautious                                                │  │  │
+│   │  │                                                                │  │  │
+│   │  │  [CONTINUE WITH MY INPUT]  [SKIP - USE DEFAULTS]             │  │  │
+│   │  │                                                                │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                        │
+│                          (Human provides input)                            │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  PHASE 4: DOCUMENT GENERATION (AI-Powered)                           │  │
+│   │  ═════════════════════════════════════════                           │  │
+│   │                                                                       │  │
+│   │  Using OPUS model with:                                              │  │
+│   │  • All collected data                                                │  │
+│   │  • Agent analysis                                                    │  │
+│   │  • Human input/direction                                             │  │
+│   │                                                                       │  │
+│   │  Generate:                                                           │  │
+│   │  ├─ Executive Summary                                                │  │
+│   │  ├─ Financial Overview (charts, trends)                              │  │
+│   │  ├─ Sales Performance (pipeline, wins, losses)                       │  │
+│   │  ├─ Operations Review (team, delivery, efficiency)                   │  │
+│   │  ├─ Challenges & Risks                                               │  │
+│   │  ├─ Strategic Priorities                                             │  │
+│   │  └─ Next Quarter Goals                                               │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  PHASE 5: OUTPUT & DISTRIBUTION                                      │  │
+│   │  ══════════════════════════════                                      │  │
+│   │                                                                       │  │
+│   │  request_skill("notion_create_page", {...})                          │  │
+│   │       └─▶ Creates QBR document in Notion                             │  │
+│   │                                                                       │  │
+│   │  request_skill("google_slides_create", {...})                        │  │
+│   │       └─▶ Creates presentation deck                                  │  │
+│   │                                                                       │  │
+│   │  request_skill("gmail_send_with_attachment", {...})                  │  │
+│   │       └─▶ Sends to stakeholders (after human approval)               │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                   │                                        │
+│                                   ▼                                        │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                                                                       │  │
+│   │  FINAL OUTPUT (Presented to Human)                                   │  │
+│   │  ══════════════════════════════════                                  │  │
+│   │                                                                       │  │
+│   │  ┌───────────────────────────────────────────────────────────────┐  │  │
+│   │  │  ✅ QBR GENERATED                                              │  │  │
+│   │  │                                                                │  │  │
+│   │  │  DELIVERABLES:                                                │  │  │
+│   │  │  📄 Notion Document: Q4 2024 Business Review                  │  │  │
+│   │  │     → [View Document]                                         │  │  │
+│   │  │                                                                │  │  │
+│   │  │  📊 Presentation: Q4_2024_QBR_Deck.pptx                       │  │  │
+│   │  │     → [View]  [Download]  [Edit]                              │  │  │
+│   │  │                                                                │  │  │
+│   │  │  📧 READY TO SEND:                                            │  │  │
+│   │  │  • Board of Directors (5 recipients)                          │  │  │
+│   │  │  • Subject: "Q4 2024 Quarterly Business Review"               │  │  │
+│   │  │                                                                │  │  │
+│   │  │  [REVIEW EMAIL]  [SEND NOW]  [SCHEDULE]  [EDIT]              │  │  │
+│   │  │                                                                │  │  │
+│   │  └───────────────────────────────────────────────────────────────┘  │  │
+│   │                                                                       │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Complex Skill Code Structure
+
+```python
+# skills/business/quarterly_business_review_generator_v3.py
+"""
+Skill: Generate Quarterly Business Review
+Tier: 3-4 (Reasoning + Generative)
+Model: OPUS
+
+This is a COMPLEX skill that:
+1. Connects to 5 data sources
+2. Makes agentic calls to specialized analysts
+3. Requires human input for direction
+4. Generates multi-format output
+5. Handles distribution
+"""
+
+from sorx import (
+    get_credential,
+    return_result,
+    request_skill,      # Call other skills
+    request_agent,      # Call agents for analysis
+    request_decision,   # Get human input
+    notify_user,        # Update human on progress
+    get_context,        # Get user context
+)
+from datetime import datetime, timedelta
+
+def execute(params: dict):
+    quarter = params.get("quarter", "Q4")
+    year = params.get("year", 2024)
+
+    notify_user(f"Starting {quarter} {year} QBR generation...", "info")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 1: PARALLEL DATA COLLECTION
+    # ═══════════════════════════════════════════════════════════════════
+
+    # These run in parallel (fire off all, collect results)
+    hubspot_data = request_skill(
+        skill="hubspot_get_quarterly_metrics",
+        params={"quarter": quarter, "year": year}
+    )
+
+    quickbooks_data = request_skill(
+        skill="quickbooks_get_financial_summary",
+        params={"quarter": quarter, "year": year}
+    )
+
+    clickup_data = request_skill(
+        skill="clickup_get_team_metrics",
+        params={"quarter": quarter, "year": year}
+    )
+
+    slack_data = request_skill(
+        skill="slack_get_activity_metrics",
+        params={"quarter": quarter, "year": year}
+    )
+
+    notify_user("Data collected from all sources", "success")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 2: AGENTIC ANALYSIS
+    # ═══════════════════════════════════════════════════════════════════
+
+    revenue_analysis = request_agent(
+        agent="@data-analyst",
+        task="Analyze revenue trends and identify key drivers",
+        context={
+            "hubspot": hubspot_data,
+            "quickbooks": quickbooks_data
+        }
+    )
+
+    profitability_analysis = request_agent(
+        agent="@finance-analyst",
+        task="Analyze profitability, margins, and financial health",
+        context={"quickbooks": quickbooks_data}
+    )
+
+    ops_analysis = request_agent(
+        agent="@ops-analyst",
+        task="Analyze team performance, velocity, and bottlenecks",
+        context={
+            "clickup": clickup_data,
+            "slack": slack_data
+        }
+    )
+
+    notify_user("Analysis complete", "success")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 3: HUMAN INPUT (Pull - Wait for human)
+    # ═══════════════════════════════════════════════════════════════════
+
+    # Present context and ask for direction
+    human_input = request_decision(
+        question="Please provide direction for the QBR",
+        context={
+            "summary": {
+                "revenue": quickbooks_data.get("revenue"),
+                "profit": quickbooks_data.get("profit"),
+                "new_clients": hubspot_data.get("new_clients"),
+                "team_performance": clickup_data.get("on_time_rate"),
+            },
+            "analysis": {
+                "revenue": revenue_analysis,
+                "profitability": profitability_analysis,
+                "operations": ops_analysis
+            }
+        },
+        input_fields=[
+            {"id": "wins", "label": "Key wins to highlight", "type": "text"},
+            {"id": "challenges", "label": "Challenges to address", "type": "text"},
+            {"id": "priorities", "label": "Strategic priorities", "type": "text"},
+            {"id": "audience", "label": "Audience", "type": "select",
+             "options": ["Board", "Leadership", "All Hands", "Investors"]},
+            {"id": "tone", "label": "Tone", "type": "select",
+             "options": ["Optimistic", "Balanced", "Cautious"]}
+        ]
+    )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 4: DOCUMENT GENERATION (Uses OPUS for complex reasoning)
+    # ═══════════════════════════════════════════════════════════════════
+
+    # Combine all data and human direction
+    qbr_content = generate_qbr_document(
+        data={
+            "hubspot": hubspot_data,
+            "quickbooks": quickbooks_data,
+            "clickup": clickup_data,
+            "slack": slack_data
+        },
+        analysis={
+            "revenue": revenue_analysis,
+            "profitability": profitability_analysis,
+            "operations": ops_analysis
+        },
+        human_input=human_input,
+        quarter=quarter,
+        year=year
+    )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 5: CREATE OUTPUTS
+    # ═══════════════════════════════════════════════════════════════════
+
+    # Create Notion document
+    notion_result = request_skill(
+        skill="notion_create_page",
+        params={
+            "parent_id": "qbr_folder_id",
+            "title": f"{quarter} {year} Quarterly Business Review",
+            "content": qbr_content["document"]
+        }
+    )
+
+    # Create presentation
+    slides_result = request_skill(
+        skill="google_slides_create_from_template",
+        params={
+            "template_id": "qbr_template",
+            "title": f"{quarter} {year} QBR Deck",
+            "data": qbr_content["slides_data"]
+        }
+    )
+
+    # Prepare email (but don't send - human approves)
+    email_draft = request_skill(
+        skill="gmail_create_draft",
+        params={
+            "to": get_stakeholder_emails(human_input["audience"]),
+            "subject": f"{quarter} {year} Quarterly Business Review",
+            "body": qbr_content["email_body"],
+            "attachments": [slides_result["file_url"]]
+        }
+    )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FINAL: RETURN RESULTS TO HUMAN
+    # ═══════════════════════════════════════════════════════════════════
+
+    return_result({
+        "success": True,
+        "outputs": {
+            "notion_document": {
+                "url": notion_result["url"],
+                "title": f"{quarter} {year} Quarterly Business Review"
+            },
+            "presentation": {
+                "url": slides_result["url"],
+                "title": f"{quarter}_{year}_QBR_Deck"
+            },
+            "email_draft": {
+                "draft_id": email_draft["draft_id"],
+                "recipients": email_draft["to"],
+                "subject": email_draft["subject"]
+            }
+        },
+        "data_points_satisfied": [
+            "qbr.document_created",
+            "qbr.presentation_created",
+            "qbr.email_drafted"
+        ],
+        "awaiting_human_action": ["email.send_approval"]
+    })
+
+
+def generate_qbr_document(data, analysis, human_input, quarter, year):
+    """
+    Uses OPUS model to generate the QBR document.
+    This is where the complex reasoning happens.
+    """
+    # LLM call to generate document structure and content
+    # Based on all inputs
+    pass
+
+
+def get_stakeholder_emails(audience):
+    """Get email list based on audience selection."""
+    audiences = {
+        "Board": ["board@company.com"],
+        "Leadership": ["leadership@company.com"],
+        "All Hands": ["all@company.com"],
+        "Investors": ["investors@company.com"]
+    }
+    return audiences.get(audience, [])
+
+
+metadata = {
+    "id": "quarterly_business_review_generator_v3",
+    "name": "Generate Quarterly Business Review",
+    "tier": 4,
+    "model": "opus",
+    "credentials_needed": ["hubspot", "quickbooks", "clickup", "slack", "notion", "google"],
+    "data_connectors": ["hubspot", "quickbooks", "clickup", "slack", "notion", "google_slides", "gmail"],
+    "agent_calls": ["@data-analyst", "@finance-analyst", "@ops-analyst"],
+    "human_input_required": True,
+    "role_affinity": ["ops", "finance", "executive"]
+}
+```
+
+---
+
 ## Core Concept: Skills
 
 ### What is a Skill?
