@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
 )
 
@@ -22,9 +23,9 @@ func NewDelegationHandler(delegationService *services.DelegationService) *Delega
 // ListAgents returns all available agents for delegation
 // GET /api/agents/available
 func (h *DelegationHandler) ListAgents(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
-		userID = "default"
+	userID := "default"
+	if user := middleware.GetCurrentUser(c); user != nil {
+		userID = user.ID
 	}
 
 	agents, err := h.delegationService.ListAvailableAgents(c.Request.Context(), userID)
@@ -44,9 +45,9 @@ func (h *DelegationHandler) ListAgents(c *gin.Context) {
 // ResolveAgentMention resolves an @mention to an agent
 // GET /api/agents/resolve/:mention
 func (h *DelegationHandler) ResolveAgentMention(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
-		userID = "default"
+	userID := "default"
+	if user := middleware.GetCurrentUser(c); user != nil {
+		userID = user.ID
 	}
 
 	mention := c.Param("mention")
@@ -77,9 +78,9 @@ func (h *DelegationHandler) ResolveAgentMention(c *gin.Context) {
 // ExtractMentions extracts all @mentions from a message
 // POST /api/agents/mentions
 func (h *DelegationHandler) ExtractMentions(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
-		userID = "default"
+	userID := "default"
+	if user := middleware.GetCurrentUser(c); user != nil {
+		userID = user.ID
 	}
 
 	var req struct {
@@ -113,9 +114,9 @@ type DelegateRequest struct {
 // Delegate initiates a delegation to another agent
 // POST /api/agents/delegate
 func (h *DelegationHandler) Delegate(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
-		userID = "default"
+	userID := "default"
+	if user := middleware.GetCurrentUser(c); user != nil {
+		userID = user.ID
 	}
 
 	var req DelegateRequest

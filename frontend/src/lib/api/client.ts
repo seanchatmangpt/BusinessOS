@@ -551,36 +551,38 @@ class ApiClient {
 		if (filters?.projectId) params.set('project_id', filters.projectId);
 		if (filters?.clientId) params.set('client_id', filters.clientId);
 		const query = params.toString();
-		return this.request<CalendarEvent[]>(`/calendar/events${query ? `?${query}` : ''}`);
+		return this.request<CalendarEvent[]>(`/integrations/google/calendar/events${query ? `?${query}` : ''}`);
 	}
 
 	async getCalendarEvent(id: string) {
-		return this.request<CalendarEvent>(`/calendar/events/${id}`);
+		return this.request<CalendarEvent>(`/integrations/google/calendar/events/${id}`);
 	}
 
 	async createCalendarEvent(data: CreateCalendarEventData) {
-		return this.request<CalendarEvent>('/calendar/events', { method: 'POST', body: data });
+		return this.request<CalendarEvent>('/integrations/google/calendar/events', { method: 'POST', body: data });
 	}
 
 	async updateCalendarEvent(id: string, data: UpdateCalendarEventData) {
-		return this.request<CalendarEvent>(`/calendar/events/${id}`, { method: 'PUT', body: data });
+		return this.request<CalendarEvent>(`/integrations/google/calendar/events/${id}`, { method: 'PUT', body: data });
 	}
 
 	async deleteCalendarEvent(id: string) {
-		return this.request(`/calendar/events/${id}`, { method: 'DELETE' });
+		return this.request(`/integrations/google/calendar/events/${id}`, { method: 'DELETE' });
 	}
 
 	async syncCalendar() {
-		return this.request<{ message: string; synced_count: number }>('/calendar/sync', { method: 'POST' });
+		return this.request<{ message: string; synced_count: number }>('/integrations/google/calendar/sync', { method: 'POST' });
 	}
 
 	async getTodayEvents() {
-		return this.request<CalendarEvent[]>('/calendar/today');
+		// Use the events endpoint with today's date filter
+		const today = new Date().toISOString().split('T')[0];
+		return this.request<CalendarEvent[]>(`/integrations/google/calendar/events?start=${today}&end=${today}`);
 	}
 
 	async getUpcomingEvents(limit?: number) {
 		const params = limit ? `?limit=${limit}` : '';
-		return this.request<CalendarEvent[]>(`/calendar/upcoming${params}`);
+		return this.request<CalendarEvent[]>(`/integrations/google/calendar/events${params}`);
 	}
 
 	// Voice Notes

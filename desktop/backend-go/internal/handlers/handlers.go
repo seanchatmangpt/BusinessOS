@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log/slog"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
@@ -672,71 +674,17 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		mcp.GET("/health", h.MCPHealth)
 	}
 
-	// Initialize Google Calendar service and handlers
-	calendarService := services.NewGoogleCalendarService(h.pool)
-	googleOAuthHandler := NewGoogleOAuthHandler(calendarService)
-	calendarHandler := NewCalendarHandler(h, calendarService)
+	// ============================================================================
+	// NEW Integration Architecture - Provider-based handlers
+	// ============================================================================
+	// Initialize the new IntegrationRouter which manages all integration providers
+	// (Google, Slack, Notion) with their OAuth flows, data sync, and API handlers.
+	integrationRouter := NewIntegrationRouter(h.pool)
 
-	slackService := services.NewSlackService(h.pool)
-	slackOAuthHandler := NewSlackOAuthHandler(slackService)
-
-	// Initialize Notion service and handlers
-	notionService := services.NewNotionService(h.pool)
-	notionOAuthHandler := NewNotionOAuthHandler(notionService)
-
-	// Integration routes - /api/integrations
-	integrations := api.Group("/integrations")
-	{
-		// Google OAuth integration routes - /api/integrations/google
-		google := integrations.Group("/google")
-		google.Use(auth)
-		{
-			google.GET("/auth", googleOAuthHandler.InitiateGoogleAuth)
-			google.GET("/status", googleOAuthHandler.GetGoogleConnectionStatus)
-			google.DELETE("", googleOAuthHandler.DisconnectGoogle)
-		}
-		// Callback doesn't need auth (user redirected from Google)
-		integrations.GET("/google/callback", googleOAuthHandler.HandleGoogleCallback)
-
-		// Slack OAuth integration routes - /api/integrations/slack
-		slackRoutes := integrations.Group("/slack")
-		slackRoutes.Use(auth)
-		{
-			slackRoutes.GET("/auth", slackOAuthHandler.InitiateSlackAuth)
-			slackRoutes.GET("/status", slackOAuthHandler.GetSlackConnectionStatus)
-			slackRoutes.DELETE("", slackOAuthHandler.DisconnectSlack)
-		}
-		// Callback doesn't need auth (user redirected from Slack)
-		integrations.GET("/slack/callback", slackOAuthHandler.HandleSlackCallback)
-
-		// Notion OAuth integration routes - /api/integrations/notion
-		notionRoutes := integrations.Group("/notion")
-		notionRoutes.Use(auth)
-		{
-			notionRoutes.GET("/auth", notionOAuthHandler.InitiateNotionAuth)
-			notionRoutes.GET("/status", notionOAuthHandler.GetNotionConnectionStatus)
-			notionRoutes.GET("/databases", notionOAuthHandler.GetNotionDatabases)
-			notionRoutes.GET("/pages", notionOAuthHandler.GetNotionPages)
-			notionRoutes.GET("/search", notionOAuthHandler.SearchNotion)
-			notionRoutes.DELETE("", notionOAuthHandler.DisconnectNotion)
-		}
-		// Callback doesn't need auth (user redirected from Notion)
-		integrations.GET("/notion/callback", notionOAuthHandler.HandleNotionCallback)
-	}
-
-	// Calendar routes - /api/calendar
-	calendar := api.Group("/calendar")
-	calendar.Use(auth)
-	{
-		calendar.GET("/events", calendarHandler.ListEvents)
-		calendar.GET("/events/:id", calendarHandler.GetEvent)
-		calendar.POST("/events", calendarHandler.CreateEvent)
-		calendar.PUT("/events/:id", calendarHandler.UpdateEvent)
-		calendar.DELETE("/events/:id", calendarHandler.DeleteEvent)
-		calendar.POST("/sync", calendarHandler.SyncCalendar)
-		calendar.GET("/today", calendarHandler.GetTodayEvents)
-		calendar.GET("/upcoming", calendarHandler.GetUpcomingEvents)
-	}
+	// Register new integration routes - /api/integrations/{provider}/*
+	// This provides: OAuth flows, calendar, gmail, slack channels/messages, notion databases/pages
+	integrationsGroup := api.Group("/integrations")
+	integrationRouter.RegisterRoutes(integrationsGroup, auth)
 
 	// Terminal routes - /api/terminal
 	terminalHandler := NewTerminalHandler(h.containerMgr, h.terminalPubSub)
@@ -785,6 +733,14 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	api.GET("/artifacts/sync", auth, h.createTableSyncHandler("artifacts"))
 	api.GET("/focus_items/sync", auth, h.createTableSyncHandler("focus_items"))
 	api.GET("/user_settings/sync", auth, h.createTableSyncHandler("user_settings"))
+
+	// Calendar routes - /api/calendar (aggregate from calendar_events table)
+	calendar := api.Group("/calendar")
+	{
+		calendar.GET("/stats", auth, h.GetCalendarStats)
+		calendar.GET("/upcoming", auth, h.GetUpcomingCalendarEvents)
+		calendar.GET("/today", auth, h.GetTodayCalendarEvents)
+	}
 
 	// Authentication routes - /api/auth
 	// Apply strict rate limiting to prevent brute force attacks
@@ -846,5 +802,80 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		protectedIntel := api.Group("")
 		protectedIntel.Use(auth)
 		RegisterConversationIntelligenceRoutes(protectedIntel, intelligenceHandler)
+	}
+
+	// ============================================================================
+	// Sorx Integration Module
+	// ============================================================================
+
+	// Initialize Sorx service and handler with engine
+	sorxService := services.NewSorxService(h.pool, h.cfg)
+	sorxLogger := slog.Default().With("component", "sorx")
+	sorxHandler := NewSorxHandler(sorxService, h.pool, sorxLogger)
+
+	// Sorx routes - /api/sorx (for Sorx engine callbacks and credentials)
+	sorxRoutes := api.Group("/sorx")
+	{
+		// Credential endpoints (internal API for Sorx engine)
+		sorxRoutes.POST("/credential-ticket", sorxHandler.RequestCredentialTicket)
+		sorxRoutes.POST("/redeem-credential", sorxHandler.RedeemCredential)
+		// Callback endpoint (for skill execution callbacks)
+		sorxRoutes.POST("/callback", sorxHandler.HandleCallback)
+
+		// Public skill catalog (browse available skills)
+		sorxRoutes.GET("/skills", sorxHandler.ListSkills)
+		sorxRoutes.GET("/skills/:id", sorxHandler.GetSkill)
+
+		// Public skill commands catalog (lists available skill commands)
+		sorxRoutes.GET("/commands", sorxHandler.ListSkillCommands)
+
+		// Protected endpoints (require user auth)
+		sorxProtected := sorxRoutes.Group("")
+		sorxProtected.Use(auth)
+		{
+			// Decision endpoints (human-in-the-loop)
+			sorxProtected.GET("/decisions", sorxHandler.GetPendingDecisions)
+			sorxProtected.GET("/decisions/:id", sorxHandler.GetDecision)
+			sorxProtected.POST("/decisions/:id/respond", sorxHandler.RespondToDecision)
+			// Skill execution
+			sorxProtected.POST("/execute", sorxHandler.TriggerSkill)
+			sorxProtected.GET("/executions/:id", sorxHandler.GetSkillExecution)
+			// Skill command execution (slash commands that trigger skills)
+			sorxProtected.POST("/commands/execute", sorxHandler.ExecuteSkillCommand)
+		}
+	}
+
+	// Integrations Module - /api/integrations (for user integration management)
+	// Uses new IntegrationRouter for provider catalog and sync operations
+	integrationsHandler := NewIntegrationsHandler(h.pool, integrationRouter)
+	integrationsModule := api.Group("/integrations")
+
+	// Public endpoints - provider catalog (no auth required)
+	// These just list what integrations are available, not user-specific data
+	integrationsModule.GET("/providers", integrationsHandler.GetProviders)
+	integrationsModule.GET("/providers/:id", integrationsHandler.GetProvider)
+
+	// Protected endpoints - user-specific data (auth required)
+	integrationsProtected := integrationsModule.Group("")
+	integrationsProtected.Use(auth)
+	{
+		// Aggregated status (must be before :id to avoid matching)
+		integrationsProtected.GET("/status", integrationsHandler.GetAllIntegrationsStatus)
+		// User's connected integrations
+		integrationsProtected.GET("/connected", integrationsHandler.GetConnectedIntegrations)
+		integrationsProtected.GET("/:id", integrationsHandler.GetIntegration)
+		integrationsProtected.PATCH("/:id/settings", integrationsHandler.UpdateIntegrationSettings)
+		integrationsProtected.DELETE("/:id", integrationsHandler.DisconnectIntegration)
+		integrationsProtected.POST("/:id/sync", integrationsHandler.TriggerSync)
+		// AI Model preferences
+		integrationsProtected.GET("/ai/preferences", integrationsHandler.GetModelPreferences)
+		integrationsProtected.PUT("/ai/preferences", integrationsHandler.UpdateModelPreferences)
+	}
+
+	// Module-specific integration endpoints - /api/modules/:module/integrations
+	modules := api.Group("/modules")
+	modules.Use(optionalAuth) // Optional auth for browsing available integrations
+	{
+		modules.GET("/:module/integrations", integrationsHandler.GetModuleIntegrations)
 	}
 }

@@ -216,12 +216,36 @@ func (h *GoogleAuthHandler) createSession(ctx context.Context, userID string) (s
 func (h *GoogleAuthHandler) GetCurrentSession(c *gin.Context) {
 	sessionCookie, err := c.Cookie("better-auth.session_token")
 	if err != nil || sessionCookie == "" {
+		log.Printf("[GetCurrentSession] No cookie found, err=%v, cookie=%q", err, sessionCookie)
 		c.JSON(http.StatusOK, gin.H{
 			"user":    nil,
 			"session": nil,
 		})
 		return
 	}
+
+	log.Printf("[GetCurrentSession] Raw cookie: %q", sessionCookie)
+
+	// URL-decode the cookie (consistent with auth middleware)
+	sessionCookie, err = url.QueryUnescape(sessionCookie)
+	if err != nil {
+		log.Printf("[GetCurrentSession] URL decode failed: %v", err)
+		c.JSON(http.StatusOK, gin.H{
+			"user":    nil,
+			"session": nil,
+		})
+		return
+	}
+
+	log.Printf("[GetCurrentSession] Decoded cookie: %q", sessionCookie)
+
+	// Strip signature part if present (consistent with auth middleware)
+	sessionToken := sessionCookie
+	if idx := strings.Index(sessionCookie, "."); idx != -1 {
+		sessionToken = sessionCookie[:idx]
+	}
+
+	log.Printf("[GetCurrentSession] Token after strip: %q", sessionToken)
 
 	// Look up session
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
@@ -237,17 +261,20 @@ func (h *GoogleAuthHandler) GetCurrentSession(c *gin.Context) {
 		FROM session s
 		JOIN "user" u ON s."userId" = u.id
 		WHERE s.token = $1 AND s."expiresAt" > NOW()
-	`, sessionCookie).Scan(
+	`, sessionToken).Scan(
 		&userID, &userName, &userEmail, &emailVerified, &userImage, &sessionID, &sessionExpiresAt,
 	)
 
 	if err != nil {
+		log.Printf("[GetCurrentSession] DB query failed: %v, token=%q", err, sessionToken)
 		c.JSON(http.StatusOK, gin.H{
 			"user":    nil,
 			"session": nil,
 		})
 		return
 	}
+
+	log.Printf("[GetCurrentSession] Found user: %s (%s)", userName, userEmail)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
@@ -348,6 +375,12 @@ func (h *GoogleAuthHandler) LogoutAllSessions(c *gin.Context) {
 }
 
 // Helper functions
+func generateRandomState() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
 func generateUserID() string {
 	b := make([]byte, 16)
 	rand.Read(b)

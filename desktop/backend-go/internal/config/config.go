@@ -2,6 +2,9 @@ package config
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -18,6 +21,7 @@ type Config struct {
 
 	// Server
 	ServerPort string `mapstructure:"SERVER_PORT"`
+	BaseURL    string `mapstructure:"BASE_URL"`
 
 	// JWT Auth (kept for compatibility, Better Auth handles auth)
 	SecretKey                string `mapstructure:"SECRET_KEY"`
@@ -59,13 +63,19 @@ type Config struct {
 	// Used to hash session tokens before storing as Redis keys
 	RedisKeyHMACSecret string `mapstructure:"REDIS_KEY_HMAC_SECRET"`
 
+	// Security: Token encryption key for OAuth tokens stored in database
+	// CRITICAL: Must be set in production - 32-byte base64-encoded key
+	// Generate with: openssl rand -base64 32
+	TokenEncryptionKey string `mapstructure:"TOKEN_ENCRYPTION_KEY"`
+
 	// Supermemory
 	SupermemoryAPIKey string `mapstructure:"SUPERMEMORY_API_KEY"`
 
 	// Google OAuth
-	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
-	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
-	GoogleRedirectURI  string `mapstructure:"GOOGLE_REDIRECT_URI"`
+	GoogleClientID               string `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret           string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	GoogleRedirectURI            string `mapstructure:"GOOGLE_REDIRECT_URI"`              // For login flow
+	GoogleIntegrationRedirectURI string `mapstructure:"GOOGLE_INTEGRATION_REDIRECT_URI"` // For calendar integration
 
 	// Slack OAuth
 	SlackClientID     string `mapstructure:"SLACK_CLIENT_ID"`
@@ -76,6 +86,31 @@ type Config struct {
 	NotionClientID     string `mapstructure:"NOTION_CLIENT_ID"`
 	NotionClientSecret string `mapstructure:"NOTION_CLIENT_SECRET"`
 	NotionRedirectURI  string `mapstructure:"NOTION_REDIRECT_URI"`
+
+	// HubSpot OAuth
+	HubSpotClientID     string `mapstructure:"HUBSPOT_CLIENT_ID"`
+	HubSpotClientSecret string `mapstructure:"HUBSPOT_CLIENT_SECRET"`
+	HubSpotRedirectURI  string `mapstructure:"HUBSPOT_REDIRECT_URI"`
+
+	// Linear OAuth
+	LinearClientID     string `mapstructure:"LINEAR_CLIENT_ID"`
+	LinearClientSecret string `mapstructure:"LINEAR_CLIENT_SECRET"`
+	LinearRedirectURI  string `mapstructure:"LINEAR_REDIRECT_URI"`
+
+	// ClickUp OAuth
+	ClickUpClientID     string `mapstructure:"CLICKUP_CLIENT_ID"`
+	ClickUpClientSecret string `mapstructure:"CLICKUP_CLIENT_SECRET"`
+	ClickUpRedirectURI  string `mapstructure:"CLICKUP_REDIRECT_URI"`
+
+	// Airtable OAuth
+	AirtableClientID     string `mapstructure:"AIRTABLE_CLIENT_ID"`
+	AirtableClientSecret string `mapstructure:"AIRTABLE_CLIENT_SECRET"`
+	AirtableRedirectURI  string `mapstructure:"AIRTABLE_REDIRECT_URI"`
+
+	// Microsoft 365 OAuth
+	MicrosoftClientID     string `mapstructure:"MICROSOFT_CLIENT_ID"`
+	MicrosoftClientSecret string `mapstructure:"MICROSOFT_CLIENT_SECRET"`
+	MicrosoftRedirectURI  string `mapstructure:"MICROSOFT_REDIRECT_URI"`
 
 	// Web Search Providers
 	// Priority: Brave > Serper > Tavily > DuckDuckGo (fallback)
@@ -114,6 +149,7 @@ func Load() (*Config, error) {
 	// Set defaults
 	viper.SetDefault("ENVIRONMENT", "development")
 	viper.SetDefault("SERVER_PORT", "8001")
+	viper.SetDefault("BASE_URL", "http://localhost:8001")
 	viper.SetDefault("DATABASE_URL", "postgres://postgres:password@localhost:5432/business_os")
 	viper.SetDefault("DATABASE_REQUIRED", true)
 	viper.SetDefault("ENABLE_LOCAL_MODELS", true) // Disable in production
@@ -149,18 +185,26 @@ func Load() (*Config, error) {
 	viper.SetDefault("REDIS_PASSWORD", "")
 	viper.SetDefault("REDIS_TLS_ENABLED", false)
 	viper.SetDefault("REDIS_KEY_HMAC_SECRET", "") // CRITICAL: Set strong value in production (min 32 bytes)
+	viper.SetDefault("TOKEN_ENCRYPTION_KEY", "") // CRITICAL: Set in production for OAuth token encryption
 
 	// Other services
 	viper.SetDefault("SUPERMEMORY_API_KEY", "")
 	viper.SetDefault("GOOGLE_CLIENT_ID", "")
 	viper.SetDefault("GOOGLE_CLIENT_SECRET", "")
-	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/integrations/google/callback")
+	viper.SetDefault("GOOGLE_REDIRECT_URI", "http://localhost:8001/api/auth/google/callback/login")
+	viper.SetDefault("GOOGLE_INTEGRATION_REDIRECT_URI", "http://localhost:8001/api/integrations/google/callback")
 	viper.SetDefault("SLACK_CLIENT_ID", "")
 	viper.SetDefault("SLACK_CLIENT_SECRET", "")
 	viper.SetDefault("SLACK_REDIRECT_URI", "http://localhost:8001/api/integrations/slack/callback")
 	viper.SetDefault("NOTION_CLIENT_ID", "")
 	viper.SetDefault("NOTION_CLIENT_SECRET", "")
 	viper.SetDefault("NOTION_REDIRECT_URI", "http://localhost:8001/api/integrations/notion/callback")
+	viper.SetDefault("HUBSPOT_CLIENT_ID", "")
+	viper.SetDefault("HUBSPOT_CLIENT_SECRET", "")
+	viper.SetDefault("HUBSPOT_REDIRECT_URI", "http://localhost:8001/api/integrations/hubspot/callback")
+	viper.SetDefault("LINEAR_CLIENT_ID", "")
+	viper.SetDefault("LINEAR_CLIENT_SECRET", "")
+	viper.SetDefault("LINEAR_REDIRECT_URI", "http://localhost:8001/api/integrations/linear/callback")
 
 	// Web Search Providers
 	viper.SetDefault("BRAVE_SEARCH_API_KEY", "")
@@ -410,4 +454,53 @@ func (c *Config) HasSerper() bool {
 // HasTavily returns true if Tavily API is configured
 func (c *Config) HasTavily() bool {
 	return c.TavilyAPIKey != ""
+}
+
+// Validate checks that the configuration is secure for the current environment
+// SECURITY: This must be called on startup to prevent insecure production deployments
+func (c *Config) Validate() error {
+	var errs []string
+
+	if c.IsProduction() {
+		// CRITICAL: SECRET_KEY must be changed from default
+		if c.SecretKey == "your-secret-key-change-this-in-production" {
+			errs = append(errs, "SECRET_KEY must be changed from default value in production")
+		}
+		if len(c.SecretKey) < 32 {
+			errs = append(errs, "SECRET_KEY must be at least 32 characters in production")
+		}
+
+		// CRITICAL: REDIS_KEY_HMAC_SECRET must be set for session security
+		if c.RedisKeyHMACSecret == "" {
+			errs = append(errs, "REDIS_KEY_HMAC_SECRET must be set in production (min 32 bytes)")
+		}
+		if len(c.RedisKeyHMACSecret) > 0 && len(c.RedisKeyHMACSecret) < 32 {
+			errs = append(errs, "REDIS_KEY_HMAC_SECRET must be at least 32 characters")
+		}
+
+		// CRITICAL: Database URL must not be localhost in production
+		if strings.Contains(c.DatabaseURL, "localhost") {
+			errs = append(errs, "DATABASE_URL appears to be a development URL (contains 'localhost')")
+		}
+
+		// WARNING: Local models should typically be disabled in production
+		if c.EnableLocalModels {
+			// This is a warning, not an error - some deployments may need this
+			slog.Warn("ENABLE_LOCAL_MODELS is true in production - ensure this is intentional")
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.New("configuration validation failed:\n  - " + strings.Join(errs, "\n  - "))
+	}
+
+	return nil
+}
+
+// MustValidate calls Validate and panics if validation fails
+// Use this in main() to fail fast on misconfiguration
+func (c *Config) MustValidate() {
+	if err := c.Validate(); err != nil {
+		panic(fmt.Sprintf("CRITICAL: %v", err))
+	}
 }

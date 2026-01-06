@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,16 +34,22 @@ func AuthMiddleware(pool *pgxpool.Pool) gin.HandlerFunc {
 		// Get session token from cookie
 		sessionCookie, err := c.Cookie(SessionCookieName)
 		if err != nil || sessionCookie == "" {
+			log.Printf("[AuthMiddleware] No cookie found, err=%v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
 			return
 		}
 
+		log.Printf("[AuthMiddleware] Raw cookie: %q", sessionCookie)
+
 		// URL decode in case it's encoded
 		sessionCookie, err = url.QueryUnescape(sessionCookie)
 		if err != nil {
+			log.Printf("[AuthMiddleware] URL decode failed: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid session cookie"})
 			return
 		}
+
+		log.Printf("[AuthMiddleware] Decoded cookie: %q", sessionCookie)
 
 		// Better Auth signs cookies with HMAC - format is {token}.{signature}
 		// Extract just the token part (before the dot)
@@ -50,6 +57,8 @@ func AuthMiddleware(pool *pgxpool.Pool) gin.HandlerFunc {
 		if idx := strings.Index(sessionCookie, "."); idx != -1 {
 			sessionToken = sessionCookie[:idx]
 		}
+
+		log.Printf("[AuthMiddleware] Token after strip: %q", sessionToken)
 
 		// Look up session in Better Auth's session table
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
@@ -72,12 +81,17 @@ func AuthMiddleware(pool *pgxpool.Pool) gin.HandlerFunc {
 		)
 
 		if err != nil {
+			log.Printf("[AuthMiddleware] DB query failed: %v, token=%q", err, sessionToken)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session"})
 			return
 		}
 
+		log.Printf("[AuthMiddleware] Found user: %s (%s)", user.Name, user.Email)
+
 		// Store user in context
 		c.Set(UserContextKey, &user)
+		// Also set user_id as string for integration handlers
+		c.Set("user_id", user.ID)
 		c.Next()
 	}
 }

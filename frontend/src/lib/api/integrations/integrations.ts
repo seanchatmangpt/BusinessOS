@@ -69,6 +69,7 @@ export async function syncIntegration(provider: IntegrationProvider) {
 
 // ============================================
 // Google OAuth Integration
+// Uses new provider infrastructure
 // ============================================
 export async function initiateGoogleAuth() {
   return request<GoogleAuthResponse>('/integrations/google/auth');
@@ -79,11 +80,20 @@ export async function getGoogleConnectionStatus() {
 }
 
 export async function disconnectGoogle() {
-  return request('/integrations/google', { method: 'DELETE' });
+  return request('/integrations/google/disconnect', { method: 'POST' });
+}
+
+export async function syncGoogleCalendar() {
+  return request<IntegrationSyncResponse>('/integrations/google/calendar/sync', { method: 'POST' });
+}
+
+export async function syncGoogleGmail() {
+  return request<IntegrationSyncResponse>('/integrations/google/gmail/sync', { method: 'POST' });
 }
 
 // ============================================
 // Slack Integration
+// Uses new provider infrastructure
 // ============================================
 
 /**
@@ -105,7 +115,7 @@ export async function getSlackConnectionStatus() {
  * Disconnect Slack integration
  */
 export async function disconnectSlack() {
-  return request('/integrations/slack', { method: 'DELETE' });
+  return request('/integrations/slack/disconnect', { method: 'POST' });
 }
 
 /**
@@ -116,7 +126,39 @@ export async function getSlackChannels() {
 }
 
 /**
- * Get Slack notifications/messages
+ * Sync Slack channels
+ */
+export async function syncSlackChannels() {
+  return request<IntegrationSyncResponse>('/integrations/slack/channels/sync', { method: 'POST' });
+}
+
+/**
+ * Get Slack messages for a channel
+ */
+export async function getSlackMessages(channelId: string, limit = 50, offset = 0) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return request<{ messages: unknown[]; count: number }>(`/integrations/slack/messages/${channelId}?${params}`);
+}
+
+/**
+ * Send a Slack message
+ */
+export async function sendSlackMessage(channelId: string, content: string) {
+  return request<{ success: boolean }>(`/integrations/slack/messages/${channelId}`, {
+    method: 'POST',
+    body: { content }
+  });
+}
+
+/**
+ * Sync Slack messages for a channel
+ */
+export async function syncSlackMessages(channelId: string) {
+  return request<IntegrationSyncResponse>(`/integrations/slack/messages/${channelId}/sync`, { method: 'POST' });
+}
+
+/**
+ * Get Slack notifications/messages (legacy, maps to messages)
  * @param limit - Number of notifications to fetch (default 50)
  * @param cursor - Pagination cursor for fetching more results
  */
@@ -128,6 +170,7 @@ export async function getSlackNotifications(limit = 50, cursor?: string) {
 
 // ============================================
 // Notion Integration
+// Uses new provider infrastructure
 // ============================================
 
 /**
@@ -149,7 +192,7 @@ export async function getNotionConnectionStatus() {
  * Disconnect Notion integration
  */
 export async function disconnectNotion() {
-  return request('/integrations/notion', { method: 'DELETE' });
+  return request('/integrations/notion/disconnect', { method: 'POST' });
 }
 
 /**
@@ -160,27 +203,37 @@ export async function getNotionDatabases() {
 }
 
 /**
- * Get Notion pages
- * @param databaseId - Optional database ID to filter pages
- * @param cursor - Pagination cursor for fetching more results
+ * Sync Notion databases
  */
-export async function getNotionPages(databaseId?: string, cursor?: string) {
-  const params = new URLSearchParams();
-  if (databaseId) params.append('database_id', databaseId);
-  if (cursor) params.append('cursor', cursor);
-  const query = params.toString();
-  return request<NotionPagesResponse>(`/integrations/notion/pages${query ? `?${query}` : ''}`);
+export async function syncNotionDatabases() {
+  return request<NotionSyncResponse>('/integrations/notion/databases/sync', { method: 'POST' });
 }
 
 /**
- * Sync a Notion database to BusinessOS
+ * Get Notion pages for a database
+ * @param databaseId - The database ID to get pages for
+ * @param limit - Number of pages to fetch
+ * @param offset - Pagination offset
+ */
+export async function getNotionPages(databaseId: string, limit = 50, offset = 0) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return request<NotionPagesResponse>(`/integrations/notion/pages/${databaseId}?${params}`);
+}
+
+/**
+ * Sync pages for a Notion database
+ * @param databaseId - The Notion database ID to sync pages for
+ */
+export async function syncNotionPages(databaseId: string) {
+  return request<NotionSyncResponse>(`/integrations/notion/pages/${databaseId}/sync`, { method: 'POST' });
+}
+
+/**
+ * Sync a Notion database to BusinessOS (legacy, use syncNotionPages)
  * @param databaseId - The Notion database ID to sync
  */
 export async function syncNotionDatabase(databaseId: string) {
-  return request<NotionSyncResponse>('/integrations/notion/sync', {
-    method: 'POST',
-    body: { database_id: databaseId }
-  });
+  return syncNotionPages(databaseId);
 }
 
 // ============================================
@@ -342,4 +395,210 @@ export async function testMCPConnector(id: string) {
   return request<{ success: boolean; message?: string }>(`/integrations/mcp/connectors/${id}/test`, {
     method: 'POST'
   });
+}
+
+// ============================================
+// Sorx Integration Module
+// ============================================
+
+import type {
+  IntegrationProviderInfo,
+  UserIntegration,
+  ModuleIntegrations,
+  AIModelPreferences,
+  IntegrationSettings,
+  PendingDecision,
+  SkillExecution,
+  IntegrationCategory
+} from './types';
+
+/**
+ * Get all available integration providers
+ */
+export async function getProviders(options?: {
+  category?: IntegrationCategory;
+  module?: string;
+  status?: string;
+}) {
+  const params = new URLSearchParams();
+  if (options?.category) params.set('category', options.category);
+  if (options?.module) params.set('module', options.module);
+  if (options?.status) params.set('status', options.status);
+  const query = params.toString();
+  return request<{ success: boolean; providers: IntegrationProviderInfo[]; count: number }>(
+    `/integrations/providers${query ? `?${query}` : ''}`
+  );
+}
+
+/**
+ * Get a specific provider's details
+ */
+export async function getProvider(providerId: string) {
+  return request<{ success: boolean; provider: IntegrationProviderInfo }>(
+    `/integrations/providers/${providerId}`
+  );
+}
+
+/**
+ * Get user's connected integrations
+ */
+export async function getConnectedIntegrations() {
+  return request<{ success: boolean; integrations: UserIntegration[]; count: number }>(
+    '/integrations/connected'
+  );
+}
+
+/**
+ * Get details of a specific user integration
+ */
+export async function getUserIntegration(integrationId: string) {
+  return request<{ success: boolean; integration: UserIntegration }>(
+    `/integrations/${integrationId}`
+  );
+}
+
+/**
+ * Update integration settings
+ */
+export async function updateIntegrationSettings(
+  integrationId: string,
+  settings: Partial<IntegrationSettings>
+) {
+  return request<{ success: boolean; message: string }>(
+    `/integrations/${integrationId}/settings`,
+    {
+      method: 'PATCH',
+      body: settings
+    }
+  );
+}
+
+/**
+ * Disconnect an integration
+ */
+export async function disconnectUserIntegration(integrationId: string) {
+  return request<{ success: boolean; message: string }>(
+    `/integrations/${integrationId}`,
+    { method: 'DELETE' }
+  );
+}
+
+/**
+ * Trigger manual sync for an integration
+ */
+export async function triggerIntegrationSync(integrationId: string, module?: string) {
+  const params = module ? `?module=${module}` : '';
+  return request<{ success: boolean; sync_log_id: string; message: string }>(
+    `/integrations/${integrationId}/sync${params}`,
+    { method: 'POST' }
+  );
+}
+
+/**
+ * Get integrations available for a specific module
+ */
+export async function getModuleIntegrations(moduleId: string) {
+  return request<{ success: boolean } & ModuleIntegrations>(
+    `/modules/${moduleId}/integrations`
+  );
+}
+
+// ============================================
+// AI Model Preferences
+// ============================================
+
+/**
+ * Get user's AI model preferences
+ */
+export async function getAIModelPreferences() {
+  return request<{ success: boolean; preferences: AIModelPreferences }>(
+    '/integrations/ai/preferences'
+  );
+}
+
+/**
+ * Update user's AI model preferences
+ */
+export async function updateAIModelPreferences(preferences: Partial<AIModelPreferences>) {
+  return request<{ success: boolean; message: string }>(
+    '/integrations/ai/preferences',
+    {
+      method: 'PUT',
+      body: preferences
+    }
+  );
+}
+
+// ============================================
+// Sorx Decisions (Human-in-the-loop)
+// ============================================
+
+/**
+ * Get pending decisions requiring human input
+ */
+export async function getPendingDecisions() {
+  return request<{ success: boolean; decisions: PendingDecision[]; count: number }>(
+    '/sorx/decisions'
+  );
+}
+
+/**
+ * Get a specific pending decision
+ */
+export async function getPendingDecision(decisionId: string) {
+  return request<{ success: boolean; decision: PendingDecision }>(
+    `/sorx/decisions/${decisionId}`
+  );
+}
+
+/**
+ * Respond to a pending decision
+ */
+export async function respondToDecision(
+  decisionId: string,
+  response: {
+    decision: string;
+    inputs?: Record<string, unknown>;
+    comment?: string;
+  }
+) {
+  return request<{ success: boolean; message: string }>(
+    `/sorx/decisions/${decisionId}/respond`,
+    {
+      method: 'POST',
+      body: response
+    }
+  );
+}
+
+// ============================================
+// Sorx Skill Execution
+// ============================================
+
+/**
+ * Trigger a skill execution
+ */
+export async function triggerSkill(skillId: string, params?: Record<string, unknown>) {
+  return request<{
+    success: boolean;
+    execution_id: string;
+    skill_id: string;
+    status: string;
+    message: string;
+  }>(
+    '/sorx/execute',
+    {
+      method: 'POST',
+      body: { skill_id: skillId, params }
+    }
+  );
+}
+
+/**
+ * Get skill execution status
+ */
+export async function getSkillExecution(executionId: string) {
+  return request<{ success: boolean; execution: SkillExecution }>(
+    `/sorx/executions/${executionId}`
+  );
 }

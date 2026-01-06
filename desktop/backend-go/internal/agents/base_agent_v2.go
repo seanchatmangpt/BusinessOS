@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -136,13 +137,10 @@ func (a *BaseAgentV2) GetOptions() services.LLMOptions {
 
 // SetCustomSystemPrompt overrides the system prompt with a custom one (for custom agents)
 func (a *BaseAgentV2) SetCustomSystemPrompt(prompt string) {
-	fmt.Printf("[Agent %p] SetCustomSystemPrompt called with %d chars\n", a, len(prompt))
+	slog.Debug("agent SetCustomSystemPrompt called", "prompt_len", len(prompt))
 	if prompt != "" {
-		fmt.Printf("[Agent %p] Setting custom systemPrompt: %s\n", a, prompt[:min(100, len(prompt))])
 		a.systemPrompt = prompt
-		fmt.Printf("[Agent %p] systemPrompt now has %d chars\n", a, len(a.systemPrompt))
-	} else {
-		fmt.Printf("[Agent %p] SetCustomSystemPrompt called with empty prompt - NOT setting\n", a)
+		slog.Debug("agent custom systemPrompt set", "len", len(a.systemPrompt))
 	}
 }
 
@@ -468,11 +466,7 @@ func (a *BaseAgentV2) buildMessages(input AgentInput) []services.ChatMessage {
 
 // buildSystemPromptWithThinking returns the system prompt with thinking instructions if enabled
 func (a *BaseAgentV2) buildSystemPromptWithThinking() string {
-	// Debug: log the system prompt being used
-	fmt.Printf("[Agent %p] buildSystemPromptWithThinking called - systemPrompt length: %d\n", a, len(a.systemPrompt))
-	if len(a.systemPrompt) > 0 {
-		fmt.Printf("[Agent %p] systemPrompt preview: %s\n", a, a.systemPrompt[:min(150, len(a.systemPrompt))])
-	}
+	slog.Debug("buildSystemPromptWithThinking called", "systemPrompt_len", len(a.systemPrompt))
 
 	// CRITICAL: Start with role context at the VERY BEGINNING
 	// This ensures the model sees the user's role and permissions first,
@@ -489,7 +483,7 @@ func (a *BaseAgentV2) buildSystemPromptWithThinking() string {
 			result += "\n\n"
 		}
 		result += a.focusModePrompt
-		fmt.Printf("[Agent] Applied focus mode prompt (%d chars)\n", len(a.focusModePrompt))
+		slog.Debug("applied focus mode prompt", "len", len(a.focusModePrompt))
 	}
 
 	// Then add output style prompt if set
@@ -498,7 +492,7 @@ func (a *BaseAgentV2) buildSystemPromptWithThinking() string {
 			result += "\n\n"
 		}
 		result += a.outputStylePrompt
-		fmt.Printf("[Agent] Applied output style prompt (%d chars)\n", len(a.outputStylePrompt))
+		slog.Debug("applied output style prompt", "len", len(a.outputStylePrompt))
 	}
 
 	// Then add workspace memory context if set (Feature: Memory Hierarchy)
@@ -533,13 +527,10 @@ func (a *BaseAgentV2) buildSystemPromptWithThinking() string {
 		thinkingInstruction := prompts.ThinkingInstruction
 		if a.llmOptions.ThinkingInstruction != "" {
 			thinkingInstruction = a.llmOptions.ThinkingInstruction
-			fmt.Printf("[Agent] ThinkingEnabled=true, using custom template instruction (%d chars)\n", len(thinkingInstruction))
-		} else {
-			fmt.Printf("[Agent] ThinkingEnabled=true, using default thinking instruction (%d chars)\n", len(thinkingInstruction))
 		}
+		slog.Debug("thinking enabled", "instruction_len", len(thinkingInstruction))
 		return result + "\n\n" + thinkingInstruction
 	}
-	fmt.Printf("[Agent] ThinkingEnabled=false, using base prompt\n")
 	return result
 }
 

@@ -74,6 +74,7 @@ const moduleDefaults: Record<string, { title: string; width: number; height: num
 	settings: { title: 'Settings', width: 700, height: 550, minWidth: 400, minHeight: 350 },
 	calendar: { title: 'Calendar', width: 1000, height: 700, minWidth: 600, minHeight: 450 },
 	'ai-settings': { title: 'AI Settings', width: 800, height: 600, minWidth: 500, minHeight: 400 },
+	integrations: { title: 'Integrations', width: 950, height: 700, minWidth: 600, minHeight: 500 },
 	trash: { title: 'Trash', width: 600, height: 450, minWidth: 300, minHeight: 250 },
 	terminal: { title: 'Terminal - OS Agent', width: 700, height: 500, minWidth: 400, minHeight: 300 },
 	'desktop-settings': { title: 'Desktop Settings', width: 550, height: 500, minWidth: 450, minHeight: 400 },
@@ -100,6 +101,7 @@ const initialDesktopIcons: DesktopIcon[] = [
 	{ id: 'icon-daily', module: 'daily', label: 'Daily Log', x: -2, y: 3 },
 	{ id: 'icon-settings', module: 'settings', label: 'Settings', x: -2, y: 4 },
 	{ id: 'icon-ai-settings', module: 'ai-settings', label: 'AI Settings', x: -2, y: 5 },
+	{ id: 'icon-integrations', module: 'integrations', label: 'Integrations', x: -2, y: 6 },
 	{ id: 'icon-trash', module: 'trash', label: 'Trash', x: -1, y: -1 }, // Bottom right
 ];
 
@@ -125,13 +127,21 @@ function loadSavedSettings(): Partial<WindowStore> {
 		if (saved) {
 			const parsed = JSON.parse(saved);
 			// Ensure we have valid arrays
-			const desktopIcons = Array.isArray(parsed.desktopIcons) && parsed.desktopIcons.length > 0
+			let desktopIcons = Array.isArray(parsed.desktopIcons) && parsed.desktopIcons.length > 0
 				? parsed.desktopIcons
 				: initialDesktopIcons;
 			const dockPinnedItems = Array.isArray(parsed.dockPinnedItems) && parsed.dockPinnedItems.length > 0
 				? parsed.dockPinnedItems
 				: initialState.dockPinnedItems;
 			const folders = Array.isArray(parsed.folders) ? parsed.folders : [];
+
+			// Merge in any new default icons that were added since last save
+			// This ensures new modules (like integrations) appear on existing users' desktops
+			const savedIconIds = new Set(desktopIcons.map((i: DesktopIcon) => i.id));
+			const newIcons = initialDesktopIcons.filter(icon => !savedIconIds.has(icon.id));
+			if (newIcons.length > 0) {
+				desktopIcons = [...desktopIcons, ...newIcons];
+			}
 
 			return { desktopIcons, dockPinnedItems, folders };
 		}

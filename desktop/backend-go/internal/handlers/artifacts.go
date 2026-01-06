@@ -306,13 +306,13 @@ func (h *Handlers) LinkArtifact(c *gin.Context) {
 
 		_, syncErr := queries.SyncArtifactToContext(c.Request.Context(), sqlc.SyncArtifactToContextParams{
 			ID:        contextID,
-			Content:   syncContent,
-			WordCount: wordCount,
+			Content:   &syncContent,
+			WordCount: &wordCount,
 		})
 		if syncErr != nil {
 			// Log but don't fail the request - linking succeeded
 			// The user can still sync manually later
-			_ = syncErr
+			log.Printf("Warning: artifact sync failed: %v", syncErr)
 		}
 	}
 

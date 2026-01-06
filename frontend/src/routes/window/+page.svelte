@@ -889,7 +889,7 @@
 							{:else if win.module === 'team'}
 								<iframe src="/team?embed=true" title="Team" class="module-iframe"></iframe>
 							{:else if win.module === 'contexts'}
-								<iframe src="/contexts?embed=true" title="Contexts" class="module-iframe"></iframe>
+								<iframe src="/knowledge?embed=true" title="Knowledge" class="module-iframe"></iframe>
 							{:else if win.module === 'nodes'}
 								<iframe src="/nodes?embed=true" title="Nodes" class="module-iframe"></iframe>
 							{:else if win.module === 'daily'}
@@ -899,11 +899,13 @@
 							{:else if win.module === 'clients'}
 								<iframe src="/clients?embed=true" title="Clients" class="module-iframe"></iframe>
 							{:else if win.module === 'calendar'}
-								<iframe src="/calendar?embed=true" title="Calendar" class="module-iframe"></iframe>
+								<iframe src="/communication/calendar?embed=true" title="Calendar" class="module-iframe"></iframe>
 							{:else if win.module === 'knowledge'}
 								<iframe src="/knowledge?embed=true" title="Knowledge" class="module-iframe"></iframe>
 							{:else if win.module === 'ai-settings'}
 								<iframe src="/settings/ai?embed=true" title="AI Settings" class="module-iframe"></iframe>
+							{:else if win.module === 'integrations'}
+								<iframe src="/integrations?embed=true" title="Integrations" class="module-iframe"></iframe>
 							{:else if win.module === 'files'}
 								<FileBrowser />
 							{:else if win.module === 'finder'}

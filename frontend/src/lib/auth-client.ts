@@ -274,6 +274,16 @@ async function initCloudSession() {
 	}
 }
 
+// Clear session data (call this when receiving 401 from API)
+export function clearSession() {
+	cloudSession.set({ isPending: false, data: null, error: 'Session expired' });
+}
+
+// Re-check session from server
+export async function refreshSession() {
+	await initCloudSession();
+}
+
 // Initialize cloud session when mode changes to cloud
 if (typeof window !== 'undefined') {
 	appMode.subscribe((mode) => {

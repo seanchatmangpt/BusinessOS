@@ -362,7 +362,9 @@ func (h *Handlers) ActivateNode(c *gin.Context) {
 	}
 
 	// Deactivate all other nodes first
-	_ = queries.ActivateNode(c.Request.Context(), user.ID)
+	if err := queries.ActivateNode(c.Request.Context(), user.ID); err != nil {
+		log.Printf("Warning: failed to deactivate other nodes: %v", err)
+	}
 
 	// Set this node as active
 	node, err := queries.SetNodeActive(c.Request.Context(), pgtype.UUID{Bytes: id, Valid: true})
@@ -565,10 +567,12 @@ func (h *Handlers) ReorderNodes(c *gin.Context) {
 			continue
 		}
 
-		_ = queries.UpdateNodeSortOrder(c.Request.Context(), sqlc.UpdateNodeSortOrderParams{
+		if err := queries.UpdateNodeSortOrder(c.Request.Context(), sqlc.UpdateNodeSortOrderParams{
 			ID:        pgtype.UUID{Bytes: id, Valid: true},
 			SortOrder: &order.SortOrder,
-		})
+		}); err != nil {
+			log.Printf("Warning: failed to update node sort order: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Nodes reordered"})
@@ -1072,7 +1076,7 @@ func (h *Handlers) UnlinkNodeConversation(c *gin.Context) {
 }
 
 // Transform functions for linked items
-func transformNodeLinkedProjects(projects []sqlc.NodeLinkedProject) []gin.H {
+func transformNodeLinkedProjects(projects []sqlc.GetNodeLinkedProjectsRow) []gin.H {
 	result := make([]gin.H, 0, len(projects))
 	for _, p := range projects {
 		item := gin.H{
@@ -1094,7 +1098,7 @@ func transformNodeLinkedProjects(projects []sqlc.NodeLinkedProject) []gin.H {
 	return result
 }
 
-func transformNodeLinkedContexts(contexts []sqlc.NodeLinkedContext) []gin.H {
+func transformNodeLinkedContexts(contexts []sqlc.GetNodeLinkedContextsRow) []gin.H {
 	result := make([]gin.H, 0, len(contexts))
 	for _, ctx := range contexts {
 		item := gin.H{
@@ -1116,7 +1120,7 @@ func transformNodeLinkedContexts(contexts []sqlc.NodeLinkedContext) []gin.H {
 	return result
 }
 
-func transformNodeLinkedConversations(conversations []sqlc.NodeLinkedConversation) []gin.H {
+func transformNodeLinkedConversations(conversations []sqlc.GetNodeLinkedConversationsRow) []gin.H {
 	result := make([]gin.H, 0, len(conversations))
 	for _, conv := range conversations {
 		item := gin.H{
