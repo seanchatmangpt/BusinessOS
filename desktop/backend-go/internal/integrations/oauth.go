@@ -137,3 +137,24 @@ func IsTokenExpired(expiresAt time.Time, buffer time.Duration) bool {
 
 // DefaultExpiryBuffer is the default time before expiry to consider a token expired.
 const DefaultExpiryBuffer = 5 * time.Minute
+
+// GenerateUserState creates an OAuth state token that includes the user ID.
+// This allows the callback handler to identify which user initiated the flow.
+func GenerateUserState(userID string) string {
+	data := map[string]string{
+		"user_id":   userID,
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+	b, _ := json.Marshal(data)
+	return string(b)
+}
+
+// ExtractUserIDFromState extracts the user ID from an OAuth state token.
+// Returns empty string if the state is invalid or doesn't contain a user ID.
+func ExtractUserIDFromState(state string) string {
+	var data map[string]string
+	if err := json.Unmarshal([]byte(state), &data); err != nil {
+		return ""
+	}
+	return data["user_id"]
+}

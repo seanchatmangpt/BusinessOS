@@ -1,13 +1,12 @@
 package airtable
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	integrations "github.com/rhl/businessos-backend/internal/integrations"
 )
 
 // Handler provides HTTP handlers for Airtable integration routes.
@@ -76,7 +75,7 @@ func (h *Handler) GetAuthURL(c *gin.Context) {
 		return
 	}
 
-	state := generateState(userID)
+	state := integrations.GenerateUserState(userID)
 	authURL := h.provider.GetAuthURL(state)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -94,7 +93,7 @@ func (h *Handler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	userID := extractUserIDFromState(state)
+	userID := integrations.ExtractUserIDFromState(state)
 	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state"})
 		return
@@ -522,25 +521,3 @@ func (h *Handler) SyncRecords(c *gin.Context) {
 	})
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-// generateState generates a state token with user ID for OAuth callback.
-func generateState(userID string) string {
-	data := map[string]string{
-		"user_id":   userID,
-		"timestamp": time.Now().Format(time.RFC3339),
-	}
-	b, _ := json.Marshal(data)
-	return string(b)
-}
-
-// extractUserIDFromState extracts the user ID from the OAuth state token.
-func extractUserIDFromState(state string) string {
-	var data map[string]string
-	if err := json.Unmarshal([]byte(state), &data); err != nil {
-		return ""
-	}
-	return data["user_id"]
-}

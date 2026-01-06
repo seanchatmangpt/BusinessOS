@@ -1,7 +1,6 @@
 package fathom
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
@@ -302,26 +301,4 @@ func (h *Handler) GetEvents(c *gin.Context) {
 		"events": events,
 		"count":  len(events),
 	})
-}
-
-// Helper functions
-
-// generateState creates a state parameter for CSRF protection.
-// Note: Not used for Fathom (API key auth), but included for consistency.
-func generateState(userID string) string {
-	data := map[string]string{
-		"user_id": userID,
-	}
-	b, _ := json.Marshal(data)
-	return string(b)
-}
-
-// extractUserIDFromState extracts user ID from state parameter.
-// Note: Not used for Fathom (API key auth), but included for consistency.
-func extractUserIDFromState(state string) string {
-	var data map[string]string
-	if err := json.Unmarshal([]byte(state), &data); err != nil {
-		return ""
-	}
-	return data["user_id"]
 }

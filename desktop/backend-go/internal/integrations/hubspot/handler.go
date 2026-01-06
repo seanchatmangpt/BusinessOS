@@ -1,13 +1,12 @@
 package hubspot
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	integrations "github.com/rhl/businessos-backend/internal/integrations"
 )
 
 // Handler provides HTTP handlers for HubSpot integration routes.
@@ -71,7 +70,7 @@ func (h *Handler) GetAuthURL(c *gin.Context) {
 		return
 	}
 
-	state := generateState(userID)
+	state := integrations.GenerateUserState(userID)
 	authURL := h.provider.GetAuthURL(state)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -89,7 +88,7 @@ func (h *Handler) HandleCallback(c *gin.Context) {
 		return
 	}
 
-	userID := extractUserIDFromState(state)
+	userID := integrations.ExtractUserIDFromState(state)
 	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state"})
 		return
@@ -455,20 +454,3 @@ func (h *Handler) SyncDeals(c *gin.Context) {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-func generateState(userID string) string {
-	data := map[string]string{
-		"user_id":   userID,
-		"timestamp": time.Now().Format(time.RFC3339),
-	}
-	b, _ := json.Marshal(data)
-	return string(b)
-}
-
-func extractUserIDFromState(state string) string {
-	var data map[string]string
-	if err := json.Unmarshal([]byte(state), &data); err != nil {
-		return ""
-	}
-	return data["user_id"]
-}
