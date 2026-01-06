@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -230,7 +231,9 @@ func (h *Handlers) CreateReasoningTemplate(c *gin.Context) {
 
 	// If setting as default, clear existing default first
 	if req.IsDefault {
-		_ = queries.ClearDefaultTemplate(ctx, userID)
+		if err := queries.ClearDefaultTemplate(ctx, userID); err != nil {
+			log.Printf("Warning: failed to clear default template: %v", err)
+		}
 	}
 
 	template, err := queries.CreateReasoningTemplate(ctx, sqlc.CreateReasoningTemplateParams{

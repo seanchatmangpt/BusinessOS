@@ -312,7 +312,7 @@ func (h *Handlers) LinkArtifact(c *gin.Context) {
 		if syncErr != nil {
 			// Log but don't fail the request - linking succeeded
 			// The user can still sync manually later
-			_ = syncErr
+			log.Printf("Warning: artifact sync failed: %v", syncErr)
 		}
 	}
 

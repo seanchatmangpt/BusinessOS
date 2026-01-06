@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -391,8 +392,10 @@ func (h *Handlers) CreateAgentFromPreset(c *gin.Context) {
 		return
 	}
 
-	// Increment preset copy count
-	_ = queries.IncrementPresetCopyCount(ctx, pgtype.UUID{Bytes: presetID, Valid: true})
+	// Increment preset copy count (best-effort)
+	if err := queries.IncrementPresetCopyCount(ctx, pgtype.UUID{Bytes: presetID, Valid: true}); err != nil {
+		log.Printf("Warning: failed to increment preset copy count: %v", err)
+	}
 
 	c.JSON(http.StatusCreated, gin.H{"agent": agent})
 }

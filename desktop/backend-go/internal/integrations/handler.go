@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -462,7 +463,9 @@ func (h *Handler) DisconnectIntegration(c *gin.Context) {
 	}
 
 	// Call provider's disconnect method if it has additional cleanup
-	_ = provider.Disconnect(c.Request.Context(), userID)
+	if err := provider.Disconnect(c.Request.Context(), userID); err != nil {
+		log.Printf("Warning: provider disconnect cleanup failed: %v", err)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
