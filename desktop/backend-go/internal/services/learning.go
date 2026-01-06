@@ -705,7 +705,7 @@ func (s *LearningService) RefreshProfileFromPatterns(ctx context.Context, userID
 				profile.MostActiveHours = hours
 			}
 		case "topic_interest":
-			if !contains(profile.CommonTopics, p.PatternKey) {
+			if !sliceContains(profile.CommonTopics, p.PatternKey) {
 				profile.CommonTopics = append(profile.CommonTopics, p.PatternKey)
 			}
 		}
@@ -854,7 +854,8 @@ func truncate(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 }
 
-func contains(slice []string, item string) bool {
+// sliceContains checks if a string slice contains a specific item
+func sliceContains(slice []string, item string) bool {
 	for _, s := range slice {
 		if strings.EqualFold(s, item) {
 			return true

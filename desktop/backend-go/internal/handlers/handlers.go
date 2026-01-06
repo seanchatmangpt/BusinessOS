@@ -23,10 +23,26 @@ type Handlers struct {
 	// Pedro tasks services
 	documentProcessor        *services.DocumentProcessor               // Document processing with chunking
 	learningService          *services.LearningService                 // Learning and personalization
+	autoLearningTriggers     *services.AutoLearningTriggers            // Automatic learning from conversations
+	promptPersonalizer       *services.PromptPersonalizer              // Prompt personalization with user data
 	appProfilerService       *services.AppProfilerService              // Application profiling
 	conversationIntelligence *services.ConversationIntelligenceService // Conversation analysis
 	memoryExtractor          *services.MemoryExtractorService          // Memory extraction
 	blockMapper              *services.BlockMapperService              // Markdown to structured blocks
+	// Day 2 RAG services
+	hybridSearchService *services.HybridSearchService // Hybrid search (semantic + keyword)
+	rerankerService     *services.ReRankerService     // Re-ranking with multi-signal scoring
+	agenticRAGService   *services.AgenticRAGService   // Intelligent adaptive retrieval
+	memoryService       *services.MemoryService       // Memory persistence
+	// Feature 7: Multi-modal Search services
+	multiModalHandler *MultiModalSearchHandler // Multi-modal search handler (text + image)
+	// Feature 1: Workspace & Team Collaboration
+	workspaceService         *services.WorkspaceService        // Workspace management
+	roleContextService       *services.RoleContextService      // Role-based access control
+	memoryHierarchyService   *services.MemoryHierarchyService  // Workspace memory hierarchy (Q1)
+	inviteService            *services.WorkspaceInviteService  // Workspace invitation management
+	auditService             *services.WorkspaceAuditService   // Workspace audit logging
+	projectAccessService     *services.ProjectAccessService    // Project-level access control
 }
 
 // NewHandlers creates a new Handlers instance
@@ -47,6 +63,8 @@ func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container
 func (h *Handlers) SetPedroServices(
 	documentProcessor *services.DocumentProcessor,
 	learningService *services.LearningService,
+	autoLearningTriggers *services.AutoLearningTriggers,
+	promptPersonalizer *services.PromptPersonalizer,
 	appProfilerService *services.AppProfilerService,
 	conversationIntelligence *services.ConversationIntelligenceService,
 	memoryExtractor *services.MemoryExtractorService,
@@ -54,10 +72,64 @@ func (h *Handlers) SetPedroServices(
 ) {
 	h.documentProcessor = documentProcessor
 	h.learningService = learningService
+	h.autoLearningTriggers = autoLearningTriggers
+	h.promptPersonalizer = promptPersonalizer
 	h.appProfilerService = appProfilerService
 	h.conversationIntelligence = conversationIntelligence
 	h.memoryExtractor = memoryExtractor
 	h.blockMapper = blockMapper
+}
+
+// SetRAGServices sets the RAG services (Day 2)
+func (h *Handlers) SetRAGServices(
+	hybridSearch *services.HybridSearchService,
+	reranker *services.ReRankerService,
+	agenticRAG *services.AgenticRAGService,
+	memory *services.MemoryService,
+) {
+	h.hybridSearchService = hybridSearch
+	h.rerankerService = reranker
+	h.agenticRAGService = agenticRAG
+	h.memoryService = memory
+}
+
+// SetMultiModalServices sets the multi-modal search services (Feature 7)
+func (h *Handlers) SetMultiModalServices(
+	multiModalSearch *services.MultiModalSearchService,
+	imageEmbedding *services.ImageEmbeddingService,
+) {
+	// Create multimodal handler
+	h.multiModalHandler = NewMultiModalSearchHandler(multiModalSearch, imageEmbedding)
+}
+
+// SetWorkspaceService sets the workspace service (Feature 1)
+func (h *Handlers) SetWorkspaceService(workspaceService *services.WorkspaceService) {
+	h.workspaceService = workspaceService
+}
+
+// SetRoleContextService sets the role context service (Feature 1 - Permissions)
+func (h *Handlers) SetRoleContextService(roleContextService *services.RoleContextService) {
+	h.roleContextService = roleContextService
+}
+
+// SetMemoryHierarchyService sets the memory hierarchy service (Q1 - Memory Hierarchy)
+func (h *Handlers) SetMemoryHierarchyService(memoryHierarchyService *services.MemoryHierarchyService) {
+	h.memoryHierarchyService = memoryHierarchyService
+}
+
+// SetInviteService sets the workspace invite service (Feature 1 - Email Invites)
+func (h *Handlers) SetInviteService(inviteService *services.WorkspaceInviteService) {
+	h.inviteService = inviteService
+}
+
+// SetAuditService sets the workspace audit service (Feature 1 - Audit Logging)
+func (h *Handlers) SetAuditService(auditService *services.WorkspaceAuditService) {
+	h.auditService = auditService
+}
+
+// SetProjectAccessService sets the project access service (Feature 1 - Project Access Control)
+func (h *Handlers) SetProjectAccessService(projectAccessService *services.ProjectAccessService) {
+	h.projectAccessService = projectAccessService
 }
 
 // RegisterRoutes registers all API routes
@@ -144,11 +216,12 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		projects.PUT("/:id", h.UpdateProject)
 		projects.DELETE("/:id", h.DeleteProject)
 		projects.POST("/:id/notes", h.AddProjectNote)
-		// Project members (team assignment)
+		// Project members (team assignment with role-based access)
 		projects.GET("/:id/members", h.ListProjectMembers)
 		projects.POST("/:id/members", h.AddProjectMember)
-		projects.PUT("/:id/members/:memberId", h.UpdateProjectMemberRole)
+		projects.PUT("/:id/members/:memberId/role", h.UpdateProjectMemberRole)
 		projects.DELETE("/:id/members/:memberId", h.RemoveProjectMember)
+		projects.GET("/:id/access/:userId", h.CheckProjectAccess)
 	}
 
 	// Clients routes - /api/clients
@@ -213,6 +286,63 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		team.PATCH("/:id/capacity", h.UpdateTeamMemberCapacity)
 		team.POST("/:id/activity", h.AddTeamMemberActivity)
 		team.DELETE("/:id", h.DeleteTeamMember)
+	}
+
+	// Workspaces routes - /api/workspaces (Feature 1: Team/Collaboration)
+	workspaces := api.Group("/workspaces")
+	workspaces.Use(auth)
+	{
+		// Workspace CRUD - no role context needed for create/list
+		workspaces.POST("", h.CreateWorkspace)
+		workspaces.GET("", h.ListWorkspaces)
+
+		// Workspace-scoped routes - inject role context
+		workspaceScoped := workspaces.Group("/:id")
+		workspaceScoped.Use(middleware.InjectRoleContext(h.pool, h.roleContextService))
+		{
+			// Read operations - any member
+			workspaceScoped.GET("", h.GetWorkspace)
+			workspaceScoped.GET("/members", h.ListWorkspaceMembers)
+			workspaceScoped.GET("/roles", h.ListWorkspaceRoles)
+			workspaceScoped.GET("/profile", h.GetWorkspaceProfile)       // User's profile in workspace
+			workspaceScoped.GET("/role-context", h.GetUserRoleContext)   // User's role & permissions
+
+			// Update user profile
+			workspaceScoped.PUT("/profile", h.UpdateWorkspaceProfile)
+
+			// Update workspace - requires admin or owner
+			workspaceScoped.PUT("", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspace)
+
+			// Delete workspace - requires owner only
+			workspaceScoped.DELETE("", middleware.RequireWorkspaceOwner(h.pool), h.DeleteWorkspace)
+
+			// Invite members - requires manager, admin, or owner
+			workspaceScoped.POST("/members/invite", middleware.RequireWorkspaceManager(), h.AddWorkspaceMember)
+
+			// Update/remove members - requires admin or owner
+			workspaceScoped.PUT("/members/:userId", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspaceMemberRole)
+			workspaceScoped.DELETE("/members/:userId", middleware.RequireWorkspaceAdmin(), h.RemoveWorkspaceMember)
+
+			// Workspace invitations - manager+ can invite
+			workspaceScoped.POST("/invites", middleware.RequireWorkspaceManager(), h.CreateWorkspaceInvite)
+			workspaceScoped.GET("/invites", middleware.RequireWorkspaceAdmin(), h.ListWorkspaceInvites)
+			workspaceScoped.DELETE("/invites/:inviteId", middleware.RequireWorkspaceAdmin(), h.RevokeWorkspaceInvite)
+
+			// Audit logs - admin+ can view
+			workspaceScoped.GET("/audit-logs", middleware.RequireWorkspaceAdmin(), h.ListAuditLogs)
+			workspaceScoped.GET("/audit-logs/:logId", middleware.RequireWorkspaceAdmin(), h.GetAuditLog)
+			workspaceScoped.GET("/audit-logs/user/:userId", middleware.RequireWorkspaceAdmin(), h.GetUserActivity)
+			workspaceScoped.GET("/audit-logs/resource/:resourceType/:resourceId", middleware.RequireWorkspaceAdmin(), h.GetResourceHistory)
+			workspaceScoped.GET("/audit-logs/stats/actions", middleware.RequireWorkspaceAdmin(), h.GetActionStats)
+			workspaceScoped.GET("/audit-logs/stats/active-users", middleware.RequireWorkspaceAdmin(), h.GetMostActiveUsers)
+
+			// Workspace memory routes - CUS-25
+			memoryHandler := NewWorkspaceMemoryHandlers(h.pool)
+			RegisterWorkspaceMemoryRoutes(workspaceScoped, memoryHandler)
+		}
+
+		// Public invite acceptance (no workspace context needed)
+		workspaces.POST("/invites/accept", h.AcceptWorkspaceInvite)
 	}
 
 	// Nodes routes - /api/nodes
@@ -309,6 +439,18 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		search.GET("/history/:id", h.GetSearchHistoryEntry)       // Get specific search details
 		search.DELETE("/history/:id", h.DeleteSearchHistoryEntry) // Delete specific search
 		search.DELETE("/history", h.ClearSearchHistory)           // Clear all search history
+
+		// Enhanced RAG search endpoints
+		if h.hybridSearchService != nil {
+			search.POST("/hybrid", h.HybridSearch)     // Hybrid semantic + keyword search
+			search.POST("/rerank", h.HybridSearch)     // Re-rank search results (uses hybrid search)
+		}
+		if h.multiModalHandler != nil {
+			search.POST("/multimodal", h.multiModalHandler.SearchWithImage) // Multi-modal search
+		}
+		if h.hybridSearchService != nil {
+			search.GET("/explain", h.HybridSearchExplain) // Explain search results
+		}
 	}
 
 	// AI configuration routes - /api/ai
@@ -396,6 +538,47 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 			embeddings.GET("/stats", embeddingHandler.GetStats)
 			embeddings.GET("/health", embeddingHandler.HealthCheck)
 		}
+	}
+
+	// RAG routes - /api/rag (Day 2: Advanced retrieval with hybrid search + agentic RAG)
+	if h.hybridSearchService != nil || h.agenticRAGService != nil || h.memoryService != nil || h.rerankerService != nil || h.multiModalHandler != nil {
+		rag := api.Group("/rag")
+		rag.Use(auth)
+		{
+			// Hybrid search endpoints
+			if h.hybridSearchService != nil {
+				rag.POST("/search/hybrid", h.HybridSearch)
+				rag.POST("/search/hybrid/explain", h.HybridSearchExplain)
+			}
+
+			// Re-ranking endpoints
+			if h.rerankerService != nil {
+				rag.POST("/search/rerank", h.ReRankResults)
+				rag.POST("/search/rerank/explain", h.ReRankExplain)
+			}
+
+			// Search explanation endpoint (hybrid search only, multimodal is registered separately)
+			if h.hybridSearchService != nil {
+				rag.GET("/search/explain", h.SearchExplain)
+			}
+
+			// Agentic RAG endpoint
+			if h.agenticRAGService != nil {
+				rag.POST("/retrieve", h.AgenticRAGRetrieve)
+			}
+
+			// Memory endpoints
+			if h.memoryService != nil {
+				rag.GET("/memories", h.MemoryList)
+				rag.GET("/memories/:id", h.MemoryGet)
+				rag.POST("/memories", h.MemoryCreate)
+			}
+		}
+	}
+
+	// Multi-modal Search routes - /api/images, /api/search (Feature 7: Multi-modal Embeddings)
+	if h.multiModalHandler != nil {
+		h.RegisterMultiModalRoutes(api, h.multiModalHandler)
 	}
 
 	// Memory routes - /api/memories (episodic memory system)

@@ -30,4 +30,48 @@ export interface CreateProjectData {
   project_metadata?: Record<string, unknown>;
 }
 
+// Project Member Types
+export type ProjectRole = 'lead' | 'contributor' | 'reviewer' | 'viewer';
+
+export type MemberStatus = 'active' | 'inactive' | 'removed';
+
+export interface ProjectMember {
+  id: string;
+  project_id: string;
+  user_id: string;
+  workspace_id: string;
+  role: ProjectRole;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_invite: boolean;
+  assigned_by: string;
+  assigned_at: string;
+  removed_at: string | null;
+  status: MemberStatus;
+  created_at: string;
+  updated_at: string;
+  // User details (from join)
+  user_name?: string;
+  user_email?: string;
+  user_avatar?: string;
+}
+
+export interface AddProjectMemberData {
+  user_id: string;
+  role: ProjectRole;
+  workspace_id: string;
+}
+
+export interface UpdateMemberRoleData {
+  role: ProjectRole;
+}
+
+export interface ProjectAccessInfo {
+  has_access: boolean;
+  role: ProjectRole | null;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_invite: boolean;
+}
+
 // Re-export other common types as needed in future

@@ -19,11 +19,13 @@ import (
 
 // EmbeddingService handles vector embeddings for semantic search
 type EmbeddingService struct {
-	pool       *pgxpool.Pool
-	ollamaURL  string
-	model      string
-	httpClient *http.Client
-	dimensions int
+	pool              *pgxpool.Pool
+	ollamaURL         string
+	model             string
+	httpClient        *http.Client
+	dimensions        int
+	cache             *RAGCacheService            // Optional cache for embeddings (legacy)
+	embeddingCache    *EmbeddingCacheAdapter      // New embedding cache with Redis backend
 }
 
 // EmbeddingBlock represents a document block for embedding
@@ -73,6 +75,23 @@ func NewEmbeddingService(pool *pgxpool.Pool, ollamaURL string) *EmbeddingService
 	}
 }
 
+// NewEmbeddingServiceWithCache creates a new embedding service with cache
+func NewEmbeddingServiceWithCache(pool *pgxpool.Pool, ollamaURL string, embeddingCache *EmbeddingCacheAdapter) *EmbeddingService {
+	service := NewEmbeddingService(pool, ollamaURL)
+	service.embeddingCache = embeddingCache
+	return service
+}
+
+// SetCache sets the cache service for embedding caching (legacy)
+func (s *EmbeddingService) SetCache(cache *RAGCacheService) {
+	s.cache = cache
+}
+
+// SetEmbeddingCache sets the new embedding cache service
+func (s *EmbeddingService) SetEmbeddingCache(cache *EmbeddingCacheAdapter) {
+	s.embeddingCache = cache
+}
+
 // GenerateEmbedding generates an embedding for text using Ollama
 func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
 	// Clean and truncate text if too long (nomic-embed-text has 8192 token limit)
@@ -84,6 +103,20 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 	// Simple truncation - in production might want smarter chunking
 	if len(text) > 8000 {
 		text = text[:8000]
+	}
+
+	// Check new embedding cache first (higher priority)
+	if s.embeddingCache != nil {
+		if cached, found, err := s.embeddingCache.GetEmbedding(ctx, text, "text"); err == nil && found {
+			return cached, nil
+		}
+	}
+
+	// Fallback to legacy cache
+	if s.cache != nil {
+		if cached, err := s.cache.GetEmbedding(ctx, text); err == nil && cached != nil {
+			return cached, nil
+		}
 	}
 
 	reqBody, err := json.Marshal(OllamaEmbedRequest{
@@ -118,6 +151,16 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 
 	if len(result.Embedding) == 0 {
 		return nil, fmt.Errorf("empty embedding returned")
+	}
+
+	// Cache the embedding for future use (new cache with 24h TTL for text)
+	if s.embeddingCache != nil {
+		_ = s.embeddingCache.SetEmbedding(ctx, text, result.Embedding, "text", 24*time.Hour)
+	}
+
+	// Also cache in legacy cache for backward compatibility
+	if s.cache != nil {
+		_ = s.cache.SetEmbedding(ctx, text, result.Embedding) // Ignore cache errors
 	}
 
 	return result.Embedding, nil

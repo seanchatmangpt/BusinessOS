@@ -297,6 +297,8 @@ func main() {
 	// Initialize Pedro Tasks services (Memory, Context & Intelligence System)
 	var documentProcessor *services.DocumentProcessor
 	var learningService *services.LearningService
+	var memoryService *services.MemoryService
+	var autoLearningTriggers *services.AutoLearningTriggers
 	var appProfilerService *services.AppProfilerService
 	var conversationIntelligence *services.ConversationIntelligenceService
 	var memoryExtractor *services.MemoryExtractorService
@@ -311,6 +313,158 @@ func main() {
 	// Learning Service - always available
 	learningService = services.NewLearningService(pool)
 	log.Printf("Learning service initialized (feedback + personalization)")
+
+	// Memory Service - requires embedding service
+	if embeddingService != nil {
+		memoryService = services.NewMemoryService(pool, embeddingService)
+		log.Printf("Memory service initialized (memory persistence)")
+	}
+
+	// Auto-Learning Triggers - requires learning, memory, and embedding services
+	if learningService != nil && memoryService != nil && embeddingService != nil {
+		autoLearningTriggers = services.NewAutoLearningTriggers(learningService, memoryService, embeddingService)
+		log.Printf("Auto-learning triggers initialized (automatic pattern extraction)")
+	}
+
+	// Prompt Personalizer - requires pool, learning, memory, and embedding services
+	var promptPersonalizer *services.PromptPersonalizer
+	if pool != nil && learningService != nil && memoryService != nil && embeddingService != nil {
+		promptPersonalizer = services.NewPromptPersonalizer(pool, learningService, memoryService, embeddingService)
+		log.Printf("Prompt personalizer initialized (user-specific context injection)")
+	}
+
+	// ============================================================
+	// Day 2: Advanced RAG Services (SORX 2.0)
+	// ============================================================
+
+	// Hybrid Search Service - requires pool and embedding service
+	var hybridSearchService *services.HybridSearchService
+	if pool != nil && embeddingService != nil {
+		hybridSearchService = services.NewHybridSearchService(pool, embeddingService)
+		log.Printf("Hybrid search service initialized (semantic + keyword with RRF)")
+	}
+
+	// Re-Ranker Service - requires pool and embedding service
+	var rerankerService *services.ReRankerService
+	if pool != nil && embeddingService != nil {
+		rerankerService = services.NewReRankerService(pool, embeddingService)
+		log.Printf("Re-ranker service initialized (multi-signal relevance scoring)")
+	}
+
+	// Agentic RAG Service - requires all RAG components
+	var agenticRAGService *services.AgenticRAGService
+	if pool != nil && hybridSearchService != nil && rerankerService != nil && embeddingService != nil && learningService != nil {
+		agenticRAGService = services.NewAgenticRAGService(pool, hybridSearchService, rerankerService, embeddingService, learningService)
+		log.Printf("Agentic RAG service initialized (intelligent adaptive retrieval)")
+	}
+
+	// ============================================================
+	// Day 3: Performance Optimization (Caching + Query Expansion)
+	// ============================================================
+
+	// Embedding Cache Service - dedicated Redis cache for embeddings (new)
+	var embeddingCache *services.EmbeddingCacheService
+	var embeddingCacheAdapter *services.EmbeddingCacheAdapter
+	if redisConnected && redisClient.Client() != nil {
+		embeddingCacheConfig := services.DefaultEmbeddingCacheConfig()
+		embeddingCache = services.NewEmbeddingCacheService(redisClient.Client(), pool, embeddingCacheConfig)
+		embeddingCacheAdapter = services.NewEmbeddingCacheAdapter(embeddingCache)
+
+		if embeddingCache.IsEnabled() {
+			log.Printf("Embedding cache service initialized (24h text, 48h images)")
+
+			// Connect embedding cache to embedding service
+			if embeddingService != nil {
+				embeddingService.SetEmbeddingCache(embeddingCacheAdapter)
+				log.Printf("Embedding service now using dedicated embedding cache")
+			}
+		} else {
+			log.Printf("Embedding cache disabled (Redis unavailable)")
+		}
+	}
+
+	// RAG Cache Service - requires Redis for caching queries and embeddings (legacy)
+	var ragCache *services.RAGCacheService
+	if redisConnected && redisClient.Client() != nil {
+		cacheConfig := services.DefaultRAGCacheConfig()
+		ragCache = services.NewRAGCacheService(redisClient.Client(), cacheConfig)
+		log.Printf("RAG cache service initialized (15min queries, 24hr embeddings - legacy)")
+
+		// Connect legacy cache to embedding service as fallback
+		if embeddingService != nil {
+			embeddingService.SetCache(ragCache)
+			log.Printf("Embedding service legacy cache enabled (fallback)")
+		}
+
+		// Connect cache to agentic RAG service for query result caching
+		if agenticRAGService != nil {
+			agenticRAGService.SetCache(ragCache)
+			log.Printf("Agentic RAG cache enabled")
+		}
+	} else {
+		log.Printf("RAG cache disabled (Redis not available)")
+	}
+
+	// Query Expansion Service - requires no dependencies, optional LLM integration
+	var queryExpansion *services.QueryExpansionService
+	queryExpansion = services.NewQueryExpansionService(nil) // nil = no LLM rewriting (can add later)
+	log.Printf("Query expansion service initialized (60+ synonym mappings)")
+
+	// Connect query expansion to agentic RAG for enhanced retrieval
+	if queryExpansion != nil && agenticRAGService != nil {
+		agenticRAGService.SetQueryExpansion(queryExpansion)
+		log.Printf("Agentic RAG query expansion enabled")
+	}
+
+	// Image Embedding Service for Multi-modal Search (CLIP integration)
+	var imageEmbeddingService *services.ImageEmbeddingService
+	var multiModalSearchService *services.MultiModalSearchService
+
+	// Check for CLIP provider configuration
+	clipProvider := os.Getenv("CLIP_PROVIDER") // "openai", "replicate", "local"
+	if clipProvider == "" {
+		clipProvider = "local" // Default to local if not specified
+	}
+
+	imageEmbedConfig := services.ImageEmbeddingConfig{
+		Provider:     clipProvider,
+		APIKey:       os.Getenv("CLIP_API_KEY"),
+		ModelName:    "clip-vit-base-patch32",
+		Dimensions:   512,
+		LocalBaseURL: os.Getenv("CLIP_LOCAL_URL"), // e.g., "http://localhost:8000"
+	}
+
+	// Only initialize if provider is configured or local server is available
+	if clipProvider == "local" && imageEmbedConfig.LocalBaseURL == "" {
+		log.Printf("Image embedding service disabled (CLIP_LOCAL_URL not set)")
+		log.Printf("To enable: Set CLIP_LOCAL_URL=http://localhost:8000 and run CLIP server")
+	} else if (clipProvider == "openai" || clipProvider == "replicate") && imageEmbedConfig.APIKey == "" {
+		log.Printf("Image embedding service disabled (CLIP_API_KEY not set for %s)", clipProvider)
+	} else {
+		imageEmbeddingService = services.NewImageEmbeddingService(pool, imageEmbedConfig)
+		log.Printf("Image embedding service initialized (provider=%s, model=%s)", clipProvider, imageEmbedConfig.ModelName)
+
+		// Connect embedding cache to image embedding service
+		if embeddingCacheAdapter != nil {
+			imageEmbeddingService.SetEmbeddingCache(embeddingCacheAdapter)
+			log.Printf("Image embedding service cache enabled (48h TTL)")
+		}
+
+		// Multi-modal Search Service - combines text + image search
+		if hybridSearchService != nil && rerankerService != nil && embeddingService != nil {
+			multiModalSearchService = services.NewMultiModalSearchService(
+				pool,
+				hybridSearchService,
+				rerankerService,
+				imageEmbeddingService,
+				embeddingService,
+			)
+			log.Printf("Multi-modal search service initialized (text + image + cross-modal)")
+			log.Printf("Feature 7 (Multi-modal Embeddings) complete: SearchWithImage ready!")
+		}
+	}
+
+	// ============================================================
 
 	// App Profiler Service - always available
 	appProfilerService = services.NewAppProfilerService(pool)
@@ -349,9 +503,49 @@ func main() {
 	// Initialize handlers with container manager, session cache, terminal pub/sub, and embedding services
 	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService)
 
-	// Set Pedro Tasks services
-	h.SetPedroServices(documentProcessor, learningService, appProfilerService, conversationIntelligence, memoryExtractor, blockMapper)
-	log.Printf("Pedro Tasks services registered (documents, learning, profiles, intelligence, blocks)")
+	// Set Pedro Tasks services (Day 1 + Day 2)
+	h.SetPedroServices(documentProcessor, learningService, autoLearningTriggers, promptPersonalizer, appProfilerService, conversationIntelligence, memoryExtractor, blockMapper)
+	log.Printf("Pedro Tasks services registered (documents, learning, auto-learning, personalizer, profiles, intelligence, blocks)")
+
+	// Set RAG services (Day 2)
+	h.SetRAGServices(hybridSearchService, rerankerService, agenticRAGService, memoryService)
+	log.Printf("RAG services registered (hybrid search, re-ranker, agentic RAG, memory)")
+
+	// Set Multi-modal Search services (Feature 7 - Multi-modal Embeddings)
+	if multiModalSearchService != nil && imageEmbeddingService != nil {
+		h.SetMultiModalServices(multiModalSearchService, imageEmbeddingService)
+		log.Printf("Multi-modal services registered (image embeddings, text+image search)")
+	}
+
+	// Set Workspace service (Feature 1 - Team/Collaboration)
+	workspaceService := services.NewWorkspaceService(pool)
+	h.SetWorkspaceService(workspaceService)
+	log.Printf("Workspace service registered (workspaces, members, roles)")
+
+	// Set Role Context service (Feature 1 - Permission system)
+	roleContextService := services.NewRoleContextService(pool)
+	h.SetRoleContextService(roleContextService)
+	log.Printf("Role context service registered (permission checks, hierarchy)")
+
+	// Set Memory Hierarchy service (Q1 - Workspace Memory Management)
+	memoryHierarchyService := services.NewMemoryHierarchyService(pool)
+	h.SetMemoryHierarchyService(memoryHierarchyService)
+	log.Printf("Memory hierarchy service registered (workspace memories)")
+
+	// Set Workspace Invite service (Feature 1 - Email Invitations)
+	inviteService := services.NewWorkspaceInviteService(pool)
+	h.SetInviteService(inviteService)
+	log.Printf("Workspace invite service registered (email invitations)")
+
+	// Set Workspace Audit service (Feature 1 - Audit Logging)
+	auditService := services.NewWorkspaceAuditService(pool)
+	h.SetAuditService(auditService)
+	log.Printf("Workspace audit service registered (audit logging)")
+
+	// Set Project Access service (Feature 1 - Project-level Access Control)
+	projectAccessService := services.NewProjectAccessService(pool)
+	h.SetProjectAccessService(projectAccessService)
+	log.Printf("Project access service registered (project member management)")
 
 	// Optional background job: keep conversation_summaries fresh for context + semantic search.
 	if conversationIntelligence != nil && cfg.ConversationSummaryJobEnabled {
