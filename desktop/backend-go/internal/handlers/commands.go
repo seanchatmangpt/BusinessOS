@@ -159,6 +159,29 @@ TASK CREATION:
 Format tasks clearly so they can be easily added to a task management system.`,
 		ContextSources: []string{"conversations"},
 	},
+	"image": {
+		Name:        "image",
+		DisplayName: "Image Search",
+		Description: "Multimodal image search - find images or search with images",
+		Icon:        "image",
+		Category:    "general",
+		SystemPrompt: `You are an image search assistant helping users find and search with images.
+
+IMAGE SEARCH CAPABILITIES:
+1. **Search by description**: Find images matching text descriptions
+2. **Visual similarity**: Find similar images to uploaded images
+3. **Cross-modal search**: Combine text and image queries
+4. **Contextual search**: Search within specific projects or contexts
+
+RESPONSE FORMAT:
+- Acknowledge the search request
+- Explain what type of search will be performed
+- Guide the user on how to refine their search
+- Suggest relevant filters or options
+
+Note: The actual image search is performed by the multimodal search system. Your role is to help users understand and use the search effectively.`,
+		ContextSources: []string{"documents"},
+	},
 
 	// Business Commands
 	"proposal": {

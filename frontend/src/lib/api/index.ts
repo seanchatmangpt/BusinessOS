@@ -2,9 +2,9 @@
 export * from './base';
 export * from './projects';
 export * from './conversations';
-// Note: contexts also exports Block type which conflicts with conversations
-// Use ContextBlock explicitly if needed
-export * from './contexts';
+// Note: contexts module also exports a Block type, which conflicts with conversations' Block
+// We skip the wildcard export to avoid ambiguity. Import from './contexts' directly if needed.
+// export * from './contexts';
 export * from './clients';
 export * from './calendar';
 export * from './team';

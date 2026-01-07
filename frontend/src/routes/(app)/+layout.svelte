@@ -8,6 +8,8 @@
 	import { desktopSettings } from '$lib/stores/desktopStore';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { WorkspaceSwitcher } from '$lib/components/workspace';
+	import { loadSavedWorkspace } from '$lib/stores/workspaces';
 
 	// Projects state for dropdown
 	let projects = $state<Array<{id: string, name: string, status: string}>>([]);
@@ -24,6 +26,9 @@
 	}
 
 	onMount(() => {
+		// Initialize workspace store
+		loadSavedWorkspace();
+		// Load projects for sidebar
 		loadProjects();
 	});
 
@@ -181,6 +186,13 @@
 					</svg>
 				</button>
 			</div>
+
+			<!-- Workspace Switcher -->
+			{#if !isCollapsed}
+				<div class="px-2 pb-2">
+					<WorkspaceSwitcher />
+				</div>
+			{/if}
 
 			<!-- Window Desktop Button -->
 			<div class="px-2 pb-2">

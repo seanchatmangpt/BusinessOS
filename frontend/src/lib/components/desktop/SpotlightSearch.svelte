@@ -2,6 +2,7 @@
 	import { windowStore } from '$lib/stores/windowStore';
 	import { fade, scale, fly } from 'svelte/transition';
 	import { apiClient } from '$lib/api';
+	import { ImageSearchModal } from '$lib/components/search';
 
 	interface Props {
 		open: boolean;
@@ -56,6 +57,7 @@
 		{ id: 'translate', name: '/translate', description: 'Translate to another language', icon: '🌐' },
 		{ id: 'brainstorm', name: '/brainstorm', description: 'Generate ideas', icon: '🧠' },
 		{ id: 'task', name: '/task', description: 'Create a new task', icon: '✅' },
+		{ id: 'image', name: '/image', description: 'Multimodal image search', icon: '🖼️' },
 	];
 
 	// Project/Context state
@@ -69,6 +71,9 @@
 	let showModelDropdown = $state(false);
 	let availableModels = $state<{ id: string; name: string; provider: string; size?: string }[]>([]);
 	let activeProvider = $state('ollama_local');
+
+	// Image search state
+	let showImageSearch = $state(false);
 
 	// Derived: Filter commands based on input
 	let filteredCommands = $derived(() => {
@@ -636,6 +641,14 @@
 
 	// Select a slash command
 	function selectCommand(cmd: typeof slashCommands[0]) {
+		// Special handling for /image command
+		if (cmd.id === 'image') {
+			showImageSearch = true;
+			inputValue = '';
+			showCommandsDropdown = false;
+			return;
+		}
+
 		inputValue = cmd.name + ' ';
 		showCommandsDropdown = false;
 		inputElement?.focus();
@@ -993,6 +1006,9 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Image Search Modal -->
+<ImageSearchModal bind:show={showImageSearch} />
 
 <style>
 	.spotlight-backdrop {

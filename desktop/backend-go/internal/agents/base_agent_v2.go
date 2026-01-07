@@ -18,39 +18,44 @@ import (
 
 // BaseAgentV2 provides common functionality for all V2 agents
 type BaseAgentV2 struct {
-	pool            *pgxpool.Pool
-	cfg             *config.Config
-	userID          string
-	userName        string
-	conversationID  *uuid.UUID
-	model           string
-	agentType       AgentTypeV2
-	agentName       string
-	description     string
-	systemPrompt    string
+	pool              *pgxpool.Pool
+	cfg               *config.Config
+	userID            string
+	userName          string
+	conversationID    *uuid.UUID
+	model             string
+	agentType         AgentTypeV2
+	agentName         string
+	description       string
+	systemPrompt      string
 	focusModePrompt   string // Focus mode specific prompt prefix
 	outputStylePrompt string // Output style specific instructions
+	roleContextPrompt string // Role-based permissions context (Feature 1)
+	memoryContext     string // Workspace memory context (Feature: Memory Hierarchy)
 	contextReqs       ContextRequirements
-	llmOptions      services.LLMOptions
-	toolRegistry    *tools.AgentToolRegistry
-	enabledTools    []string // Tool names this agent can use
+	llmOptions        services.LLMOptions
+	toolRegistry      *tools.AgentToolRegistry
+	enabledTools      []string                      // Tool names this agent can use
+	promptPersonalizer *services.PromptPersonalizer // For personalizing prompts with user data
+	lastUserMessage   string                        // Last user message (for semantic personalization)
 }
 
 // BaseAgentV2Config holds configuration for creating a BaseAgentV2
 type BaseAgentV2Config struct {
-	Pool             *pgxpool.Pool
-	Config           *config.Config
-	UserID           string
-	UserName         string
-	ConversationID   *uuid.UUID
-	Model            string
-	AgentType        AgentTypeV2
-	AgentName        string
-	Description      string
-	SystemPrompt     string
-	ContextReqs      ContextRequirements
-	EnabledTools     []string                   // Tool names this agent can use
-	EmbeddingService *services.EmbeddingService // For context tools (tree_search, browse_tree, load_context)
+	Pool               *pgxpool.Pool
+	Config             *config.Config
+	UserID             string
+	UserName           string
+	ConversationID     *uuid.UUID
+	Model              string
+	AgentType          AgentTypeV2
+	AgentName          string
+	Description        string
+	SystemPrompt       string
+	ContextReqs        ContextRequirements
+	EnabledTools       []string                      // Tool names this agent can use
+	EmbeddingService   *services.EmbeddingService    // For context tools (tree_search, browse_tree, load_context)
+	PromptPersonalizer *services.PromptPersonalizer  // For personalizing prompts with user data
 }
 
 // NewBaseAgentV2 creates a new base agent with the given configuration
@@ -72,20 +77,21 @@ func NewBaseAgentV2(cfg BaseAgentV2Config) *BaseAgentV2 {
 	}
 
 	return &BaseAgentV2{
-		pool:           cfg.Pool,
-		cfg:            cfg.Config,
-		userID:         cfg.UserID,
-		userName:       cfg.UserName,
-		conversationID: cfg.ConversationID,
-		model:          model,
-		agentType:      cfg.AgentType,
-		agentName:      cfg.AgentName,
-		description:    cfg.Description,
-		systemPrompt:   cfg.SystemPrompt,
-		contextReqs:    cfg.ContextReqs,
-		llmOptions:     services.DefaultLLMOptions(),
-		toolRegistry:   toolRegistry,
-		enabledTools:   cfg.EnabledTools,
+		pool:               cfg.Pool,
+		cfg:                cfg.Config,
+		userID:             cfg.UserID,
+		userName:           cfg.UserName,
+		conversationID:     cfg.ConversationID,
+		model:              model,
+		agentType:          cfg.AgentType,
+		agentName:          cfg.AgentName,
+		description:        cfg.Description,
+		systemPrompt:       cfg.SystemPrompt,
+		contextReqs:        cfg.ContextReqs,
+		llmOptions:         services.DefaultLLMOptions(),
+		toolRegistry:       toolRegistry,
+		enabledTools:       cfg.EnabledTools,
+		promptPersonalizer: cfg.PromptPersonalizer,
 	}
 }
 
@@ -146,6 +152,22 @@ func (a *BaseAgentV2) SetFocusModePrompt(prompt string) {
 // SetOutputStylePrompt sets an output style specific prompt section
 func (a *BaseAgentV2) SetOutputStylePrompt(prompt string) {
 	a.outputStylePrompt = prompt
+}
+
+// SetRoleContextPrompt sets role-based permission context (Feature 1)
+func (a *BaseAgentV2) SetRoleContextPrompt(prompt string) {
+	a.roleContextPrompt = prompt
+	fmt.Printf("[Agent] SetRoleContextPrompt called with %d chars\n", len(prompt))
+}
+
+// SetMemoryContext sets workspace memory context (Feature: Memory Hierarchy)
+func (a *BaseAgentV2) SetMemoryContext(context string) {
+	a.memoryContext = context
+}
+
+// SetLastUserMessage stores the last user message for personalization
+func (a *BaseAgentV2) SetLastUserMessage(message string) {
+	a.lastUserMessage = message
 }
 
 // GetEnabledTools returns the list of tools this agent can use
@@ -411,6 +433,14 @@ func (a *BaseAgentV2) Run(ctx context.Context, input AgentInput) (<-chan streami
 func (a *BaseAgentV2) buildMessages(input AgentInput) []services.ChatMessage {
 	messages := make([]services.ChatMessage, 0, len(input.Messages)+1)
 
+	// Capture last user message for personalization
+	for i := len(input.Messages) - 1; i >= 0; i-- {
+		if input.Messages[i].Role == "user" {
+			a.lastUserMessage = input.Messages[i].Content
+			break
+		}
+	}
+
 	// Prepend context as system message if available
 	if input.Context != nil {
 		contextContent := ""
@@ -438,21 +468,60 @@ func (a *BaseAgentV2) buildMessages(input AgentInput) []services.ChatMessage {
 func (a *BaseAgentV2) buildSystemPromptWithThinking() string {
 	slog.Debug("buildSystemPromptWithThinking called", "systemPrompt_len", len(a.systemPrompt))
 
-	// Start with base system prompt
-	result := a.systemPrompt
+	// CRITICAL: Start with role context at the VERY BEGINNING
+	// This ensures the model sees the user's role and permissions first,
+	// making it more likely to acknowledge them in responses.
+	var result string
+	if a.roleContextPrompt != "" {
+		result = a.roleContextPrompt
+		fmt.Printf("[Agent] ✓ ROLE CONTEXT placed at START of prompt (%d chars)\n", len(a.roleContextPrompt))
+	}
 
-	// Prepend focus mode prompt if set
+	// Then add focus mode prompt if set
 	if a.focusModePrompt != "" {
-		result = a.focusModePrompt + "\n\n" + result
-		slog.Debug("applied focus mode prompt prefix", "len", len(a.focusModePrompt))
+		if result != "" {
+			result += "\n\n"
+		}
+		result += a.focusModePrompt
+		slog.Debug("applied focus mode prompt", "len", len(a.focusModePrompt))
 	}
 
-	// Prepend output style prompt if set
+	// Then add output style prompt if set
 	if a.outputStylePrompt != "" {
-		result = a.outputStylePrompt + "\n\n" + result
-		slog.Debug("applied output style prompt prefix", "len", len(a.outputStylePrompt))
+		if result != "" {
+			result += "\n\n"
+		}
+		result += a.outputStylePrompt
+		slog.Debug("applied output style prompt", "len", len(a.outputStylePrompt))
 	}
 
+	// Then add workspace memory context if set (Feature: Memory Hierarchy)
+	if a.memoryContext != "" {
+		if result != "" {
+			result += "\n\n"
+		}
+		result += a.memoryContext
+		fmt.Printf("[Agent] Applied memory context (%d chars)\n", len(a.memoryContext))
+	}
+
+	// Now add the base system prompt
+	if result != "" {
+		result += "\n\n"
+	}
+	result += a.systemPrompt
+
+	// Apply personalization AFTER base prompt but before thinking
+	// This allows personalization to enhance but not override role context
+	if a.promptPersonalizer != nil && a.userID != "" {
+		ctx := context.Background()
+		personalizedPrompt, err := a.promptPersonalizer.BuildPersonalizedPrompt(ctx, a.userID, result, a.lastUserMessage)
+		if err == nil && personalizedPrompt != "" {
+			result = personalizedPrompt
+			fmt.Printf("[Agent] Applied prompt personalization (%d chars total)\n", len(result))
+		}
+	}
+
+	// Finally, add thinking instructions if enabled
 	if a.llmOptions.ThinkingEnabled {
 		// Use custom thinking instruction from template if provided, otherwise use default
 		thinkingInstruction := prompts.ThinkingInstruction
@@ -504,16 +573,17 @@ func NewOrchestratorV2(ctx *AgentContextV2) AgentV2 {
 		ctx.UserName, "", "",
 	)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Orchestrator,
-		AgentName:        "OSA Orchestrator",
-		Description:      "Primary interface that handles general requests and routes to specialists",
-		SystemPrompt:     systemPrompt,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Orchestrator,
+		AgentName:          "OSA Orchestrator",
+		Description:        "Primary interface that handles general requests and routes to specialists",
+		SystemPrompt:       systemPrompt,
 		ContextReqs: ContextRequirements{
 			NeedsProjects:  true,
 			NeedsTasks:     true,
@@ -534,13 +604,14 @@ func NewOrchestratorV2(ctx *AgentContextV2) AgentV2 {
 func NewDocumentAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.DefaultComposer.ComposeForDocument(prompts_agents.DocumentAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Document,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Document,
 		AgentName:        "Document Specialist",
 		Description:      "Creates formal business documents: proposals, SOPs, reports, frameworks",
 		SystemPrompt:     systemPrompt,
@@ -562,13 +633,14 @@ func NewDocumentAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewProjectAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.ProjectAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Project,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Project,
 		AgentName:        "Project Specialist",
 		Description:      "Project management and planning specialist",
 		SystemPrompt:     systemPrompt,
@@ -593,13 +665,14 @@ func NewProjectAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewClientAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.ClientAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Client,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Client,
 		AgentName:        "Client Specialist",
 		Description:      "Client relationship and pipeline specialist",
 		SystemPrompt:     systemPrompt,
@@ -623,13 +696,14 @@ func NewClientAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewAnalystAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.DefaultComposer.ComposeForAnalysis(prompts_agents.AnalystAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Analyst,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Analyst,
 		AgentName:        "Analyst Specialist",
 		Description:      "Data analysis and insights specialist",
 		SystemPrompt:     systemPrompt,
@@ -654,13 +728,14 @@ func NewAnalystAgentV2(ctx *AgentContextV2) AgentV2 {
 func NewTaskAgentV2(ctx *AgentContextV2) AgentV2 {
 	systemPrompt := prompts.Compose(prompts_agents.TaskAgentPrompt)
 	return NewBaseAgentV2(BaseAgentV2Config{
-		Pool:             ctx.Pool,
-		Config:           ctx.Config,
-		UserID:           ctx.UserID,
-		UserName:         ctx.UserName,
-		ConversationID:   ctx.ConversationID,
-		EmbeddingService: ctx.EmbeddingService,
-		AgentType:        AgentTypeV2Task,
+		Pool:               ctx.Pool,
+		Config:             ctx.Config,
+		UserID:             ctx.UserID,
+		UserName:           ctx.UserName,
+		ConversationID:     ctx.ConversationID,
+		EmbeddingService:   ctx.EmbeddingService,
+		PromptPersonalizer: ctx.PromptPersonalizer,
+		AgentType:          AgentTypeV2Task,
 		AgentName:        "Task Specialist",
 		Description:      "Task management, prioritization, scheduling, and dependencies",
 		SystemPrompt:     systemPrompt,

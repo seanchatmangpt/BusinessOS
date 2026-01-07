@@ -84,7 +84,11 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	if req.FocusMode != nil {
 		focusModeStr = *req.FocusMode
 	}
-	log.Printf("[ChatV2] Request: msg=%q focus=%s cot=%v", req.Message, focusModeStr, req.UseCOT)
+	workspaceIDStr := "nil"
+	if req.WorkspaceID != nil {
+		workspaceIDStr = *req.WorkspaceID
+	}
+	log.Printf("[ChatV2] Request: msg=%q focus=%s cot=%v workspace_id=%s", req.Message, focusModeStr, req.UseCOT, workspaceIDStr)
 
 	// Handle slash commands - route to specialized processing
 	if req.Command != nil && *req.Command != "" {
@@ -290,7 +294,7 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	}
 
 	// Create AgentV2 registry
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 
 	// Check if COT (Chain of Thought) mode is enabled
 	useCOT := req.UseCOT != nil && *req.UseCOT
@@ -406,6 +410,65 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	agent := registry.GetAgent(agentType, user.ID, user.Name, convUUID, tieredCtx)
 	agent.SetModel(model)
 	agent.SetOptions(llmOptions)
+
+	// Capture role and memory contexts for injection into agents (both COT and non-COT)
+	var roleContextStr string
+	var memoryContextStr string
+
+	// Inject role context if workspace_id is provided (Feature 1: Role-based permissions)
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.roleContextService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			roleCtx, err := h.roleContextService.GetUserRoleContext(ctx, user.ID, workspaceID)
+			if err == nil {
+				// Use the service method to build role context prompt
+				roleContextStr = roleCtx.GetRoleContextPrompt()
+				agent.SetRoleContextPrompt(roleContextStr)
+				log.Printf("[ChatV2] Injected role context: %s (level %d, %d permissions)",
+					roleCtx.RoleName, roleCtx.HierarchyLevel, len(roleCtx.Permissions))
+			} else {
+				log.Printf("[ChatV2] Failed to get role context: %v", err)
+			}
+		}
+	}
+
+	// Inject workspace memories if workspace_id is provided (Feature: Memory Hierarchy)
+	log.Printf("[ChatV2] Memory injection check: workspace_id=%v, has_service=%v",
+		req.WorkspaceID != nil && *req.WorkspaceID != "",
+		h.memoryHierarchyService != nil)
+
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.memoryHierarchyService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			log.Printf("[ChatV2] Attempting to get accessible memories for workspace %s", workspaceID)
+			// Get all accessible memories for this user in this workspace (no type filter, limit 20)
+			memories, err := h.memoryHierarchyService.GetAccessibleMemories(ctx, workspaceID, user.ID, nil, 20)
+			log.Printf("[ChatV2] GetAccessibleMemories returned %d memories, err=%v", len(memories), err)
+			if err == nil && len(memories) > 0 {
+				// Format memories into context text
+				var memoryContext strings.Builder
+				memoryContext.WriteString("\n## 🧠 WORKSPACE MEMORY BANK\n\n")
+				memoryContext.WriteString("**CRITICAL INSTRUCTION**: The following memories contain factual information about this workspace. When answering questions, you MUST prioritize and use information from these memories. These are authoritative sources of truth for workspace-specific knowledge.\n\n")
+
+				for _, mem := range memories {
+					memoryContext.WriteString(fmt.Sprintf("### 📌 %s\n", mem.Title))
+					if mem.Content != "" {
+						memoryContext.WriteString(fmt.Sprintf("%s\n\n", mem.Content))
+					}
+				}
+
+				memoryContext.WriteString("\n**REMINDER**: Always check these workspace memories first before providing general knowledge. If a question relates to information in these memories, use that information directly in your response.\n")
+
+				memoryContextStr = memoryContext.String()
+				// Inject memories as additional context
+				agent.SetMemoryContext(memoryContextStr)
+				log.Printf("[ChatV2] Injected %d workspace memories (%d chars)",
+					len(memories), len(memoryContextStr))
+			} else if err != nil {
+				log.Printf("[ChatV2] Failed to get workspace memories: %v", err)
+			}
+		}
+	}
 
 	// Apply focus mode system prompt prefix if set
 	if focusSystemPrompt != "" {
@@ -527,10 +590,14 @@ Example ending:
 		ConversationID: *convUUID,
 		UserID:         user.ID,
 		UserName:       user.Name,
+		MemoryContext:  memoryContextStr, // Pass workspace memory context
+		RoleContext:    roleContextStr,   // Pass role context
 	}
 	if req.FocusMode != nil {
 		input.FocusMode = *req.FocusMode
 	}
+	log.Printf("[ChatV2] AgentInput created with MemoryContext=%d chars, RoleContext=%d chars",
+		len(memoryContextStr), len(roleContextStr))
 
 	// Run agent (with or without COT)
 	var events <-chan streaming.StreamEvent
@@ -972,6 +1039,36 @@ Example ending:
 				Title: &title,
 			})
 		}
+
+		// Trigger automatic learning from this conversation turn
+		if h.autoLearningTriggers != nil && convUUID != nil {
+			focusModeValue := ""
+			if req.FocusMode != nil {
+				focusModeValue = *req.FocusMode
+			}
+
+			// Parse workspace ID if provided
+			var workspaceID *uuid.UUID
+			if req.WorkspaceID != nil && *req.WorkspaceID != "" {
+				if parsed, err := uuid.Parse(*req.WorkspaceID); err == nil {
+					workspaceID = &parsed
+				}
+			}
+
+			h.autoLearningTriggers.ProcessConversationTurn(ctx, services.LearningConversationContext{
+				UserID:         user.ID,
+				WorkspaceID:    workspaceID,
+				ConversationID: *convUUID,
+				UserMessage:    req.Message,
+				AgentResponse:  cleanResponse,
+				AgentType:      string(agentType),
+				FocusMode:      focusModeValue,
+				ProjectID:      projectID,
+				NodeID:         nodeID,
+				ContextIDs:     contextIDs,
+				Timestamp:      time.Now(),
+			})
+		}
 	}
 }
 
@@ -1353,7 +1450,7 @@ func (h *Handlers) handleSlashCommandV2(c *gin.Context, user *middleware.BetterA
 	}
 
 	// Create agent registry and get agent
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agentType, user.ID, user.Name, convUUID, tieredCtx)
 
 	// Set model
@@ -1372,6 +1469,21 @@ func (h *Handlers) handleSlashCommandV2(c *gin.Context, user *middleware.BetterA
 		llmOptions.MaxTokens = *req.MaxTokens
 	}
 	agent.SetOptions(llmOptions)
+
+	// Inject role context if workspace_id is provided (Feature 1: Role-based permissions)
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.roleContextService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			roleCtx, err := h.roleContextService.GetUserRoleContext(ctx, user.ID, workspaceID)
+			if err == nil {
+				// Use the service method to build role context prompt
+				rolePrompt := roleCtx.GetRoleContextPrompt()
+				agent.SetRoleContextPrompt(rolePrompt)
+				log.Printf("[ChatV2-Slash] Injected role context: %s (level %d, %d permissions)",
+					roleCtx.RoleName, roleCtx.HierarchyLevel, len(roleCtx.Permissions))
+			}
+		}
+	}
 
 	// Set streaming headers
 	c.Header("Content-Type", "text/event-stream; charset=utf-8")

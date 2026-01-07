@@ -6,11 +6,14 @@
 	import ProgressPanel, { type DelegatedTask } from '$lib/components/chat/ProgressPanel.svelte';
 	import ContextPanel, { type ActiveResource } from '$lib/components/chat/ContextPanel.svelte';
 	import DocumentUploadModal from '$lib/components/chat/DocumentUploadModal.svelte';
+	import HybridSearchPanel from '$lib/components/chat/HybridSearchPanel.svelte';
 	import { FOCUS_MODES, getDefaultOptions, getAgentForFocusMode } from '$lib/components/chat/focusModes';
 	import ArtifactEditor from '$lib/components/artifacts/ArtifactEditor.svelte';
 	import { markdownToBlocks } from '$lib/utils/markdown-blocks';
 	import { MessageActions } from '$lib/components/ai-elements';
 	import { ConversationListPanel } from '$lib/components/chat';
+	import RoleContextBadge from '$lib/components/chat/RoleContextBadge.svelte';
+	import { currentWorkspaceId } from '$lib/stores/workspaces';
 
 	// Extract thinking content from message
 	// Uses flexible regex to match variations like <thinking>, <thinkingng>, <thinkingg>, etc.
@@ -167,6 +170,7 @@
 	let fileInputRef: HTMLInputElement | undefined = $state(undefined);
 	let showPlusMenu = $state(false);
 	let showDocumentUploadModal = $state(false);
+	let showHybridSearchPanel = $state(false);
 
 	// Voice recording state
 	let isRecording = $state(false);
@@ -2003,7 +2007,7 @@ Use this context to inform your responses.`;
 				};
 			});
 
-			console.log('[selectConversation] Final messages state:', messages.length, 'messages');
+			console.log('[selectConversation] Final messages state:', $state.snapshot(messages).length, 'messages');
 
 			// Load artifacts for this conversation
 			loadArtifacts();
@@ -2053,7 +2057,7 @@ Use this context to inform your responses.`;
 
 			// Add to UI immediately (with uploading state)
 			attachedFiles = [...attachedFiles, newFile];
-			console.log('[Chat] File added to attachedFiles:', fileId, 'total:', attachedFiles.length);
+			console.log('[Chat] File added to attachedFiles:', fileId, 'total:', $state.snapshot(attachedFiles).length);
 
 			// Upload document to backend for RAG processing
 			try {
@@ -2085,7 +2089,7 @@ Use this context to inform your responses.`;
 						? { ...f, documentId: doc.id, uploading: false }
 						: f
 				);
-				console.log('[Chat] Document ID set:', doc.id, 'attachedFiles count:', attachedFiles.length, 'files:', attachedFiles.map(f => ({ id: f.id, documentId: f.documentId })));
+				console.log('[Chat] Document ID set:', doc.id, 'attachedFiles count:', $state.snapshot(attachedFiles).length, 'files:', $state.snapshot(attachedFiles).map(f => ({ id: f.id, documentId: f.documentId })));
 			} catch (err) {
 				console.error('[Chat] Document upload error:', err);
 				// Update file with error state
@@ -2423,8 +2427,8 @@ Use this context to inform your responses.`;
 				}
 			}
 
-			console.log('[Chat] All FocusMode files processed. attachedFiles:', attachedFiles.length,
-				'with documentIds:', attachedFiles.filter(f => f.documentId).length);
+			console.log('[Chat] All FocusMode files processed. attachedFiles:', $state.snapshot(attachedFiles).length,
+				'with documentIds:', $state.snapshot(attachedFiles).filter(f => f.documentId).length);
 		}
 
 		handleSendMessage();
@@ -2474,7 +2478,7 @@ Use this context to inform your responses.`;
 
 		try {
 			// Debug: Log focus mode state before building request
-			console.log('[Chat] Focus Mode Debug:', { selectedFocusId, focusOptions, focusModeEnabled });
+			console.log('[Chat] Focus Mode Debug:', { selectedFocusId: $state.snapshot(selectedFocusId), focusOptions: $state.snapshot(focusOptions), focusModeEnabled: $state.snapshot(focusModeEnabled) });
 
 			// Build request body with context and node context
 			// Note: The backend will load full context details (content, system_prompt_template)
@@ -2484,6 +2488,7 @@ Use this context to inform your responses.`;
 				model: selectedModel,
 				conversation_id: conversationId,
 				project_id: selectedProjectId,
+				workspace_id: $currentWorkspaceId, // Include workspace for role-based agent context
 				context_id: selectedContextIds.length > 0 ? selectedContextIds[0] : null,
 				context_ids: selectedContextIds.length > 0 ? selectedContextIds : undefined,
 				command: command, // Send slash command to backend
@@ -2498,7 +2503,7 @@ Use this context to inform your responses.`;
 			};
 
 			// Include attached document IDs for context injection
-			console.log('[Chat] Attached files at send time:', attachedFiles.length, attachedFiles);
+			console.log('[Chat] Attached files at send time:', $state.snapshot(attachedFiles).length, $state.snapshot(attachedFiles));
 			const uploadedDocIds = attachedFiles
 				.filter(f => f.documentId && !f.uploadError)
 				.map(f => f.documentId);
@@ -2839,7 +2844,7 @@ Use this context to inform your responses.`;
 							? { ...msg, content: artifactStarted ? displayContent : fullContent, usage: usageData }
 							: msg
 					);
-					console.log('[Chat] Updated message with usage:', messages.find(m => m.id === assistantMsgId)?.usage);
+					console.log('[Chat] Updated message with usage:', $state.snapshot(messages).find(m => m.id === assistantMsgId)?.usage);
 				} catch (e) {
 					console.error('Failed to parse usage data:', e, usageMatch[1]);
 				}
@@ -3618,6 +3623,11 @@ Use this context to inform your responses.`;
 				</div>
 
 				<!-- COT is always enabled - no toggle needed -->
+			</div>
+
+			<!-- Center: Role Context Badge -->
+			<div class="flex items-center justify-center flex-1 min-w-0">
+				<RoleContextBadge size="sm" showLabel={true} showTooltip={true} />
 			</div>
 
 			<!-- Right group: Project, Node, Panel -->
@@ -4493,6 +4503,15 @@ Use this context to inform your responses.`;
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 												</svg>
 												Add context
+											</button>
+											<button
+												onclick={() => { showPlusMenu = false; showHybridSearchPanel = true; }}
+												class="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 transition-colors flex items-center gap-2 text-gray-700"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+												</svg>
+												Search knowledge
 											</button>
 											<button
 												onclick={() => { showPlusMenu = false; fileInputRef?.click(); }}
@@ -5894,6 +5913,35 @@ Use this context to inform your responses.`;
 			contextId: doc.id,
 			tokenCount: doc.word_count ? doc.word_count * 2 : undefined
 		}];
+	}}
+/>
+
+<!-- Hybrid Search Panel -->
+<HybridSearchPanel
+	bind:show={showHybridSearchPanel}
+	workspaceId={$currentWorkspaceId}
+	on:addToContext={(event) => {
+		const { result, query } = event.detail;
+		// Add search result to active resources
+		activeResources = [...activeResources, {
+			id: result.context_id,
+			type: 'search_result',
+			title: result.context_name,
+			contextId: result.context_id,
+			tokenCount: Math.ceil(result.content.length / 4) // Rough estimate
+		}];
+
+		// Add context to selected contexts if not already there
+		if (!selectedContextIds.includes(result.context_id)) {
+			selectedContextIds = [...selectedContextIds, result.context_id];
+		}
+
+		// Optionally add a message to input showing what was added
+		if (inputValue.trim() === '') {
+			inputValue = `Using context from "${result.context_name}": ${query}`;
+		}
+
+		console.log('Added search result to context:', result);
 	}}
 />
 

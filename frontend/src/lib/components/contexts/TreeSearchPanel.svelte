@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { api } from '$lib/api';
 	import type { TreeSearchResult, EntityType } from '$lib/api/context-tree/types';
+	import { ImageSearchModal, ImageGalleryView } from '$lib/components/search';
+	import type { MultimodalSearchResult } from '$lib/api/multimodal-search';
 
 	interface Props {
 		projectId?: string;
@@ -16,6 +18,11 @@
 	let results = $state<TreeSearchResult[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
+
+	// Multimodal search state
+	let showImageSearch = $state(false);
+	let imageResults = $state<MultimodalSearchResult[]>([]);
+	let showImageResults = $state(false);
 
 	const searchTypes = [
 		{ value: 'semantic', label: 'Semantic Search' },
@@ -111,6 +118,24 @@
 			handleSearch();
 		}
 	});
+
+	// Handle image search results
+	function handleImageSearchResults(event: CustomEvent<{ results: MultimodalSearchResult[]; query?: string }>) {
+		imageResults = event.detail.results;
+		showImageResults = true;
+		showImageSearch = false;
+	}
+
+	// Close image search modal
+	function closeImageSearch() {
+		showImageSearch = false;
+	}
+
+	// Go back to text search results
+	function backToTextResults() {
+		showImageResults = false;
+		imageResults = [];
+	}
 </script>
 
 <div class="tree-search-panel">
@@ -148,6 +173,16 @@
 				</div>
 				<button type="submit" class="search-btn" disabled={loading || (!searchQuery && searchType !== 'browse')}>
 					{loading ? 'Searching...' : 'Search'}
+				</button>
+				<button
+					type="button"
+					class="image-search-btn"
+					onclick={() => showImageSearch = true}
+					title="Multimodal Image Search"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18">
+						<path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+					</svg>
 				</button>
 			</div>
 
@@ -258,6 +293,48 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Image Search Modal -->
+<ImageSearchModal
+	bind:show={showImageSearch}
+	onresults={handleImageSearchResults}
+	onclose={closeImageSearch}
+/>
+
+<!-- Image Results View (replaces text results when active) -->
+{#if showImageResults}
+	<div class="fixed inset-0 z-40 bg-white dark:bg-gray-900 overflow-y-auto">
+		<div class="max-w-7xl mx-auto p-4">
+			<!-- Header -->
+			<div class="flex items-center justify-between mb-6">
+				<div class="flex items-center gap-3">
+					<button
+						onclick={backToTextResults}
+						class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
+						title="Back to text search"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+						</svg>
+					</button>
+					<div>
+						<h2 class="text-xl font-semibold">Image Search Results</h2>
+						<p class="text-sm text-gray-500">{imageResults.length} result{imageResults.length !== 1 ? 's' : ''}</p>
+					</div>
+				</div>
+				<button
+					onclick={backToTextResults}
+					class="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+				>
+					Close
+				</button>
+			</div>
+
+			<!-- Image Gallery -->
+			<ImageGalleryView results={imageResults} />
+		</div>
+	</div>
+{/if}
 
 <style>
 	.tree-search-panel {
@@ -380,6 +457,25 @@
 	.search-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.image-search-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 10px 12px;
+		background: var(--color-bg-secondary);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		color: var(--color-text);
+	}
+
+	.image-search-btn:hover {
+		background: var(--color-bg-tertiary);
+		border-color: #3b82f6;
+		color: #3b82f6;
 	}
 
 	.filter-row {

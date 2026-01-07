@@ -42,7 +42,9 @@ type AgentV2 interface {
 	SetOptions(opts services.LLMOptions)
 	SetCustomSystemPrompt(prompt string) // For custom agents with user-defined prompts
 	SetFocusModePrompt(prompt string)    // For focus mode specific prompt prefix
-	SetOutputStylePrompt(prompt string) // For output style specific instructions
+	SetOutputStylePrompt(prompt string)  // For output style specific instructions
+	SetRoleContextPrompt(prompt string)  // For role-based permission context (Feature 1)
+	SetMemoryContext(context string)     // For workspace memory injection (Feature: Memory Hierarchy)
 }
 
 // ContextRequirements declares what context an agent needs
@@ -68,6 +70,8 @@ type AgentInput struct {
 	ConversationID uuid.UUID
 	UserID         string
 	UserName       string
+	MemoryContext  string // Workspace memory context to inject into agents
+	RoleContext    string // Role-based context to inject into agents
 }
 
 // UserSelections represents what the user selected in the context bar
@@ -80,13 +84,14 @@ type UserSelections struct {
 
 // AgentContextV2 holds context information for agent initialization
 type AgentContextV2 struct {
-	Pool             *pgxpool.Pool
-	Config           *config.Config
-	UserID           string
-	UserName         string
-	ConversationID   *uuid.UUID
-	TieredContext    *services.TieredContext
-	EmbeddingService *services.EmbeddingService
+	Pool               *pgxpool.Pool
+	Config             *config.Config
+	UserID             string
+	UserName           string
+	ConversationID     *uuid.UUID
+	TieredContext      *services.TieredContext
+	EmbeddingService   *services.EmbeddingService
+	PromptPersonalizer *services.PromptPersonalizer
 }
 
 // Intent represents the classified intent of a user message
@@ -100,17 +105,24 @@ type Intent struct {
 
 // AgentRegistryV2 manages agent creation and retrieval for the new architecture
 type AgentRegistryV2 struct {
-	pool             *pgxpool.Pool
-	config           *config.Config
-	embeddingService *services.EmbeddingService
+	pool               *pgxpool.Pool
+	config             *config.Config
+	embeddingService   *services.EmbeddingService
+	promptPersonalizer *services.PromptPersonalizer
 }
 
 // NewAgentRegistryV2 creates a new agent registry
-func NewAgentRegistryV2(pool *pgxpool.Pool, cfg *config.Config, embeddingService *services.EmbeddingService) *AgentRegistryV2 {
+func NewAgentRegistryV2(
+	pool *pgxpool.Pool,
+	cfg *config.Config,
+	embeddingService *services.EmbeddingService,
+	promptPersonalizer *services.PromptPersonalizer,
+) *AgentRegistryV2 {
 	return &AgentRegistryV2{
-		pool:             pool,
-		config:           cfg,
-		embeddingService: embeddingService,
+		pool:               pool,
+		config:             cfg,
+		embeddingService:   embeddingService,
+		promptPersonalizer: promptPersonalizer,
 	}
 }
 
@@ -123,13 +135,14 @@ func (r *AgentRegistryV2) GetAgent(
 	tieredContext *services.TieredContext,
 ) AgentV2 {
 	ctx := &AgentContextV2{
-		Pool:             r.pool,
-		Config:           r.config,
-		UserID:           userID,
-		UserName:         userName,
-		ConversationID:   conversationID,
-		TieredContext:    tieredContext,
-		EmbeddingService: r.embeddingService,
+		Pool:               r.pool,
+		Config:             r.config,
+		UserID:             userID,
+		UserName:           userName,
+		ConversationID:     conversationID,
+		TieredContext:      tieredContext,
+		EmbeddingService:   r.embeddingService,
+		PromptPersonalizer: r.promptPersonalizer,
 	}
 
 	switch agentType {
