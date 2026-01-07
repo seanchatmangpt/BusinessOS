@@ -68,7 +68,7 @@ const moduleDefaults: Record<string, { title: string; width: number; height: num
 	projects: { title: 'Projects', width: 900, height: 650, minWidth: 500, minHeight: 400 },
 	team: { title: 'Team', width: 850, height: 600, minWidth: 400, minHeight: 300 },
 	clients: { title: 'Clients', width: 1000, height: 700, minWidth: 600, minHeight: 400 },
-	contexts: { title: 'Contexts', width: 800, height: 600, minWidth: 400, minHeight: 300 },
+	contexts: { title: 'Pages', width: 900, height: 650, minWidth: 500, minHeight: 400 },
 	nodes: { title: 'Nodes', width: 1000, height: 700, minWidth: 600, minHeight: 400 },
 	daily: { title: 'Daily Log', width: 700, height: 550, minWidth: 350, minHeight: 300 },
 	settings: { title: 'Settings', width: 700, height: 550, minWidth: 400, minHeight: 350 },
@@ -96,7 +96,7 @@ const initialDesktopIcons: DesktopIcon[] = [
 	{ id: 'icon-clients', module: 'clients', label: 'Clients', x: -1, y: 6 },
 	{ id: 'icon-calendar', module: 'calendar', label: 'Calendar', x: -1, y: 7 },
 	{ id: 'icon-files', module: 'files', label: 'Files', x: -2, y: 0 },
-	{ id: 'icon-contexts', module: 'contexts', label: 'Contexts', x: -2, y: 1 },
+	{ id: 'icon-contexts', module: 'contexts', label: 'Pages', x: -2, y: 1 },
 	{ id: 'icon-nodes', module: 'nodes', label: 'Nodes', x: -2, y: 2 },
 	{ id: 'icon-daily', module: 'daily', label: 'Daily Log', x: -2, y: 3 },
 	{ id: 'icon-settings', module: 'settings', label: 'Settings', x: -2, y: 4 },
@@ -142,6 +142,17 @@ function loadSavedSettings(): Partial<WindowStore> {
 			if (newIcons.length > 0) {
 				desktopIcons = [...desktopIcons, ...newIcons];
 			}
+
+			// Update labels for existing icons to match defaults (preserve user positions)
+			// This ensures label renames like "Contexts" -> "Knowledge" are applied
+			const defaultLabels = new Map(initialDesktopIcons.map(i => [i.id, i.label]));
+			desktopIcons = desktopIcons.map((icon: DesktopIcon) => {
+				const defaultLabel = defaultLabels.get(icon.id);
+				if (defaultLabel && icon.label !== defaultLabel) {
+					return { ...icon, label: defaultLabel };
+				}
+				return icon;
+			});
 
 			return { desktopIcons, dockPinnedItems, folders };
 		}
