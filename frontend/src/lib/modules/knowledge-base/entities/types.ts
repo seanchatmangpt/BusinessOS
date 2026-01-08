@@ -96,6 +96,10 @@ export interface BlockProperties {
 	collapsible?: boolean; // for toggle
 	collapsed?: boolean; // for toggle
 	divider_style?: DividerStyle; // for divider
+	expanded?: boolean; // for expandable blocks
+	title?: string; // for titled blocks
+	description?: string; // for blocks with descriptions
+	tableData?: unknown[][]; // for table blocks
 }
 
 // ============================================================================

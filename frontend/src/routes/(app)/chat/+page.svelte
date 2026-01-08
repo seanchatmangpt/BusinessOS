@@ -5906,20 +5906,22 @@ Use this context to inform your responses.`;
 	onUploadComplete={(doc) => {
 		console.log('Document uploaded:', doc);
 		// Optionally add to active resources or show notification
-		activeResources = [...activeResources, {
-			id: doc.id,
-			type: 'document',
-			title: doc.display_name || doc.original_filename,
-			contextId: doc.id,
-			tokenCount: doc.word_count ? doc.word_count * 2 : undefined
-		}];
+		if (doc.id) {
+			activeResources = [...activeResources, {
+				id: doc.id,
+				type: 'document',
+				title: doc.display_name || doc.original_filename,
+				contextId: doc.id,
+				tokenCount: doc.word_count ? doc.word_count * 2 : undefined
+			}];
+		}
 	}}
 />
 
 <!-- Hybrid Search Panel -->
 <HybridSearchPanel
 	bind:show={showHybridSearchPanel}
-	workspaceId={$currentWorkspaceId}
+	workspaceId={$currentWorkspaceId ?? undefined}
 	on:addToContext={(event) => {
 		const { result, query } = event.detail;
 		// Add search result to active resources

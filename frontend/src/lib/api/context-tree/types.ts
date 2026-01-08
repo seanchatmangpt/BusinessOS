@@ -25,9 +25,13 @@ export interface TreeSearchParams {
   query: string;
   search_type?: 'semantic' | 'keyword' | 'hybrid' | 'title' | 'content' | 'browse';
   entity_types?: ContextItemType[];
+  entity_type?: EntityType;  // Alternative singular form
   max_results?: number;
+  limit?: number;  // Alternative for max_results
   project_scope?: string;
+  project_id?: string;  // Alternative for project_scope
   node_scope?: string;
+  node_id?: string;  // Alternative for node_scope
 }
 
 export interface TreeSearchResult {

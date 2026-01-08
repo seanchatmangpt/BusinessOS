@@ -10,7 +10,7 @@
 	type ButtonVariant = 'primary' | 'secondary' | 'plain' | 'error' | 'success';
 	type ButtonSize = 'default' | 'large' | 'extraLarge';
 
-	interface Props extends Omit<HTMLButtonAttributes, 'disabled'> {
+	interface Props extends Omit<HTMLButtonAttributes, 'disabled' | 'prefix'> {
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 		loading?: boolean;

@@ -913,11 +913,11 @@
 				{#if block.properties.url}
 					<img
 						src={block.properties.url as string}
-						alt={block.properties.caption as string || 'Image'}
+						alt={typeof block.properties.caption === 'string' ? block.properties.caption : 'Image'}
 						class="block__image-img"
 					/>
 					{#if block.properties.caption}
-						<p class="block__image-caption">{block.properties.caption}</p>
+						<p class="block__image-caption">{typeof block.properties.caption === 'string' ? block.properties.caption : ''}</p>
 					{/if}
 				{:else}
 					<div class="block__image-placeholder">

@@ -9,7 +9,8 @@ import type {
 	DocumentType,
 	Block,
 	BlockType,
-	RichText
+	RichText,
+	PropertyValue
 } from '../entities/types';
 import * as contextsApi from '$lib/api/contexts';
 import type { Context, ContextListItem, Block as ContextBlock } from '$lib/api/contexts/types';
@@ -72,8 +73,8 @@ function mapContextToDocument(ctx: Context): Document {
 		icon: ctx.icon ? { type: 'emoji', value: ctx.icon } : null,
 		cover: ctx.cover_image || null,
 		content: ctx.blocks ? mapContextBlocksToDocBlocks(ctx.blocks) : [],
-		properties: ctx.structured_data || {},
-		is_template: ctx.is_template,
+		properties: (ctx.structured_data || {}) as Record<string, PropertyValue>,
+		is_template: ctx.is_template ?? false,
 		is_favorite: ctx.properties?.is_favorite === true,
 		is_archived: ctx.is_archived,
 		created_at: ctx.created_at,
@@ -130,9 +131,9 @@ function mapDocBlocksToContextBlocks(blocks: Block[]): ContextBlock[] {
 		id: block.id,
 		type: block.type,
 		content: extractPlainText(block.content),
-		properties: block.properties,
+		properties: block.properties as Record<string, unknown>,
 		children: block.children ? mapDocBlocksToContextBlocks(block.children) : undefined
-	}));
+	})) as ContextBlock[];
 }
 
 /**

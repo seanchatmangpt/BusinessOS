@@ -215,6 +215,7 @@
 	// Custom Agents (user-created, can be mentioned with @name)
 	interface CustomAgent {
 		id: string;
+		user_id: string;
 		name: string;
 		display_name: string;
 		description: string;
@@ -231,6 +232,7 @@
 		category?: string;
 		is_active: boolean;
 		times_used: number;
+		usage_count?: number;
 		last_used_at?: string;
 		created_at: string;
 		updated_at: string;

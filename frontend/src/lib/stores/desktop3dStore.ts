@@ -428,7 +428,9 @@ function createDesktop3DStore() {
 					isOpen: true,
 					isFocused: false,
 					lastFocused: Date.now(),
-					color: info.color
+					color: info.color,
+					width: 800,  // Default window width
+					height: 600  // Default window height
 				};
 
 				return { ...state, windows: [...state.windows, newWindow] };

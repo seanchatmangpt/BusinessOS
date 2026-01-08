@@ -9,7 +9,7 @@
 	type InputStatus = 'default' | 'error' | 'success' | 'warning';
 	type InputSize = 'default' | 'large';
 
-	interface Props extends Omit<HTMLInputAttributes, 'size'> {
+	interface Props extends Omit<HTMLInputAttributes, 'size' | 'prefix'> {
 		status?: InputStatus;
 		size?: InputSize;
 		class?: string;

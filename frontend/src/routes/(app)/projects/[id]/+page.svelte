@@ -395,14 +395,15 @@
 		e.preventDefault();
 		dragOverTask = null;
 
-		if (!draggedTask || draggedTask.id === targetTask.id || draggedTask.status !== targetTask.status) {
+		const currentDraggedTask = draggedTask;
+		if (!currentDraggedTask || currentDraggedTask.id === targetTask.id || currentDraggedTask.status !== targetTask.status) {
 			return;
 		}
 
 		try {
 			// Get tasks in the same status group
 			const statusTasks = tasks.filter(t => t.status === targetTask.status);
-			const draggedIndex = statusTasks.findIndex(t => t.id === draggedTask.id);
+			const draggedIndex = statusTasks.findIndex(t => t.id === currentDraggedTask.id);
 			const targetIndex = statusTasks.findIndex(t => t.id === targetTask.id);
 
 			if (draggedIndex === -1 || targetIndex === -1) return;

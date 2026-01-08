@@ -8,7 +8,7 @@
 	import DatabaseTable from './DatabaseTable.svelte';
 	import { createDatabaseStore, type DatabaseStore } from '../../stores/database-store';
 	import type { BlockStore } from '../../stores/yjs-block-store';
-	import type { DatabaseViewType, DatabaseView } from '../../entities/block';
+	import type { DatabaseViewType, DatabaseView, Block } from '../../entities/block';
 
 	interface Props {
 		blockStore: BlockStore;
@@ -35,12 +35,25 @@
 		dbStore?.destroy();
 	});
 
-	// Derived state
-	let database = $derived(dbStore ? $dbStore?.database : null);
+	// Derived state - use subscribe pattern to avoid 'never' type issue
+	let storeValue = $state<{ database: unknown; activeViewId: string | null } | null>(null);
+
+	$effect(() => {
+		if (dbStore) {
+			const unsubscribe = dbStore.subscribe(value => {
+				storeValue = value;
+			});
+			return unsubscribe;
+		} else {
+			storeValue = null;
+		}
+	});
+
+	let database = $derived(storeValue?.database as Block<'bos:database'> | null);
 	let views = $derived(database?.props.views ?? []);
-	let activeViewId = $derived(dbStore ? $dbStore?.activeViewId : null);
-	let activeView = $derived(views.find((v) => v.id === activeViewId));
-	let title = $derived(database?.props.title?.delta?.map((d) => d.insert).join('') ?? 'Untitled Database');
+	let activeViewId = $derived(storeValue?.activeViewId ?? null);
+	let activeView = $derived(views.find((v: DatabaseView) => v.id === activeViewId));
+	let title = $derived(database?.props.title?.delta?.map((d: { insert: string }) => d.insert).join('') ?? 'Untitled Database');
 
 	// View handlers
 	function handleSelectView(viewId: string) {
@@ -52,7 +65,7 @@
 		dbStore?.addView({
 			name,
 			type,
-			columns: database?.props.columns.map((c) => c.id) ?? []
+			columns: database?.props.columns.map((c: { id: string }) => c.id) ?? []
 		});
 	}
 
@@ -61,7 +74,7 @@
 	}
 
 	function handleDuplicateView(viewId: string) {
-		const view = views.find((v) => v.id === viewId);
+		const view = views.find((v: DatabaseView) => v.id === viewId);
 		if (!view) return;
 
 		dbStore?.addView({

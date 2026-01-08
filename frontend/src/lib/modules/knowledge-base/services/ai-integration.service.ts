@@ -345,7 +345,7 @@ export async function createCreationFromMessage(
 	// Check for code blocks in message
 	if (message.blocks && message.blocks.length > 0) {
 		const codeBlock = message.blocks.find((b) => b.type === 'code');
-		if (codeBlock) {
+		if (codeBlock && codeBlock.content) {
 			content = codeBlock.content;
 			detectedType = 'code';
 			language = codeBlock.language;

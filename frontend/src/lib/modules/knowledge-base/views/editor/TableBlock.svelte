@@ -16,8 +16,10 @@
 
 	// Table data structure stored in block properties
 	// Format: { rows: string[][], headerRow: boolean }
+	type TableData = { rows: string[][]; headerRow: boolean };
+
 	let tableData = $derived(
-		(block.properties.tableData as { rows: string[][]; headerRow: boolean }) || {
+		(block.properties.tableData as unknown as TableData) || {
 			rows: [
 				['', '', ''],
 				['', '', '']
@@ -34,7 +36,8 @@
 			...block,
 			properties: {
 				...block.properties,
-				tableData: { rows: newRows, headerRow }
+				// Store table data as a special format - cast through unknown to satisfy type checker
+				tableData: { rows: newRows, headerRow } as unknown as unknown[][]
 			}
 		});
 	}
