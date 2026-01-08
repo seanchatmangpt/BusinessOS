@@ -1477,7 +1477,10 @@ Use this context to inform your responses.`;
 			}
 
 			// Build the combined list of all available models (local + ollama cloud + configured cloud providers)
-			const allAvailableModels: ModelOption[] = [...installedModels, ...ollamaCloudModels];
+			// Use Array.from to ensure $state arrays are properly converted to plain arrays
+			const localModelsArr = Array.isArray(installedModels) ? installedModels : [];
+			const cloudModelsArr = Array.isArray(ollamaCloudModels) ? ollamaCloudModels : [];
+			const allAvailableModels: ModelOption[] = [...localModelsArr, ...cloudModelsArr];
 			for (const provider of configuredProviders) {
 				const providerModels = cloudModelsMap[provider] || [];
 				allAvailableModels.push(...providerModels);
@@ -1487,8 +1490,8 @@ Use this context to inform your responses.`;
 			// (selectedModel might be set from user settings)
 			if (!selectedModel || selectedModel === '') {
 				// Prefer local models if available, otherwise use first cloud model
-				if (installedModels.length > 0) {
-					selectedModel = installedModels[0].id;
+				if (localModelsArr.length > 0) {
+					selectedModel = localModelsArr[0].id;
 					saveModelPreference(selectedModel); // Save the default
 				} else if (allAvailableModels.length > 0) {
 					selectedModel = allAvailableModels[0].id;
@@ -1496,11 +1499,11 @@ Use this context to inform your responses.`;
 				}
 			} else {
 				// Validate that the saved model still exists in combined list
-				if (!allAvailableModels.some(m => m.id === selectedModel)) {
+				if (allAvailableModels.length === 0 || !allAvailableModels.some(m => m.id === selectedModel)) {
 					console.warn('[Chat] Saved model "' + selectedModel + '" not available, resetting to default');
 					const oldModel = selectedModel;
-					if (installedModels.length > 0) {
-						selectedModel = installedModels[0].id;
+					if (localModelsArr.length > 0) {
+						selectedModel = localModelsArr[0].id;
 					} else if (allAvailableModels.length > 0) {
 						selectedModel = allAvailableModels[0].id;
 					}

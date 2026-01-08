@@ -1359,7 +1359,7 @@
 	}
 
 	function getLocalModels(): LLMModel[] {
-		return models.filter(m => {
+		return (models || []).filter(m => {
 			const isLocalProvider = m.provider === 'ollama' || m.provider === 'ollama_local';
 			// Filter out cloud reference models (they have "cloud" in the name and are tiny stubs)
 			const nameOrId = (m.id || '') + (m.name || '');
