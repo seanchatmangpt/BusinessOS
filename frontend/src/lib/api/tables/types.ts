@@ -299,6 +299,9 @@ export interface TableListItem {
 	column_count: number;
 	is_favorite: boolean;
 	updated_at: string;
+	// Optional expanded data for card views
+	columns?: Column[];
+	views?: TableView[];
 }
 
 /**

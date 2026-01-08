@@ -31,7 +31,7 @@ import type {
 // Types
 // ============================================================================
 
-export type TableViewMode = 'list' | 'grid';
+export type TableViewMode = 'list' | 'grid' | 'card';
 
 interface TableFilters {
 	source: TableSource | null;
