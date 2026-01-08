@@ -208,76 +208,110 @@ PEDRO (Backend + AI)
 
 ---
 
-## Linear Issues Mapping
+## Linear Issues Mapping (Verified Jan 9, 2026)
 
-### Pedro (Q1 Complete)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-25 | Workspace Memory Injection | **Done** |
-| CUS-26 | Role-based Agent Personas | **Done** |
-| CUS-27 | Chat Memory Enhancements | **Done** |
-| CUS-28 | Full RAG Pipeline | **Done** |
-| CUS-41 | Context-Aware Refinements | **Done** |
+> **Last Audit:** Codebase analysis of frontend + backend completed
 
-### Javaris (Features Complete)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-29 | Team Invitations | **Done** |
-| CUS-31 | Mobile Chat API | **Done** |
-| CUS-32 | Mobile Tables API | **Done** |
-| CUS-33 | Mobile Projects API | **Done** |
-| CUS-36 | Team Removal & Updates | **Done** |
-| CUS-38 | SSE Notifications Backend | **Done** |
-| CUS-39 | Web Push Backend | **Done** |
+### Pedro (Q1 Backend Complete)
+| Issue | Title | Backend | Frontend | Notes |
+|-------|-------|---------|----------|-------|
+| CUS-25 | Workspace Memory Injection | **Done** | Partial | Memory API integrated in chat |
+| CUS-26 | Role-based Agent Personas | **Done** | Partial | Agent selection exists |
+| CUS-27 | Chat Memory Enhancements | **Done** | **Done** | Memory panel in chat |
+| CUS-28 | Full RAG Pipeline | **Done** | **Done** | RAG search integrated |
+| CUS-41 | Context-Aware Refinements | **Done** | Partial | Context injection working |
 
-### Roberto (Tables + Integrations)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-47 | OAuth Redirect Testing | In Progress |
-| CUS-61 | Slack Integration Provider | **Done** |
-| CUS-62 | Notion Integration Provider | **Done** |
-| CUS-63 | Airtable Integration Provider | **Done** |
-| CUS-64 | Discord Integration Provider | **Done** |
-| CUS-65 | GitHub Integration Provider | **Done** |
-| CUS-66 | Gmail Integration Provider | **Done** |
-| CUS-67 | Google Drive Integration Provider | **Done** |
-| CUS-68 | Google Sheets Integration Provider | **Done** |
-| CUS-69 | Google Docs Integration Provider | **Done** |
-| CUS-70 | Jira Integration Provider | **Done** |
-| CUS-71 | Linear Integration Provider | **Done** |
-| CUS-73 | Table Creation System | Backlog |
-| CUS-74 | Table Relationships | Backlog |
-| CUS-75 | Table Views System | Backlog |
-| CUS-76 | Advanced Filtering | Backlog |
-| CUS-77 | Export Features | Backlog |
-| CUS-78 | Sidebar Navigation | Backlog |
+### Javaris (Features)
+| Issue | Title | Backend | Frontend | Notes |
+|-------|-------|---------|----------|-------|
+| CUS-29 | Team Invitations | **Done** | **Needs UI** | API exists, no invite modal |
+| CUS-31 | Mobile Chat API | **Done** | N/A | Web-only codebase |
+| CUS-32 | Mobile Tables API | **Done** | N/A | Web-only codebase |
+| CUS-33 | Mobile Projects API | **Done** | N/A | Web-only codebase |
+| CUS-36 | Team Removal & Updates | **Done** | **Done** | Team management working |
+| CUS-38 | SSE Notifications Backend | **Done** | **20%** | Sound only, needs SSE client |
+| CUS-39 | Web Push Backend | **Done** | **0%** | No push notification UI |
+
+### Roberto (Tables Module) - **ACTUALLY COMPLETE!**
+| Issue | Title | Backend | Frontend | Notes |
+|-------|-------|---------|----------|-------|
+| CUS-73 | Table Creation System | **Done** | **Done** | AddTableModal, AddColumnModal, ColumnTypeSelector |
+| CUS-74 | Table Relationships | **Done** | **Done** | link_to_record type, getLinkedRecords API |
+| CUS-75 | Table Views System | **Done** | **95%** | Grid, Kanban, Gallery done. Missing: Calendar |
+| CUS-76 | Advanced Filtering | **Done** | **Done** | FilterBar, FilterModal, SortModal, FieldsPanel |
+| CUS-77 | Export Features | **Done** | **Done** | exportTable API (CSV/Excel/JSON) |
+| CUS-78 | Sidebar Navigation | **Done** | **Done** | TablesSidebar.svelte |
+
+### Roberto (Integration Providers) - **ALL DONE**
+| Issue | Title | Status | Notes |
+|-------|-------|--------|-------|
+| CUS-61 | Slack Integration | **Done** | Full OAuth + channels |
+| CUS-62 | Notion Integration | **Done** | Databases + pages |
+| CUS-63 | Airtable Integration | **Done** | Bases + records |
+| CUS-64 | Discord Integration | **Done** | Channels + messages |
+| CUS-65 | GitHub Integration | **Done** | Repos + issues |
+| CUS-66 | Gmail Integration | **Done** | Email + labels |
+| CUS-67 | Google Drive Integration | **Done** | Files + folders |
+| CUS-68 | Google Sheets Integration | **Done** | Sheets + cells |
+| CUS-69 | Google Docs Integration | **Done** | Documents |
+| CUS-70 | Jira Integration | **Done** | Issues + projects |
+| CUS-71 | Linear Integration | **Done** | Issues + teams |
 
 ### Nick (Integration Architecture)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-59 | Integration Hub Setup | Backlog |
-| CUS-60 | OAuth Flow Infrastructure | Backlog |
-| CUS-72 | Synchronization System | Backlog |
+| Issue | Title | Backend | Frontend | Notes |
+|-------|-------|---------|----------|-------|
+| CUS-59 | Integration Hub Setup | **Done** | **Done** | /integrations page exists |
+| CUS-60 | OAuth Flow Infrastructure | **Done** | **Done** | Generic OAuth + provider-specific |
+| CUS-72 | Synchronization System | **Done** | Partial | Sync APIs exist, limited UI |
 
-### Backlog (Unassigned)
-| Issue | Title | Priority |
-|-------|-------|----------|
-| CUS-42 | Voice Commands Support | Low |
-| CUS-43 | Keyboard Shortcuts | Medium |
-| CUS-44 | Theme System | Low |
-| CUS-45 | Notification System | Medium |
-| CUS-46 | Settings Persistence | Medium |
-| CUS-48 | Data Export/Import | Medium |
-| CUS-49 | Team Permissions | High |
-| CUS-50 | Audit Logging | Medium |
-| CUS-51 | API Rate Limiting | Medium |
-| CUS-52 | Caching Layer | Medium |
-| CUS-53 | Search Indexing | High |
-| CUS-54 | File Storage | High |
-| CUS-55 | Background Jobs | Medium |
-| CUS-56 | Webhooks System | Medium |
-| CUS-57 | API Versioning | Low |
-| CUS-58 | Health Monitoring | Medium |
+### Platform Features (Mixed Status)
+| Issue | Title | Backend | Frontend | Priority | Notes |
+|-------|-------|---------|----------|----------|-------|
+| CUS-42 | Voice Commands | Partial | **15%** | Low | Voice notes only, no commands |
+| CUS-43 | Keyboard Shortcuts | N/A | **40%** | Medium | Display only, no keybinding |
+| CUS-44 | Theme System | N/A | **95%** | Low | Light/dark/system complete |
+| CUS-45 | Notification Center | Minimal | **20%** | **High** | Major gap - needs SSE + UI |
+| CUS-46 | Settings Persistence | **Done** | **90%** | Low | Comprehensive settings |
+| CUS-47 | OAuth Redirect Testing | In Progress | In Progress | Medium | Roberto testing |
+| CUS-48 | Data Export/Import | **Done** | **70%** | Medium | Tables only, no full backup |
+| CUS-49 | Team Permissions | **Done** | Partial | **High** | Backend RBAC done, needs UI |
+| CUS-50 | Audit Logging | **Done** | **0%** | Medium | Backend done, no UI viewer |
+| CUS-53 | Search Indexing | **Done** | **60%** | **High** | API exists, no global search UI |
+| CUS-54 | File Storage | Partial | **30%** | Medium | Attachments only, no file browser |
+
+### Backend-Only (Not Frontend Concerns)
+| Issue | Title | Status | Notes |
+|-------|-------|--------|-------|
+| CUS-51 | API Rate Limiting | TBD | Backend infrastructure |
+| CUS-52 | Caching Layer | TBD | Backend infrastructure |
+| CUS-55 | Background Jobs | TBD | Backend infrastructure |
+| CUS-56 | Webhooks System | TBD | Backend infrastructure |
+| CUS-57 | API Versioning | TBD | Backend infrastructure |
+| CUS-58 | Health Monitoring | TBD | Backend infrastructure |
+
+---
+
+## Summary: What's Actually Done vs Needed
+
+### FULLY COMPLETE (Update Linear to Done)
+- **CUS-73, 74, 75, 76, 77, 78** - Tables Module (95%+ complete)
+- **CUS-59, 60** - Integration Hub + OAuth
+- **CUS-61-71** - All 11 integration providers
+- **CUS-44** - Theme System
+- **CUS-46** - Settings Persistence
+
+### NEEDS FRONTEND WORK
+| Priority | Issue | What's Missing |
+|----------|-------|----------------|
+| **HIGH** | CUS-45 | Notification center UI, SSE client, push notifications |
+| **HIGH** | CUS-49 | Team permissions/roles UI |
+| **HIGH** | CUS-53 | Global search modal (Spotlight) |
+| **HIGH** | CUS-29 | Team invitation modal |
+| Medium | CUS-50 | Audit log viewer UI |
+| Medium | CUS-43 | Keyboard shortcut binding (not just display) |
+| Medium | CUS-72 | Sync status dashboard |
+| Low | CUS-42 | Voice command execution |
+| Low | CUS-54 | File browser/manager |
 
 ---
 
