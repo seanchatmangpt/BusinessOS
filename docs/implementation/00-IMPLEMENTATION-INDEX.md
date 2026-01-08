@@ -93,12 +93,18 @@ Recent commits:
 | 13 | **App Profiler** | [13-PEDRO-APP-PROFILER.md](./13-PEDRO-APP-PROFILER.md) | Pedro | Not Started |
 | 14 | **Conversation Intelligence** | [14-PEDRO-CONVERSATION-INTEL.md](./14-PEDRO-CONVERSATION-INTEL.md) | Pedro | Not Started |
 
+### Javaris Tasks (Frontend Features)
+
+| # | Feature | Doc | Owner | Status |
+|---|---------|-----|-------|--------|
+| 15 | **Notifications System** | [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md) | Javaris | **Backend Done** - Frontend guide ready |
+
 ### Active Work (Not in Docs Yet)
 
 | Feature | Owner | Status | Notes |
 |---------|-------|--------|-------|
 | **OSA Integration / App Generation** | Nick + Pedro | **IN PROGRESS** | High priority - generate apps within BusinessOS |
-| **Multi-channel Notifications** | Javaris | **IN PROGRESS** | Mobile API ready |
+| **Multi-channel Notifications** | Javaris | **IN PROGRESS** | Backend done (CUS-38,39), frontend guide ready |
 | **2D/3D Building Visualization** | Javaris | **IN PROGRESS** | Animated agents |
 | **Desktop Customization** | Javaris | **IN PROGRESS** | Animations & effects |
 
@@ -202,6 +208,79 @@ PEDRO (Backend + AI)
 
 ---
 
+## Linear Issues Mapping
+
+### Pedro (Q1 Complete)
+| Issue | Title | Status |
+|-------|-------|--------|
+| CUS-25 | Workspace Memory Injection | **Done** |
+| CUS-26 | Role-based Agent Personas | **Done** |
+| CUS-27 | Chat Memory Enhancements | **Done** |
+| CUS-28 | Full RAG Pipeline | **Done** |
+| CUS-41 | Context-Aware Refinements | **Done** |
+
+### Javaris (Features Complete)
+| Issue | Title | Status |
+|-------|-------|--------|
+| CUS-29 | Team Invitations | **Done** |
+| CUS-31 | Mobile Chat API | **Done** |
+| CUS-32 | Mobile Tables API | **Done** |
+| CUS-33 | Mobile Projects API | **Done** |
+| CUS-36 | Team Removal & Updates | **Done** |
+| CUS-38 | SSE Notifications Backend | **Done** |
+| CUS-39 | Web Push Backend | **Done** |
+
+### Roberto (Tables + Integrations)
+| Issue | Title | Status |
+|-------|-------|--------|
+| CUS-47 | OAuth Redirect Testing | In Progress |
+| CUS-61 | Slack Integration Provider | **Done** |
+| CUS-62 | Notion Integration Provider | **Done** |
+| CUS-63 | Airtable Integration Provider | **Done** |
+| CUS-64 | Discord Integration Provider | **Done** |
+| CUS-65 | GitHub Integration Provider | **Done** |
+| CUS-66 | Gmail Integration Provider | **Done** |
+| CUS-67 | Google Drive Integration Provider | **Done** |
+| CUS-68 | Google Sheets Integration Provider | **Done** |
+| CUS-69 | Google Docs Integration Provider | **Done** |
+| CUS-70 | Jira Integration Provider | **Done** |
+| CUS-71 | Linear Integration Provider | **Done** |
+| CUS-73 | Table Creation System | Backlog |
+| CUS-74 | Table Relationships | Backlog |
+| CUS-75 | Table Views System | Backlog |
+| CUS-76 | Advanced Filtering | Backlog |
+| CUS-77 | Export Features | Backlog |
+| CUS-78 | Sidebar Navigation | Backlog |
+
+### Nick (Integration Architecture)
+| Issue | Title | Status |
+|-------|-------|--------|
+| CUS-59 | Integration Hub Setup | Backlog |
+| CUS-60 | OAuth Flow Infrastructure | Backlog |
+| CUS-72 | Synchronization System | Backlog |
+
+### Backlog (Unassigned)
+| Issue | Title | Priority |
+|-------|-------|----------|
+| CUS-42 | Voice Commands Support | Low |
+| CUS-43 | Keyboard Shortcuts | Medium |
+| CUS-44 | Theme System | Low |
+| CUS-45 | Notification System | Medium |
+| CUS-46 | Settings Persistence | Medium |
+| CUS-48 | Data Export/Import | Medium |
+| CUS-49 | Team Permissions | High |
+| CUS-50 | Audit Logging | Medium |
+| CUS-51 | API Rate Limiting | Medium |
+| CUS-52 | Caching Layer | Medium |
+| CUS-53 | Search Indexing | High |
+| CUS-54 | File Storage | High |
+| CUS-55 | Background Jobs | Medium |
+| CUS-56 | Webhooks System | Medium |
+| CUS-57 | API Versioning | Low |
+| CUS-58 | Health Monitoring | Medium |
+
+---
+
 ## Related Documents
 
 - [Architecture Overview](../architecture/)
@@ -209,3 +288,4 @@ PEDRO (Backend + AI)
 - [Database Schema](../database/)
 - [Integration Guides](../integrations/)
 - [Sorx 2.0 Docs](../sorxdocs/)
+- [Notifications Guide](./15-JAVARIS-NOTIFICATIONS.md)
