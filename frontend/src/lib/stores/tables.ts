@@ -177,9 +177,9 @@ function createTablesStore() {
 							icon: table.icon,
 							source: table.source,
 							source_integration: table.source_integration,
-							row_count: table.row_count,
-							column_count: table.columns.length,
-							is_favorite: table.is_favorite,
+							row_count: table.row_count ?? 0,
+							column_count: table.columns?.length ?? 0,
+							is_favorite: table.is_favorite ?? false,
 							updated_at: table.updated_at
 						},
 						...s.tables
