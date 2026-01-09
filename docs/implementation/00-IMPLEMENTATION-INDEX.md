@@ -1,291 +1,260 @@
-# BusinessOS Frontend Implementation Backlog
+# BusinessOS Frontend Implementation Status
 
-> **Gap Analysis Date:** January 8, 2026
-> **Backend Endpoints:** 286+ | **Frontend Coverage:** 130+ | **Gap:** 54%
-
-This folder contains implementation specifications for features that exist in the backend but are NOT yet implemented in the frontend.
+> **Last Updated:** January 9, 2026
+> **Audit Type:** Full codebase analysis (frontend + backend)
 
 ---
 
-## Priority Legend
+## EXECUTIVE SUMMARY
 
-| Priority | Description | Target |
-|----------|-------------|--------|
-| **P0** | Critical for Beta Launch | Must have for $15K users |
-| **P1** | High Value Features | Enterprise differentiators |
-| **P2** | Nice to Have | Future enhancement |
+### What's DONE (No Action Needed)
+| Feature | Status | Linear Issues |
+|---------|--------|---------------|
+| Tables Module | **95% Complete** | CUS-73, 74, 75, 76, 77, 78 |
+| Integration Hub | **Complete** | CUS-59, 60 |
+| Integration Providers (11) | **Complete** | CUS-61-71 |
+| Theme System | **95% Complete** | CUS-44 |
+| Settings Persistence | **90% Complete** | CUS-46 |
+| Team Management | **Complete** | CUS-36 |
+| Chat + RAG | **Complete** | CUS-27, 28 |
+
+### What NEEDS WORK (Action Required)
+
+| Priority | Feature | Owner | Issue | Doc |
+|----------|---------|-------|-------|-----|
+| **P0** | Notifications (SSE + Push) | Javaris | CUS-45 | [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md) |
+| **P0** | Team Invitations UI | Javaris | CUS-29 | [16-TEAM-INVITATIONS.md](./16-TEAM-INVITATIONS.md) |
+| **P0** | Global Search (Spotlight) | Roberto | CUS-53 | [17-GLOBAL-SEARCH.md](./17-GLOBAL-SEARCH.md) |
+| **P1** | Team Permissions UI | Javaris | CUS-49 | [18-TEAM-PERMISSIONS.md](./18-TEAM-PERMISSIONS.md) |
+| **P1** | Audit Log Viewer | Roberto | CUS-50 | [19-AUDIT-LOGS.md](./19-AUDIT-LOGS.md) |
+| **P1** | Workspaces UI | Javaris + Roberto | - | [01-WORKSPACES.md](./01-WORKSPACES.md) |
+
+### Nick + Pedro Focus (Separate Track)
+| Feature | Status | Notes |
+|---------|--------|-------|
+| OSA Integration | **IN PROGRESS** | App generation in BusinessOS |
+| Custom Agents | Not Started | [02-CUSTOM-AGENTS.md](./02-CUSTOM-AGENTS.md) |
+| Chain-of-Thought | **IN PROGRESS** | Pedro working on COT orchestrator |
+| Slash Commands | Not Started | [05-COMMANDS-DELEGATION.md](./05-COMMANDS-DELEGATION.md) |
 
 ---
 
-## Recent Team Activity (from Git)
+## IMMEDIATE ACTION ITEMS
 
-### Nick (nic-dev) - Last active: Jan 8
-```
-Recent commits:
-- fix(auth): simplify Google OAuth redirect URI
-- feat(container): enable network access for terminal containers
-- feat(security): complete Phase 2 terminal security hardening
-- feat(terminal): real PTY terminal via WebSocket
-- fix(auth): google oauth redirect + callback route
-- feat: migrate to go backend + desktop app + frontend modules
-```
-**Current Focus:** Terminal/PTY, OAuth, OSA Integration with Pedro
+### Javaris - This Week
+1. **Notifications System** (CUS-45) - [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md)
+   - [ ] Connect SSE stream for real-time notifications
+   - [ ] Build notification center dropdown
+   - [ ] Add push notification subscription UI
+   - [ ] Show unread count badge
 
-### Pedro (pedro-dev) - Last active: Jan 8
-```
-Recent commits:
-- feat: Complete Q1 implementation - All Linear issues (CUS-25,26,27,28,41)
-- feat: Add workspace memory chat injection with COT orchestrator fix
-- feat: Multi-tool integration architecture + Knowledge module
-- fix: Critical security vulnerabilities in integration handlers
-- fix: Calendar API routes, OAuth state utilities
-```
-**Current Focus:** OSA Integration with Nick, COT, Q1 deliverables
+2. **Team Invitations** (CUS-29) - [16-TEAM-INVITATIONS.md](./16-TEAM-INVITATIONS.md)
+   - [ ] Create invite modal component
+   - [ ] Add invite button to team page
+   - [ ] Show pending invitations list
 
-### Javaris (javaris-dev) - Last active: Jan 8
+### Roberto - This Week
+1. **Global Search** (CUS-53) - [17-GLOBAL-SEARCH.md](./17-GLOBAL-SEARCH.md)
+   - [ ] Create Spotlight search modal (Cmd+K)
+   - [ ] Connect to multimodal search API
+   - [ ] Show results grouped by type
+
+2. **Audit Logs** (CUS-50) - [19-AUDIT-LOGS.md](./19-AUDIT-LOGS.md)
+   - [ ] Create audit log viewer page
+   - [ ] Connect to workspace audit API
+   - [ ] Add filtering and search
+
+---
+
+## COMPLETED FEATURES (Reference Only)
+
+### Tables Module - DONE
+**30 Svelte components** in `frontend/src/lib/components/tables/`
+
+| Component | Purpose |
+|-----------|---------|
+| AddTableModal.svelte | Create new tables |
+| AddColumnModal.svelte | Add/edit columns |
+| ColumnTypeSelector.svelte | Choose column types |
+| GridView.svelte | Spreadsheet view |
+| KanbanView.svelte | Board view |
+| GalleryView.svelte | Card gallery |
+| FilterBar.svelte | Active filters |
+| FilterModal.svelte | Filter builder |
+| SortModal.svelte | Multi-sort |
+| FieldsPanel.svelte | Show/hide columns |
+| TablesSidebar.svelte | Navigation |
+
+**APIs:** `frontend/src/lib/api/tables/tables.ts` (full CRUD + views + export)
+
+### Integrations - DONE
+**Integration Hub:** `frontend/src/routes/(app)/integrations/+page.svelte`
+
+| Provider | Status |
+|----------|--------|
+| Slack | Done |
+| Notion | Done |
+| Airtable | Done |
+| Discord | Done |
+| GitHub | Done |
+| Gmail | Done |
+| Google Drive | Done |
+| Google Sheets | Done |
+| Google Docs | Done |
+| Jira | Done |
+| Linear | Done |
+
+**APIs:** `frontend/src/lib/api/integrations/integrations.ts` (605 lines)
+
+---
+
+## TEAM ASSIGNMENTS (Updated)
+
 ```
-Recent commits:
-- feat: Multi-channel notifications system, Mobile API, comments/mentions
-- feat(nodes): add 2D/3D building visualization with animated agents
-- feat(desktop): comprehensive customization system with animations
-- feat(chat): improve chat history sidebar with date grouping
-- fix(dock): connect model selector to backend API
-- fix(nodes): security and performance improvements
+JAVARIS - Frontend Focus
+├── P0: Notifications System (CUS-45) ← START HERE
+├── P0: Team Invitations UI (CUS-29)
+├── P1: Team Permissions UI (CUS-49)
+├── P1: Workspaces UI (LEAD)
+└── Ongoing: Desktop/3D customization
+
+ROBERTO - Frontend + Platform
+├── P0: Global Search / Spotlight (CUS-53) ← START HERE
+├── P1: Audit Log Viewer (CUS-50)
+├── P1: Workspaces UI (SUPPORT)
+└── Future: Sorx 2.0 / Workflows
+
+NICK + PEDRO - OSA & AI
+├── P0: OSA Integration (IN PROGRESS)
+├── P0: Custom Agents
+├── P1: Chain-of-Thought (IN PROGRESS)
+└── P1: Slash Commands
 ```
-**Current Focus:** Notifications, Desktop UI, Nodes visualization
+
+---
+
+## Linear Issues Quick Reference
+
+### Mark as DONE (Already Complete)
+```
+CUS-73, CUS-74, CUS-75, CUS-76, CUS-77, CUS-78  (Tables)
+CUS-59, CUS-60, CUS-61-71                        (Integrations)
+CUS-44, CUS-46                                   (Theme, Settings)
+CUS-27, CUS-28, CUS-36                           (Chat, Team)
+```
+
+### Active Work
+```
+CUS-45  Notifications      Javaris   P0
+CUS-29  Team Invitations   Javaris   P0
+CUS-53  Global Search      Roberto   P0
+CUS-49  Team Permissions   Javaris   P1
+CUS-50  Audit Logs         Roberto   P1
+```
+
+### Backlog (Lower Priority)
+```
+CUS-42  Voice Commands     TBD       Low
+CUS-43  Keyboard Shortcuts TBD       Medium
+CUS-48  Data Export        TBD       Medium
+CUS-54  File Browser       TBD       Medium
+CUS-72  Sync Dashboard     TBD       Medium
+```
 
 ---
 
 ## Implementation Documents
 
-### P0 - Critical for Beta
-
-| # | Feature | Doc | Owner | Status |
-|---|---------|-----|-------|--------|
-| 0 | **OSA Integration** (App Generation in BusinessOS) | TBD | Nick + Pedro | **IN PROGRESS** |
-| 1 | **Workspaces** (Team Collaboration) | [01-WORKSPACES.md](./01-WORKSPACES.md) | Javaris (lead), Roberto (support) | Not Started |
-| 2 | **Custom Agents** | [02-CUSTOM-AGENTS.md](./02-CUSTOM-AGENTS.md) | Nick + Pedro | Not Started |
-| 3 | **Memories & User Facts** | [03-MEMORIES-USER-FACTS.md](./03-MEMORIES-USER-FACTS.md) | Pedro | Not Started |
+### P0 - Critical (Do Now)
+| Doc | Feature | Owner | Status |
+|-----|---------|-------|--------|
+| [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md) | Notifications | Javaris | Ready to implement |
+| [16-TEAM-INVITATIONS.md](./16-TEAM-INVITATIONS.md) | Team Invites | Javaris | **NEW** |
+| [17-GLOBAL-SEARCH.md](./17-GLOBAL-SEARCH.md) | Spotlight Search | Roberto | **NEW** |
 
 ### P1 - High Value
+| Doc | Feature | Owner | Status |
+|-----|---------|-------|--------|
+| [18-TEAM-PERMISSIONS.md](./18-TEAM-PERMISSIONS.md) | Permissions UI | Javaris | **NEW** |
+| [19-AUDIT-LOGS.md](./19-AUDIT-LOGS.md) | Audit Viewer | Roberto | **NEW** |
+| [01-WORKSPACES.md](./01-WORKSPACES.md) | Workspaces | Javaris + Roberto | Needs update |
 
-| # | Feature | Doc | Owner | Status |
-|---|---------|-----|-------|--------|
-| 4 | **Thinking / Chain-of-Thought** | [04-THINKING-COT.md](./04-THINKING-COT.md) | Nick + Pedro | **IN PROGRESS** (Pedro: COT orchestrator) |
-| 5 | **Slash Commands & Agent Delegation** | [05-COMMANDS-DELEGATION.md](./05-COMMANDS-DELEGATION.md) | Nick + Pedro | Not Started |
-| 6 | **Integrations** (Slack, Notion) | [06-INTEGRATIONS.md](./06-INTEGRATIONS.md) | Roberto | Not Started |
+### Nick + Pedro Track
+| Doc | Feature | Owner | Status |
+|-----|---------|-------|--------|
+| [02-CUSTOM-AGENTS.md](./02-CUSTOM-AGENTS.md) | Agents | Nick + Pedro | Ready |
+| [04-THINKING-COT.md](./04-THINKING-COT.md) | COT | Pedro | In Progress |
+| [05-COMMANDS-DELEGATION.md](./05-COMMANDS-DELEGATION.md) | Commands | Nick + Pedro | Ready |
 
-### P2 - Nice to Have
+### Future / Lower Priority
+| Doc | Feature | Owner | Status |
+|-----|---------|-------|--------|
+| [07-WORKFLOWS.md](./07-WORKFLOWS.md) | Workflows | Roberto (future) | Not Started |
+| [08-ADVANCED-RAG.md](./08-ADVANCED-RAG.md) | RAG | Pedro | Backend done |
+| [09-TERMINAL-FILESYSTEM.md](./09-TERMINAL-FILESYSTEM.md) | Terminal | Nick | In Progress |
+| [10-SYNC-ENGINE.md](./10-SYNC-ENGINE.md) | Sync | TBD | Not Started |
 
-| # | Feature | Doc | Owner | Status |
-|---|---------|-----|-------|--------|
-| 7 | **Workflows** | [07-WORKFLOWS.md](./07-WORKFLOWS.md) | Nick + Pedro | Not Started |
-| 8 | **Advanced RAG & Search** | [08-ADVANCED-RAG.md](./08-ADVANCED-RAG.md) | Pedro | Not Started |
-| 9 | **Terminal & Filesystem** | [09-TERMINAL-FILESYSTEM.md](./09-TERMINAL-FILESYSTEM.md) | Nick | **IN PROGRESS** (PTY done, Phase 2 security done) |
-| 10 | **Sync Engine** | [10-SYNC-ENGINE.md](./10-SYNC-ENGINE.md) | TBD | Not Started |
-
-### Pedro Tasks (Backend Features needing Frontend)
-
-| # | Feature | Doc | Owner | Status |
-|---|---------|-----|-------|--------|
-| 11 | **Document Processing** | [11-PEDRO-DOCUMENTS.md](./11-PEDRO-DOCUMENTS.md) | Pedro | Not Started |
-| 12 | **Learning & Personalization** | [12-PEDRO-LEARNING.md](./12-PEDRO-LEARNING.md) | Pedro | Backend Done (Q1) |
-| 13 | **App Profiler** | [13-PEDRO-APP-PROFILER.md](./13-PEDRO-APP-PROFILER.md) | Pedro | Not Started |
-| 14 | **Conversation Intelligence** | [14-PEDRO-CONVERSATION-INTEL.md](./14-PEDRO-CONVERSATION-INTEL.md) | Pedro | Not Started |
-
-### Javaris Tasks (Frontend Features)
-
-| # | Feature | Doc | Owner | Status |
-|---|---------|-----|-------|--------|
-| 15 | **Notifications System** | [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md) | Javaris | **Backend Done** - Frontend guide ready |
-
-### Active Work (Not in Docs Yet)
-
-| Feature | Owner | Status | Notes |
-|---------|-------|--------|-------|
-| **OSA Integration / App Generation** | Nick + Pedro | **IN PROGRESS** | High priority - generate apps within BusinessOS |
-| **Multi-channel Notifications** | Javaris | **IN PROGRESS** | Backend done (CUS-38,39), frontend guide ready |
-| **2D/3D Building Visualization** | Javaris | **IN PROGRESS** | Animated agents |
-| **Desktop Customization** | Javaris | **IN PROGRESS** | Animations & effects |
-
-### Future Roadmap (Lower Priority)
-
-| Feature | Owner | Status | Notes |
-|---------|-------|--------|-------|
-| **Sorx 2.0 / Workflows** | Roberto | Future | Agent automation engine - ties into Workflows (07-WORKFLOWS.md) |
+### Pedro Backend (Frontend Needed Later)
+| Doc | Feature | Status |
+|-----|---------|--------|
+| [11-PEDRO-DOCUMENTS.md](./11-PEDRO-DOCUMENTS.md) | Documents | Backend done |
+| [12-PEDRO-LEARNING.md](./12-PEDRO-LEARNING.md) | Learning | Backend done |
+| [13-PEDRO-APP-PROFILER.md](./13-PEDRO-APP-PROFILER.md) | Profiler | Backend done |
+| [14-PEDRO-CONVERSATION-INTEL.md](./14-PEDRO-CONVERSATION-INTEL.md) | Intelligence | Backend done |
 
 ---
 
-## Backend API Coverage Summary
+## API Coverage (Updated)
 
+### COMPLETE (No Gap)
 ```
-Feature                          Backend    Frontend    Gap
-─────────────────────────────────────────────────────────────
-Chat & Conversations             10         8           2
-Contexts                         13         13          0
-Projects                         8          6           2
-Clients & Deals                  17         18          0
-Team Members                     9          7           2
-Nodes                            23         21          2
-Tables                           27         42          0 (FE has more!)
-─────────────────────────────────────────────────────────────
-Workspaces                       24         0           24 ⚠️
-Custom Agents                    15         2           13 ⚠️
-Memories                         11         0           11 ⚠️
-User Facts                       5          0           5 ⚠️
-Thinking/COT                     13         0           13 ⚠️
-Slash Commands                   5          0           5 ⚠️
-Agent Delegation                 4          0           4 ⚠️
-Workflows                        8          0           8 ⚠️
-Advanced RAG                     14         4           10 ⚠️
-Terminal                         3          0           3 ⚠️
-Filesystem                       8          0           8 ⚠️
-Sync Engine                      13         0           13 ⚠️
-Integrations (Slack/Notion)      10+        0           10+ ⚠️
-Pedro: Documents                 8          0           8 ⚠️
-Pedro: Learning                  8          0           8 ⚠️
-Pedro: App Profiler              9          0           9 ⚠️
-Pedro: Conv Intelligence         6          0           6 ⚠️
-─────────────────────────────────────────────────────────────
-TOTAL                            286+       130+        156+ (54%)
+Tables                    ✅ 27 backend / 42 frontend
+Integrations              ✅ 10+ backend / 10+ frontend
+Contexts                  ✅ 13/13
+Clients & Deals           ✅ 17/18
+Chat & Conversations      ✅ 10/8 (acceptable)
+Projects                  ✅ 8/6 (acceptable)
+Team Members              ✅ 9/7 (acceptable)
+Nodes                     ✅ 23/21 (acceptable)
+Settings                  ✅ Complete
+Theme                     ✅ Complete
+```
+
+### NEEDS FRONTEND
+```
+Notifications             ⚠️ Backend done, frontend 20%
+Workspaces                ⚠️ 24 endpoints, 0% frontend
+Team Invitations          ⚠️ API exists, no UI
+Team Permissions          ⚠️ RBAC done, no UI
+Global Search             ⚠️ API exists, no modal
+Audit Logs                ⚠️ API exists, no viewer
 ```
 
 ---
 
-## How to Use These Docs
+## How to Execute
 
-1. **Review** the implementation doc for your assigned feature
-2. **Estimate** effort and flag any blockers
-3. **Update** the status in this index
-4. **Create Linear issues** from the task lists
-5. **Implement** following the component structure outlined
+### For Javaris
+1. Open [15-JAVARIS-NOTIFICATIONS.md](./15-JAVARIS-NOTIFICATIONS.md)
+2. Follow the code examples to implement SSE + notification center
+3. Mark CUS-45 as In Progress in Linear
+4. When done, move to [16-TEAM-INVITATIONS.md](./16-TEAM-INVITATIONS.md)
 
----
+### For Roberto
+1. Open [17-GLOBAL-SEARCH.md](./17-GLOBAL-SEARCH.md)
+2. Build the Spotlight modal with Cmd+K shortcut
+3. Mark CUS-53 as In Progress in Linear
+4. When done, move to [19-AUDIT-LOGS.md](./19-AUDIT-LOGS.md)
 
-## Team Assignments
-
-| Team Member | Primary Features | Current Work | Last Active |
-|-------------|------------------|--------------|-------------|
-| **Roberto** | Integrations, Sorx/Workflows (future) | Workspaces support, heavy frontend | Jan 8 |
-| **Javaris** | Workspaces, Desktop UI | Notifications, 3D viz, customization | Jan 8 |
-| **Nick** | OSA Integration, Terminal | PTY, OAuth, OSA with Pedro | Jan 8 |
-| **Pedro** | OSA Integration, Learning, Backend | Q1 complete, COT, OSA with Nick | Jan 8 |
-| Nejd | TBD | TBD | - |
-| Abdul | TBD | TBD | - |
-
-### Ownership Summary
-
-```
-ROBERTO (Frontend Heavy + Sorx)
-├── P1: Integrations (Slack, Notion, Drive) - LEAD
-├── P0: Workspaces - SUPPORT (heavy components)
-└── FUTURE: Sorx 2.0 / Workflows (agent automation engine)
-
-JAVARIS (Frontend + Desktop)
-├── P0: Workspaces - LEAD
-├── IN PROGRESS: Multi-channel Notifications
-├── IN PROGRESS: 2D/3D Building Visualization
-└── IN PROGRESS: Desktop Customization System
-
-NICK + PEDRO (OSA & AI Features) - HIGH PRIORITY
-├── P0: OSA Integration / App Generation - JOINT (IN PROGRESS)
-├── P0: Custom Agents - JOINT
-├── P1: Thinking/COT - JOINT (IN PROGRESS - Pedro)
-└── P1: Slash Commands & Delegation - JOINT
-
-NICK (Infrastructure)
-├── P2: Terminal/Filesystem - LEAD (IN PROGRESS - Phase 2 done)
-├── OAuth/Auth fixes - DONE
-└── Container networking - DONE
-
-PEDRO (Backend + AI)
-├── Q1 Implementation - COMPLETE (CUS-25,26,27,28,41)
-├── Documents Processing - Backend done
-├── Learning & Personalization - Backend done
-├── App Profiler - Backend done
-└── Conversation Intelligence - Backend done
-```
+### For Nick + Pedro
+1. Continue OSA Integration work
+2. Reference [02-CUSTOM-AGENTS.md](./02-CUSTOM-AGENTS.md) when ready
+3. Pedro continue COT orchestrator
 
 ---
 
-## Linear Issues Mapping
-
-### Pedro (Q1 Complete)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-25 | Workspace Memory Injection | **Done** |
-| CUS-26 | Role-based Agent Personas | **Done** |
-| CUS-27 | Chat Memory Enhancements | **Done** |
-| CUS-28 | Full RAG Pipeline | **Done** |
-| CUS-41 | Context-Aware Refinements | **Done** |
-
-### Javaris (Features Complete)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-29 | Team Invitations | **Done** |
-| CUS-31 | Mobile Chat API | **Done** |
-| CUS-32 | Mobile Tables API | **Done** |
-| CUS-33 | Mobile Projects API | **Done** |
-| CUS-36 | Team Removal & Updates | **Done** |
-| CUS-38 | SSE Notifications Backend | **Done** |
-| CUS-39 | Web Push Backend | **Done** |
-
-### Roberto (Tables + Integrations)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-47 | OAuth Redirect Testing | In Progress |
-| CUS-61 | Slack Integration Provider | **Done** |
-| CUS-62 | Notion Integration Provider | **Done** |
-| CUS-63 | Airtable Integration Provider | **Done** |
-| CUS-64 | Discord Integration Provider | **Done** |
-| CUS-65 | GitHub Integration Provider | **Done** |
-| CUS-66 | Gmail Integration Provider | **Done** |
-| CUS-67 | Google Drive Integration Provider | **Done** |
-| CUS-68 | Google Sheets Integration Provider | **Done** |
-| CUS-69 | Google Docs Integration Provider | **Done** |
-| CUS-70 | Jira Integration Provider | **Done** |
-| CUS-71 | Linear Integration Provider | **Done** |
-| CUS-73 | Table Creation System | Backlog |
-| CUS-74 | Table Relationships | Backlog |
-| CUS-75 | Table Views System | Backlog |
-| CUS-76 | Advanced Filtering | Backlog |
-| CUS-77 | Export Features | Backlog |
-| CUS-78 | Sidebar Navigation | Backlog |
-
-### Nick (Integration Architecture)
-| Issue | Title | Status |
-|-------|-------|--------|
-| CUS-59 | Integration Hub Setup | Backlog |
-| CUS-60 | OAuth Flow Infrastructure | Backlog |
-| CUS-72 | Synchronization System | Backlog |
-
-### Backlog (Unassigned)
-| Issue | Title | Priority |
-|-------|-------|----------|
-| CUS-42 | Voice Commands Support | Low |
-| CUS-43 | Keyboard Shortcuts | Medium |
-| CUS-44 | Theme System | Low |
-| CUS-45 | Notification System | Medium |
-| CUS-46 | Settings Persistence | Medium |
-| CUS-48 | Data Export/Import | Medium |
-| CUS-49 | Team Permissions | High |
-| CUS-50 | Audit Logging | Medium |
-| CUS-51 | API Rate Limiting | Medium |
-| CUS-52 | Caching Layer | Medium |
-| CUS-53 | Search Indexing | High |
-| CUS-54 | File Storage | High |
-| CUS-55 | Background Jobs | Medium |
-| CUS-56 | Webhooks System | Medium |
-| CUS-57 | API Versioning | Low |
-| CUS-58 | Health Monitoring | Medium |
-
----
-
-## Related Documents
-
+## Related Resources
 - [Architecture Overview](../architecture/)
 - [API Documentation](../api/)
 - [Database Schema](../database/)
 - [Integration Guides](../integrations/)
-- [Sorx 2.0 Docs](../sorxdocs/)
-- [Notifications Guide](./15-JAVARIS-NOTIFICATIONS.md)

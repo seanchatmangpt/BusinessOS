@@ -18,6 +18,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/database"
 	"github.com/rhl/businessos-backend/internal/handlers"
+	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
@@ -157,6 +158,8 @@ func main() {
 				container.DefaultMonitorConfig().IdleTimeout)
 		}
 	}
+
+	// OSA client initialization moved to line ~550 (uses ResilientClient)
 
 	// Create gin router
 	router := gin.Default()
@@ -526,8 +529,44 @@ func main() {
 		log.Printf("Block mapper initialized (markdown to structured blocks)")
 	}
 
-	// Initialize handlers with container manager, session cache, terminal pub/sub, and embedding services
-	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService)
+	// ============================================================
+	// OSA Integration - AI Agent Orchestration System
+	// ============================================================
+	var osaClient *osa.ResilientClient
+	var osaSyncService *services.OSASyncService
+
+	if cfg.OSAEnabled {
+		// Create resilient OSA client with circuit breaker and fallback
+		osaConfig := &osa.ResilientClientConfig{
+			OSAConfig: cfg.OSA, // cfg.OSA is already properly configured in config.Load()
+			CircuitBreakerConfig: osa.DefaultCircuitBreakerConfig(),
+			FallbackStrategy:     osa.FallbackStale,
+			CacheTTL:             5 * time.Minute,
+			HealthCheckCacheTTL:  30 * time.Second,
+			QueueSize:            1000,
+			EnableAutoRecovery:   true,
+		}
+
+		client, err := osa.NewResilientClient(osaConfig)
+		if err != nil {
+			log.Printf("Failed to create OSA client: %v", err)
+		} else {
+			osaClient = client
+			log.Printf("✅ OSA client initialized (base_url=%s)", cfg.OSA.BaseURL)
+
+			// Initialize OSA sync service for bidirectional sync
+			syncService, err := services.NewOSASyncService(pool, cfg)
+			if err != nil {
+				log.Printf("Failed to create OSA sync service: %v", err)
+			} else {
+				osaSyncService = syncService
+				log.Printf("✅ OSA sync service initialized (transactional outbox pattern)")
+			}
+		}
+	}
+
+	// Initialize handlers with container manager, session cache, terminal pub/sub, embedding services, and OSA
+	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService, osaClient, osaSyncService)
 
 	// Set Pedro Tasks services (Day 1 + Day 2)
 	h.SetPedroServices(documentProcessor, learningService, autoLearningTriggers, promptPersonalizer, appProfilerService, conversationIntelligence, memoryExtractor, blockMapper)
@@ -547,6 +586,11 @@ func main() {
 	workspaceService := services.NewWorkspaceService(pool)
 	h.SetWorkspaceService(workspaceService)
 	log.Printf("Workspace service registered (workspaces, members, roles)")
+
+	// OSA services already set via NewHandlers above
+	if osaClient != nil {
+		log.Printf("✅ OSA integration enabled (API endpoints at /api/osa/*)")
+	}
 
 	// Set Role Context service (Feature 1 - Permission system)
 	roleContextService := services.NewRoleContextService(pool)
@@ -674,6 +718,12 @@ func main() {
 
 	// Register routes
 	h.RegisterRoutes(api)
+
+	// Public OSA health endpoint (no auth required)
+	if osaClient != nil {
+		router.GET("/api/osa/health", h.HandleOSAHealth)
+		log.Printf("✅ Public OSA health endpoint registered at GET /api/osa/health")
+	}
 
 	// Start server
 	go func() {

@@ -123,6 +123,9 @@ func (m *ContainerManager) CreateContainer(userID string, sessionID string, imag
 		// DNS configuration for reliable resolution
 		DNS: []string{"8.8.8.8", "8.8.4.4", "1.1.1.1"},
 
+		// Add host.docker.internal to allow containers to reach host services
+		ExtraHosts: []string{"host.docker.internal:host-gateway"},
+
 		// Read-only root filesystem with tmpfs for required writable paths
 		ReadonlyRootfs: true,
 		Tmpfs: map[string]string{

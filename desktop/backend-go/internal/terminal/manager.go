@@ -386,6 +386,7 @@ func (m *Manager) buildEnvironment(userID string) map[string]string {
 	env["TERM"] = "xterm-256color"
 	env["LANG"] = "en_US.UTF-8"
 	env["COLORTERM"] = "truecolor"
+	env["BUSINESSOS_USER_ID"] = userID // Pass user ID to container for internal API calls
 	return env
 }
 
@@ -472,14 +473,14 @@ func (m *Manager) startContainer(session *Session) error {
 		shellCmd = []string{session.Shell}
 	}
 
-	// Create and start exec session with shell
-	execID, hijacked, err := m.containerMgr.StartExec(containerID, shellCmd, true)
+	// Create and start exec session with shell and environment variables
+	execID, hijacked, err := m.containerMgr.StartExecWithEnv(containerID, shellCmd, true, session.Environment)
 	if err != nil {
 		// If exec fails, try to stop the container
 		m.containerMgr.StopContainer(containerID, 10)
 		return fmt.Errorf("failed to start exec: %w", err)
 	}
-	log.Printf("[Terminal] Exec started: %s", execID)
+	log.Printf("[Terminal] Exec started: %s with env: %v", execID, session.Environment)
 
 	// Store container information in session
 	session.ContainerID = containerID

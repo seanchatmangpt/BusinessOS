@@ -24,6 +24,7 @@ export * from './profile';
 export * from './memory';
 export * from './context-tree';
 export * from './gmail';
+export * from './osa';
 
 // Pedro Tasks API modules
 export * from './learning';
@@ -50,6 +51,7 @@ import * as aiApi from './ai';
 import * as profileApi from './profile';
 import * as memoryApi from './memory';
 import * as contextTreeApi from './context-tree';
+import * as osaApi from './osa';
 import * as base from './base';
 
 // Consolidated api object exposing common domain functions for backward compatibility.
@@ -221,6 +223,15 @@ export const api = {
   getAgentPrompt: aiApi.getAgentPrompt,
   getTools: aiApi.getTools,
   executeTool: aiApi.executeTool,
+
+  // OSA-5 Orchestration
+  checkOSAHealth: osaApi.checkOSAHealth,
+  generateApp: osaApi.generateApp,
+  getAppStatus: osaApi.getAppStatus,
+  getWorkspaces: osaApi.getWorkspaces,
+  streamAppGeneration: osaApi.streamAppGeneration,
+  parseGenerationEvent: osaApi.parseGenerationEvent,
+  cancelGeneration: osaApi.cancelGeneration,
 
   // Profile
   updateProfile: profileApi.updateProfile,

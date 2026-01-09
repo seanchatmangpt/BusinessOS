@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"log"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
+	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
 	"github.com/rhl/businessos-backend/internal/terminal"
@@ -45,10 +47,13 @@ type Handlers struct {
 	inviteService            *services.WorkspaceInviteService  // Workspace invitation management
 	auditService             *services.WorkspaceAuditService   // Workspace audit logging
 	projectAccessService     *services.ProjectAccessService    // Project-level access control
+	// OSA Integration - AI Agent Orchestration
+	osaClient      *osa.ResilientClient      // OSA resilient client with circuit breaker
+	osaSyncService *services.OSASyncService  // OSA sync service for bidirectional sync
 }
 
 // NewHandlers creates a new Handlers instance
-func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService) *Handlers {
+func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService, osaClient *osa.ResilientClient, osaSyncService *services.OSASyncService) *Handlers {
 	return &Handlers{
 		pool:                 pool,
 		cfg:                  cfg,
@@ -58,6 +63,8 @@ func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container
 		embeddingService:     embeddingService,
 		contextBuilder:       contextBuilder,
 		tieredContextService: tieredContextService,
+		osaClient:            osaClient,
+		osaSyncService:       osaSyncService,
 	}
 }
 
@@ -132,6 +139,12 @@ func (h *Handlers) SetAuditService(auditService *services.WorkspaceAuditService)
 // SetProjectAccessService sets the project access service (Feature 1 - Project Access Control)
 func (h *Handlers) SetProjectAccessService(projectAccessService *services.ProjectAccessService) {
 	h.projectAccessService = projectAccessService
+}
+
+// SetOSAServices sets the OSA integration services
+func (h *Handlers) SetOSAServices(client *osa.ResilientClient, syncService *services.OSASyncService) {
+	h.osaClient = client
+	h.osaSyncService = syncService
 }
 
 // RegisterRoutes registers all API routes
@@ -907,5 +920,42 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	modules.Use(optionalAuth) // Optional auth for browsing available integrations
 	{
 		modules.GET("/:module/integrations", integrationsHandler.GetModuleIntegrations)
+	}
+
+	// ============================================================================
+	// OSA Integration Module (21-Agent Orchestration System)
+	// ============================================================================
+
+	log.Printf("DEBUG: About to check OSA routes, h.osaClient != nil: %v", h.osaClient != nil)
+	if h.osaClient != nil {
+		log.Printf("DEBUG: Registering OSA authenticated routes...")
+
+		// OSA authenticated routes - /api/osa (auth required)
+		// Note: /api/osa/health is registered publicly in main.go (no auth)
+		osaAuth := api.Group("/osa")
+		osaAuth.Use(auth)
+		{
+			osaAuth.POST("/generate", h.HandleGenerateApp)
+			osaAuth.GET("/status/:app_id", h.HandleGetAppStatus)
+			osaAuth.GET("/workspaces", h.HandleListWorkspaces)
+		}
+		log.Printf("✅ OSA authenticated API routes registered at /api/osa/*")
+
+		// OSA Internal routes - /api/internal/osa (for terminal containers)
+		// No auth middleware - uses X-User-ID header from container environment
+		osaInternal := api.Group("/internal/osa")
+		{
+			osaInternal.POST("/generate", h.HandleInternalGenerateApp)
+			osaInternal.GET("/status/:app_id", h.HandleInternalGetAppStatus)
+			osaInternal.GET("/workspaces", h.HandleInternalListWorkspaces)
+			osaInternal.GET("/health", h.HandleInternalOSAHealth)
+		}
+		log.Printf("✅ OSA internal API routes registered at /api/internal/osa/*")
+
+		// OSA Webhook routes - /webhooks/osa (OSA → BusinessOS callbacks)
+		// Note: Webhooks are registered in main.go outside the /api group
+		// They use HMAC verification instead of JWT auth
+	} else {
+		log.Printf("DEBUG: Skipping OSA routes, osaClient is nil")
 	}
 }

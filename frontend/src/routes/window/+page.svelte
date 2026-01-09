@@ -18,7 +18,7 @@
 	import FileBrowser from '$lib/components/desktop/FileBrowser.svelte';
 	import IconPicker from '$lib/components/desktop/IconPicker.svelte';
 	import AnimatedBackground from '$lib/components/desktop/AnimatedBackground.svelte';
-	import Desktop3D from '$lib/components/desktop3d/Desktop3D.svelte';
+	// import Desktop3D from '$lib/components/desktop3d/Desktop3D.svelte'; // Temporarily disabled - requires Node 22+
 	import type { CustomIconConfig } from '$lib/stores/windowStore';
 
 	const APP_VERSION = '0.0.1';
@@ -753,10 +753,10 @@
 		</div>
 	</div>
 {:else if $session.data}
-	<!-- 3D Desktop Mode -->
-	{#if $desktopSettings.enable3DDesktop}
+	<!-- 3D Desktop Mode (Temporarily disabled - requires Node 22+) -->
+	<!-- {#if $desktopSettings.enable3DDesktop}
 		<Desktop3D onExit={() => desktopSettings.set3DDesktop(false)} />
-	{:else}
+	{:else} -->
 	<div class="desktop-environment" style={backgroundStyle()}>
 		<!-- Animated Background Effect -->
 		{#if $desktopSettings.animatedBackground.effect !== 'none'}
@@ -1113,7 +1113,7 @@
 			</div>
 		{/if}
 	</div>
-	{/if}
+	<!-- {/if} -->
 {/if}
 
 <style>
