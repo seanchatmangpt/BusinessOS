@@ -139,17 +139,24 @@ function createTablesStore() {
 			try {
 				const table = await api.getTable(id);
 
+				// Ensure columns and views are arrays
+				const safeTable = {
+					...table,
+					columns: table.columns ?? [],
+					views: table.views ?? []
+				};
+
 				// Set default view if none selected
-				const defaultView = table.views.find((v) => v.is_default) || table.views[0] || null;
+				const defaultView = safeTable.views.find((v) => v.is_default) || safeTable.views[0] || null;
 
 				update((s) => ({
 					...s,
-					currentTable: table,
+					currentTable: safeTable,
 					currentView: defaultView,
 					loading: false
 				}));
 
-				return table;
+				return safeTable;
 			} catch (error) {
 				const message = error instanceof Error ? error.message : 'Failed to load table';
 				update((s) => ({ ...s, loading: false, error: message }));
@@ -177,9 +184,9 @@ function createTablesStore() {
 							icon: table.icon,
 							source: table.source,
 							source_integration: table.source_integration,
-							row_count: table.row_count,
-							column_count: table.columns.length,
-							is_favorite: table.is_favorite,
+							row_count: table.row_count ?? 0,
+							column_count: table.columns?.length ?? 0,
+							is_favorite: table.is_favorite ?? false,
 							updated_at: table.updated_at
 						},
 						...s.tables
@@ -843,14 +850,17 @@ export const currentViews = derived(tables, ($tables) => $tables.currentTable?.v
  * Visible columns based on current view settings
  */
 export const visibleColumns = derived(tables, ($tables) => {
+	const tableColumns = $tables.currentTable?.columns ?? [];
+
 	if (!$tables.currentTable || !$tables.currentView) {
-		return $tables.currentTable?.columns || [];
+		return tableColumns;
 	}
 
-	const hiddenSet = new Set($tables.currentView.hidden_columns);
-	const columnOrder = $tables.currentView.column_order;
+	const hiddenColumns = $tables.currentView.hidden_columns ?? [];
+	const columnOrder = $tables.currentView.column_order ?? [];
+	const hiddenSet = new Set(hiddenColumns);
 
-	let columns = $tables.currentTable.columns.filter((c) => !hiddenSet.has(c.id));
+	let columns = tableColumns.filter((c) => !hiddenSet.has(c.id));
 
 	if (columnOrder.length > 0) {
 		const orderMap = new Map(columnOrder.map((id, idx) => [id, idx]));

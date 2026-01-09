@@ -113,7 +113,9 @@
 		try {
 			const table = await tables.createTable(data);
 			showAddModal = false;
-			goto(`/tables/${table.id}${embedSuffix}`);
+			if (table?.id) {
+				goto(`/tables/${table.id}${embedSuffix}`);
+			}
 		} catch (err) {
 			console.error('Failed to create table:', err);
 		}
