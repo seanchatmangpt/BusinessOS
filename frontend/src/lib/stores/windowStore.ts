@@ -68,12 +68,15 @@ const moduleDefaults: Record<string, { title: string; width: number; height: num
 	projects: { title: 'Projects', width: 900, height: 650, minWidth: 500, minHeight: 400 },
 	team: { title: 'Team', width: 850, height: 600, minWidth: 400, minHeight: 300 },
 	clients: { title: 'Clients', width: 1000, height: 700, minWidth: 600, minHeight: 400 },
-	contexts: { title: 'Contexts', width: 800, height: 600, minWidth: 400, minHeight: 300 },
+	tables: { title: 'Tables', width: 1100, height: 750, minWidth: 700, minHeight: 500 },
+	pages: { title: 'Pages', width: 900, height: 650, minWidth: 500, minHeight: 400 },
+	contexts: { title: 'Pages', width: 900, height: 650, minWidth: 500, minHeight: 400 }, // Legacy alias
 	nodes: { title: 'Nodes', width: 1000, height: 700, minWidth: 600, minHeight: 400 },
 	daily: { title: 'Daily Log', width: 700, height: 550, minWidth: 350, minHeight: 300 },
 	settings: { title: 'Settings', width: 700, height: 550, minWidth: 400, minHeight: 350 },
-	calendar: { title: 'Calendar', width: 1000, height: 700, minWidth: 600, minHeight: 450 },
+	communication: { title: 'Communication', width: 1000, height: 700, minWidth: 600, minHeight: 450 },
 	'ai-settings': { title: 'AI Settings', width: 800, height: 600, minWidth: 500, minHeight: 400 },
+	integrations: { title: 'Integrations', width: 950, height: 700, minWidth: 600, minHeight: 500 },
 	trash: { title: 'Trash', width: 600, height: 450, minWidth: 300, minHeight: 250 },
 	terminal: { title: 'Terminal - OS Agent', width: 700, height: 500, minWidth: 400, minHeight: 300 },
 	'desktop-settings': { title: 'Desktop Settings', width: 550, height: 500, minWidth: 450, minHeight: 400 },
@@ -93,13 +96,15 @@ const initialDesktopIcons: DesktopIcon[] = [
 	{ id: 'icon-projects', module: 'projects', label: 'Projects', x: -1, y: 4 },
 	{ id: 'icon-team', module: 'team', label: 'Team', x: -1, y: 5 },
 	{ id: 'icon-clients', module: 'clients', label: 'Clients', x: -1, y: 6 },
-	{ id: 'icon-calendar', module: 'calendar', label: 'Calendar', x: -1, y: 7 },
+	{ id: 'icon-tables', module: 'tables', label: 'Tables', x: -1, y: 7 },
+	{ id: 'icon-communication', module: 'communication', label: 'Communication', x: -1, y: 8 },
 	{ id: 'icon-files', module: 'files', label: 'Files', x: -2, y: 0 },
-	{ id: 'icon-contexts', module: 'contexts', label: 'Contexts', x: -2, y: 1 },
+	{ id: 'icon-pages', module: 'pages', label: 'Pages', x: -2, y: 1 },
 	{ id: 'icon-nodes', module: 'nodes', label: 'Nodes', x: -2, y: 2 },
 	{ id: 'icon-daily', module: 'daily', label: 'Daily Log', x: -2, y: 3 },
 	{ id: 'icon-settings', module: 'settings', label: 'Settings', x: -2, y: 4 },
 	{ id: 'icon-ai-settings', module: 'ai-settings', label: 'AI Settings', x: -2, y: 5 },
+	{ id: 'icon-integrations', module: 'integrations', label: 'Integrations', x: -2, y: 6 },
 	{ id: 'icon-trash', module: 'trash', label: 'Trash', x: -1, y: -1 }, // Bottom right
 ];
 
@@ -125,13 +130,32 @@ function loadSavedSettings(): Partial<WindowStore> {
 		if (saved) {
 			const parsed = JSON.parse(saved);
 			// Ensure we have valid arrays
-			const desktopIcons = Array.isArray(parsed.desktopIcons) && parsed.desktopIcons.length > 0
+			let desktopIcons = Array.isArray(parsed.desktopIcons) && parsed.desktopIcons.length > 0
 				? parsed.desktopIcons
 				: initialDesktopIcons;
 			const dockPinnedItems = Array.isArray(parsed.dockPinnedItems) && parsed.dockPinnedItems.length > 0
 				? parsed.dockPinnedItems
 				: initialState.dockPinnedItems;
 			const folders = Array.isArray(parsed.folders) ? parsed.folders : [];
+
+			// Merge in any new default icons that were added since last save
+			// This ensures new modules (like integrations) appear on existing users' desktops
+			const savedIconIds = new Set(desktopIcons.map((i: DesktopIcon) => i.id));
+			const newIcons = initialDesktopIcons.filter(icon => !savedIconIds.has(icon.id));
+			if (newIcons.length > 0) {
+				desktopIcons = [...desktopIcons, ...newIcons];
+			}
+
+			// Update labels for existing icons to match defaults (preserve user positions)
+			// This ensures label renames like "Contexts" -> "Knowledge" are applied
+			const defaultLabels = new Map(initialDesktopIcons.map(i => [i.id, i.label]));
+			desktopIcons = desktopIcons.map((icon: DesktopIcon) => {
+				const defaultLabel = defaultLabels.get(icon.id);
+				if (defaultLabel && icon.label !== defaultLabel) {
+					return { ...icon, label: defaultLabel };
+				}
+				return icon;
+			});
 
 			return { desktopIcons, dockPinnedItems, folders };
 		}

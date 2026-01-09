@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rhl/businessos-backend/internal/middleware"
 )
 
 // SyncRequest represents a sync request
@@ -37,11 +38,12 @@ var SyncableTables = map[string]string{
 // GetSyncChanges returns changes since a given timestamp
 // GET /api/sync/:table
 func (h *Handlers) GetSyncChanges(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	userID := user.ID
 
 	table := c.Param("table")
 	since := c.Query("since")
@@ -99,11 +101,12 @@ func (h *Handlers) GetSyncChanges(c *gin.Context) {
 // FullSync returns all data for initial sync
 // GET /api/sync/full
 func (h *Handlers) FullSync(c *gin.Context) {
-	userID := c.GetString("user_id")
-	if userID == "" {
+	user := middleware.GetCurrentUser(c)
+	if user == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
+	userID := user.ID
 
 	epoch := time.Time{}
 	result := make(map[string][]map[string]interface{})
@@ -156,11 +159,12 @@ func (h *Handlers) GetSyncStatus(c *gin.Context) {
 // createTableSyncHandler creates a handler for a specific table's sync endpoint
 func (h *Handlers) createTableSyncHandler(table string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID := c.GetString("user_id")
-		if userID == "" {
+		user := middleware.GetCurrentUser(c)
+		if user == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
+		userID := user.ID
 
 		since := c.Query("since")
 

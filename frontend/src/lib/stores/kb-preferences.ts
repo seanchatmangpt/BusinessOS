@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export type KBSection = 'home' | 'recent' | 'favorites' | 'all';
+export type KBSection = 'home' | 'recent' | 'favorites' | 'all' | 'memories';
 export type KBViewMode = 'list' | 'graph';
 
 interface KBPreferences {
@@ -23,7 +23,7 @@ interface KBPreferences {
 const DEFAULT_PREFERENCES: KBPreferences = {
 	activeSection: 'home',
 	viewMode: 'list',
-	expandedSections: ['favorites', 'recent', 'projects', 'people', 'business', 'documents'],
+	expandedSections: ['favorites', 'recent', 'projects', 'people', 'business', 'documents', 'memories'],
 	expandedPages: [],
 	sidebarWidth: 280,
 	sidebarCollapsed: false,

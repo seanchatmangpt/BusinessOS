@@ -24,7 +24,9 @@ type SendMessageRequest struct {
 	ContextID      *string           `json:"context_id"`  // Legacy: single context ID
 	ContextIDs     []string          `json:"context_ids"` // NEW: Multiple context IDs for tiered context
 	ProjectID      *string           `json:"project_id"`
-	NodeID         *string           `json:"node_id"` // NEW: Business node context
+	NodeID         *string           `json:"node_id"`       // NEW: Business node context
+	WorkspaceID    *string           `json:"workspace_id"`  // NEW (Feature 1): Workspace context for role-based permissions
+	DocumentIDs    []string          `json:"document_ids"`  // NEW: Attached document IDs for RAG
 	Model          *string           `json:"model"`
 	AgentType      *string           `json:"agent_type"`    // orchestrator, document, analysis, planning
 	FocusMode      *string           `json:"focus_mode"`    // research, analyze, write, build, general
@@ -39,6 +41,9 @@ type SendMessageRequest struct {
 	ReasoningTemplateID *string `json:"reasoning_template_id"` // Custom reasoning template to use
 	SaveThinking        *bool   `json:"save_thinking"`         // Save thinking traces to database
 	MaxThinkingTokens   *int    `json:"max_thinking_tokens"`   // Max tokens for thinking
+	// Output Style settings
+	OutputStyle      *string `json:"output_style"`      // technical, creative, executive, concise
+	StructuredOutput *bool   `json:"structured_output"` // If true, backend will return structured Blocks
 }
 
 // ListConversations returns all conversations for the current user
@@ -332,7 +337,7 @@ func (h *Handlers) DocumentAI(c *gin.Context) {
 	}
 
 	// Use Document agent V2
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agents.AgentTypeV2Document, user.ID, user.Name, nil, nil)
 	agent.SetModel(model)
 
@@ -393,7 +398,7 @@ func (h *Handlers) AnalyzeContent(c *gin.Context) {
 	}
 
 	// Use Analyst agent V2
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agents.AgentTypeV2Analyst, user.ID, user.Name, nil, nil)
 	agent.SetModel(model)
 
@@ -450,7 +455,7 @@ func (h *Handlers) ExtractTasks(c *gin.Context) {
 	}
 
 	// Use Task agent V2 for task extraction
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agents.AgentTypeV2Task, user.ID, user.Name, nil, nil)
 	agent.SetModel(model)
 
@@ -525,7 +530,7 @@ func (h *Handlers) CreatePlan(c *gin.Context) {
 	}
 
 	// Use Project agent V2 for planning
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agents.AgentTypeV2Project, user.ID, user.Name, nil, nil)
 	agent.SetModel(model)
 

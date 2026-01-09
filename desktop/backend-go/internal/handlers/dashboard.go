@@ -248,7 +248,8 @@ func (h *Handlers) ListTasks(c *gin.Context) {
 		ProjectID: projectID,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list tasks"})
+		log.Printf("[ListTasks] Error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list tasks: " + err.Error()})
 		return
 	}
 
@@ -367,13 +368,14 @@ func (h *Handlers) UpdateTask(c *gin.Context) {
 	}
 
 	var req struct {
-		Title       string  `json:"title" binding:"required"`
+		Title       *string `json:"title"`
 		Description *string `json:"description"`
 		Status      *string `json:"status"`
 		Priority    *string `json:"priority"`
 		DueDate     *string `json:"due_date"`
 		ProjectID   *string `json:"project_id"`
 		AssigneeID  *string `json:"assignee_id"`
+		Position    *int32  `json:"position"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -437,6 +439,7 @@ func (h *Handlers) UpdateTask(c *gin.Context) {
 		DueDate:     dueDate,
 		ProjectID:   projectID,
 		AssigneeID:  assigneeID,
+		Position:    req.Position,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})

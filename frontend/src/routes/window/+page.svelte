@@ -18,6 +18,7 @@
 	import FileBrowser from '$lib/components/desktop/FileBrowser.svelte';
 	import IconPicker from '$lib/components/desktop/IconPicker.svelte';
 	import AnimatedBackground from '$lib/components/desktop/AnimatedBackground.svelte';
+	import Desktop3D from '$lib/components/desktop3d/Desktop3D.svelte';
 	import type { CustomIconConfig } from '$lib/stores/windowStore';
 
 	const APP_VERSION = '0.0.1';
@@ -752,6 +753,10 @@
 		</div>
 	</div>
 {:else if $session.data}
+	<!-- 3D Desktop Mode -->
+	{#if $desktopSettings.enable3DDesktop}
+		<Desktop3D onExit={() => desktopSettings.set3DDesktop(false)} />
+	{:else}
 	<div class="desktop-environment" style={backgroundStyle()}>
 		<!-- Animated Background Effect -->
 		{#if $desktopSettings.animatedBackground.effect !== 'none'}
@@ -884,7 +889,7 @@
 							{:else if win.module === 'team'}
 								<iframe src="/team?embed=true" title="Team" class="module-iframe"></iframe>
 							{:else if win.module === 'contexts'}
-								<iframe src="/contexts?embed=true" title="Contexts" class="module-iframe"></iframe>
+								<iframe src="/knowledge-v2?embed=true" title="Pages" class="module-iframe"></iframe>
 							{:else if win.module === 'nodes'}
 								<iframe src="/nodes?embed=true" title="Nodes" class="module-iframe"></iframe>
 							{:else if win.module === 'daily'}
@@ -893,10 +898,22 @@
 								<iframe src="/settings?embed=true" title="Settings" class="module-iframe"></iframe>
 							{:else if win.module === 'clients'}
 								<iframe src="/clients?embed=true" title="Clients" class="module-iframe"></iframe>
+							{:else if win.module === 'tables'}
+								<iframe src="/tables?embed=true" title="Tables" class="module-iframe"></iframe>
+							{:else if win.module === 'communication'}
+								<iframe src="/communication/calendar?embed=true" title="Communication" class="module-iframe"></iframe>
 							{:else if win.module === 'calendar'}
-								<iframe src="/calendar?embed=true" title="Calendar" class="module-iframe"></iframe>
+								<iframe src="/communication/calendar?embed=true" title="Calendar" class="module-iframe"></iframe>
+							{:else if win.module === 'pages'}
+								<iframe src="/pages?embed=true" title="Pages" class="module-iframe"></iframe>
+							{:else if win.module === 'contexts'}
+								<iframe src="/pages?embed=true" title="Pages" class="module-iframe"></iframe>
+							{:else if win.module === 'knowledge'}
+								<iframe src="/pages?embed=true" title="Pages" class="module-iframe"></iframe>
 							{:else if win.module === 'ai-settings'}
 								<iframe src="/settings/ai?embed=true" title="AI Settings" class="module-iframe"></iframe>
+							{:else if win.module === 'integrations'}
+								<iframe src="/integrations?embed=true" title="Integrations" class="module-iframe"></iframe>
 							{:else if win.module === 'files'}
 								<FileBrowser />
 							{:else if win.module === 'finder'}
@@ -1096,6 +1113,7 @@
 			</div>
 		{/if}
 	</div>
+	{/if}
 {/if}
 
 <style>

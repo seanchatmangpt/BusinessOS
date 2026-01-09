@@ -121,10 +121,10 @@ func (h *Handlers) CreateContext(c *gin.Context) {
 		properties = req.Properties
 	}
 
-	// Default type to 'document' if not specified
+	// Default type to 'document' if not specified (lowercase for DB compatibility)
 	if !ctxType.Valid {
 		ctxType = sqlc.NullContexttype{
-			Contexttype: sqlc.ContexttypeDocument,
+			Contexttype: sqlc.ContexttypeDocument, // lowercase 'document' for DB enum
 			Valid:       true,
 		}
 	}
@@ -682,7 +682,7 @@ func stringToContextType(t string) sqlc.Contexttype {
 		"person":   sqlc.ContexttypePERSON,
 		"business": sqlc.ContexttypeBUSINESS,
 		"project":  sqlc.ContexttypePROJECT,
-		"document": sqlc.ContexttypeDOCUMENT,
+		"document": sqlc.ContexttypeDocument, // Use lowercase version for DB compatibility
 		"custom":   sqlc.ContexttypeCUSTOM,
 	}
 	if enum, ok := typeMap[strings.ToLower(t)]; ok {

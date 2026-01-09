@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pgvector/pgvector-go"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
@@ -22,13 +24,15 @@ import (
 type VoiceNotesHandler struct {
 	whisper *services.WhisperService
 	pool    *pgxpool.Pool
+	emb     *services.EmbeddingService
 }
 
 // NewVoiceNotesHandler creates a new voice notes handler
-func NewVoiceNotesHandler(pool *pgxpool.Pool) *VoiceNotesHandler {
+func NewVoiceNotesHandler(pool *pgxpool.Pool, embeddingService *services.EmbeddingService) *VoiceNotesHandler {
 	return &VoiceNotesHandler{
 		whisper: services.NewWhisperService(),
 		pool:    pool,
+		emb:     embeddingService,
 	}
 }
 
@@ -115,7 +119,7 @@ func (h *VoiceNotesHandler) UploadVoiceNote(c *gin.Context) {
 		result, err := h.whisper.TranscribeFile(c.Request.Context(), filePath)
 		if err != nil {
 			// Log but don't fail - save note without transcript
-			fmt.Printf("Transcription failed: %v\n", err)
+			slog.Warn("transcription failed", "error", err)
 		} else {
 			transcript = result.Text
 			duration = result.Duration
@@ -164,8 +168,16 @@ func (h *VoiceNotesHandler) UploadVoiceNote(c *gin.Context) {
 		})
 		if err == nil {
 			dbNoteID = voiceNote.ID.String()
+
+			// Generate and store embedding for semantic search (best-effort)
+			if h.emb != nil {
+				if emb, err := h.emb.GenerateEmbedding(c.Request.Context(), transcript); err == nil && len(emb) > 0 {
+					vec := pgvector.NewVector(emb)
+					_, _ = h.pool.Exec(c.Request.Context(), `UPDATE voice_notes SET embedding = $1 WHERE id = $2 AND user_id = $3`, vec, voiceNote.ID, user.ID)
+				}
+			}
 		} else {
-			fmt.Printf("Failed to save voice note to database: %v\n", err)
+			slog.Warn("failed to save voice note to database", "error", err)
 		}
 	}
 

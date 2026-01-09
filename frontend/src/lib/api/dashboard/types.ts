@@ -18,9 +18,12 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  start_date?: string | null;
   completed_at: string | null;
   project_id: string | null;
   assignee_id: string | null;
+  parent_task_id?: string | null;
+  estimated_hours?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,8 +33,11 @@ export interface CreateTaskData {
   description?: string;
   priority?: TaskPriority;
   due_date?: string;
+  start_date?: string;
   project_id?: string;
   assignee_id?: string;
+  parent_task_id?: string;
+  estimated_hours?: number;
 }
 
 export interface UpdateTaskData {
@@ -42,6 +48,7 @@ export interface UpdateTaskData {
   due_date?: string;
   project_id?: string;
   assignee_id?: string;
+  position?: number;
 }
 
 export interface DashboardTask {

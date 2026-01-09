@@ -553,6 +553,17 @@ func (o *OrchestratorCOT) executeDirectly(
 	// Get orchestrator agent and set LLM options
 	agent := o.registry.GetAgent(AgentTypeV2Orchestrator, input.UserID, input.UserName, &input.ConversationID, input.Context)
 	agent.SetOptions(llmOptions)
+
+	// Inject role and memory contexts if available (Feature: Memory Hierarchy + Role-based permissions)
+	if input.RoleContext != "" {
+		agent.SetRoleContextPrompt(input.RoleContext)
+		fmt.Printf("[COT] Injected role context into orchestrator (%d chars)\n", len(input.RoleContext))
+	}
+	if input.MemoryContext != "" {
+		agent.SetMemoryContext(input.MemoryContext)
+		fmt.Printf("[COT] Injected memory context into orchestrator (%d chars)\n", len(input.MemoryContext))
+	}
+
 	agentEvents, agentErrs := agent.Run(ctx, input)
 
 	var output strings.Builder
@@ -637,6 +648,17 @@ func (o *OrchestratorCOT) executeDelegation(
 	// Get and run the agent with LLM options
 	agent := o.registry.GetAgent(targetAgent, userID, userName, conversationID, input.Context)
 	agent.SetOptions(llmOptions)
+
+	// Inject role and memory contexts if available (Feature: Memory Hierarchy + Role-based permissions)
+	if input.RoleContext != "" {
+		agent.SetRoleContextPrompt(input.RoleContext)
+		fmt.Printf("[COT] Injected role context into %s agent (%d chars)\n", targetAgent, len(input.RoleContext))
+	}
+	if input.MemoryContext != "" {
+		agent.SetMemoryContext(input.MemoryContext)
+		fmt.Printf("[COT] Injected memory context into %s agent (%d chars)\n", targetAgent, len(input.MemoryContext))
+	}
+
 	agentEvents, agentErrs := agent.Run(ctx, input)
 
 	var output strings.Builder
@@ -713,6 +735,17 @@ func (o *OrchestratorCOT) executeMultiAgent(
 			// Run agent with LLM options
 			agent := o.registry.GetAgent(s.Agent, userID, userName, conversationID, input.Context)
 			agent.SetOptions(llmOptions)
+
+			// Inject role and memory contexts if available (Feature: Memory Hierarchy + Role-based permissions)
+			if input.RoleContext != "" {
+				agent.SetRoleContextPrompt(input.RoleContext)
+				fmt.Printf("[COT-Multi] Injected role context into %s agent (%d chars)\n", s.Agent, len(input.RoleContext))
+			}
+			if input.MemoryContext != "" {
+				agent.SetMemoryContext(input.MemoryContext)
+				fmt.Printf("[COT-Multi] Injected memory context into %s agent (%d chars)\n", s.Agent, len(input.MemoryContext))
+			}
+
 			agentEvents, agentErrs := agent.Run(ctx, input)
 
 			var output strings.Builder
@@ -887,6 +920,16 @@ func (o *OrchestratorCOT) executeSequential(
 		// Get and run the agent
 		agent := o.registry.GetAgent(step.Agent, userID, userName, conversationID, input.Context)
 		agent.SetOptions(stepLLMOptions)
+
+		// Inject role and memory contexts if available (Feature: Memory Hierarchy + Role-based permissions)
+		if input.RoleContext != "" {
+			agent.SetRoleContextPrompt(input.RoleContext)
+			fmt.Printf("[COT-Seq] Injected role context into %s agent (%d chars)\n", step.Agent, len(input.RoleContext))
+		}
+		if input.MemoryContext != "" {
+			agent.SetMemoryContext(input.MemoryContext)
+			fmt.Printf("[COT-Seq] Injected memory context into %s agent (%d chars)\n", step.Agent, len(input.MemoryContext))
+		}
 
 		// If step needs search, enable it in the input
 		if step.NeedsSearch {

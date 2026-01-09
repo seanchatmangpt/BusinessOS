@@ -1,0 +1,109 @@
+{
+  "session_date": "2026-01-01",
+  "branch": "pedro-dev",
+  "feature": "Pedro Tasks Frontend Integration",
+  "status": "completed",
+
+  "summary": "Integracao completa do sistema Pedro Tasks (Memory, Context & Intelligence) no frontend do BusinessOS. Criados 4 modulos de API, 1 store, 3 componentes UI, e modificados 3 arquivos existentes.",
+
+  "files_created": [
+    "frontend/src/lib/api/learning/types.ts",
+    "frontend/src/lib/api/learning/learning.ts",
+    "frontend/src/lib/api/learning/index.ts",
+    "frontend/src/lib/api/pedro-documents/types.ts",
+    "frontend/src/lib/api/pedro-documents/documents.ts",
+    "frontend/src/lib/api/pedro-documents/index.ts",
+    "frontend/src/lib/api/intelligence/types.ts",
+    "frontend/src/lib/api/intelligence/intelligence.ts",
+    "frontend/src/lib/api/intelligence/index.ts",
+    "frontend/src/lib/api/app-profiles/types.ts",
+    "frontend/src/lib/api/app-profiles/profiles.ts",
+    "frontend/src/lib/api/app-profiles/index.ts",
+    "frontend/src/lib/stores/learning.ts",
+    "frontend/src/lib/components/chat/MemoryCard.svelte",
+    "frontend/src/lib/components/chat/MemoryPanel.svelte",
+    "frontend/src/lib/components/chat/DocumentUploadModal.svelte"
+  ],
+
+  "files_modified": [
+    "frontend/src/lib/api/index.ts",
+    "frontend/src/lib/components/ai-elements/MessageActions.svelte",
+    "frontend/src/routes/(app)/settings/+page.svelte"
+  ],
+
+  "export_renames": {
+    "intelligence/types.ts": {
+      "Message": "IntelligenceMessage",
+      "MemoryType": "ExtractedMemoryType"
+    },
+    "intelligence/intelligence.ts": {
+      "searchConversations": "searchConversationAnalyses"
+    },
+    "app-profiles/profiles.ts": {
+      "refreshProfile": "refreshAppProfile"
+    }
+  },
+
+  "backend_endpoints": {
+    "learning": [
+      "POST /api/learning/feedback",
+      "POST /api/learning/behavior",
+      "GET /api/learning/profile",
+      "PUT /api/learning/profile",
+      "POST /api/learning/profile/refresh",
+      "GET /api/learning/patterns",
+      "GET /api/learning/learnings",
+      "POST /api/learning/learnings/:id/apply"
+    ],
+    "documents": [
+      "POST /api/documents",
+      "GET /api/documents",
+      "POST /api/documents/search",
+      "POST /api/documents/chunks",
+      "GET /api/documents/:id",
+      "DELETE /api/documents/:id",
+      "POST /api/documents/:id/reprocess",
+      "GET /api/documents/:id/content"
+    ],
+    "intelligence": [
+      "POST /api/intelligence/analyze",
+      "GET /api/intelligence/conversations/:id",
+      "GET /api/intelligence/conversations/search",
+      "POST /api/intelligence/extract/conversation",
+      "POST /api/intelligence/extract/voice-note",
+      "GET /api/intelligence/memories"
+    ],
+    "app_profiles": [
+      "POST /api/app-profiles",
+      "GET /api/app-profiles",
+      "GET /api/app-profiles/:name",
+      "POST /api/app-profiles/:name/refresh",
+      "DELETE /api/app-profiles/:name",
+      "GET /api/app-profiles/:name/components",
+      "GET /api/app-profiles/:name/endpoints",
+      "GET /api/app-profiles/:name/structure",
+      "GET /api/app-profiles/:name/modules",
+      "GET /api/app-profiles/:name/tech-stack"
+    ]
+  },
+
+  "verification": {
+    "npm_run_check": {
+      "errors": 9,
+      "warnings": 314,
+      "note": "Errors are pre-existing, not related to this integration"
+    }
+  },
+
+  "next_steps": [
+    "Integrar MemoryPanel no ContextPanel como nova tab",
+    "Integrar DocumentUploadModal no ChatInput",
+    "Testar fluxo completo com backend rodando",
+    "Adicionar testes unitarios"
+  ],
+
+  "related_docs": [
+    "docs/pedro-tasks-frontend-integration.md",
+    "C:\\Users\\Pichau\\.claude\\plans\\golden-spinning-wind.md"
+  ]
+}

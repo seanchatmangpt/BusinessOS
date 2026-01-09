@@ -26,9 +26,15 @@ type AgentTool interface {
 
 // AgentToolRegistry manages available tools for agents
 type AgentToolRegistry struct {
-	pool   *pgxpool.Pool
-	userID string
-	tools  map[string]AgentTool
+	pool             *pgxpool.Pool
+	userID           string
+	tools            map[string]AgentTool
+	embeddingService EmbeddingServiceInterface // Optional, enables semantic search tools
+}
+
+// EmbeddingServiceInterface defines the interface for embedding operations
+type EmbeddingServiceInterface interface {
+	GenerateEmbedding(ctx context.Context, text string) ([]float32, error)
 }
 
 // NewAgentToolRegistry creates a new tool registry for an agent
@@ -43,6 +49,28 @@ func NewAgentToolRegistry(pool *pgxpool.Pool, userID string) *AgentToolRegistry 
 	registry.registerTools()
 
 	return registry
+}
+
+// NewAgentToolRegistryWithEmbedding creates a registry with embedding service for semantic search
+func NewAgentToolRegistryWithEmbedding(pool *pgxpool.Pool, userID string, embeddingService EmbeddingServiceInterface) *AgentToolRegistry {
+	registry := &AgentToolRegistry{
+		pool:             pool,
+		userID:           userID,
+		tools:            make(map[string]AgentTool),
+		embeddingService: embeddingService,
+	}
+
+	// Register all available tools including context tools
+	registry.registerTools()
+
+	return registry
+}
+
+// SetEmbeddingService sets the embedding service to enable semantic search tools
+func (r *AgentToolRegistry) SetEmbeddingService(embeddingService EmbeddingServiceInterface) {
+	r.embeddingService = embeddingService
+	// Re-register tools to include context tools
+	r.registerContextTools()
 }
 
 func (r *AgentToolRegistry) registerTools() {
@@ -1732,4 +1760,716 @@ func (t *WebSearchTool) parseDuckDuckGoLiteHTML(htmlContent string, maxResults i
 	}
 
 	return results
+}
+
+// ========== CONTEXT TOOLS (for AI Agent tree navigation) ==========
+
+// ContextServiceInterface defines the interface for context operations
+type ContextServiceInterface interface {
+	SearchTree(ctx context.Context, userID string, params TreeSearchParams) ([]TreeSearchResult, error)
+	GetContextTree(ctx context.Context, userID string, projectID, nodeID *uuid.UUID) (*ContextTree, error)
+	LoadContextItem(ctx context.Context, userID string, itemID uuid.UUID, itemType string) (*ContextItem, error)
+}
+
+// TreeSearchParams for context search
+type TreeSearchParams struct {
+	Query       string   `json:"query"`
+	SearchType  string   `json:"search_type"`  // 'title', 'content', 'semantic'
+	EntityTypes []string `json:"entity_types"` // 'memories', 'contexts', 'artifacts', 'documents'
+	MaxResults  int      `json:"max_results"`
+}
+
+// TreeSearchResult represents a search result
+type TreeSearchResult struct {
+	ID             uuid.UUID `json:"id"`
+	Title          string    `json:"title"`
+	Type           string    `json:"type"`
+	Summary        string    `json:"summary,omitempty"`
+	RelevanceScore float64   `json:"relevance_score"`
+	TreePath       []string  `json:"tree_path"`
+	TokenEstimate  int       `json:"token_estimate"`
+}
+
+// ContextTree represents the hierarchical context structure
+type ContextTree struct {
+	RootNode    *ContextTreeNode `json:"root_node"`
+	TotalItems  int              `json:"total_items"`
+}
+
+// ContextTreeNode represents a node in the context tree
+type ContextTreeNode struct {
+	ID          uuid.UUID          `json:"id"`
+	Type        string             `json:"type"`
+	Name        string             `json:"name"`
+	Description string             `json:"description,omitempty"`
+	Icon        string             `json:"icon,omitempty"`
+	ItemCount   int                `json:"item_count"`
+	Children    []*ContextTreeNode `json:"children,omitempty"`
+}
+
+// ContextItem represents a loaded context item
+type ContextItem struct {
+	ID         uuid.UUID `json:"id"`
+	Type       string    `json:"type"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	TokenCount int       `json:"token_count"`
+}
+
+// registerContextTools registers the context navigation tools
+func (r *AgentToolRegistry) registerContextTools() {
+	if r.embeddingService == nil {
+		return // Context tools require embedding service for semantic search
+	}
+
+	r.tools["tree_search"] = &TreeSearchTool{pool: r.pool, userID: r.userID, embeddingService: r.embeddingService}
+	r.tools["browse_tree"] = &BrowseTreeTool{pool: r.pool, userID: r.userID}
+	r.tools["load_context"] = &LoadContextTool{pool: r.pool, userID: r.userID}
+}
+
+// ========== TreeSearchTool ==========
+
+// TreeSearchTool searches the context tree (memories, documents, artifacts)
+type TreeSearchTool struct {
+	pool             *pgxpool.Pool
+	userID           string
+	embeddingService EmbeddingServiceInterface
+}
+
+func (t *TreeSearchTool) Name() string { return "tree_search" }
+func (t *TreeSearchTool) Description() string {
+	return "Search through the user's knowledge base including memories, documents, and artifacts. Use this to find relevant context before answering questions. Supports title search, content search, and semantic (meaning-based) search."
+}
+func (t *TreeSearchTool) InputSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"query": map[string]interface{}{
+				"type":        "string",
+				"description": "The search query - what you're looking for",
+			},
+			"search_type": map[string]interface{}{
+				"type":        "string",
+				"enum":        []string{"title", "content", "semantic"},
+				"description": "Type of search: 'title' for name matching, 'content' for text search, 'semantic' for meaning-based search (default: semantic)",
+			},
+			"entity_types": map[string]interface{}{
+				"type": "array",
+				"items": map[string]interface{}{
+					"type": "string",
+					"enum": []string{"memories", "documents", "artifacts", "contexts"},
+				},
+				"description": "Types of items to search (default: all types)",
+			},
+			"max_results": map[string]interface{}{
+				"type":        "integer",
+				"description": "Maximum number of results to return (default: 10, max: 25)",
+			},
+		},
+		"required": []string{"query"},
+	}
+}
+
+func (t *TreeSearchTool) Execute(ctx context.Context, input json.RawMessage) (string, error) {
+	var params struct {
+		Query       string   `json:"query"`
+		SearchType  string   `json:"search_type"`
+		EntityTypes []string `json:"entity_types"`
+		MaxResults  int      `json:"max_results"`
+	}
+	if err := json.Unmarshal(input, &params); err != nil {
+		return "", fmt.Errorf("invalid input: %w", err)
+	}
+
+	if params.Query == "" {
+		return "", fmt.Errorf("query is required")
+	}
+	if params.SearchType == "" {
+		params.SearchType = "semantic"
+	}
+	if params.MaxResults <= 0 {
+		params.MaxResults = 10
+	}
+	if params.MaxResults > 25 {
+		params.MaxResults = 25
+	}
+
+	var results []TreeSearchResult
+	var err error
+
+	switch params.SearchType {
+	case "semantic":
+		results, err = t.semanticSearch(ctx, params)
+	case "title":
+		results, err = t.titleSearch(ctx, params)
+	case "content":
+		results, err = t.contentSearch(ctx, params)
+	default:
+		results, err = t.titleSearch(ctx, params)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("search failed: %w", err)
+	}
+
+	if len(results) == 0 {
+		return fmt.Sprintf("No results found for: \"%s\"", params.Query), nil
+	}
+
+	// Format results
+	var output strings.Builder
+	output.WriteString(fmt.Sprintf("## Search Results for: \"%s\" (%s search)\n\n", params.Query, params.SearchType))
+	output.WriteString(fmt.Sprintf("Found %d results:\n\n", len(results)))
+
+	for i, r := range results {
+		output.WriteString(fmt.Sprintf("### %d. %s\n", i+1, r.Title))
+		output.WriteString(fmt.Sprintf("- **Type:** %s\n", r.Type))
+		output.WriteString(fmt.Sprintf("- **ID:** %s\n", r.ID.String()))
+		if r.Summary != "" {
+			output.WriteString(fmt.Sprintf("- **Summary:** %s\n", r.Summary))
+		}
+		if params.SearchType == "semantic" {
+			output.WriteString(fmt.Sprintf("- **Relevance:** %.2f\n", r.RelevanceScore))
+		}
+		output.WriteString("\n")
+	}
+
+	output.WriteString("\n*Use `load_context` tool with an ID to load the full content of any item.*")
+
+	return output.String(), nil
+}
+
+func (t *TreeSearchTool) semanticSearch(ctx context.Context, params struct {
+	Query       string   `json:"query"`
+	SearchType  string   `json:"search_type"`
+	EntityTypes []string `json:"entity_types"`
+	MaxResults  int      `json:"max_results"`
+}) ([]TreeSearchResult, error) {
+	if t.embeddingService == nil {
+		return t.titleSearch(ctx, params)
+	}
+
+	// Generate query embedding
+	queryEmbedding, err := t.embeddingService.GenerateEmbedding(ctx, params.Query)
+	if err != nil {
+		return t.titleSearch(ctx, params) // Fallback to title search
+	}
+
+	var results []TreeSearchResult
+	shouldSearchType := func(entityType string) bool {
+		if len(params.EntityTypes) == 0 {
+			return true
+		}
+		for _, et := range params.EntityTypes {
+			if et == entityType {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Search memories
+	if shouldSearchType("memories") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(title, summary, LEFT(content, 100)), memory_type, COALESCE(summary, LEFT(content, 200)),
+			       1 - (embedding <=> $1::vector) as similarity
+			FROM memories
+			WHERE user_id = $2 AND is_active = true AND embedding IS NOT NULL
+			ORDER BY embedding <=> $1::vector
+			LIMIT $3
+		`, fmt.Sprintf("[%s]", floatsToString(queryEmbedding)), t.userID, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var memType string
+				if err := rows.Scan(&r.ID, &r.Title, &memType, &r.Summary, &r.RelevanceScore); err != nil {
+					continue
+				}
+				r.Type = "memory"
+				r.TreePath = []string{"Memories", memType}
+				results = append(results, r)
+			}
+		}
+	}
+
+	// Search documents
+	if shouldSearchType("documents") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(display_name, filename), COALESCE(document_type, 'document'),
+			       COALESCE(description, LEFT(extracted_text, 200)),
+			       1 - (embedding <=> $1::vector) as similarity
+			FROM uploaded_documents
+			WHERE user_id = $2 AND embedding IS NOT NULL
+			ORDER BY embedding <=> $1::vector
+			LIMIT $3
+		`, fmt.Sprintf("[%s]", floatsToString(queryEmbedding)), t.userID, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var docType string
+				if err := rows.Scan(&r.ID, &r.Title, &docType, &r.Summary, &r.RelevanceScore); err != nil {
+					continue
+				}
+				r.Type = "document"
+				r.TreePath = []string{"Documents", docType}
+				results = append(results, r)
+			}
+		}
+	}
+
+	// Sort by relevance
+	for i := 0; i < len(results); i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].RelevanceScore > results[i].RelevanceScore {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+
+	if len(results) > params.MaxResults {
+		results = results[:params.MaxResults]
+	}
+
+	return results, nil
+}
+
+func (t *TreeSearchTool) titleSearch(ctx context.Context, params struct {
+	Query       string   `json:"query"`
+	SearchType  string   `json:"search_type"`
+	EntityTypes []string `json:"entity_types"`
+	MaxResults  int      `json:"max_results"`
+}) ([]TreeSearchResult, error) {
+	var results []TreeSearchResult
+	searchPattern := "%" + params.Query + "%"
+
+	shouldSearchType := func(entityType string) bool {
+		if len(params.EntityTypes) == 0 {
+			return true
+		}
+		for _, et := range params.EntityTypes {
+			if et == entityType {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Search memories
+	if shouldSearchType("memories") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(title, summary, LEFT(content, 100)), memory_type, COALESCE(summary, LEFT(content, 200))
+			FROM memories
+			WHERE user_id = $1 AND is_active = true AND (title ILIKE $2 OR summary ILIKE $2)
+			ORDER BY importance_score DESC
+			LIMIT $3
+		`, t.userID, searchPattern, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var memType string
+				if err := rows.Scan(&r.ID, &r.Title, &memType, &r.Summary); err != nil {
+					continue
+				}
+				r.Type = "memory"
+				r.TreePath = []string{"Memories", memType}
+				r.RelevanceScore = 0.8
+				results = append(results, r)
+			}
+		}
+	}
+
+	// Search documents
+	if shouldSearchType("documents") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(display_name, filename), COALESCE(document_type, 'document'),
+			       COALESCE(description, LEFT(extracted_text, 200))
+			FROM uploaded_documents
+			WHERE user_id = $1 AND (display_name ILIKE $2 OR filename ILIKE $2 OR description ILIKE $2)
+			ORDER BY created_at DESC
+			LIMIT $3
+		`, t.userID, searchPattern, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var docType string
+				if err := rows.Scan(&r.ID, &r.Title, &docType, &r.Summary); err != nil {
+					continue
+				}
+				r.Type = "document"
+				r.TreePath = []string{"Documents", docType}
+				r.RelevanceScore = 0.7
+				results = append(results, r)
+			}
+		}
+	}
+
+	// Search artifacts
+	if shouldSearchType("artifacts") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, title, type, LEFT(content, 200)
+			FROM artifacts
+			WHERE user_id = $1 AND (title ILIKE $2 OR content ILIKE $2)
+			ORDER BY created_at DESC
+			LIMIT $3
+		`, t.userID, searchPattern, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var artType string
+				if err := rows.Scan(&r.ID, &r.Title, &artType, &r.Summary); err != nil {
+					continue
+				}
+				r.Type = "artifact"
+				r.TreePath = []string{"Artifacts", artType}
+				r.RelevanceScore = 0.7
+				results = append(results, r)
+			}
+		}
+	}
+
+	if len(results) > params.MaxResults {
+		results = results[:params.MaxResults]
+	}
+
+	return results, nil
+}
+
+func (t *TreeSearchTool) contentSearch(ctx context.Context, params struct {
+	Query       string   `json:"query"`
+	SearchType  string   `json:"search_type"`
+	EntityTypes []string `json:"entity_types"`
+	MaxResults  int      `json:"max_results"`
+}) ([]TreeSearchResult, error) {
+	var results []TreeSearchResult
+	searchPattern := "%" + params.Query + "%"
+
+	shouldSearchType := func(entityType string) bool {
+		if len(params.EntityTypes) == 0 {
+			return true
+		}
+		for _, et := range params.EntityTypes {
+			if et == entityType {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Search memories by content
+	if shouldSearchType("memories") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(title, summary, LEFT(content, 100)), memory_type, LEFT(content, 200)
+			FROM memories
+			WHERE user_id = $1 AND is_active = true AND content ILIKE $2
+			ORDER BY importance_score DESC
+			LIMIT $3
+		`, t.userID, searchPattern, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var memType string
+				if err := rows.Scan(&r.ID, &r.Title, &memType, &r.Summary); err != nil {
+					continue
+				}
+				r.Type = "memory"
+				r.TreePath = []string{"Memories", memType}
+				r.RelevanceScore = 0.7
+				results = append(results, r)
+			}
+		}
+	}
+
+	// Search documents by extracted text
+	if shouldSearchType("documents") {
+		rows, _ := t.pool.Query(ctx, `
+			SELECT id, COALESCE(display_name, filename), COALESCE(document_type, 'document'), LEFT(extracted_text, 200)
+			FROM uploaded_documents
+			WHERE user_id = $1 AND extracted_text ILIKE $2
+			ORDER BY created_at DESC
+			LIMIT $3
+		`, t.userID, searchPattern, params.MaxResults)
+		if rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var r TreeSearchResult
+				var docType string
+				if err := rows.Scan(&r.ID, &r.Title, &docType, &r.Summary); err != nil {
+					continue
+				}
+				r.Type = "document"
+				r.TreePath = []string{"Documents", docType}
+				r.RelevanceScore = 0.6
+				results = append(results, r)
+			}
+		}
+	}
+
+	if len(results) > params.MaxResults {
+		results = results[:params.MaxResults]
+	}
+
+	return results, nil
+}
+
+// Helper function to convert float slice to string
+func floatsToString(floats []float32) string {
+	strs := make([]string, len(floats))
+	for i, f := range floats {
+		strs[i] = fmt.Sprintf("%f", f)
+	}
+	return strings.Join(strs, ",")
+}
+
+// ========== BrowseTreeTool ==========
+
+// BrowseTreeTool browses the context tree hierarchy
+type BrowseTreeTool struct {
+	pool   *pgxpool.Pool
+	userID string
+}
+
+func (t *BrowseTreeTool) Name() string { return "browse_tree" }
+func (t *BrowseTreeTool) Description() string {
+	return "Browse the user's knowledge tree to see what projects, memories, documents, and artifacts are available. Use this to understand the structure of available context before searching."
+}
+func (t *BrowseTreeTool) InputSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"project_id": map[string]interface{}{
+				"type":        "string",
+				"description": "Optional: Filter to a specific project UUID",
+			},
+			"show_counts": map[string]interface{}{
+				"type":        "boolean",
+				"description": "Show item counts for each category (default: true)",
+			},
+		},
+	}
+}
+
+func (t *BrowseTreeTool) Execute(ctx context.Context, input json.RawMessage) (string, error) {
+	var params struct {
+		ProjectID  string `json:"project_id"`
+		ShowCounts bool   `json:"show_counts"`
+	}
+	params.ShowCounts = true // default
+	if err := json.Unmarshal(input, &params); err != nil {
+		return "", fmt.Errorf("invalid input: %w", err)
+	}
+
+	var output strings.Builder
+	output.WriteString("## Knowledge Tree\n\n")
+
+	// Get overall statistics
+	var memoryCount, docCount, artifactCount, projectCount int
+	t.pool.QueryRow(ctx, `SELECT COUNT(*) FROM memories WHERE user_id = $1 AND is_active = true`, t.userID).Scan(&memoryCount)
+	t.pool.QueryRow(ctx, `SELECT COUNT(*) FROM uploaded_documents WHERE user_id = $1`, t.userID).Scan(&docCount)
+	t.pool.QueryRow(ctx, `SELECT COUNT(*) FROM artifacts WHERE user_id = $1`, t.userID).Scan(&artifactCount)
+	t.pool.QueryRow(ctx, `SELECT COUNT(*) FROM projects WHERE user_id = $1 AND is_archived = false`, t.userID).Scan(&projectCount)
+
+	if params.ShowCounts {
+		output.WriteString("### Overview\n")
+		output.WriteString(fmt.Sprintf("- **Projects:** %d\n", projectCount))
+		output.WriteString(fmt.Sprintf("- **Memories:** %d\n", memoryCount))
+		output.WriteString(fmt.Sprintf("- **Documents:** %d\n", docCount))
+		output.WriteString(fmt.Sprintf("- **Artifacts:** %d\n", artifactCount))
+		output.WriteString("\n")
+	}
+
+	// List projects
+	output.WriteString("### Projects\n")
+	query := `SELECT id, name, COALESCE(description, ''), status FROM projects WHERE user_id = $1 AND is_archived = false ORDER BY updated_at DESC LIMIT 20`
+	args := []interface{}{t.userID}
+
+	if params.ProjectID != "" {
+		if projectUUID, err := uuid.Parse(params.ProjectID); err == nil {
+			query = `SELECT id, name, COALESCE(description, ''), status FROM projects WHERE user_id = $1 AND id = $2`
+			args = append(args, projectUUID)
+		}
+	}
+
+	rows, err := t.pool.Query(ctx, query, args...)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id uuid.UUID
+			var name, description, status string
+			if rows.Scan(&id, &name, &description, &status) == nil {
+				output.WriteString(fmt.Sprintf("- **%s** [%s] (ID: %s)\n", name, status, id.String()))
+				if description != "" {
+					output.WriteString(fmt.Sprintf("  %s\n", description))
+				}
+			}
+		}
+	}
+
+	if projectCount == 0 {
+		output.WriteString("No projects found.\n")
+	}
+
+	// Memory types breakdown
+	output.WriteString("\n### Memory Types\n")
+	typeRows, _ := t.pool.Query(ctx, `
+		SELECT memory_type, COUNT(*)
+		FROM memories
+		WHERE user_id = $1 AND is_active = true
+		GROUP BY memory_type
+		ORDER BY COUNT(*) DESC
+	`, t.userID)
+	if typeRows != nil {
+		defer typeRows.Close()
+		for typeRows.Next() {
+			var memType string
+			var count int
+			if typeRows.Scan(&memType, &count) == nil {
+				output.WriteString(fmt.Sprintf("- %s: %d\n", memType, count))
+			}
+		}
+	}
+
+	output.WriteString("\n*Use `tree_search` to find specific items, or `load_context` to load an item by ID.*")
+
+	return output.String(), nil
+}
+
+// ========== LoadContextTool ==========
+
+// LoadContextTool loads a specific context item by ID
+type LoadContextTool struct {
+	pool   *pgxpool.Pool
+	userID string
+}
+
+func (t *LoadContextTool) Name() string { return "load_context" }
+func (t *LoadContextTool) Description() string {
+	return "Load the full content of a specific memory, document, or artifact by its ID. Use this after finding items with tree_search or browse_tree to get the complete content."
+}
+func (t *LoadContextTool) InputSchema() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"item_id": map[string]interface{}{
+				"type":        "string",
+				"description": "The UUID of the item to load",
+			},
+			"item_type": map[string]interface{}{
+				"type":        "string",
+				"enum":        []string{"memory", "document", "artifact"},
+				"description": "The type of item to load",
+			},
+		},
+		"required": []string{"item_id", "item_type"},
+	}
+}
+
+func (t *LoadContextTool) Execute(ctx context.Context, input json.RawMessage) (string, error) {
+	var params struct {
+		ItemID   string `json:"item_id"`
+		ItemType string `json:"item_type"`
+	}
+	if err := json.Unmarshal(input, &params); err != nil {
+		return "", fmt.Errorf("invalid input: %w", err)
+	}
+
+	if params.ItemID == "" {
+		return "", fmt.Errorf("item_id is required")
+	}
+	if params.ItemType == "" {
+		return "", fmt.Errorf("item_type is required")
+	}
+
+	itemUUID, err := uuid.Parse(params.ItemID)
+	if err != nil {
+		return "", fmt.Errorf("invalid item_id: %w", err)
+	}
+
+	var output strings.Builder
+
+	switch params.ItemType {
+	case "memory":
+		var title, content, memType, summary string
+		var importance int
+		var createdAt time.Time
+		err := t.pool.QueryRow(ctx, `
+			SELECT COALESCE(title, 'Untitled'), content, memory_type, COALESCE(summary, ''), importance_score, created_at
+			FROM memories
+			WHERE id = $1 AND user_id = $2
+		`, itemUUID, t.userID).Scan(&title, &content, &memType, &summary, &importance, &createdAt)
+		if err != nil {
+			return "", fmt.Errorf("memory not found: %w", err)
+		}
+
+		output.WriteString(fmt.Sprintf("## Memory: %s\n\n", title))
+		output.WriteString(fmt.Sprintf("- **Type:** %s\n", memType))
+		output.WriteString(fmt.Sprintf("- **Importance:** %d/10\n", importance))
+		output.WriteString(fmt.Sprintf("- **Created:** %s\n", createdAt.Format("2006-01-02 15:04")))
+		if summary != "" {
+			output.WriteString(fmt.Sprintf("- **Summary:** %s\n", summary))
+		}
+		output.WriteString("\n### Content\n\n")
+		output.WriteString(content)
+
+	case "document":
+		var displayName, filename, docType, description, extractedText string
+		var createdAt time.Time
+		err := t.pool.QueryRow(ctx, `
+			SELECT COALESCE(display_name, filename), filename, COALESCE(document_type, 'document'),
+			       COALESCE(description, ''), COALESCE(extracted_text, ''), created_at
+			FROM uploaded_documents
+			WHERE id = $1 AND user_id = $2
+		`, itemUUID, t.userID).Scan(&displayName, &filename, &docType, &description, &extractedText, &createdAt)
+		if err != nil {
+			return "", fmt.Errorf("document not found: %w", err)
+		}
+
+		output.WriteString(fmt.Sprintf("## Document: %s\n\n", displayName))
+		output.WriteString(fmt.Sprintf("- **Filename:** %s\n", filename))
+		output.WriteString(fmt.Sprintf("- **Type:** %s\n", docType))
+		output.WriteString(fmt.Sprintf("- **Uploaded:** %s\n", createdAt.Format("2006-01-02 15:04")))
+		if description != "" {
+			output.WriteString(fmt.Sprintf("- **Description:** %s\n", description))
+		}
+		output.WriteString("\n### Extracted Content\n\n")
+		if extractedText != "" {
+			// Limit content to avoid token overflow
+			if len(extractedText) > 10000 {
+				output.WriteString(extractedText[:10000])
+				output.WriteString("\n\n*[Content truncated - document is very large]*")
+			} else {
+				output.WriteString(extractedText)
+			}
+		} else {
+			output.WriteString("*No text extracted from this document*")
+		}
+
+	case "artifact":
+		var title, content, artType string
+		var createdAt time.Time
+		err := t.pool.QueryRow(ctx, `
+			SELECT title, content, type, created_at
+			FROM artifacts
+			WHERE id = $1 AND user_id = $2
+		`, itemUUID, t.userID).Scan(&title, &content, &artType, &createdAt)
+		if err != nil {
+			return "", fmt.Errorf("artifact not found: %w", err)
+		}
+
+		output.WriteString(fmt.Sprintf("## Artifact: %s\n\n", title))
+		output.WriteString(fmt.Sprintf("- **Type:** %s\n", artType))
+		output.WriteString(fmt.Sprintf("- **Created:** %s\n", createdAt.Format("2006-01-02 15:04")))
+		output.WriteString("\n### Content\n\n")
+		output.WriteString(content)
+
+	default:
+		return "", fmt.Errorf("unknown item_type: %s", params.ItemType)
+	}
+
+	return output.String(), nil
 }

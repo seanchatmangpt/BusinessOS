@@ -8,6 +8,8 @@
 	import { desktopSettings } from '$lib/stores/desktopStore';
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { WorkspaceSwitcher } from '$lib/components/workspace';
+	import { loadSavedWorkspace } from '$lib/stores/workspaces';
 
 	// Projects state for dropdown
 	let projects = $state<Array<{id: string, name: string, status: string}>>([]);
@@ -24,6 +26,9 @@
 	}
 
 	onMount(() => {
+		// Initialize workspace store
+		loadSavedWorkspace();
+		// Load projects for sidebar
 		loadProjects();
 	});
 
@@ -83,8 +88,8 @@
 			icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'
 		},
 		{
-			href: '/calendar',
-			label: 'Calendar',
+			href: '/communication',
+			label: 'Communication',
 			icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
 		},
 		{
@@ -103,9 +108,14 @@
 			icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'
 		},
 		{
-			href: '/contexts',
-			label: 'Contexts',
-			icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'
+			href: '/tables',
+			label: 'Tables',
+			icon: 'M3 10h18M3 14h18M9 3v18M15 3v18M3 6a2 2 0 012-2h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6z'
+		},
+		{
+			href: '/knowledge-v2',
+			label: 'Pages',
+			icon: 'M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z'
 		},
 		{
 			href: '/nodes',
@@ -121,6 +131,11 @@
 			href: '/usage',
 			label: 'Usage',
 			icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z'
+		},
+		{
+			href: '/integrations',
+			label: 'Integrations',
+			icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'
 		},
 		{
 			href: '/settings',
@@ -176,6 +191,13 @@
 					</svg>
 				</button>
 			</div>
+
+			<!-- Workspace Switcher -->
+			{#if !isCollapsed}
+				<div class="px-2 pb-2">
+					<WorkspaceSwitcher />
+				</div>
+			{/if}
 
 			<!-- Window Desktop Button -->
 			<div class="px-2 pb-2">

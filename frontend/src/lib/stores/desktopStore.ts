@@ -667,6 +667,8 @@ interface DesktopSettings {
 	bootScreen: BootScreenSettings;
 	cursor: CursorSettings;
 	windowAnimations: WindowAnimationSettings;
+	// Experimental features
+	enable3DDesktop: boolean;
 }
 
 const defaultSettings: DesktopSettings = {
@@ -702,7 +704,9 @@ const defaultSettings: DesktopSettings = {
 		closeAnimation: 'fade',
 		minimizeAnimation: 'scale',
 		speed: 'normal'
-	}
+	},
+	// Experimental features
+	enable3DDesktop: false
 };
 
 // Icon size presets for the slider
@@ -892,6 +896,27 @@ function createDesktopStore() {
 					...state,
 					windowAnimations: { ...state.windowAnimations, ...settings }
 				};
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		// Experimental features
+		toggle3DDesktop: () => {
+			update(state => {
+				const newState = { ...state, enable3DDesktop: !state.enable3DDesktop };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		set3DDesktop: (enabled: boolean) => {
+			update(state => {
+				const newState = { ...state, enable3DDesktop: enabled };
 				if (browser) {
 					localStorage.setItem('desktop-settings', JSON.stringify(newState));
 				}

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log/slog"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
@@ -25,6 +27,29 @@ type Handlers struct {
 	webPushService       *services.WebPushService       // Web Push notification service
 	emailService         *services.EmailService         // Email service via Resend
 	commentService       *services.CommentService       // Comment service with mentions
+	// Pedro tasks services
+	documentProcessor        *services.DocumentProcessor               // Document processing with chunking
+	learningService          *services.LearningService                 // Learning and personalization
+	autoLearningTriggers     *services.AutoLearningTriggers            // Automatic learning from conversations
+	promptPersonalizer       *services.PromptPersonalizer              // Prompt personalization with user data
+	appProfilerService       *services.AppProfilerService              // Application profiling
+	conversationIntelligence *services.ConversationIntelligenceService // Conversation analysis
+	memoryExtractor          *services.MemoryExtractorService          // Memory extraction
+	blockMapper              *services.BlockMapperService              // Markdown to structured blocks
+	// Day 2 RAG services
+	hybridSearchService *services.HybridSearchService // Hybrid search (semantic + keyword)
+	rerankerService     *services.ReRankerService     // Re-ranking with multi-signal scoring
+	agenticRAGService   *services.AgenticRAGService   // Intelligent adaptive retrieval
+	memoryService       *services.MemoryService       // Memory persistence
+	// Feature 7: Multi-modal Search services
+	multiModalHandler *MultiModalSearchHandler // Multi-modal search handler (text + image)
+	// Feature 1: Workspace & Team Collaboration
+	workspaceService         *services.WorkspaceService        // Workspace management
+	roleContextService       *services.RoleContextService      // Role-based access control
+	memoryHierarchyService   *services.MemoryHierarchyService  // Workspace memory hierarchy (Q1)
+	inviteService            *services.WorkspaceInviteService  // Workspace invitation management
+	auditService             *services.WorkspaceAuditService   // Workspace audit logging
+	projectAccessService     *services.ProjectAccessService    // Project-level access control
 }
 
 // NewHandlers creates a new Handlers instance
@@ -69,6 +94,79 @@ func (h *Handlers) SetEmailService(svc *services.EmailService) {
 // SetCommentService sets the Comment service (optional)
 func (h *Handlers) SetCommentService(svc *services.CommentService) {
 	h.commentService = svc
+}
+
+// SetPedroServices sets the Pedro task services (optional, to avoid breaking existing code)
+func (h *Handlers) SetPedroServices(
+	documentProcessor *services.DocumentProcessor,
+	learningService *services.LearningService,
+	autoLearningTriggers *services.AutoLearningTriggers,
+	promptPersonalizer *services.PromptPersonalizer,
+	appProfilerService *services.AppProfilerService,
+	conversationIntelligence *services.ConversationIntelligenceService,
+	memoryExtractor *services.MemoryExtractorService,
+	blockMapper *services.BlockMapperService,
+) {
+	h.documentProcessor = documentProcessor
+	h.learningService = learningService
+	h.autoLearningTriggers = autoLearningTriggers
+	h.promptPersonalizer = promptPersonalizer
+	h.appProfilerService = appProfilerService
+	h.conversationIntelligence = conversationIntelligence
+	h.memoryExtractor = memoryExtractor
+	h.blockMapper = blockMapper
+}
+
+// SetRAGServices sets the RAG services (Day 2)
+func (h *Handlers) SetRAGServices(
+	hybridSearch *services.HybridSearchService,
+	reranker *services.ReRankerService,
+	agenticRAG *services.AgenticRAGService,
+	memory *services.MemoryService,
+) {
+	h.hybridSearchService = hybridSearch
+	h.rerankerService = reranker
+	h.agenticRAGService = agenticRAG
+	h.memoryService = memory
+}
+
+// SetMultiModalServices sets the multi-modal search services (Feature 7)
+func (h *Handlers) SetMultiModalServices(
+	multiModalSearch *services.MultiModalSearchService,
+	imageEmbedding *services.ImageEmbeddingService,
+) {
+	// Create multimodal handler
+	h.multiModalHandler = NewMultiModalSearchHandler(multiModalSearch, imageEmbedding)
+}
+
+// SetWorkspaceService sets the workspace service (Feature 1)
+func (h *Handlers) SetWorkspaceService(workspaceService *services.WorkspaceService) {
+	h.workspaceService = workspaceService
+}
+
+// SetRoleContextService sets the role context service (Feature 1 - Permissions)
+func (h *Handlers) SetRoleContextService(roleContextService *services.RoleContextService) {
+	h.roleContextService = roleContextService
+}
+
+// SetMemoryHierarchyService sets the memory hierarchy service (Q1 - Memory Hierarchy)
+func (h *Handlers) SetMemoryHierarchyService(memoryHierarchyService *services.MemoryHierarchyService) {
+	h.memoryHierarchyService = memoryHierarchyService
+}
+
+// SetInviteService sets the workspace invite service (Feature 1 - Email Invites)
+func (h *Handlers) SetInviteService(inviteService *services.WorkspaceInviteService) {
+	h.inviteService = inviteService
+}
+
+// SetAuditService sets the workspace audit service (Feature 1 - Audit Logging)
+func (h *Handlers) SetAuditService(auditService *services.WorkspaceAuditService) {
+	h.auditService = auditService
+}
+
+// SetProjectAccessService sets the project access service (Feature 1 - Project Access Control)
+func (h *Handlers) SetProjectAccessService(projectAccessService *services.ProjectAccessService) {
+	h.projectAccessService = projectAccessService
 }
 
 // RegisterRoutes registers all API routes
@@ -155,11 +253,12 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		projects.PUT("/:id", h.UpdateProject)
 		projects.DELETE("/:id", h.DeleteProject)
 		projects.POST("/:id/notes", h.AddProjectNote)
-		// Project members (team assignment)
+		// Project members (team assignment with role-based access)
 		projects.GET("/:id/members", h.ListProjectMembers)
 		projects.POST("/:id/members", h.AddProjectMember)
-		projects.PUT("/:id/members/:memberId", h.UpdateProjectMemberRole)
+		projects.PUT("/:id/members/:memberId/role", h.UpdateProjectMemberRole)
 		projects.DELETE("/:id/members/:memberId", h.RemoveProjectMember)
+		projects.GET("/:id/access/:userId", h.CheckProjectAccess)
 	}
 
 	// Clients routes - /api/clients
@@ -226,70 +325,62 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		team.DELETE("/:id", h.DeleteTeamMember)
 	}
 
-	// =============================================================================
-	// WORKSPACES API - /api/workspaces (CUS-29)
-	// =============================================================================
-	// Team collaboration features: workspaces, members, roles, memory, profiles
-	// =============================================================================
+	// Workspaces routes - /api/workspaces (Feature 1: Team/Collaboration)
 	workspaces := api.Group("/workspaces")
 	workspaces.Use(auth)
 	{
-		// Workspace CRUD
-		workspaces.GET("", h.ListWorkspaces)
+		// Workspace CRUD - no role context needed for create/list
 		workspaces.POST("", h.CreateWorkspace)
-		workspaces.GET("/:id", h.GetWorkspace)
-		workspaces.PUT("/:id", h.UpdateWorkspace)
-		workspaces.DELETE("/:id", h.DeleteWorkspace)
+		workspaces.GET("", h.ListWorkspaces)
 
-		// Workspace Members
-		workspaces.GET("/:id/members", h.ListWorkspaceMembers)
-		workspaces.PUT("/:id/members/:userId/role", h.UpdateWorkspaceMemberRole)
-		workspaces.DELETE("/:id/members/:userId", h.RemoveWorkspaceMember)
+		// Workspace-scoped routes - inject role context
+		workspaceScoped := workspaces.Group("/:id")
+		workspaceScoped.Use(middleware.InjectRoleContext(h.pool, h.roleContextService))
+		{
+			// Read operations - any member
+			workspaceScoped.GET("", h.GetWorkspace)
+			workspaceScoped.GET("/members", h.ListWorkspaceMembers)
+			workspaceScoped.GET("/roles", h.ListWorkspaceRoles)
+			workspaceScoped.GET("/profile", h.GetWorkspaceProfile)       // User's profile in workspace
+			workspaceScoped.GET("/role-context", h.GetUserRoleContext)   // User's role & permissions
 
-		// Workspace Invitations
-		workspaces.GET("/:id/invitations", h.ListWorkspaceInvitations)
-		workspaces.POST("/:id/invite", h.InviteWorkspaceMember)
-		workspaces.DELETE("/:id/invitations/:invitationId", h.RevokeWorkspaceInvitation)
-		workspaces.POST("/:id/invitations/:invitationId/resend", h.ResendInvitation)
+			// Update user profile
+			workspaceScoped.PUT("/profile", h.UpdateWorkspaceProfile)
 
-		// Workspace Roles
-		workspaces.GET("/:id/roles", h.ListWorkspaceRoles)
-		workspaces.POST("/:id/roles", h.CreateWorkspaceRole)
-		workspaces.GET("/:id/roles/:roleId", h.GetWorkspaceRole)
-		workspaces.PUT("/:id/roles/:roleId", h.UpdateWorkspaceRole)
-		workspaces.DELETE("/:id/roles/:roleId", h.DeleteWorkspaceRole)
-		workspaces.GET("/:id/roles/:roleId/permissions", h.GetRolePermissions)
-		workspaces.GET("/:id/my-permissions", h.GetCurrentUserPermissions)
+			// Update workspace - requires admin or owner
+			workspaceScoped.PUT("", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspace)
 
-		// Workspace Memories
-		workspaces.GET("/:id/memories", h.ListWorkspaceMemories)
-		workspaces.POST("/:id/memories", h.CreateWorkspaceMemory)
-		workspaces.GET("/:id/memories/search", h.SearchWorkspaceMemories)
-		workspaces.GET("/:id/memories/stats", h.GetMemoryStats)
-		workspaces.GET("/:id/memories/:memoryId", h.GetWorkspaceMemory)
-		workspaces.PUT("/:id/memories/:memoryId", h.UpdateWorkspaceMemory)
-		workspaces.DELETE("/:id/memories/:memoryId", h.DeleteWorkspaceMemory)
+			// Delete workspace - requires owner only
+			workspaceScoped.DELETE("", middleware.RequireWorkspaceOwner(h.pool), h.DeleteWorkspace)
 
-		// Workspace Profiles
-		workspaces.GET("/:id/profile", h.GetWorkspaceProfile)
-		workspaces.PUT("/:id/profile", h.UpdateWorkspaceProfile)
-		workspaces.PUT("/:id/profile/status", h.UpdateWorkspaceStatus)
-		workspaces.POST("/:id/profile/touch", h.TouchLastActive)
-		workspaces.GET("/:id/members/:userId/profile", h.GetMemberProfile)
+			// Invite members - requires manager, admin, or owner
+			workspaceScoped.POST("/members/invite", middleware.RequireWorkspaceManager(), h.AddWorkspaceMember)
 
-		// Workspace Project Members (team assignment to projects)
-		workspaces.GET("/:id/projects/:projectId/members", h.ListWorkspaceProjectMembers)
-		workspaces.POST("/:id/projects/:projectId/members", h.AddWorkspaceProjectMember)
-		workspaces.POST("/:id/projects/:projectId/members/bulk", h.BulkAddWorkspaceProjectMembers)
-		workspaces.PUT("/:id/projects/:projectId/members/:userId", h.UpdateWorkspaceProjectMemberRole)
-		workspaces.DELETE("/:id/projects/:projectId/members/:userId", h.RemoveWorkspaceProjectMember)
-		workspaces.GET("/:id/my-projects", h.GetUserWorkspaceProjects)
+			// Update/remove members - requires admin or owner
+			workspaceScoped.PUT("/members/:userId", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspaceMemberRole)
+			workspaceScoped.DELETE("/members/:userId", middleware.RequireWorkspaceAdmin(), h.RemoveWorkspaceMember)
+
+			// Workspace invitations - manager+ can invite
+			workspaceScoped.POST("/invites", middleware.RequireWorkspaceManager(), h.CreateWorkspaceInvite)
+			workspaceScoped.GET("/invites", middleware.RequireWorkspaceAdmin(), h.ListWorkspaceInvites)
+			workspaceScoped.DELETE("/invites/:inviteId", middleware.RequireWorkspaceAdmin(), h.RevokeWorkspaceInvite)
+
+			// Audit logs - admin+ can view
+			workspaceScoped.GET("/audit-logs", middleware.RequireWorkspaceAdmin(), h.ListAuditLogs)
+			workspaceScoped.GET("/audit-logs/:logId", middleware.RequireWorkspaceAdmin(), h.GetAuditLog)
+			workspaceScoped.GET("/audit-logs/user/:userId", middleware.RequireWorkspaceAdmin(), h.GetUserActivity)
+			workspaceScoped.GET("/audit-logs/resource/:resourceType/:resourceId", middleware.RequireWorkspaceAdmin(), h.GetResourceHistory)
+			workspaceScoped.GET("/audit-logs/stats/actions", middleware.RequireWorkspaceAdmin(), h.GetActionStats)
+			workspaceScoped.GET("/audit-logs/stats/active-users", middleware.RequireWorkspaceAdmin(), h.GetMostActiveUsers)
+
+			// Workspace memory routes - CUS-25
+			memoryHandler := NewWorkspaceMemoryHandlers(h.pool)
+			RegisterWorkspaceMemoryRoutes(workspaceScoped, memoryHandler)
+		}
+
+		// Public invite acceptance (no workspace context needed)
+		workspaces.POST("/invites/accept", h.AcceptWorkspaceInvite)
 	}
-
-	// Public invitation verification (no auth required)
-	api.GET("/invitations/:token/verify", h.VerifyInvitation)
-	// Accept invitation (requires auth - user must be logged in)
-	api.POST("/invitations/:token/accept", auth, h.AcceptInvitation)
 
 	// Nodes routes - /api/nodes
 	nodes := api.Group("/nodes")
@@ -379,12 +470,24 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	search := api.Group("/search")
 	search.Use(auth)
 	{
-		search.GET("/web", h.WebSearch)                // Basic web search
-		search.GET("/context", h.WebSearchWithContext) // Search with formatted context
-		search.GET("/history", h.ListSearchHistory)    // List user's search history
-		search.GET("/history/:id", h.GetSearchHistoryEntry) // Get specific search details
+		search.GET("/web", h.WebSearch)                           // Basic web search
+		search.GET("/context", h.WebSearchWithContext)            // Search with formatted context
+		search.GET("/history", h.ListSearchHistory)               // List user's search history
+		search.GET("/history/:id", h.GetSearchHistoryEntry)       // Get specific search details
 		search.DELETE("/history/:id", h.DeleteSearchHistoryEntry) // Delete specific search
-		search.DELETE("/history", h.ClearSearchHistory) // Clear all search history
+		search.DELETE("/history", h.ClearSearchHistory)           // Clear all search history
+
+		// Enhanced RAG search endpoints
+		if h.hybridSearchService != nil {
+			search.POST("/hybrid", h.HybridSearch)     // Hybrid semantic + keyword search
+			search.POST("/rerank", h.HybridSearch)     // Re-rank search results (uses hybrid search)
+		}
+		if h.multiModalHandler != nil {
+			search.POST("/multimodal", h.multiModalHandler.SearchWithImage) // Multi-modal search
+		}
+		if h.hybridSearchService != nil {
+			search.GET("/explain", h.HybridSearchExplain) // Explain search results
+		}
 	}
 
 	// AI configuration routes - /api/ai
@@ -399,6 +502,10 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		ai.GET("/system", h.GetSystemInfo)
 		ai.POST("/api-key", h.SaveAPIKey)
 		ai.PUT("/provider", h.UpdateAIProvider)
+		// Output styles & preferences
+		ai.GET("/output-styles", h.ListOutputStyles)
+		ai.GET("/output-preferences", h.GetUserOutputPreference)
+		ai.PUT("/output-preferences", h.UpsertUserOutputPreference)
 		// Agent presets (templates for custom agents) - must be before /agents/:id
 		ai.GET("/agents/presets", h.ListAgentPresets)
 		ai.GET("/agents/presets/:id", h.GetAgentPreset)
@@ -408,13 +515,13 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		// Custom user agents - specific routes before parameterized ones
 		ai.GET("/custom-agents", h.ListCustomAgents)
 		ai.POST("/custom-agents", h.CreateCustomAgent)
-		ai.POST("/custom-agents/sandbox", h.TestCustomAgent)      // Test arbitrary prompt
+		ai.POST("/custom-agents/sandbox", h.TestCustomAgent) // Test arbitrary prompt
 		ai.GET("/custom-agents/category/:category", h.ListCustomAgentsByCategory)
 		ai.POST("/custom-agents/from-preset/:presetId", h.CreateAgentFromPreset)
 		ai.GET("/custom-agents/:id", h.GetCustomAgent)
 		ai.PUT("/custom-agents/:id", h.UpdateCustomAgent)
 		ai.DELETE("/custom-agents/:id", h.DeleteCustomAgent)
-		ai.POST("/custom-agents/:id/test", h.TestCustomAgent)     // Test existing agent
+		ai.POST("/custom-agents/:id/test", h.TestCustomAgent) // Test existing agent
 		// Slash commands (built-in + custom)
 		ai.GET("/commands", h.ListCommands)
 		// Custom user commands CRUD
@@ -563,6 +670,95 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		}
 	}
 
+	// RAG routes - /api/rag (Day 2: Advanced retrieval with hybrid search + agentic RAG)
+	if h.hybridSearchService != nil || h.agenticRAGService != nil || h.memoryService != nil || h.rerankerService != nil || h.multiModalHandler != nil {
+		rag := api.Group("/rag")
+		rag.Use(auth)
+		{
+			// Hybrid search endpoints
+			if h.hybridSearchService != nil {
+				rag.POST("/search/hybrid", h.HybridSearch)
+				rag.POST("/search/hybrid/explain", h.HybridSearchExplain)
+			}
+
+			// Re-ranking endpoints
+			if h.rerankerService != nil {
+				rag.POST("/search/rerank", h.ReRankResults)
+				rag.POST("/search/rerank/explain", h.ReRankExplain)
+			}
+
+			// Search explanation endpoint (hybrid search only, multimodal is registered separately)
+			if h.hybridSearchService != nil {
+				rag.GET("/search/explain", h.SearchExplain)
+			}
+
+			// Agentic RAG endpoint
+			if h.agenticRAGService != nil {
+				rag.POST("/retrieve", h.AgenticRAGRetrieve)
+			}
+
+			// Memory endpoints
+			if h.memoryService != nil {
+				rag.GET("/memories", h.MemoryList)
+				rag.GET("/memories/:id", h.MemoryGet)
+				rag.POST("/memories", h.MemoryCreate)
+			}
+		}
+	}
+
+	// Multi-modal Search routes - /api/images, /api/search (Feature 7: Multi-modal Embeddings)
+	if h.multiModalHandler != nil {
+		h.RegisterMultiModalRoutes(api, h.multiModalHandler)
+	}
+
+	// Memory routes - /api/memories (episodic memory system)
+	memoryHandler := NewMemoryHandler(h.pool, h.embeddingService)
+	memories := api.Group("/memories")
+	memories.Use(auth)
+	{
+		memories.GET("", memoryHandler.ListMemories)
+		memories.POST("", memoryHandler.CreateMemory)
+		memories.GET("/stats", memoryHandler.GetMemoryStats)
+		memories.POST("/search", memoryHandler.SearchMemories)
+		memories.POST("/relevant", memoryHandler.GetRelevantMemories)
+		memories.GET("/project/:projectId", memoryHandler.GetProjectMemories)
+		memories.GET("/node/:nodeId", memoryHandler.GetNodeMemories)
+		memories.GET("/:id", memoryHandler.GetMemory)
+		memories.PUT("/:id", memoryHandler.UpdateMemory)
+		memories.DELETE("/:id", memoryHandler.DeleteMemory)
+		memories.POST("/:id/pin", memoryHandler.PinMemory)
+	}
+
+	// User Facts routes - /api/user-facts
+	userFacts := api.Group("/user-facts")
+	userFacts.Use(auth)
+	{
+		userFacts.GET("", memoryHandler.ListUserFacts)
+		userFacts.PUT("/:key", memoryHandler.UpdateUserFact)
+		userFacts.POST("/:key/confirm", memoryHandler.ConfirmUserFact)
+		userFacts.POST("/:key/reject", memoryHandler.RejectUserFact)
+		userFacts.DELETE("/:key", memoryHandler.DeleteUserFact)
+	}
+
+	// Context Tree routes - /api/context-tree (hierarchical context for agents)
+	contextTreeHandler := NewContextTreeHandler(h.pool, h.embeddingService)
+	contextTree := api.Group("/context-tree")
+	contextTree.Use(auth)
+	{
+		// Tree retrieval
+		contextTree.GET("/:entityType/:entityId", contextTreeHandler.GetContextTree)
+		contextTree.POST("/search", contextTreeHandler.SearchContextTree)
+		contextTree.POST("/load", contextTreeHandler.LoadContextItem)
+		contextTree.GET("/stats", contextTreeHandler.GetContextStats)
+		// Loading rules
+		contextTree.GET("/rules/:entityType/:entityId", contextTreeHandler.GetLoadingRules)
+		// Context sessions
+		contextTree.POST("/session", contextTreeHandler.CreateContextSession)
+		contextTree.GET("/session/:sessionId", contextTreeHandler.GetContextSession)
+		contextTree.PUT("/session/:sessionId", contextTreeHandler.UpdateContextSession)
+		contextTree.DELETE("/session/:sessionId", contextTreeHandler.EndContextSession)
+	}
+
 	// Transcription routes - /api/transcribe
 	transcriptionHandler := NewTranscriptionHandler(h.pool)
 	transcribe := api.Group("/transcribe")
@@ -573,7 +769,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	}
 
 	// Voice notes routes - /api/voice-notes
-	voiceNotesHandler := NewVoiceNotesHandler(h.pool)
+	voiceNotesHandler := NewVoiceNotesHandler(h.pool, h.embeddingService)
 	voiceNotes := api.Group("/voice-notes")
 	voiceNotes.Use(auth)
 	{
@@ -606,71 +802,47 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		mcp.GET("/health", h.MCPHealth)
 	}
 
-	// Initialize Google Calendar service and handlers
-	calendarService := services.NewGoogleCalendarService(h.pool)
-	googleOAuthHandler := NewGoogleOAuthHandler(calendarService)
-	calendarHandler := NewCalendarHandler(h, calendarService)
-
-	slackService := services.NewSlackService(h.pool)
-	slackOAuthHandler := NewSlackOAuthHandler(slackService)
-
-	// Initialize Notion service and handlers
-	notionService := services.NewNotionService(h.pool)
-	notionOAuthHandler := NewNotionOAuthHandler(notionService)
-
-	// Integration routes - /api/integrations
-	integrations := api.Group("/integrations")
+	// Tables routes - /api/tables (NocoDB-inspired flexible tables)
+	tables := api.Group("/tables")
+	tables.Use(auth)
 	{
-		// Google OAuth integration routes - /api/integrations/google
-		google := integrations.Group("/google")
-		google.Use(auth)
-		{
-			google.GET("/auth", googleOAuthHandler.InitiateGoogleAuth)
-			google.GET("/status", googleOAuthHandler.GetGoogleConnectionStatus)
-			google.DELETE("", googleOAuthHandler.DisconnectGoogle)
-		}
-		// Callback doesn't need auth (user redirected from Google)
-		integrations.GET("/google/callback", googleOAuthHandler.HandleGoogleCallback)
-
-		// Slack OAuth integration routes - /api/integrations/slack
-		slackRoutes := integrations.Group("/slack")
-		slackRoutes.Use(auth)
-		{
-			slackRoutes.GET("/auth", slackOAuthHandler.InitiateSlackAuth)
-			slackRoutes.GET("/status", slackOAuthHandler.GetSlackConnectionStatus)
-			slackRoutes.DELETE("", slackOAuthHandler.DisconnectSlack)
-		}
-		// Callback doesn't need auth (user redirected from Slack)
-		integrations.GET("/slack/callback", slackOAuthHandler.HandleSlackCallback)
-
-		// Notion OAuth integration routes - /api/integrations/notion
-		notionRoutes := integrations.Group("/notion")
-		notionRoutes.Use(auth)
-		{
-			notionRoutes.GET("/auth", notionOAuthHandler.InitiateNotionAuth)
-			notionRoutes.GET("/status", notionOAuthHandler.GetNotionConnectionStatus)
-			notionRoutes.GET("/databases", notionOAuthHandler.GetNotionDatabases)
-			notionRoutes.GET("/pages", notionOAuthHandler.GetNotionPages)
-			notionRoutes.GET("/search", notionOAuthHandler.SearchNotion)
-			notionRoutes.DELETE("", notionOAuthHandler.DisconnectNotion)
-		}
-		// Callback doesn't need auth (user redirected from Notion)
-		integrations.GET("/notion/callback", notionOAuthHandler.HandleNotionCallback)
+		// Tables CRUD
+		tables.GET("", h.ListTables)
+		tables.POST("", h.CreateTable)
+		tables.GET("/:id", h.GetTable)
+		tables.PUT("/:id", h.UpdateTable)
+		tables.DELETE("/:id", h.DeleteTable)
+		// Columns (Fields) CRUD - matches frontend API naming
+		tables.GET("/:id/columns", h.ListFields)
+		tables.POST("/:id/columns", h.CreateField)
+		tables.PUT("/:id/columns/:columnId", h.UpdateField)
+		tables.DELETE("/:id/columns/:columnId", h.DeleteField)
+		tables.POST("/:id/columns/reorder", h.ReorderFields)
+		// Rows (Records) CRUD - matches frontend API naming
+		tables.GET("/:id/rows", h.ListRecords)
+		tables.POST("/:id/rows", h.CreateRecord)
+		tables.GET("/:id/rows/:rowId", h.GetRecord)
+		tables.PUT("/:id/rows/:rowId", h.UpdateRecord)
+		tables.DELETE("/:id/rows/:rowId", h.DeleteRecord)
+		tables.POST("/:id/rows/bulk-delete", h.BulkDeleteRecords)
+		// Views CRUD
+		tables.GET("/:id/views", h.ListViews)
+		tables.POST("/:id/views", h.CreateView)
+		tables.PUT("/:id/views/:viewId", h.UpdateView)
+		tables.DELETE("/:id/views/:viewId", h.DeleteView)
 	}
 
-	// Calendar routes - /api/calendar
-	calendar := api.Group("/calendar")
-	calendar.Use(auth)
-	{
-		calendar.GET("/events", calendarHandler.ListEvents)
-		calendar.GET("/events/:id", calendarHandler.GetEvent)
-		calendar.POST("/events", calendarHandler.CreateEvent)
-		calendar.PUT("/events/:id", calendarHandler.UpdateEvent)
-		calendar.DELETE("/events/:id", calendarHandler.DeleteEvent)
-		calendar.POST("/sync", calendarHandler.SyncCalendar)
-		calendar.GET("/today", calendarHandler.GetTodayEvents)
-		calendar.GET("/upcoming", calendarHandler.GetUpcomingEvents)
-	}
+	// ============================================================================
+	// NEW Integration Architecture - Provider-based handlers
+	// ============================================================================
+	// Initialize the new IntegrationRouter which manages all integration providers
+	// (Google, Slack, Notion) with their OAuth flows, data sync, and API handlers.
+	integrationRouter := NewIntegrationRouter(h.pool)
+
+	// Register new integration routes - /api/integrations/{provider}/*
+	// This provides: OAuth flows, calendar, gmail, slack channels/messages, notion databases/pages
+	integrationsGroup := api.Group("/integrations")
+	integrationRouter.RegisterRoutes(integrationsGroup, auth)
 
 	// Terminal routes - /api/terminal
 	terminalHandler := NewTerminalHandler(h.containerMgr, h.terminalPubSub)
@@ -770,6 +942,14 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		mobile.DELETE("/push/unregister", mobileHandler.UnregisterPushDevice)
 	}
 
+	// Calendar routes - /api/calendar (aggregate from calendar_events table)
+	calendar := api.Group("/calendar")
+	{
+		calendar.GET("/stats", auth, h.GetCalendarStats)
+		calendar.GET("/upcoming", auth, h.GetUpcomingCalendarEvents)
+		calendar.GET("/today", auth, h.GetTodayCalendarEvents)
+	}
+
 	// Authentication routes - /api/auth
 	// Apply strict rate limiting to prevent brute force attacks
 	strictRateLimit := middleware.StrictRateLimitMiddleware()
@@ -798,5 +978,112 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		{
 			protectedAuth.POST("/logout-all", googleAuthHandler.LogoutAllSessions)
 		}
+	}
+
+	// Pedro Tasks - Document Processing routes - /api/documents
+	if h.documentProcessor != nil {
+		documentHandler := NewDocumentHandler(h.documentProcessor)
+		protectedDocs := api.Group("")
+		protectedDocs.Use(auth)
+		RegisterDocumentRoutes(protectedDocs, documentHandler)
+	}
+
+	// Pedro Tasks - Learning/Personalization routes - /api/learning
+	if h.learningService != nil {
+		learningHandler := NewLearningHandler(h.learningService)
+		protectedLearning := api.Group("")
+		protectedLearning.Use(auth)
+		RegisterLearningRoutes(protectedLearning, learningHandler)
+	}
+
+	// Pedro Tasks - App Profiler routes - /api/app-profiles
+	if h.appProfilerService != nil {
+		appProfilerHandler := NewAppProfilerHandler(h.appProfilerService)
+		protectedProfiler := api.Group("")
+		protectedProfiler.Use(auth)
+		RegisterAppProfilerRoutes(protectedProfiler, appProfilerHandler)
+	}
+
+	// Pedro Tasks - Conversation Intelligence routes - /api/intelligence
+	if h.conversationIntelligence != nil && h.memoryExtractor != nil {
+		intelligenceHandler := NewConversationIntelligenceHandler(h.conversationIntelligence, h.memoryExtractor)
+		protectedIntel := api.Group("")
+		protectedIntel.Use(auth)
+		RegisterConversationIntelligenceRoutes(protectedIntel, intelligenceHandler)
+	}
+
+	// ============================================================================
+	// Sorx Integration Module
+	// ============================================================================
+
+	// Initialize Sorx service and handler with engine
+	sorxService := services.NewSorxService(h.pool, h.cfg)
+	sorxLogger := slog.Default().With("component", "sorx")
+	sorxHandler := NewSorxHandler(sorxService, h.pool, sorxLogger)
+
+	// Sorx routes - /api/sorx (for Sorx engine callbacks and credentials)
+	sorxRoutes := api.Group("/sorx")
+	{
+		// Credential endpoints (internal API for Sorx engine)
+		sorxRoutes.POST("/credential-ticket", sorxHandler.RequestCredentialTicket)
+		sorxRoutes.POST("/redeem-credential", sorxHandler.RedeemCredential)
+		// Callback endpoint (for skill execution callbacks)
+		sorxRoutes.POST("/callback", sorxHandler.HandleCallback)
+
+		// Public skill catalog (browse available skills)
+		sorxRoutes.GET("/skills", sorxHandler.ListSkills)
+		sorxRoutes.GET("/skills/:id", sorxHandler.GetSkill)
+
+		// Public skill commands catalog (lists available skill commands)
+		sorxRoutes.GET("/commands", sorxHandler.ListSkillCommands)
+
+		// Protected endpoints (require user auth)
+		sorxProtected := sorxRoutes.Group("")
+		sorxProtected.Use(auth)
+		{
+			// Decision endpoints (human-in-the-loop)
+			sorxProtected.GET("/decisions", sorxHandler.GetPendingDecisions)
+			sorxProtected.GET("/decisions/:id", sorxHandler.GetDecision)
+			sorxProtected.POST("/decisions/:id/respond", sorxHandler.RespondToDecision)
+			// Skill execution
+			sorxProtected.POST("/execute", sorxHandler.TriggerSkill)
+			sorxProtected.GET("/executions/:id", sorxHandler.GetSkillExecution)
+			// Skill command execution (slash commands that trigger skills)
+			sorxProtected.POST("/commands/execute", sorxHandler.ExecuteSkillCommand)
+		}
+	}
+
+	// Integrations Module - /api/integrations (for user integration management)
+	// Uses new IntegrationRouter for provider catalog and sync operations
+	integrationsHandler := NewIntegrationsHandler(h.pool, integrationRouter)
+	integrationsModule := api.Group("/integrations")
+
+	// Public endpoints - provider catalog (no auth required)
+	// These just list what integrations are available, not user-specific data
+	integrationsModule.GET("/providers", integrationsHandler.GetProviders)
+	integrationsModule.GET("/providers/:id", integrationsHandler.GetProvider)
+
+	// Protected endpoints - user-specific data (auth required)
+	integrationsProtected := integrationsModule.Group("")
+	integrationsProtected.Use(auth)
+	{
+		// Aggregated status (must be before :id to avoid matching)
+		integrationsProtected.GET("/status", integrationsHandler.GetAllIntegrationsStatus)
+		// User's connected integrations
+		integrationsProtected.GET("/connected", integrationsHandler.GetConnectedIntegrations)
+		integrationsProtected.GET("/:id", integrationsHandler.GetIntegration)
+		integrationsProtected.PATCH("/:id/settings", integrationsHandler.UpdateIntegrationSettings)
+		integrationsProtected.DELETE("/:id", integrationsHandler.DisconnectIntegration)
+		integrationsProtected.POST("/:id/sync", integrationsHandler.TriggerSync)
+		// AI Model preferences
+		integrationsProtected.GET("/ai/preferences", integrationsHandler.GetModelPreferences)
+		integrationsProtected.PUT("/ai/preferences", integrationsHandler.UpdateModelPreferences)
+	}
+
+	// Module-specific integration endpoints - /api/modules/:module/integrations
+	modules := api.Group("/modules")
+	modules.Use(optionalAuth) // Optional auth for browsing available integrations
+	{
+		modules.GET("/:module/integrations", integrationsHandler.GetModuleIntegrations)
 	}
 }

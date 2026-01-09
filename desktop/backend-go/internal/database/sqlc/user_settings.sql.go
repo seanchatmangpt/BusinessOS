@@ -222,8 +222,8 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 }
 
 const upsertUserSettings = `-- name: UpsertUserSettings :one
-INSERT INTO user_settings (user_id, default_model, email_notifications, daily_summary, theme, sidebar_collapsed, share_analytics, custom_settings)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO user_settings (id, user_id, default_model, email_notifications, daily_summary, theme, sidebar_collapsed, share_analytics, custom_settings, created_at, updated_at)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 ON CONFLICT (user_id) DO UPDATE
 SET default_model = EXCLUDED.default_model, email_notifications = EXCLUDED.email_notifications,
     daily_summary = EXCLUDED.daily_summary, theme = EXCLUDED.theme, sidebar_collapsed = EXCLUDED.sidebar_collapsed,

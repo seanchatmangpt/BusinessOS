@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -83,7 +84,11 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	if req.FocusMode != nil {
 		focusModeStr = *req.FocusMode
 	}
-	log.Printf("[ChatV2] Request: msg=%q focus=%s cot=%v", req.Message, focusModeStr, req.UseCOT)
+	workspaceIDStr := "nil"
+	if req.WorkspaceID != nil {
+		workspaceIDStr = *req.WorkspaceID
+	}
+	log.Printf("[ChatV2] Request: msg=%q focus=%s cot=%v workspace_id=%s", req.Message, focusModeStr, req.UseCOT, workspaceIDStr)
 
 	// Handle slash commands - route to specialized processing
 	if req.Command != nil && *req.Command != "" {
@@ -99,6 +104,7 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	var projectID *uuid.UUID
 	var nodeID *uuid.UUID
 	var contextIDs []uuid.UUID
+	var documentIDs []uuid.UUID
 
 	if req.ContextID != nil {
 		if parsed, err := uuid.Parse(*req.ContextID); err == nil {
@@ -114,6 +120,16 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 
 	if len(contextIDs) == 0 && contextID != nil {
 		contextIDs = append(contextIDs, *contextID)
+	}
+
+	// Parse document IDs for attached files
+	for _, docIDStr := range req.DocumentIDs {
+		if parsed, err := uuid.Parse(docIDStr); err == nil {
+			documentIDs = append(documentIDs, parsed)
+		}
+	}
+	if len(documentIDs) > 0 {
+		log.Printf("[ChatV2] Attached documents: %v", documentIDs)
 	}
 
 	if req.ProjectID != nil {
@@ -188,6 +204,16 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 		}
 	}
 
+	// Compress conversation if too long (Deep Context Integration - Phase 4)
+	if h.tieredContextService != nil {
+		// Threshold: 20 messages. If exceeded, keep last 10 and summarize older part
+		compressed, summary, err := h.tieredContextService.CompressConversation(ctx, chatMessages, 20)
+		if err == nil && summary != "" {
+			chatMessages = compressed
+			slog.Debug("ChatV2: Hierarchical summarization applied", "summaryLen", len(summary))
+		}
+	}
+
 	// Determine model
 	model := h.cfg.DefaultModel
 	if req.Model != nil && *req.Model != "" {
@@ -256,18 +282,19 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 
 	// Build tiered context
 	var tieredCtx *services.TieredContext
-	if h.tieredContextService != nil && (len(contextIDs) > 0 || projectID != nil || nodeID != nil) {
+	if h.tieredContextService != nil {
 		tieredReq := services.TieredContextRequest{
-			UserID:     user.ID,
-			ContextIDs: contextIDs,
-			ProjectID:  projectID,
-			NodeID:     nodeID,
+			UserID:      user.ID,
+			ContextIDs:  contextIDs,
+			ProjectID:   projectID,
+			NodeID:      nodeID,
+			DocumentIDs: documentIDs,
 		}
 		tieredCtx, _ = h.tieredContextService.BuildTieredContext(ctx, tieredReq)
 	}
 
 	// Create AgentV2 registry
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 
 	// Check if COT (Chain of Thought) mode is enabled
 	useCOT := req.UseCOT != nil && *req.UseCOT
@@ -384,6 +411,65 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 	agent.SetModel(model)
 	agent.SetOptions(llmOptions)
 
+	// Capture role and memory contexts for injection into agents (both COT and non-COT)
+	var roleContextStr string
+	var memoryContextStr string
+
+	// Inject role context if workspace_id is provided (Feature 1: Role-based permissions)
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.roleContextService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			roleCtx, err := h.roleContextService.GetUserRoleContext(ctx, user.ID, workspaceID)
+			if err == nil {
+				// Use the service method to build role context prompt
+				roleContextStr = roleCtx.GetRoleContextPrompt()
+				agent.SetRoleContextPrompt(roleContextStr)
+				log.Printf("[ChatV2] Injected role context: %s (level %d, %d permissions)",
+					roleCtx.RoleName, roleCtx.HierarchyLevel, len(roleCtx.Permissions))
+			} else {
+				log.Printf("[ChatV2] Failed to get role context: %v", err)
+			}
+		}
+	}
+
+	// Inject workspace memories if workspace_id is provided (Feature: Memory Hierarchy)
+	log.Printf("[ChatV2] Memory injection check: workspace_id=%v, has_service=%v",
+		req.WorkspaceID != nil && *req.WorkspaceID != "",
+		h.memoryHierarchyService != nil)
+
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.memoryHierarchyService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			log.Printf("[ChatV2] Attempting to get accessible memories for workspace %s", workspaceID)
+			// Get all accessible memories for this user in this workspace (no type filter, limit 20)
+			memories, err := h.memoryHierarchyService.GetAccessibleMemories(ctx, workspaceID, user.ID, nil, 20)
+			log.Printf("[ChatV2] GetAccessibleMemories returned %d memories, err=%v", len(memories), err)
+			if err == nil && len(memories) > 0 {
+				// Format memories into context text
+				var memoryContext strings.Builder
+				memoryContext.WriteString("\n## 🧠 WORKSPACE MEMORY BANK\n\n")
+				memoryContext.WriteString("**CRITICAL INSTRUCTION**: The following memories contain factual information about this workspace. When answering questions, you MUST prioritize and use information from these memories. These are authoritative sources of truth for workspace-specific knowledge.\n\n")
+
+				for _, mem := range memories {
+					memoryContext.WriteString(fmt.Sprintf("### 📌 %s\n", mem.Title))
+					if mem.Content != "" {
+						memoryContext.WriteString(fmt.Sprintf("%s\n\n", mem.Content))
+					}
+				}
+
+				memoryContext.WriteString("\n**REMINDER**: Always check these workspace memories first before providing general knowledge. If a question relates to information in these memories, use that information directly in your response.\n")
+
+				memoryContextStr = memoryContext.String()
+				// Inject memories as additional context
+				agent.SetMemoryContext(memoryContextStr)
+				log.Printf("[ChatV2] Injected %d workspace memories (%d chars)",
+					len(memories), len(memoryContextStr))
+			} else if err != nil {
+				log.Printf("[ChatV2] Failed to get workspace memories: %v", err)
+			}
+		}
+	}
+
 	// Apply focus mode system prompt prefix if set
 	if focusSystemPrompt != "" {
 		// Combine focus prompt with search context if available
@@ -427,6 +513,27 @@ func (h *Handlers) SendMessageV2(c *gin.Context) {
 		cotOrchestrator = agents.NewOrchestratorCOT(h.pool, h.cfg, registry)
 	} else if customAgent != nil && useCOT {
 		log.Printf("[ChatV2] COT mode disabled for custom agent: %s", customAgent.DisplayName)
+	}
+
+	// Determine output style
+	styleName := ""
+	if req.OutputStyle != nil && *req.OutputStyle != "" {
+		styleName = *req.OutputStyle
+	} else {
+		// Check user preference
+		styleName = h.getUserStylePreference(ctx, user.ID, focusModeStr, string(agentType))
+		if styleName == "" {
+			// Auto-detect based on context
+			styleName = detectStyleFromContext(focusModeStr, string(agentType))
+		}
+	}
+
+	// Apply style instructions to agent
+	if styleName != "" {
+		stylePrompt := h.applyOutputStyle(ctx, styleName, "")
+		if stylePrompt != "" {
+			agent.SetOutputStylePrompt(stylePrompt)
+		}
 	}
 
 	// Set streaming headers
@@ -483,10 +590,14 @@ Example ending:
 		ConversationID: *convUUID,
 		UserID:         user.ID,
 		UserName:       user.Name,
+		MemoryContext:  memoryContextStr, // Pass workspace memory context
+		RoleContext:    roleContextStr,   // Pass role context
 	}
 	if req.FocusMode != nil {
 		input.FocusMode = *req.FocusMode
 	}
+	log.Printf("[ChatV2] AgentInput created with MemoryContext=%d chars, RoleContext=%d chars",
+		len(memoryContextStr), len(roleContextStr))
 
 	// Run agent (with or without COT)
 	var events <-chan streaming.StreamEvent
@@ -583,6 +694,21 @@ Example ending:
 						slog.Debug("ChatV2: Auto-artifact detected", "title", artifact.Title, "type", artifact.Type, "len", len(artifact.Content))
 					}
 				}
+
+				// Send output as blocks if requested
+				if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
+					// Clean response from thinking tags for better block parsing
+					cleanResponse := stripThinkingTags(fullResponse)
+					doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
+					if err == nil {
+						writeSSEEvent(w, streaming.StreamEvent{
+							Type: streaming.EventTypeBlocks,
+							Data: doc,
+						})
+						slog.Debug("ChatV2: Structured blocks sent", "totalBlocks", len(doc.Blocks))
+					}
+				}
+
 				// Send usage and done
 				sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)
 				return false
@@ -740,36 +866,42 @@ Example ending:
 				writeSSEEvent(w, event)
 
 			case streaming.EventTypeDone:
-			slog.Debug("ChatV2: EventTypeDone received", "responseLen", len(fullResponse))
-			// Send artifact_complete if we have pending artifact from tool
-			if pendingArtifactTitle != "" && artifactContentStart > 0 {
-				artifactContent := fullResponse
-				if artifactContentStart < len(fullResponse) {
-					artifactContent = fullResponse[artifactContentStart:]
+				slog.Debug("ChatV2: EventTypeDone received", "responseLen", len(fullResponse))
+				// Send artifact_complete if we have pending artifact from tool
+				if pendingArtifactTitle != "" && artifactContentStart > 0 {
+					artifactContent := fullResponse
+					if artifactContentStart < len(fullResponse) {
+						artifactContent = fullResponse[artifactContentStart:]
+					}
+					artifactContent = strings.TrimPrefix(artifactContent, "Now write the complete document content below. Everything you write will be saved to the artifact.")
+					artifactContent = strings.TrimSpace(artifactContent)
+					if len(artifactContent) > 50 {
+						writeSSEEvent(w, streaming.StreamEvent{
+							Type: streaming.EventTypeArtifactComplete,
+							Data: streaming.Artifact{
+								Type:    pendingArtifactType,
+								Title:   pendingArtifactTitle,
+								Content: artifactContent,
+							},
+						})
+						slog.Debug("ChatV2: Artifact complete sent on Done", "title", pendingArtifactTitle)
+					}
 				}
-				artifactContent = strings.TrimPrefix(artifactContent, "Now write the complete document content below. Everything you write will be saved to the artifact.")
-				artifactContent = strings.TrimSpace(artifactContent)
-				if len(artifactContent) > 50 {
+
+			// Send output as blocks if requested
+			if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
+				// Clean response from thinking tags for better block parsing
+				cleanResponse := stripThinkingTags(fullResponse)
+				doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
+				if err == nil {
 					writeSSEEvent(w, streaming.StreamEvent{
-						Type: streaming.EventTypeArtifactComplete,
-						Data: streaming.Artifact{
-							Type:    pendingArtifactType,
-							Title:   pendingArtifactTitle,
-							Content: artifactContent,
-						},
+						Type: streaming.EventTypeBlocks,
+						Data: doc,
 					})
-					slog.Debug("ChatV2: Artifact complete sent on Done", "title", pendingArtifactTitle)
-				}
-			} else if len(detectedArtifacts) == 0 {
-				// Auto-detect artifacts based on content structure
-				if artifact := detectStructuredArtifact(fullResponse, req.Message); artifact != nil {
-					writeSSEEvent(w, streaming.StreamEvent{
-						Type: streaming.EventTypeArtifactComplete,
-						Data: *artifact,
-					})
-					slog.Debug("ChatV2: Auto-artifact detected on Done", "title", artifact.Title, "type", artifact.Type)
+					slog.Debug("ChatV2: Structured blocks sent on Done", "totalBlocks", len(doc.Blocks))
 				}
 			}
+
 			sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)
 			return false
 
@@ -800,6 +932,21 @@ Example ending:
 						slog.Debug("ChatV2: Auto-artifact detected on error channel", "title", artifact.Title, "type", artifact.Type)
 					}
 				}
+
+				// Send output as blocks if requested
+				if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
+					// Clean response from thinking tags for better block parsing
+					cleanResponse := stripThinkingTags(fullResponse)
+					doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
+					if err == nil {
+						writeSSEEvent(w, streaming.StreamEvent{
+							Type: streaming.EventTypeBlocks,
+							Data: doc,
+						})
+						slog.Debug("ChatV2: Structured blocks sent on channel close", "totalBlocks", len(doc.Blocks))
+					}
+				}
+
 				// Send usage event
 				sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)
 			}
@@ -890,6 +1037,36 @@ Example ending:
 			queries.UpdateConversation(ctx, sqlc.UpdateConversationParams{
 				ID:    conversationID,
 				Title: &title,
+			})
+		}
+
+		// Trigger automatic learning from this conversation turn
+		if h.autoLearningTriggers != nil && convUUID != nil {
+			focusModeValue := ""
+			if req.FocusMode != nil {
+				focusModeValue = *req.FocusMode
+			}
+
+			// Parse workspace ID if provided
+			var workspaceID *uuid.UUID
+			if req.WorkspaceID != nil && *req.WorkspaceID != "" {
+				if parsed, err := uuid.Parse(*req.WorkspaceID); err == nil {
+					workspaceID = &parsed
+				}
+			}
+
+			h.autoLearningTriggers.ProcessConversationTurn(ctx, services.LearningConversationContext{
+				UserID:         user.ID,
+				WorkspaceID:    workspaceID,
+				ConversationID: *convUUID,
+				UserMessage:    req.Message,
+				AgentResponse:  cleanResponse,
+				AgentType:      string(agentType),
+				FocusMode:      focusModeValue,
+				ProjectID:      projectID,
+				NodeID:         nodeID,
+				ContextIDs:     contextIDs,
+				Timestamp:      time.Now(),
 			})
 		}
 	}
@@ -1273,7 +1450,7 @@ func (h *Handlers) handleSlashCommandV2(c *gin.Context, user *middleware.BetterA
 	}
 
 	// Create agent registry and get agent
-	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService)
+	registry := agents.NewAgentRegistryV2(h.pool, h.cfg, h.embeddingService, h.promptPersonalizer)
 	agent := registry.GetAgent(agentType, user.ID, user.Name, convUUID, tieredCtx)
 
 	// Set model
@@ -1292,6 +1469,21 @@ func (h *Handlers) handleSlashCommandV2(c *gin.Context, user *middleware.BetterA
 		llmOptions.MaxTokens = *req.MaxTokens
 	}
 	agent.SetOptions(llmOptions)
+
+	// Inject role context if workspace_id is provided (Feature 1: Role-based permissions)
+	if req.WorkspaceID != nil && *req.WorkspaceID != "" && h.roleContextService != nil {
+		workspaceID, err := uuid.Parse(*req.WorkspaceID)
+		if err == nil {
+			roleCtx, err := h.roleContextService.GetUserRoleContext(ctx, user.ID, workspaceID)
+			if err == nil {
+				// Use the service method to build role context prompt
+				rolePrompt := roleCtx.GetRoleContextPrompt()
+				agent.SetRoleContextPrompt(rolePrompt)
+				log.Printf("[ChatV2-Slash] Injected role context: %s (level %d, %d permissions)",
+					roleCtx.RoleName, roleCtx.HierarchyLevel, len(roleCtx.Permissions))
+			}
+		}
+	}
 
 	// Set streaming headers
 	c.Header("Content-Type", "text/event-stream; charset=utf-8")
@@ -1468,4 +1660,100 @@ func applyReasoningTemplate(opts *services.LLMOptions, template sqlc.ReasoningTe
 		templateID := template.ID.Bytes
 		opts.ReasoningTemplateID = uuid.UUID(templateID).String()
 	}
+}
+
+// detectStyleFromContext determines the best output style based on focus mode and agent type
+func detectStyleFromContext(focusMode string, agentType string) string {
+	// Priority 1: Focus Mode
+	switch focusMode {
+	case "research":
+		return "detailed"
+	case "analyze":
+		return "detailed"
+	case "write":
+		return "professional"
+	case "build":
+		return "technical"
+	case "general":
+		return "conversational"
+	}
+
+	// Priority 2: Agent Type
+	switch agentType {
+	case "analyst":
+		return "detailed"
+	case "document":
+		return "professional"
+	case "executive":
+		return "executive"
+	case "task":
+		return "tutorial"
+	case "project":
+		return "professional"
+	}
+
+	return "professional" // Default
+}
+
+// getUserStylePreference fetches the user's preferred style for a given context
+func (h *Handlers) getUserStylePreference(ctx context.Context, userID string, focusMode string, agentType string) string {
+	var defaultStyleName sql.NullString
+	var overrides []byte
+
+	// Join with output_styles to get the name
+	query := `
+		SELECT s.name, p.style_overrides 
+		FROM user_output_preferences p
+		LEFT JOIN output_styles s ON p.default_style_id = s.id
+		WHERE p.user_id = $1
+	`
+	err := h.pool.QueryRow(ctx, query, userID).Scan(&defaultStyleName, &overrides)
+	if err != nil {
+		return "" // No preference found
+	}
+
+	// Check overrides first
+	if len(overrides) > 0 {
+		var mapping map[string]string
+		if err := json.Unmarshal(overrides, &mapping); err == nil {
+			// Check focus mode override
+			if focusMode != "" {
+				if styleName, ok := mapping["focus_mode:"+focusMode]; ok {
+					return styleName
+				}
+			}
+			// Check agent type override
+			if agentType != "" {
+				if styleName, ok := mapping["agent:"+agentType]; ok {
+					return styleName
+				}
+			}
+		}
+	}
+
+	if defaultStyleName.Valid {
+		return defaultStyleName.String
+	}
+
+	return ""
+}
+
+// applyOutputStyle fetches style instructions and prepends them to the system prompt
+func (h *Handlers) applyOutputStyle(ctx context.Context, styleName string, systemPrompt string) string {
+	if styleName == "" {
+		return systemPrompt
+	}
+
+	// Manual query
+	var instructions string
+	err := h.pool.QueryRow(ctx, "SELECT style_instructions FROM output_styles WHERE name = $1 AND is_active = TRUE", styleName).Scan(&instructions)
+	if err != nil {
+		slog.Debug("ChatV2: Output style not found or inactive", "style", styleName)
+		return systemPrompt
+	}
+
+	// Prepend instructions to system prompt
+	styledPrompt := fmt.Sprintf("## OUTPUT STYLE: %s\n\n%s\n\n---\n\n%s", strings.ToUpper(styleName), instructions, systemPrompt)
+	slog.Debug("ChatV2: Applied output style", "style", styleName)
+	return styledPrompt
 }
