@@ -256,7 +256,7 @@ export const api = {
   updateContextSession: contextTreeApi.updateContextSession,
   endContextSession: contextTreeApi.endContextSession,
 
-  // Raw helper
+  // Raw helper to inspect base URL if needed
   apiBase: base.getApiBaseUrl,
 };
 

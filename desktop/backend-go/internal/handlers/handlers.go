@@ -22,6 +22,11 @@ type Handlers struct {
 	embeddingService     *services.EmbeddingService     // Vector embedding service for RAG
 	contextBuilder       *services.ContextBuilder       // Hierarchical context builder for AI
 	tieredContextService *services.TieredContextService // Tiered context builder for scoped AI queries
+	notificationService  *services.NotificationService  // Notification service for real-time alerts
+	notificationTriggers *services.NotificationTriggers // Notification triggers for events
+	webPushService       *services.WebPushService       // Web Push notification service
+	emailService         *services.EmailService         // Email service via Resend
+	commentService       *services.CommentService       // Comment service with mentions
 	// Pedro tasks services
 	documentProcessor        *services.DocumentProcessor               // Document processing with chunking
 	learningService          *services.LearningService                 // Learning and personalization
@@ -48,7 +53,12 @@ type Handlers struct {
 }
 
 // NewHandlers creates a new Handlers instance
-func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService) *Handlers {
+func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService, notificationService *services.NotificationService) *Handlers {
+	var notifTriggers *services.NotificationTriggers
+	if notificationService != nil {
+		notifTriggers = services.NewNotificationTriggers(notificationService)
+	}
+
 	return &Handlers{
 		pool:                 pool,
 		cfg:                  cfg,
@@ -58,7 +68,32 @@ func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container
 		embeddingService:     embeddingService,
 		contextBuilder:       contextBuilder,
 		tieredContextService: tieredContextService,
+		notificationService:  notificationService,
+		notificationTriggers: notifTriggers,
 	}
+}
+
+// SetWebPushService sets the Web Push service (optional)
+func (h *Handlers) SetWebPushService(svc *services.WebPushService) {
+	h.webPushService = svc
+	// Also set on dispatcher if available
+	if h.notificationService != nil && svc != nil {
+		h.notificationService.Dispatcher().SetWebPushService(svc)
+	}
+}
+
+// SetEmailService sets the Email service (optional)
+func (h *Handlers) SetEmailService(svc *services.EmailService) {
+	h.emailService = svc
+	// Also set on dispatcher if available
+	if h.notificationService != nil && svc != nil {
+		h.notificationService.Dispatcher().SetEmailService(svc)
+	}
+}
+
+// SetCommentService sets the Comment service (optional)
+func (h *Handlers) SetCommentService(svc *services.CommentService) {
+	h.commentService = svc
 }
 
 // SetPedroServices sets the Pedro task services (optional, to avoid breaking existing code)
@@ -527,6 +562,111 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		usage.GET("/mcp", h.GetMCPUsage)
 	}
 
+	// Notification routes - /api/notifications
+	if h.notificationService != nil {
+		notifHandler := NewNotificationHandler(h.notificationService)
+		notifications := api.Group("/notifications")
+		notifications.Use(auth)
+		{
+			notifications.GET("", notifHandler.ListNotifications)
+			notifications.GET("/unread-count", notifHandler.GetUnreadCount)
+			notifications.GET("/stream", notifHandler.Stream)
+			notifications.GET("/preferences", notifHandler.GetPreferences)
+			notifications.PUT("/preferences", notifHandler.UpdatePreferences)
+			notifications.POST("/:id/read", notifHandler.MarkAsRead)
+			notifications.POST("/read", notifHandler.MarkMultipleAsRead)
+			notifications.POST("/read-all", notifHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notifHandler.DeleteNotification)
+
+			// Web Push routes
+			if h.webPushService != nil {
+				pushHandler := NewWebPushHandler(h.webPushService)
+				notifications.GET("/push/vapid-public-key", pushHandler.GetVAPIDPublicKey)
+				notifications.POST("/push/subscribe", pushHandler.Subscribe)
+				notifications.POST("/push/unsubscribe", pushHandler.Unsubscribe)
+				notifications.POST("/push/test", pushHandler.TestPush)
+			}
+		}
+
+		// DEV ONLY: Notification seeding routes - /api/dev/notifications
+		if IsDevMode() {
+			seedHandler := NewNotificationSeedHandler(h.pool, h.notificationService)
+			devNotifications := api.Group("/dev/notifications")
+			devNotifications.Use(auth)
+			{
+				devNotifications.POST("/seed", seedHandler.SeedNotifications)
+				devNotifications.POST("/seed-full", seedHandler.SeedNotificationsWithTimestamps)
+				devNotifications.DELETE("/seed", seedHandler.ClearSeedNotifications)
+			}
+		}
+	}
+
+	// Custom Dashboards routes - /api/user-dashboards
+	userDashboards := api.Group("/user-dashboards")
+	userDashboards.Use(auth)
+	{
+		userDashboards.GET("", h.ListUserDashboards)
+		userDashboards.POST("", h.CreateUserDashboard)
+		userDashboards.GET("/:id", h.GetUserDashboard)
+		userDashboards.PUT("/:id", h.UpdateUserDashboard)
+		userDashboards.DELETE("/:id", h.DeleteUserDashboard)
+		userDashboards.POST("/:id/duplicate", h.DuplicateUserDashboard)
+		userDashboards.PUT("/:id/layout", h.UpdateDashboardLayout)
+		userDashboards.POST("/:id/default", h.SetDefaultUserDashboard)
+		userDashboards.POST("/:id/share", h.ShareUserDashboard)
+	}
+	// Public shared dashboard access (no auth)
+	api.GET("/user-dashboards/shared/:token", h.GetSharedDashboard)
+
+	// Dashboard Widgets routes - /api/widgets
+	widgets := api.Group("/widgets")
+	widgets.Use(auth)
+	{
+		widgets.GET("", h.ListWidgetTypes)
+		widgets.GET("/:type/schema", h.GetWidgetSchema)
+	}
+
+	// Dashboard Templates routes - /api/dashboard-templates
+	dashboardTemplates := api.Group("/dashboard-templates")
+	dashboardTemplates.Use(auth)
+	{
+		dashboardTemplates.GET("", h.ListDashboardTemplates)
+		dashboardTemplates.POST("/create-from/:id", h.CreateDashboardFromTemplate)
+	}
+
+	// Analytics routes - /api/analytics
+	analytics := api.Group("/analytics")
+	analytics.Use(auth)
+	{
+		analytics.GET("/summary", h.GetAnalyticsSummary)
+		analytics.GET("/task-burndown", h.GetTaskBurndown)
+		analytics.GET("/workload", h.GetWorkloadHeatmap)
+		analytics.GET("/upcoming-deadlines", h.GetUpcomingDeadlines)
+	}
+
+	// Comments routes - /api/comments
+	if h.commentService != nil {
+		comments := api.Group("/comments")
+		comments.Use(auth)
+		{
+			comments.GET("", h.GetComments)
+			comments.POST("", h.CreateComment)
+			comments.GET("/:id", h.GetComment)
+			comments.PUT("/:id", h.UpdateComment)
+			comments.DELETE("/:id", h.DeleteComment)
+			comments.POST("/:id/reactions", h.AddCommentReaction)
+			comments.DELETE("/:id/reactions/:emoji", h.RemoveCommentReaction)
+		}
+
+		// Task comments - /api/tasks/:id/comments
+		api.GET("/tasks/:id/comments", auth, h.GetTaskComments)
+		api.POST("/tasks/:id/comments", auth, h.CreateTaskComment)
+
+		// Project comments - /api/projects/:id/comments
+		api.GET("/projects/:id/comments", auth, h.GetProjectComments)
+		api.POST("/projects/:id/comments", auth, h.CreateProjectComment)
+	}
+
 	// Embeddings routes - /api/embeddings (for RAG and semantic search)
 	if h.embeddingService != nil && h.contextBuilder != nil {
 		embeddingHandler := NewEmbeddingHandler(h.embeddingService, h.contextBuilder)
@@ -764,6 +904,56 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	api.GET("/focus_items/sync", auth, h.createTableSyncHandler("focus_items"))
 	api.GET("/user_settings/sync", auth, h.createTableSyncHandler("user_settings"))
 
+	// =============================================================================
+	// MOBILE API - /api/mobile/v1
+	// =============================================================================
+	// Optimized endpoints for mobile clients (PWA, native apps):
+	// - Lean payloads (~100 bytes vs ~2KB per item)
+	// - Cursor-based pagination
+	// - Field selection support (?fields=id,title,status)
+	// - Unix timestamps instead of ISO strings
+	// - Standardized error responses
+	// =============================================================================
+	mobileHandler := NewMobileHandler(h.pool, h.notificationService)
+	mobile := api.Group("/mobile/v1")
+	mobile.Use(auth)
+	mobile.Use(middleware.DeviceIDMiddleware()) // Extract X-Device-ID header
+	{
+		// User profile
+		mobile.GET("/me", mobileHandler.GetMe)
+
+		// Tasks (Phase 1)
+		mobile.GET("/tasks", mobileHandler.ListTasks)
+		mobile.GET("/tasks/:id", mobileHandler.GetTask)
+		mobile.POST("/tasks/quick", mobileHandler.QuickCreateTask)
+		mobile.PUT("/tasks/:id/status", mobileHandler.UpdateTaskStatus)
+		mobile.PUT("/tasks/:id/toggle", mobileHandler.ToggleTask)
+
+		// Notifications (Phase 2)
+		mobile.GET("/notifications", mobileHandler.ListNotifications)
+		mobile.GET("/notifications/count", mobileHandler.GetNotificationCount)
+		mobile.POST("/notifications/mark-read", mobileHandler.MarkNotificationsRead)
+
+		// Daily Log (Phase 3)
+		mobile.GET("/dailylog/today", mobileHandler.GetTodayLog)
+		mobile.GET("/dailylog/history", mobileHandler.GetLogHistory)
+
+		// Sync (Phase 3)
+		mobile.GET("/sync", mobileHandler.DeltaSync)
+
+		// Chat (Phase 4)
+		mobile.GET("/chat/threads", mobileHandler.ListChatThreads)
+		mobile.GET("/chat/history/:id", mobileHandler.GetChatHistory)
+		mobile.POST("/chat/message", mobileHandler.SendChatMessage)
+
+		// Capture (Phase 4 - pending team discussion)
+		// mobile.POST("/capture", mobileHandler.SmartCapture)
+
+		// Push Registration (Phase 5)
+		mobile.POST("/push/register", mobileHandler.RegisterPushDevice)
+		mobile.DELETE("/push/unregister", mobileHandler.UnregisterPushDevice)
+	}
+
 	// Calendar routes - /api/calendar (aggregate from calendar_events table)
 	calendar := api.Group("/calendar")
 	{
@@ -777,7 +967,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	strictRateLimit := middleware.StrictRateLimitMiddleware()
 
 	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg, h.sessionCache)
-	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg)
+	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg, h.notificationTriggers)
 	authRoutes := api.Group("/auth")
 	{
 		// Email/Password auth (public) - strict rate limiting

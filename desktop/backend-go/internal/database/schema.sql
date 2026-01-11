@@ -17,6 +17,17 @@ CREATE TYPE clientstatus AS ENUM ('lead', 'prospect', 'active', 'inactive', 'chu
 CREATE TYPE interactiontype AS ENUM ('call', 'email', 'meeting', 'note');
 CREATE TYPE dealstage AS ENUM ('qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost');
 
+-- Better Auth managed user table (defined here for SQLC JOINs)
+CREATE TABLE IF NOT EXISTS "user" (
+    id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255),
+    email VARCHAR(255) UNIQUE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    image VARCHAR(500),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Contexts table (for documents, profiles)
 CREATE TABLE contexts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -3705,3 +3716,475 @@ CREATE TABLE IF NOT EXISTS application_api_endpoints (
 CREATE INDEX IF NOT EXISTS idx_app_endpoints_profile ON application_api_endpoints(app_profile_id);
 CREATE INDEX IF NOT EXISTS idx_app_endpoints_method ON application_api_endpoints(method);
 CREATE INDEX IF NOT EXISTS idx_app_endpoints_path ON application_api_endpoints(app_profile_id, path);
+
+-- ============================================================================
+-- DASHBOARD & ANALYTICS ENHANCEMENTS (Migration 023)
+-- ============================================================================
+
+-- Analytics Snapshots - Historical metrics tracking for trends
+CREATE TABLE IF NOT EXISTS analytics_snapshots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    workspace_id UUID,
+    snapshot_date DATE NOT NULL,
+    metrics JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, snapshot_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_analytics_snapshots_user_date 
+    ON analytics_snapshots(user_id, snapshot_date DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_snapshots_workspace 
+    ON analytics_snapshots(workspace_id) WHERE workspace_id IS NOT NULL;
+
+-- Dashboard Views - Dashboard usage tracking
+CREATE TABLE IF NOT EXISTS dashboard_views (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    dashboard_id UUID NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    viewed_at TIMESTAMPTZ DEFAULT NOW(),
+    session_id VARCHAR(100),
+    duration_seconds INTEGER,
+    widget_interactions JSONB DEFAULT '[]',
+    source VARCHAR(50),
+    device_type VARCHAR(20)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_views_dashboard 
+    ON dashboard_views(dashboard_id, viewed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dashboard_views_user 
+    ON dashboard_views(user_id, viewed_at DESC);
+
+-- Dashboard Shares - Granular sharing permissions
+CREATE TABLE IF NOT EXISTS dashboard_shares (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    dashboard_id UUID NOT NULL,
+    shared_with_user_id VARCHAR(255),
+    shared_with_role VARCHAR(100),
+    shared_with_workspace_id UUID,
+    permission VARCHAR(20) DEFAULT 'view',
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by VARCHAR(255) NOT NULL,
+    UNIQUE(dashboard_id, shared_with_user_id),
+    UNIQUE(dashboard_id, shared_with_role)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_shares_dashboard 
+    ON dashboard_shares(dashboard_id);
+CREATE INDEX IF NOT EXISTS idx_dashboard_shares_user 
+    ON dashboard_shares(shared_with_user_id) WHERE shared_with_user_id IS NOT NULL;
+
+-- Widget Data Cache - Performance optimization for expensive queries
+CREATE TABLE IF NOT EXISTS widget_data_cache (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    widget_type VARCHAR(100) NOT NULL,
+    cache_key VARCHAR(255) NOT NULL,
+    data JSONB NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    hit_count INTEGER DEFAULT 0,
+    last_hit_at TIMESTAMPTZ,
+    UNIQUE(user_id, widget_type, cache_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_widget_cache_lookup 
+    ON widget_data_cache(user_id, widget_type, cache_key);
+CREATE INDEX IF NOT EXISTS idx_widget_cache_expiry 
+    ON widget_data_cache(expires_at);
+
+-- ============================================================================
+-- WORKSPACES (Multi-tenant support)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS workspaces (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    logo_url VARCHAR(500),
+    plan_type VARCHAR(50) DEFAULT 'free',
+    owner_id VARCHAR(255) NOT NULL,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspaces_owner ON workspaces(owner_id);
+CREATE INDEX IF NOT EXISTS idx_workspaces_slug ON workspaces(slug);
+
+-- Workspace Roles
+CREATE TABLE IF NOT EXISTS workspace_roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    display_name VARCHAR(100),
+    description TEXT,
+    color VARCHAR(20),
+    icon VARCHAR(50),
+    hierarchy_level INTEGER DEFAULT 0,
+    is_system BOOLEAN DEFAULT FALSE,
+    is_default BOOLEAN DEFAULT FALSE,
+    permissions JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(workspace_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_roles_workspace ON workspace_roles(workspace_id);
+
+-- Workspace Members
+CREATE TABLE IF NOT EXISTS workspace_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL,
+    role_id UUID REFERENCES workspace_roles(id) ON DELETE SET NULL,
+    role_name VARCHAR(100) DEFAULT 'member',
+    status VARCHAR(20) DEFAULT 'active',
+    invited_at TIMESTAMPTZ,
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    invited_by VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(workspace_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace ON workspace_members(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user ON workspace_members(user_id);
+
+-- Workspace Invitations
+CREATE TABLE IF NOT EXISTS workspace_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    role_id UUID REFERENCES workspace_roles(id) ON DELETE SET NULL,
+    role_name VARCHAR(100) DEFAULT 'member',
+    token VARCHAR(255) UNIQUE,
+    status VARCHAR(20) DEFAULT 'pending',
+    expires_at TIMESTAMPTZ,
+    invited_by VARCHAR(255) NOT NULL,
+    invited_by_id VARCHAR(255),
+    invited_by_name VARCHAR(255),
+    invited_at TIMESTAMPTZ DEFAULT NOW(),
+    accepted_at TIMESTAMPTZ,
+    accepted_by VARCHAR(255),
+    accepted_by_user_id VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_workspace ON workspace_invitations(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email ON workspace_invitations(email);
+CREATE INDEX IF NOT EXISTS idx_workspace_invitations_token ON workspace_invitations(token);
+
+-- Workspace Memories
+CREATE TABLE IF NOT EXISTS workspace_memories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    user_id VARCHAR(255),
+    title VARCHAR(255),
+    summary TEXT,
+    content TEXT NOT NULL,
+    memory_type VARCHAR(50) DEFAULT 'general',
+    category VARCHAR(100) DEFAULT 'general',
+    scope_type VARCHAR(50),
+    scope_id UUID,
+    visibility VARCHAR(20) DEFAULT 'workspace',
+    created_by VARCHAR(255),
+    importance_score FLOAT DEFAULT 0.5,
+    tags TEXT[],
+    source VARCHAR(100),
+    embedding vector(1536),
+    metadata JSONB DEFAULT '{}',
+    is_pinned BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_archived BOOLEAN DEFAULT FALSE,
+    access_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_memories_workspace ON workspace_memories(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_memories_category ON workspace_memories(category);
+CREATE INDEX IF NOT EXISTS idx_workspace_memories_type ON workspace_memories(memory_type);
+CREATE INDEX IF NOT EXISTS idx_workspace_memories_scope ON workspace_memories(scope_type, scope_id);
+
+-- User Workspace Profiles
+CREATE TABLE IF NOT EXISTS user_workspace_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    display_name VARCHAR(255),
+    title VARCHAR(255),
+    department VARCHAR(255),
+    avatar_url VARCHAR(500),
+    work_email VARCHAR(255),
+    phone VARCHAR(50),
+    timezone VARCHAR(100),
+    working_hours JSONB DEFAULT '{}',
+    notification_preferences JSONB DEFAULT '{}',
+    expertise_areas TEXT[],
+    bio TEXT,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, workspace_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_workspace_profiles_user ON user_workspace_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_workspace_profiles_workspace ON user_workspace_profiles(workspace_id);
+
+-- Workspace Project Members
+CREATE TABLE IF NOT EXISTS workspace_project_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+    project_id UUID NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    project_role VARCHAR(50) DEFAULT 'member',
+    assigned_by VARCHAR(255),
+    assigned_at TIMESTAMPTZ DEFAULT NOW(),
+    notification_level VARCHAR(20) DEFAULT 'all',
+    permissions JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(workspace_id, project_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspace_project_members_project ON workspace_project_members(project_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_project_members_user ON workspace_project_members(user_id);
+
+-- ============================================================================
+-- USER DASHBOARDS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS user_dashboards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_default BOOLEAN DEFAULT FALSE,
+    layout JSONB DEFAULT '[]',
+    visibility VARCHAR(20) DEFAULT 'private',
+    share_token VARCHAR(100) UNIQUE,
+    is_enforced BOOLEAN DEFAULT FALSE,
+    enforced_for_roles TEXT[],
+    created_via VARCHAR(50) DEFAULT 'manual',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_dashboards_user ON user_dashboards(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_dashboards_workspace ON user_dashboards(workspace_id);
+
+-- Dashboard Widgets (Widget Type Registry)
+CREATE TABLE IF NOT EXISTS dashboard_widgets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    widget_type VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) DEFAULT 'general',
+    icon VARCHAR(50),
+    default_config JSONB DEFAULT '{}',
+    config_schema JSONB DEFAULT '{}',
+    default_size JSONB DEFAULT '{"width": 2, "height": 2}',
+    min_size JSONB DEFAULT '{"width": 1, "height": 1}',
+    sse_events TEXT[],
+    supported_sizes TEXT[],
+    min_width INTEGER DEFAULT 1,
+    min_height INTEGER DEFAULT 1,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    is_premium BOOLEAN DEFAULT FALSE,
+    required_permissions TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_category ON dashboard_widgets(category);
+CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_enabled ON dashboard_widgets(is_enabled);
+
+-- Dashboard Templates
+CREATE TABLE IF NOT EXISTS dashboard_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(50) DEFAULT 'general',
+    thumbnail_url VARCHAR(500),
+    preview_image_url VARCHAR(500),
+    layout JSONB DEFAULT '[]',
+    is_default BOOLEAN DEFAULT FALSE,
+    sort_order INTEGER DEFAULT 0,
+    target_roles TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_dashboard_templates_default ON dashboard_templates(is_default);
+
+-- ============================================================================
+-- NOTIFICATIONS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
+    type VARCHAR(100) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    body TEXT,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    sender_id VARCHAR(255),
+    sender_name VARCHAR(255),
+    sender_avatar_url VARCHAR(500),
+    batch_id UUID,
+    batch_count INTEGER DEFAULT 1,
+    priority VARCHAR(20) DEFAULT 'normal',
+    metadata JSONB DEFAULT '{}',
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMPTZ,
+    channels_sent TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read) WHERE is_read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_entity ON notifications(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
+
+-- Notification Preferences
+CREATE TABLE IF NOT EXISTS notification_preferences (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+    email_enabled BOOLEAN DEFAULT TRUE,
+    push_enabled BOOLEAN DEFAULT TRUE,
+    in_app_enabled BOOLEAN DEFAULT TRUE,
+    type_settings JSONB DEFAULT '{}',
+    quiet_hours_enabled BOOLEAN DEFAULT FALSE,
+    quiet_hours_start TIME,
+    quiet_hours_end TIME,
+    quiet_hours_timezone VARCHAR(100),
+    email_digest_enabled BOOLEAN DEFAULT FALSE,
+    email_digest_time TIME,
+    email_digest_timezone VARCHAR(100),
+    muted_types TEXT[],
+    custom_settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, workspace_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_user ON notification_preferences(user_id);
+
+-- Notification Batches
+CREATE TABLE IF NOT EXISTS notification_batches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    batch_key VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    pending_ids UUID[] DEFAULT '{}',
+    pending_count INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'pending',
+    dispatch_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_batches_user ON notification_batches(user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_batches_pending ON notification_batches(status) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_notification_batches_dispatch ON notification_batches(dispatch_at);
+
+-- Push Subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+
+-- Push Devices (for mobile)
+CREATE TABLE IF NOT EXISTS push_devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    device_id VARCHAR(255) NOT NULL,
+    platform VARCHAR(20) NOT NULL,
+    push_token TEXT NOT NULL,
+    app_version VARCHAR(50),
+    os_version VARCHAR(50),
+    device_model VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, device_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_devices_user ON push_devices(user_id);
+CREATE INDEX IF NOT EXISTS idx_push_devices_active ON push_devices(is_active) WHERE is_active = TRUE;
+
+-- ============================================================================
+-- COMMENTS & MENTIONS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    parent_id UUID REFERENCES comments(id) ON DELETE CASCADE,
+    is_edited BOOLEAN DEFAULT FALSE,
+    edited_at TIMESTAMPTZ,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_entity ON comments(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments(parent_id);
+
+-- Entity Mentions
+CREATE TABLE IF NOT EXISTS entity_mentions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_type VARCHAR(50) NOT NULL,
+    source_id UUID NOT NULL,
+    mentioned_user_id VARCHAR(255) NOT NULL,
+    mention_text VARCHAR(255),
+    position_in_text INTEGER,
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    mentioned_by VARCHAR(255) NOT NULL,
+    notified BOOLEAN DEFAULT FALSE,
+    notified_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_entity_mentions_source ON entity_mentions(source_type, source_id);
+CREATE INDEX IF NOT EXISTS idx_entity_mentions_user ON entity_mentions(mentioned_user_id);
+CREATE INDEX IF NOT EXISTS idx_entity_mentions_unnotified ON entity_mentions(notified) WHERE notified = FALSE;
+
+-- Comment Reactions
+CREATE TABLE IF NOT EXISTS comment_reactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    comment_id UUID NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL,
+    emoji VARCHAR(20) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(comment_id, user_id, emoji)
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_reactions_comment ON comment_reactions(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_reactions_user ON comment_reactions(user_id);

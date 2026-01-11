@@ -15,20 +15,29 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/database"
+	"github.com/rhl/businessos-backend/internal/database/sqlc"
 	"github.com/rhl/businessos-backend/internal/handlers"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
 	"github.com/rhl/businessos-backend/internal/services"
 	"github.com/rhl/businessos-backend/internal/terminal"
+	"github.com/rhl/businessos-backend/internal/workers"
 )
 
 // Note: middleware package now provides SessionCache for Redis-backed session validation
 
 func main() {
+	// Load .env file first (before config.Load) so os.Getenv works for all services
+	// This is optional - in production, env vars are set directly
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Note: No .env file found (this is fine in production)")
+	}
+
 	// Create background context for the application
 	ctx := context.Background()
 
@@ -321,6 +330,30 @@ func main() {
 		embeddingService = nil
 	}
 
+	// Initialize notification service with SSE broadcaster
+	sseBroadcaster := services.NewSSEBroadcaster()
+	notificationService := services.NewNotificationService(pool, sseBroadcaster)
+	log.Printf("Notification service initialized (SSE real-time enabled)")
+
+	// Start notification batch worker
+	batchWorker := workers.NewBatchWorker(pool, notificationService.Dispatcher())
+	go batchWorker.Start(ctx)
+	log.Printf("Notification batch worker started (interval: 10s)")
+
+	// Initialize Web Push service (optional - requires VAPID keys)
+	var webPushService *services.WebPushService
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" {
+		webPushService = services.NewWebPushService(pool, &services.WebPushConfig{
+			VAPIDPublicKey:  cfg.VAPIDPublicKey,
+			VAPIDPrivateKey: cfg.VAPIDPrivateKey,
+			VAPIDContact:    cfg.VAPIDContact,
+		})
+		log.Printf("Web Push service initialized (VAPID keys configured)")
+	} else {
+		log.Printf("Web Push service disabled (VAPID keys not configured)")
+		log.Printf("To enable: Generate keys with `npx web-push generate-vapid-keys` and set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY")
+	}
+
 	// Initialize Pedro Tasks services (Memory, Context & Intelligence System)
 	var documentProcessor *services.DocumentProcessor
 	var learningService *services.LearningService
@@ -528,7 +561,27 @@ func main() {
 	}
 
 	// Initialize handlers with container manager, session cache, terminal pub/sub, and embedding services
-	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService)
+	h := handlers.NewHandlers(pool, cfg, containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService, notificationService)
+
+	// Set optional services
+	if webPushService != nil {
+		h.SetWebPushService(webPushService)
+	}
+
+	// Initialize Email service (Resend)
+	emailService := services.NewEmailService()
+	if emailService.IsEnabled() {
+		h.SetEmailService(emailService)
+		log.Printf("Email service initialized (Resend configured)")
+	} else {
+		log.Printf("Email service disabled (RESEND_API_KEY not set)")
+	}
+
+	// Initialize Comment service
+	queries := sqlc.New(pool)
+	commentService := services.NewCommentService(pool, queries, notificationService)
+	h.SetCommentService(commentService)
+	log.Printf("Comment service initialized (mentions & notifications enabled)")
 
 	// Set Pedro Tasks services (Day 1 + Day 2)
 	h.SetPedroServices(documentProcessor, learningService, autoLearningTriggers, promptPersonalizer, appProfilerService, conversationIntelligence, memoryExtractor, blockMapper)
@@ -748,6 +801,10 @@ func main() {
 	<-quit
 
 	log.Println("Shutting down server...")
+
+	// Stop batch worker
+	log.Println("Stopping notification batch worker...")
+	batchWorker.Stop()
 
 	// Stop container monitor first (if available)
 	if containerMonitor != nil {

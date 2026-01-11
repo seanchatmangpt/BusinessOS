@@ -119,8 +119,8 @@ await notificationStore.updatePreferences({
 });
 
 // Connection management
-notificationStore.connect();    // Start SSE connection
-notificationStore.disconnect(); // Stop SSE connection
+notificationStore.connect();
+notificationStore.disconnect();
 ```
 
 ---
