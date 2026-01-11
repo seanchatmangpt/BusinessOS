@@ -297,10 +297,12 @@
           {#if errors.display_name}
             <p class="text-xs text-red-600 dark:text-red-400 mt-1">{errors.display_name}</p>
           {/if}
-          {@const displayNameStatus = getCharacterCountStatus(displayName.length, VALIDATION_LIMITS.DISPLAY_NAME_MAX)}
-          <p class="text-xs {displayNameStatus.statusClass} mt-1">
-            {displayNameStatus.current} / {displayNameStatus.max} characters
-          </p>
+          {#if true}
+            {@const displayNameStatus = getCharacterCountStatus(displayName.length, VALIDATION_LIMITS.DISPLAY_NAME_MAX)}
+            <p class="text-xs {displayNameStatus.statusClass} mt-1">
+              {displayNameStatus.current} / {displayNameStatus.max} characters
+            </p>
+          {/if}
         </div>
 
         <!-- Name (ID) -->
@@ -346,10 +348,12 @@
           {#if errors.description}
             <p class="text-xs text-red-600 dark:text-red-400 mt-1">{errors.description}</p>
           {/if}
-          {@const descStatus = getCharacterCountStatus(description.length, VALIDATION_LIMITS.DESCRIPTION_MAX)}
-          <p class="text-xs {descStatus.statusClass} mt-1">
-            {descStatus.current} / {descStatus.max} characters
-          </p>
+          {#if true}
+            {@const descStatus = getCharacterCountStatus(description.length, VALIDATION_LIMITS.DESCRIPTION_MAX)}
+            <p class="text-xs {descStatus.statusClass} mt-1">
+              {descStatus.current} / {descStatus.max} characters
+            </p>
+          {/if}
         </div>
 
         <!-- Avatar URL -->
@@ -432,8 +436,9 @@
           {#if errors.welcome_message}
             <p class="text-xs text-red-600 dark:text-red-400 mt-1">{errors.welcome_message}</p>
           {/if}
-          {@const charStatus = getCharacterCountStatus(welcomeMessage.length, VALIDATION_LIMITS.WELCOME_MESSAGE_MAX)}
-          <div class="flex justify-between items-center mt-1">
+          {#if true}
+            {@const charStatus = getCharacterCountStatus(welcomeMessage.length, VALIDATION_LIMITS.WELCOME_MESSAGE_MAX)}
+            <div class="flex justify-between items-center mt-1">
             <p class="text-xs {charStatus.statusClass}">
               {charStatus.current} / {charStatus.max} characters
               {#if charStatus.isNearLimit && !charStatus.isOverLimit}
@@ -444,6 +449,7 @@
               {/if}
             </p>
           </div>
+          {/if}
         </div>
 
         <!-- Suggested Prompts -->
@@ -453,10 +459,12 @@
               Suggested Prompts
               <span class="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">(Quick start options)</span>
             </label>
-            {@const promptCountStatus = getCharacterCountStatus(suggestedPrompts.length, VALIDATION_LIMITS.SUGGESTED_PROMPTS_MAX)}
-            <span class="text-xs {promptCountStatus.statusClass}">
-              {promptCountStatus.current} / {promptCountStatus.max} prompts
-            </span>
+            {#if true}
+              {@const promptCountStatus = getCharacterCountStatus(suggestedPrompts.length, VALIDATION_LIMITS.SUGGESTED_PROMPTS_MAX)}
+              <span class="text-xs {promptCountStatus.statusClass}">
+                {promptCountStatus.current} / {promptCountStatus.max} prompts
+              </span>
+            {/if}
           </div>
 
           {#if errors.suggested_prompts}
@@ -621,10 +629,12 @@
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
           System Prompt <span class="text-red-500">*</span>
         </h3>
-        {@const systemPromptStatus = getCharacterCountStatus(systemPrompt.length, VALIDATION_LIMITS.SYSTEM_PROMPT_MAX)}
-        <span class="text-sm {systemPromptStatus.statusClass}">
-          {systemPromptStatus.current} / {systemPromptStatus.max} characters
-        </span>
+        {#if true}
+          {@const systemPromptStatus = getCharacterCountStatus(systemPrompt.length, VALIDATION_LIMITS.SYSTEM_PROMPT_MAX)}
+          <span class="text-sm {systemPromptStatus.statusClass}">
+            {systemPromptStatus.current} / {systemPromptStatus.max} characters
+          </span>
+        {/if}
       </div>
       <SystemPromptEditor
         value={systemPrompt}
