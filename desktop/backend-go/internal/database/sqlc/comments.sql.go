@@ -110,7 +110,7 @@ type CreateEntityMentionParams struct {
 	SourceType      string      `json:"source_type"`
 	SourceID        pgtype.UUID `json:"source_id"`
 	MentionedUserID string      `json:"mentioned_user_id"`
-	MentionText     string      `json:"mention_text"`
+	MentionText     *string     `json:"mention_text"`
 	PositionInText  *int32      `json:"position_in_text"`
 	EntityType      *string     `json:"entity_type"`
 	EntityID        pgtype.UUID `json:"entity_id"`
@@ -329,7 +329,7 @@ type GetCommentWithAuthorRow struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	AuthorName  *string            `json:"author_name"`
-	AuthorEmail string             `json:"author_email"`
+	AuthorEmail *string            `json:"author_email"`
 	AvatarUrl   *string            `json:"avatar_url"`
 }
 
@@ -526,7 +526,7 @@ SELECT id, name, email, image FROM "user" WHERE id = $1
 type GetUserByIDRow struct {
 	ID    string  `json:"id"`
 	Name  *string `json:"name"`
-	Email string  `json:"email"`
+	Email *string `json:"email"`
 	Image *string `json:"image"`
 }
 
@@ -697,7 +697,7 @@ type ListCommentsWithAuthorRow struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	AuthorName  *string            `json:"author_name"`
-	AuthorEmail string             `json:"author_email"`
+	AuthorEmail *string            `json:"author_email"`
 	AvatarUrl   *string            `json:"avatar_url"`
 }
 
@@ -760,7 +760,7 @@ type ListRepliesWithAuthorRow struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	AuthorName  *string            `json:"author_name"`
-	AuthorEmail string             `json:"author_email"`
+	AuthorEmail *string            `json:"author_email"`
 	AvatarUrl   *string            `json:"avatar_url"`
 }
 

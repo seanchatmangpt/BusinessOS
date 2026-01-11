@@ -31,7 +31,7 @@ const addWorkspaceProjectMember = `-- name: AddWorkspaceProjectMember :one
 
 INSERT INTO workspace_project_members (project_id, user_id, workspace_id, project_role, assigned_by, notification_level)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, project_id, user_id, workspace_id, project_role, assigned_by, assigned_at, notification_level, created_at, updated_at
+RETURNING id, workspace_id, project_id, user_id, project_role, assigned_by, assigned_at, notification_level, permissions, created_at, updated_at
 `
 
 type AddWorkspaceProjectMemberParams struct {
@@ -58,13 +58,14 @@ func (q *Queries) AddWorkspaceProjectMember(ctx context.Context, arg AddWorkspac
 	var i WorkspaceProjectMember
 	err := row.Scan(
 		&i.ID,
+		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.WorkspaceID,
 		&i.ProjectRole,
 		&i.AssignedBy,
 		&i.AssignedAt,
 		&i.NotificationLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -177,7 +178,7 @@ const createUserWorkspaceProfile = `-- name: CreateUserWorkspaceProfile :one
 
 INSERT INTO user_workspace_profiles (workspace_id, user_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, expertise_areas)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-RETURNING id, workspace_id, user_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, preferred_output_style, communication_preferences, expertise_areas, created_at, updated_at
+RETURNING id, user_id, workspace_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, expertise_areas, bio, settings, created_at, updated_at
 `
 
 type CreateUserWorkspaceProfileParams struct {
@@ -216,8 +217,8 @@ func (q *Queries) CreateUserWorkspaceProfile(ctx context.Context, arg CreateUser
 	var i UserWorkspaceProfile
 	err := row.Scan(
 		&i.ID,
-		&i.WorkspaceID,
 		&i.UserID,
+		&i.WorkspaceID,
 		&i.DisplayName,
 		&i.Title,
 		&i.Department,
@@ -227,9 +228,9 @@ func (q *Queries) CreateUserWorkspaceProfile(ctx context.Context, arg CreateUser
 		&i.Timezone,
 		&i.WorkingHours,
 		&i.NotificationPreferences,
-		&i.PreferredOutputStyle,
-		&i.CommunicationPreferences,
 		&i.ExpertiseAreas,
+		&i.Bio,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -241,7 +242,7 @@ const createWorkspace = `-- name: CreateWorkspace :one
 
 INSERT INTO workspaces (name, slug, description, logo_url, plan_type, owner_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, name, slug, description, logo_url, plan_type, max_members, max_projects, max_storage_gb, settings, owner_id, created_at, updated_at
+RETURNING id, name, slug, description, logo_url, plan_type, owner_id, settings, created_at, updated_at
 `
 
 type CreateWorkspaceParams struct {
@@ -276,11 +277,8 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.Description,
 		&i.LogoUrl,
 		&i.PlanType,
-		&i.MaxMembers,
-		&i.MaxProjects,
-		&i.MaxStorageGb,
-		&i.Settings,
 		&i.OwnerID,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -291,16 +289,16 @@ const createWorkspaceInvitation = `-- name: CreateWorkspaceInvitation :one
 
 INSERT INTO workspace_invitations (workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, status, expires_at, accepted_at, accepted_by_user_id, created_at, updated_at
+RETURNING id, workspace_id, email, role_id, role_name, token, status, expires_at, invited_by, invited_by_id, invited_by_name, invited_at, accepted_at, accepted_by, accepted_by_user_id, created_at, updated_at
 `
 
 type CreateWorkspaceInvitationParams struct {
 	WorkspaceID   pgtype.UUID        `json:"workspace_id"`
 	Email         string             `json:"email"`
-	Token         string             `json:"token"`
+	Token         *string            `json:"token"`
 	RoleID        pgtype.UUID        `json:"role_id"`
-	RoleName      string             `json:"role_name"`
-	InvitedByID   string             `json:"invited_by_id"`
+	RoleName      *string            `json:"role_name"`
+	InvitedByID   *string            `json:"invited_by_id"`
 	InvitedByName *string            `json:"invited_by_name"`
 	ExpiresAt     pgtype.Timestamptz `json:"expires_at"`
 }
@@ -324,14 +322,17 @@ func (q *Queries) CreateWorkspaceInvitation(ctx context.Context, arg CreateWorks
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Email,
-		&i.Token,
 		&i.RoleID,
 		&i.RoleName,
-		&i.InvitedByID,
-		&i.InvitedByName,
+		&i.Token,
 		&i.Status,
 		&i.ExpiresAt,
+		&i.InvitedBy,
+		&i.InvitedByID,
+		&i.InvitedByName,
+		&i.InvitedAt,
 		&i.AcceptedAt,
+		&i.AcceptedBy,
 		&i.AcceptedByUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -343,7 +344,7 @@ const createWorkspaceMember = `-- name: CreateWorkspaceMember :one
 
 INSERT INTO workspace_members (workspace_id, user_id, role_id, role_name, status, invited_by, invited_at, joined_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, workspace_id, user_id, role_id, role_name, status, invited_by, invited_at, joined_at, custom_permissions, created_at, updated_at
+RETURNING id, workspace_id, user_id, role_id, role_name, status, invited_at, joined_at, invited_by, created_at, updated_at
 `
 
 type CreateWorkspaceMemberParams struct {
@@ -379,10 +380,9 @@ func (q *Queries) CreateWorkspaceMember(ctx context.Context, arg CreateWorkspace
 		&i.RoleID,
 		&i.RoleName,
 		&i.Status,
-		&i.InvitedBy,
 		&i.InvitedAt,
 		&i.JoinedAt,
-		&i.CustomPermissions,
+		&i.InvitedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -393,24 +393,24 @@ const createWorkspaceMemory = `-- name: CreateWorkspaceMemory :one
 
 INSERT INTO workspace_memories (workspace_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, tags, metadata, is_pinned)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-RETURNING id, workspace_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, access_count, tags, metadata, is_active, is_pinned, created_at, updated_at
+RETURNING id, workspace_id, user_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, tags, source, embedding, metadata, is_pinned, is_active, is_archived, access_count, created_at, updated_at
 `
 
 type CreateWorkspaceMemoryParams struct {
-	WorkspaceID     pgtype.UUID    `json:"workspace_id"`
-	Title           string         `json:"title"`
-	Summary         string         `json:"summary"`
-	Content         string         `json:"content"`
-	MemoryType      string         `json:"memory_type"`
-	Category        *string        `json:"category"`
-	ScopeType       *string        `json:"scope_type"`
-	ScopeID         pgtype.UUID    `json:"scope_id"`
-	Visibility      *string        `json:"visibility"`
-	CreatedBy       string         `json:"created_by"`
-	ImportanceScore pgtype.Numeric `json:"importance_score"`
-	Tags            []string       `json:"tags"`
-	Metadata        []byte         `json:"metadata"`
-	IsPinned        *bool          `json:"is_pinned"`
+	WorkspaceID     pgtype.UUID `json:"workspace_id"`
+	Title           *string     `json:"title"`
+	Summary         *string     `json:"summary"`
+	Content         string      `json:"content"`
+	MemoryType      *string     `json:"memory_type"`
+	Category        *string     `json:"category"`
+	ScopeType       *string     `json:"scope_type"`
+	ScopeID         pgtype.UUID `json:"scope_id"`
+	Visibility      *string     `json:"visibility"`
+	CreatedBy       *string     `json:"created_by"`
+	ImportanceScore *float64    `json:"importance_score"`
+	Tags            []string    `json:"tags"`
+	Metadata        []byte      `json:"metadata"`
+	IsPinned        *bool       `json:"is_pinned"`
 }
 
 // =========================
@@ -437,6 +437,7 @@ func (q *Queries) CreateWorkspaceMemory(ctx context.Context, arg CreateWorkspace
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
+		&i.UserID,
 		&i.Title,
 		&i.Summary,
 		&i.Content,
@@ -447,11 +448,14 @@ func (q *Queries) CreateWorkspaceMemory(ctx context.Context, arg CreateWorkspace
 		&i.Visibility,
 		&i.CreatedBy,
 		&i.ImportanceScore,
-		&i.AccessCount,
 		&i.Tags,
+		&i.Source,
+		&i.Embedding,
 		&i.Metadata,
-		&i.IsActive,
 		&i.IsPinned,
+		&i.IsActive,
+		&i.IsArchived,
+		&i.AccessCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -462,13 +466,13 @@ const createWorkspaceRole = `-- name: CreateWorkspaceRole :one
 
 INSERT INTO workspace_roles (workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-RETURNING id, workspace_id, name, display_name, description, color, icon, permissions, is_system, is_default, hierarchy_level, created_at, updated_at
+RETURNING id, workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions, created_at, updated_at
 `
 
 type CreateWorkspaceRoleParams struct {
 	WorkspaceID    pgtype.UUID `json:"workspace_id"`
 	Name           string      `json:"name"`
-	DisplayName    string      `json:"display_name"`
+	DisplayName    *string     `json:"display_name"`
 	Description    *string     `json:"description"`
 	Color          *string     `json:"color"`
 	Icon           *string     `json:"icon"`
@@ -503,10 +507,10 @@ func (q *Queries) CreateWorkspaceRole(ctx context.Context, arg CreateWorkspaceRo
 		&i.Description,
 		&i.Color,
 		&i.Icon,
-		&i.Permissions,
+		&i.HierarchyLevel,
 		&i.IsSystem,
 		&i.IsDefault,
-		&i.HierarchyLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -565,7 +569,7 @@ func (q *Queries) DeleteWorkspaceRole(ctx context.Context, arg DeleteWorkspaceRo
 }
 
 const getDefaultWorkspaceRole = `-- name: GetDefaultWorkspaceRole :one
-SELECT id, workspace_id, name, display_name, description, color, icon, permissions, is_system, is_default, hierarchy_level, created_at, updated_at FROM workspace_roles WHERE workspace_id = $1 AND is_default = TRUE LIMIT 1
+SELECT id, workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions, created_at, updated_at FROM workspace_roles WHERE workspace_id = $1 AND is_default = TRUE LIMIT 1
 `
 
 func (q *Queries) GetDefaultWorkspaceRole(ctx context.Context, workspaceID pgtype.UUID) (WorkspaceRole, error) {
@@ -579,10 +583,10 @@ func (q *Queries) GetDefaultWorkspaceRole(ctx context.Context, workspaceID pgtyp
 		&i.Description,
 		&i.Color,
 		&i.Icon,
-		&i.Permissions,
+		&i.HierarchyLevel,
 		&i.IsSystem,
 		&i.IsDefault,
-		&i.HierarchyLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -609,7 +613,7 @@ func (q *Queries) GetUserWorkspacePermissions(ctx context.Context, arg GetUserWo
 }
 
 const getUserWorkspaceProfile = `-- name: GetUserWorkspaceProfile :one
-SELECT id, workspace_id, user_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, preferred_output_style, communication_preferences, expertise_areas, created_at, updated_at FROM user_workspace_profiles WHERE workspace_id = $1 AND user_id = $2
+SELECT id, user_id, workspace_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, expertise_areas, bio, settings, created_at, updated_at FROM user_workspace_profiles WHERE workspace_id = $1 AND user_id = $2
 `
 
 type GetUserWorkspaceProfileParams struct {
@@ -622,8 +626,8 @@ func (q *Queries) GetUserWorkspaceProfile(ctx context.Context, arg GetUserWorksp
 	var i UserWorkspaceProfile
 	err := row.Scan(
 		&i.ID,
-		&i.WorkspaceID,
 		&i.UserID,
+		&i.WorkspaceID,
 		&i.DisplayName,
 		&i.Title,
 		&i.Department,
@@ -633,9 +637,9 @@ func (q *Queries) GetUserWorkspaceProfile(ctx context.Context, arg GetUserWorksp
 		&i.Timezone,
 		&i.WorkingHours,
 		&i.NotificationPreferences,
-		&i.PreferredOutputStyle,
-		&i.CommunicationPreferences,
 		&i.ExpertiseAreas,
+		&i.Bio,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -643,7 +647,7 @@ func (q *Queries) GetUserWorkspaceProfile(ctx context.Context, arg GetUserWorksp
 }
 
 const getWorkspaceByID = `-- name: GetWorkspaceByID :one
-SELECT id, name, slug, description, logo_url, plan_type, max_members, max_projects, max_storage_gb, settings, owner_id, created_at, updated_at FROM workspaces WHERE id = $1
+SELECT id, name, slug, description, logo_url, plan_type, owner_id, settings, created_at, updated_at FROM workspaces WHERE id = $1
 `
 
 func (q *Queries) GetWorkspaceByID(ctx context.Context, id pgtype.UUID) (Workspace, error) {
@@ -656,11 +660,8 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id pgtype.UUID) (Workspa
 		&i.Description,
 		&i.LogoUrl,
 		&i.PlanType,
-		&i.MaxMembers,
-		&i.MaxProjects,
-		&i.MaxStorageGb,
-		&i.Settings,
 		&i.OwnerID,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -668,7 +669,7 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id pgtype.UUID) (Workspa
 }
 
 const getWorkspaceBySlug = `-- name: GetWorkspaceBySlug :one
-SELECT id, name, slug, description, logo_url, plan_type, max_members, max_projects, max_storage_gb, settings, owner_id, created_at, updated_at FROM workspaces WHERE slug = $1
+SELECT id, name, slug, description, logo_url, plan_type, owner_id, settings, created_at, updated_at FROM workspaces WHERE slug = $1
 `
 
 func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspace, error) {
@@ -681,11 +682,8 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 		&i.Description,
 		&i.LogoUrl,
 		&i.PlanType,
-		&i.MaxMembers,
-		&i.MaxProjects,
-		&i.MaxStorageGb,
-		&i.Settings,
 		&i.OwnerID,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -693,7 +691,7 @@ func (q *Queries) GetWorkspaceBySlug(ctx context.Context, slug string) (Workspac
 }
 
 const getWorkspaceInvitation = `-- name: GetWorkspaceInvitation :one
-SELECT id, workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, status, expires_at, accepted_at, accepted_by_user_id, created_at, updated_at FROM workspace_invitations WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, email, role_id, role_name, token, status, expires_at, invited_by, invited_by_id, invited_by_name, invited_at, accepted_at, accepted_by, accepted_by_user_id, created_at, updated_at FROM workspace_invitations WHERE id = $1 AND workspace_id = $2
 `
 
 type GetWorkspaceInvitationParams struct {
@@ -708,14 +706,17 @@ func (q *Queries) GetWorkspaceInvitation(ctx context.Context, arg GetWorkspaceIn
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Email,
-		&i.Token,
 		&i.RoleID,
 		&i.RoleName,
-		&i.InvitedByID,
-		&i.InvitedByName,
+		&i.Token,
 		&i.Status,
 		&i.ExpiresAt,
+		&i.InvitedBy,
+		&i.InvitedByID,
+		&i.InvitedByName,
+		&i.InvitedAt,
 		&i.AcceptedAt,
+		&i.AcceptedBy,
 		&i.AcceptedByUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -725,7 +726,7 @@ func (q *Queries) GetWorkspaceInvitation(ctx context.Context, arg GetWorkspaceIn
 
 const getWorkspaceInvitationByToken = `-- name: GetWorkspaceInvitationByToken :one
 SELECT 
-    wi.id, wi.workspace_id, wi.email, wi.token, wi.role_id, wi.role_name, wi.invited_by_id, wi.invited_by_name, wi.status, wi.expires_at, wi.accepted_at, wi.accepted_by_user_id, wi.created_at, wi.updated_at,
+    wi.id, wi.workspace_id, wi.email, wi.role_id, wi.role_name, wi.token, wi.status, wi.expires_at, wi.invited_by, wi.invited_by_id, wi.invited_by_name, wi.invited_at, wi.accepted_at, wi.accepted_by, wi.accepted_by_user_id, wi.created_at, wi.updated_at,
     w.name as workspace_name,
     w.slug as workspace_slug,
     w.logo_url as workspace_logo
@@ -738,14 +739,17 @@ type GetWorkspaceInvitationByTokenRow struct {
 	ID               pgtype.UUID        `json:"id"`
 	WorkspaceID      pgtype.UUID        `json:"workspace_id"`
 	Email            string             `json:"email"`
-	Token            string             `json:"token"`
 	RoleID           pgtype.UUID        `json:"role_id"`
-	RoleName         string             `json:"role_name"`
-	InvitedByID      string             `json:"invited_by_id"`
-	InvitedByName    *string            `json:"invited_by_name"`
-	Status           string             `json:"status"`
+	RoleName         *string            `json:"role_name"`
+	Token            *string            `json:"token"`
+	Status           *string            `json:"status"`
 	ExpiresAt        pgtype.Timestamptz `json:"expires_at"`
+	InvitedBy        string             `json:"invited_by"`
+	InvitedByID      *string            `json:"invited_by_id"`
+	InvitedByName    *string            `json:"invited_by_name"`
+	InvitedAt        pgtype.Timestamptz `json:"invited_at"`
 	AcceptedAt       pgtype.Timestamptz `json:"accepted_at"`
+	AcceptedBy       *string            `json:"accepted_by"`
 	AcceptedByUserID *string            `json:"accepted_by_user_id"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
@@ -754,21 +758,24 @@ type GetWorkspaceInvitationByTokenRow struct {
 	WorkspaceLogo    *string            `json:"workspace_logo"`
 }
 
-func (q *Queries) GetWorkspaceInvitationByToken(ctx context.Context, token string) (GetWorkspaceInvitationByTokenRow, error) {
+func (q *Queries) GetWorkspaceInvitationByToken(ctx context.Context, token *string) (GetWorkspaceInvitationByTokenRow, error) {
 	row := q.db.QueryRow(ctx, getWorkspaceInvitationByToken, token)
 	var i GetWorkspaceInvitationByTokenRow
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Email,
-		&i.Token,
 		&i.RoleID,
 		&i.RoleName,
-		&i.InvitedByID,
-		&i.InvitedByName,
+		&i.Token,
 		&i.Status,
 		&i.ExpiresAt,
+		&i.InvitedBy,
+		&i.InvitedByID,
+		&i.InvitedByName,
+		&i.InvitedAt,
 		&i.AcceptedAt,
+		&i.AcceptedBy,
 		&i.AcceptedByUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -781,7 +788,7 @@ func (q *Queries) GetWorkspaceInvitationByToken(ctx context.Context, token strin
 
 const getWorkspaceMember = `-- name: GetWorkspaceMember :one
 SELECT 
-    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_by, wm.invited_at, wm.joined_at, wm.custom_permissions, wm.created_at, wm.updated_at,
+    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_at, wm.joined_at, wm.invited_by, wm.created_at, wm.updated_at,
     wr.display_name as role_display_name,
     wr.color as role_color,
     wr.hierarchy_level,
@@ -797,22 +804,21 @@ type GetWorkspaceMemberParams struct {
 }
 
 type GetWorkspaceMemberRow struct {
-	ID                pgtype.UUID        `json:"id"`
-	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
-	UserID            string             `json:"user_id"`
-	RoleID            pgtype.UUID        `json:"role_id"`
-	RoleName          *string            `json:"role_name"`
-	Status            *string            `json:"status"`
-	InvitedBy         *string            `json:"invited_by"`
-	InvitedAt         pgtype.Timestamptz `json:"invited_at"`
-	JoinedAt          pgtype.Timestamptz `json:"joined_at"`
-	CustomPermissions []byte             `json:"custom_permissions"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
-	RoleDisplayName   *string            `json:"role_display_name"`
-	RoleColor         *string            `json:"role_color"`
-	HierarchyLevel    *int32             `json:"hierarchy_level"`
-	Permissions       []byte             `json:"permissions"`
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	UserID          string             `json:"user_id"`
+	RoleID          pgtype.UUID        `json:"role_id"`
+	RoleName        *string            `json:"role_name"`
+	Status          *string            `json:"status"`
+	InvitedAt       pgtype.Timestamptz `json:"invited_at"`
+	JoinedAt        pgtype.Timestamptz `json:"joined_at"`
+	InvitedBy       *string            `json:"invited_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	RoleDisplayName *string            `json:"role_display_name"`
+	RoleColor       *string            `json:"role_color"`
+	HierarchyLevel  *int32             `json:"hierarchy_level"`
+	Permissions     []byte             `json:"permissions"`
 }
 
 func (q *Queries) GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMemberParams) (GetWorkspaceMemberRow, error) {
@@ -825,10 +831,9 @@ func (q *Queries) GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMember
 		&i.RoleID,
 		&i.RoleName,
 		&i.Status,
-		&i.InvitedBy,
 		&i.InvitedAt,
 		&i.JoinedAt,
-		&i.CustomPermissions,
+		&i.InvitedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.RoleDisplayName,
@@ -840,7 +845,7 @@ func (q *Queries) GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMember
 }
 
 const getWorkspaceMemory = `-- name: GetWorkspaceMemory :one
-SELECT id, workspace_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, access_count, tags, metadata, is_active, is_pinned, created_at, updated_at FROM workspace_memories WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, user_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, tags, source, embedding, metadata, is_pinned, is_active, is_archived, access_count, created_at, updated_at FROM workspace_memories WHERE id = $1 AND workspace_id = $2
 `
 
 type GetWorkspaceMemoryParams struct {
@@ -854,6 +859,7 @@ func (q *Queries) GetWorkspaceMemory(ctx context.Context, arg GetWorkspaceMemory
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
+		&i.UserID,
 		&i.Title,
 		&i.Summary,
 		&i.Content,
@@ -864,11 +870,14 @@ func (q *Queries) GetWorkspaceMemory(ctx context.Context, arg GetWorkspaceMemory
 		&i.Visibility,
 		&i.CreatedBy,
 		&i.ImportanceScore,
-		&i.AccessCount,
 		&i.Tags,
+		&i.Source,
+		&i.Embedding,
 		&i.Metadata,
-		&i.IsActive,
 		&i.IsPinned,
+		&i.IsActive,
+		&i.IsArchived,
+		&i.AccessCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -876,7 +885,7 @@ func (q *Queries) GetWorkspaceMemory(ctx context.Context, arg GetWorkspaceMemory
 }
 
 const getWorkspaceProjectMember = `-- name: GetWorkspaceProjectMember :one
-SELECT id, project_id, user_id, workspace_id, project_role, assigned_by, assigned_at, notification_level, created_at, updated_at FROM workspace_project_members WHERE project_id = $1 AND user_id = $2
+SELECT id, workspace_id, project_id, user_id, project_role, assigned_by, assigned_at, notification_level, permissions, created_at, updated_at FROM workspace_project_members WHERE project_id = $1 AND user_id = $2
 `
 
 type GetWorkspaceProjectMemberParams struct {
@@ -889,13 +898,14 @@ func (q *Queries) GetWorkspaceProjectMember(ctx context.Context, arg GetWorkspac
 	var i WorkspaceProjectMember
 	err := row.Scan(
 		&i.ID,
+		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.WorkspaceID,
 		&i.ProjectRole,
 		&i.AssignedBy,
 		&i.AssignedAt,
 		&i.NotificationLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -903,7 +913,7 @@ func (q *Queries) GetWorkspaceProjectMember(ctx context.Context, arg GetWorkspac
 }
 
 const getWorkspaceRole = `-- name: GetWorkspaceRole :one
-SELECT id, workspace_id, name, display_name, description, color, icon, permissions, is_system, is_default, hierarchy_level, created_at, updated_at FROM workspace_roles WHERE id = $1 AND workspace_id = $2
+SELECT id, workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions, created_at, updated_at FROM workspace_roles WHERE id = $1 AND workspace_id = $2
 `
 
 type GetWorkspaceRoleParams struct {
@@ -922,10 +932,10 @@ func (q *Queries) GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRolePara
 		&i.Description,
 		&i.Color,
 		&i.Icon,
-		&i.Permissions,
+		&i.HierarchyLevel,
 		&i.IsSystem,
 		&i.IsDefault,
-		&i.HierarchyLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -933,7 +943,7 @@ func (q *Queries) GetWorkspaceRole(ctx context.Context, arg GetWorkspaceRolePara
 }
 
 const getWorkspaceRoleByName = `-- name: GetWorkspaceRoleByName :one
-SELECT id, workspace_id, name, display_name, description, color, icon, permissions, is_system, is_default, hierarchy_level, created_at, updated_at FROM workspace_roles WHERE workspace_id = $1 AND name = $2
+SELECT id, workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions, created_at, updated_at FROM workspace_roles WHERE workspace_id = $1 AND name = $2
 `
 
 type GetWorkspaceRoleByNameParams struct {
@@ -952,10 +962,10 @@ func (q *Queries) GetWorkspaceRoleByName(ctx context.Context, arg GetWorkspaceRo
 		&i.Description,
 		&i.Color,
 		&i.Icon,
-		&i.Permissions,
+		&i.HierarchyLevel,
 		&i.IsSystem,
 		&i.IsDefault,
-		&i.HierarchyLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1033,7 +1043,7 @@ func (q *Queries) ListUserWorkspaceProjectAssignments(ctx context.Context, arg L
 
 const listUserWorkspaces = `-- name: ListUserWorkspaces :many
 SELECT 
-    w.id, w.name, w.slug, w.description, w.logo_url, w.plan_type, w.max_members, w.max_projects, w.max_storage_gb, w.settings, w.owner_id, w.created_at, w.updated_at,
+    w.id, w.name, w.slug, w.description, w.logo_url, w.plan_type, w.owner_id, w.settings, w.created_at, w.updated_at,
     wm.role_name,
     wm.status as member_status,
     wm.joined_at,
@@ -1051,11 +1061,8 @@ type ListUserWorkspacesRow struct {
 	Description  *string            `json:"description"`
 	LogoUrl      *string            `json:"logo_url"`
 	PlanType     *string            `json:"plan_type"`
-	MaxMembers   *int32             `json:"max_members"`
-	MaxProjects  *int32             `json:"max_projects"`
-	MaxStorageGb *int32             `json:"max_storage_gb"`
-	Settings     []byte             `json:"settings"`
 	OwnerID      string             `json:"owner_id"`
+	Settings     []byte             `json:"settings"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	RoleName     *string            `json:"role_name"`
@@ -1080,11 +1087,8 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID string) ([]List
 			&i.Description,
 			&i.LogoUrl,
 			&i.PlanType,
-			&i.MaxMembers,
-			&i.MaxProjects,
-			&i.MaxStorageGb,
-			&i.Settings,
 			&i.OwnerID,
+			&i.Settings,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoleName,
@@ -1103,7 +1107,7 @@ func (q *Queries) ListUserWorkspaces(ctx context.Context, userID string) ([]List
 }
 
 const listWorkspaceInvitations = `-- name: ListWorkspaceInvitations :many
-SELECT id, workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, status, expires_at, accepted_at, accepted_by_user_id, created_at, updated_at FROM workspace_invitations
+SELECT id, workspace_id, email, role_id, role_name, token, status, expires_at, invited_by, invited_by_id, invited_by_name, invited_at, accepted_at, accepted_by, accepted_by_user_id, created_at, updated_at FROM workspace_invitations
 WHERE workspace_id = $1
 ORDER BY created_at DESC
 `
@@ -1121,14 +1125,17 @@ func (q *Queries) ListWorkspaceInvitations(ctx context.Context, workspaceID pgty
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Email,
-			&i.Token,
 			&i.RoleID,
 			&i.RoleName,
-			&i.InvitedByID,
-			&i.InvitedByName,
+			&i.Token,
 			&i.Status,
 			&i.ExpiresAt,
+			&i.InvitedBy,
+			&i.InvitedByID,
+			&i.InvitedByName,
+			&i.InvitedAt,
 			&i.AcceptedAt,
+			&i.AcceptedBy,
 			&i.AcceptedByUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -1144,14 +1151,14 @@ func (q *Queries) ListWorkspaceInvitations(ctx context.Context, workspaceID pgty
 }
 
 const listWorkspaceInvitationsByStatus = `-- name: ListWorkspaceInvitationsByStatus :many
-SELECT id, workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, status, expires_at, accepted_at, accepted_by_user_id, created_at, updated_at FROM workspace_invitations
+SELECT id, workspace_id, email, role_id, role_name, token, status, expires_at, invited_by, invited_by_id, invited_by_name, invited_at, accepted_at, accepted_by, accepted_by_user_id, created_at, updated_at FROM workspace_invitations
 WHERE workspace_id = $1 AND status = $2
 ORDER BY created_at DESC
 `
 
 type ListWorkspaceInvitationsByStatusParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	Status      string      `json:"status"`
+	Status      *string     `json:"status"`
 }
 
 func (q *Queries) ListWorkspaceInvitationsByStatus(ctx context.Context, arg ListWorkspaceInvitationsByStatusParams) ([]WorkspaceInvitation, error) {
@@ -1167,14 +1174,17 @@ func (q *Queries) ListWorkspaceInvitationsByStatus(ctx context.Context, arg List
 			&i.ID,
 			&i.WorkspaceID,
 			&i.Email,
-			&i.Token,
 			&i.RoleID,
 			&i.RoleName,
-			&i.InvitedByID,
-			&i.InvitedByName,
+			&i.Token,
 			&i.Status,
 			&i.ExpiresAt,
+			&i.InvitedBy,
+			&i.InvitedByID,
+			&i.InvitedByName,
+			&i.InvitedAt,
 			&i.AcceptedAt,
+			&i.AcceptedBy,
 			&i.AcceptedByUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -1191,7 +1201,7 @@ func (q *Queries) ListWorkspaceInvitationsByStatus(ctx context.Context, arg List
 
 const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many
 SELECT 
-    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_by, wm.invited_at, wm.joined_at, wm.custom_permissions, wm.created_at, wm.updated_at,
+    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_at, wm.joined_at, wm.invited_by, wm.created_at, wm.updated_at,
     wr.display_name as role_display_name,
     wr.color as role_color,
     wr.hierarchy_level
@@ -1202,21 +1212,20 @@ ORDER BY wr.hierarchy_level DESC, wm.joined_at
 `
 
 type ListWorkspaceMembersRow struct {
-	ID                pgtype.UUID        `json:"id"`
-	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
-	UserID            string             `json:"user_id"`
-	RoleID            pgtype.UUID        `json:"role_id"`
-	RoleName          *string            `json:"role_name"`
-	Status            *string            `json:"status"`
-	InvitedBy         *string            `json:"invited_by"`
-	InvitedAt         pgtype.Timestamptz `json:"invited_at"`
-	JoinedAt          pgtype.Timestamptz `json:"joined_at"`
-	CustomPermissions []byte             `json:"custom_permissions"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
-	RoleDisplayName   *string            `json:"role_display_name"`
-	RoleColor         *string            `json:"role_color"`
-	HierarchyLevel    *int32             `json:"hierarchy_level"`
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	UserID          string             `json:"user_id"`
+	RoleID          pgtype.UUID        `json:"role_id"`
+	RoleName        *string            `json:"role_name"`
+	Status          *string            `json:"status"`
+	InvitedAt       pgtype.Timestamptz `json:"invited_at"`
+	JoinedAt        pgtype.Timestamptz `json:"joined_at"`
+	InvitedBy       *string            `json:"invited_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	RoleDisplayName *string            `json:"role_display_name"`
+	RoleColor       *string            `json:"role_color"`
+	HierarchyLevel  *int32             `json:"hierarchy_level"`
 }
 
 func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.UUID) ([]ListWorkspaceMembersRow, error) {
@@ -1235,10 +1244,9 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.U
 			&i.RoleID,
 			&i.RoleName,
 			&i.Status,
-			&i.InvitedBy,
 			&i.InvitedAt,
 			&i.JoinedAt,
-			&i.CustomPermissions,
+			&i.InvitedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoleDisplayName,
@@ -1257,7 +1265,7 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID pgtype.U
 
 const listWorkspaceMembersByStatus = `-- name: ListWorkspaceMembersByStatus :many
 SELECT 
-    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_by, wm.invited_at, wm.joined_at, wm.custom_permissions, wm.created_at, wm.updated_at,
+    wm.id, wm.workspace_id, wm.user_id, wm.role_id, wm.role_name, wm.status, wm.invited_at, wm.joined_at, wm.invited_by, wm.created_at, wm.updated_at,
     wr.display_name as role_display_name,
     wr.color as role_color,
     wr.hierarchy_level
@@ -1273,21 +1281,20 @@ type ListWorkspaceMembersByStatusParams struct {
 }
 
 type ListWorkspaceMembersByStatusRow struct {
-	ID                pgtype.UUID        `json:"id"`
-	WorkspaceID       pgtype.UUID        `json:"workspace_id"`
-	UserID            string             `json:"user_id"`
-	RoleID            pgtype.UUID        `json:"role_id"`
-	RoleName          *string            `json:"role_name"`
-	Status            *string            `json:"status"`
-	InvitedBy         *string            `json:"invited_by"`
-	InvitedAt         pgtype.Timestamptz `json:"invited_at"`
-	JoinedAt          pgtype.Timestamptz `json:"joined_at"`
-	CustomPermissions []byte             `json:"custom_permissions"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
-	RoleDisplayName   *string            `json:"role_display_name"`
-	RoleColor         *string            `json:"role_color"`
-	HierarchyLevel    *int32             `json:"hierarchy_level"`
+	ID              pgtype.UUID        `json:"id"`
+	WorkspaceID     pgtype.UUID        `json:"workspace_id"`
+	UserID          string             `json:"user_id"`
+	RoleID          pgtype.UUID        `json:"role_id"`
+	RoleName        *string            `json:"role_name"`
+	Status          *string            `json:"status"`
+	InvitedAt       pgtype.Timestamptz `json:"invited_at"`
+	JoinedAt        pgtype.Timestamptz `json:"joined_at"`
+	InvitedBy       *string            `json:"invited_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	RoleDisplayName *string            `json:"role_display_name"`
+	RoleColor       *string            `json:"role_color"`
+	HierarchyLevel  *int32             `json:"hierarchy_level"`
 }
 
 func (q *Queries) ListWorkspaceMembersByStatus(ctx context.Context, arg ListWorkspaceMembersByStatusParams) ([]ListWorkspaceMembersByStatusRow, error) {
@@ -1306,10 +1313,9 @@ func (q *Queries) ListWorkspaceMembersByStatus(ctx context.Context, arg ListWork
 			&i.RoleID,
 			&i.RoleName,
 			&i.Status,
-			&i.InvitedBy,
 			&i.InvitedAt,
 			&i.JoinedAt,
-			&i.CustomPermissions,
+			&i.InvitedBy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.RoleDisplayName,
@@ -1327,7 +1333,7 @@ func (q *Queries) ListWorkspaceMembersByStatus(ctx context.Context, arg ListWork
 }
 
 const listWorkspaceMemories = `-- name: ListWorkspaceMemories :many
-SELECT wm.id, wm.workspace_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.access_count, wm.tags, wm.metadata, wm.is_active, wm.is_pinned, wm.created_at, wm.updated_at
+SELECT wm.id, wm.workspace_id, wm.user_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.tags, wm.source, wm.embedding, wm.metadata, wm.is_pinned, wm.is_active, wm.is_archived, wm.access_count, wm.created_at, wm.updated_at
 FROM workspace_memories wm
 WHERE wm.workspace_id = $1 AND wm.is_active = TRUE
 ORDER BY wm.is_pinned DESC, wm.importance_score DESC, wm.created_at DESC
@@ -1352,6 +1358,7 @@ func (q *Queries) ListWorkspaceMemories(ctx context.Context, arg ListWorkspaceMe
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
+			&i.UserID,
 			&i.Title,
 			&i.Summary,
 			&i.Content,
@@ -1362,11 +1369,14 @@ func (q *Queries) ListWorkspaceMemories(ctx context.Context, arg ListWorkspaceMe
 			&i.Visibility,
 			&i.CreatedBy,
 			&i.ImportanceScore,
-			&i.AccessCount,
 			&i.Tags,
+			&i.Source,
+			&i.Embedding,
 			&i.Metadata,
-			&i.IsActive,
 			&i.IsPinned,
+			&i.IsActive,
+			&i.IsArchived,
+			&i.AccessCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1381,7 +1391,7 @@ func (q *Queries) ListWorkspaceMemories(ctx context.Context, arg ListWorkspaceMe
 }
 
 const listWorkspaceMemoriesByScope = `-- name: ListWorkspaceMemoriesByScope :many
-SELECT wm.id, wm.workspace_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.access_count, wm.tags, wm.metadata, wm.is_active, wm.is_pinned, wm.created_at, wm.updated_at
+SELECT wm.id, wm.workspace_id, wm.user_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.tags, wm.source, wm.embedding, wm.metadata, wm.is_pinned, wm.is_active, wm.is_archived, wm.access_count, wm.created_at, wm.updated_at
 FROM workspace_memories wm
 WHERE wm.workspace_id = $1 AND wm.scope_type = $2 AND wm.scope_id = $3 AND wm.is_active = TRUE
 ORDER BY wm.is_pinned DESC, wm.importance_score DESC, wm.created_at DESC
@@ -1414,6 +1424,7 @@ func (q *Queries) ListWorkspaceMemoriesByScope(ctx context.Context, arg ListWork
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
+			&i.UserID,
 			&i.Title,
 			&i.Summary,
 			&i.Content,
@@ -1424,11 +1435,14 @@ func (q *Queries) ListWorkspaceMemoriesByScope(ctx context.Context, arg ListWork
 			&i.Visibility,
 			&i.CreatedBy,
 			&i.ImportanceScore,
-			&i.AccessCount,
 			&i.Tags,
+			&i.Source,
+			&i.Embedding,
 			&i.Metadata,
-			&i.IsActive,
 			&i.IsPinned,
+			&i.IsActive,
+			&i.IsArchived,
+			&i.AccessCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1443,7 +1457,7 @@ func (q *Queries) ListWorkspaceMemoriesByScope(ctx context.Context, arg ListWork
 }
 
 const listWorkspaceMemoriesByType = `-- name: ListWorkspaceMemoriesByType :many
-SELECT wm.id, wm.workspace_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.access_count, wm.tags, wm.metadata, wm.is_active, wm.is_pinned, wm.created_at, wm.updated_at
+SELECT wm.id, wm.workspace_id, wm.user_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.tags, wm.source, wm.embedding, wm.metadata, wm.is_pinned, wm.is_active, wm.is_archived, wm.access_count, wm.created_at, wm.updated_at
 FROM workspace_memories wm
 WHERE wm.workspace_id = $1 AND wm.memory_type = $2 AND wm.is_active = TRUE
 ORDER BY wm.is_pinned DESC, wm.importance_score DESC, wm.created_at DESC
@@ -1452,7 +1466,7 @@ LIMIT $3 OFFSET $4
 
 type ListWorkspaceMemoriesByTypeParams struct {
 	WorkspaceID pgtype.UUID `json:"workspace_id"`
-	MemoryType  string      `json:"memory_type"`
+	MemoryType  *string     `json:"memory_type"`
 	Limit       int32       `json:"limit"`
 	Offset      int32       `json:"offset"`
 }
@@ -1474,6 +1488,7 @@ func (q *Queries) ListWorkspaceMemoriesByType(ctx context.Context, arg ListWorks
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
+			&i.UserID,
 			&i.Title,
 			&i.Summary,
 			&i.Content,
@@ -1484,11 +1499,14 @@ func (q *Queries) ListWorkspaceMemoriesByType(ctx context.Context, arg ListWorks
 			&i.Visibility,
 			&i.CreatedBy,
 			&i.ImportanceScore,
-			&i.AccessCount,
 			&i.Tags,
+			&i.Source,
+			&i.Embedding,
 			&i.Metadata,
-			&i.IsActive,
 			&i.IsPinned,
+			&i.IsActive,
+			&i.IsArchived,
+			&i.AccessCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1503,7 +1521,7 @@ func (q *Queries) ListWorkspaceMemoriesByType(ctx context.Context, arg ListWorks
 }
 
 const listWorkspaceProjectMembers = `-- name: ListWorkspaceProjectMembers :many
-SELECT wpm.id, wpm.project_id, wpm.user_id, wpm.workspace_id, wpm.project_role, wpm.assigned_by, wpm.assigned_at, wpm.notification_level, wpm.created_at, wpm.updated_at
+SELECT wpm.id, wpm.workspace_id, wpm.project_id, wpm.user_id, wpm.project_role, wpm.assigned_by, wpm.assigned_at, wpm.notification_level, wpm.permissions, wpm.created_at, wpm.updated_at
 FROM workspace_project_members wpm
 WHERE wpm.project_id = $1
 ORDER BY 
@@ -1527,13 +1545,14 @@ func (q *Queries) ListWorkspaceProjectMembers(ctx context.Context, projectID pgt
 		var i WorkspaceProjectMember
 		if err := rows.Scan(
 			&i.ID,
+			&i.WorkspaceID,
 			&i.ProjectID,
 			&i.UserID,
-			&i.WorkspaceID,
 			&i.ProjectRole,
 			&i.AssignedBy,
 			&i.AssignedAt,
 			&i.NotificationLevel,
+			&i.Permissions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1549,7 +1568,7 @@ func (q *Queries) ListWorkspaceProjectMembers(ctx context.Context, projectID pgt
 
 const listWorkspaceRoles = `-- name: ListWorkspaceRoles :many
 SELECT 
-    wr.id, wr.workspace_id, wr.name, wr.display_name, wr.description, wr.color, wr.icon, wr.permissions, wr.is_system, wr.is_default, wr.hierarchy_level, wr.created_at, wr.updated_at,
+    wr.id, wr.workspace_id, wr.name, wr.display_name, wr.description, wr.color, wr.icon, wr.hierarchy_level, wr.is_system, wr.is_default, wr.permissions, wr.created_at, wr.updated_at,
     (SELECT COUNT(*) FROM workspace_members WHERE role_id = wr.id) as member_count
 FROM workspace_roles wr
 WHERE wr.workspace_id = $1
@@ -1560,14 +1579,14 @@ type ListWorkspaceRolesRow struct {
 	ID             pgtype.UUID        `json:"id"`
 	WorkspaceID    pgtype.UUID        `json:"workspace_id"`
 	Name           string             `json:"name"`
-	DisplayName    string             `json:"display_name"`
+	DisplayName    *string            `json:"display_name"`
 	Description    *string            `json:"description"`
 	Color          *string            `json:"color"`
 	Icon           *string            `json:"icon"`
-	Permissions    []byte             `json:"permissions"`
+	HierarchyLevel *int32             `json:"hierarchy_level"`
 	IsSystem       *bool              `json:"is_system"`
 	IsDefault      *bool              `json:"is_default"`
-	HierarchyLevel *int32             `json:"hierarchy_level"`
+	Permissions    []byte             `json:"permissions"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 	MemberCount    int64              `json:"member_count"`
@@ -1590,10 +1609,10 @@ func (q *Queries) ListWorkspaceRoles(ctx context.Context, workspaceID pgtype.UUI
 			&i.Description,
 			&i.Color,
 			&i.Icon,
-			&i.Permissions,
+			&i.HierarchyLevel,
 			&i.IsSystem,
 			&i.IsDefault,
-			&i.HierarchyLevel,
+			&i.Permissions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.MemberCount,
@@ -1656,7 +1675,7 @@ func (q *Queries) RevokeInvitation(ctx context.Context, arg RevokeInvitationPara
 }
 
 const searchWorkspaceMemories = `-- name: SearchWorkspaceMemories :many
-SELECT wm.id, wm.workspace_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.access_count, wm.tags, wm.metadata, wm.is_active, wm.is_pinned, wm.created_at, wm.updated_at
+SELECT wm.id, wm.workspace_id, wm.user_id, wm.title, wm.summary, wm.content, wm.memory_type, wm.category, wm.scope_type, wm.scope_id, wm.visibility, wm.created_by, wm.importance_score, wm.tags, wm.source, wm.embedding, wm.metadata, wm.is_pinned, wm.is_active, wm.is_archived, wm.access_count, wm.created_at, wm.updated_at
 FROM workspace_memories wm
 WHERE wm.workspace_id = $1 
   AND wm.is_active = TRUE
@@ -1683,6 +1702,7 @@ func (q *Queries) SearchWorkspaceMemories(ctx context.Context, arg SearchWorkspa
 		if err := rows.Scan(
 			&i.ID,
 			&i.WorkspaceID,
+			&i.UserID,
 			&i.Title,
 			&i.Summary,
 			&i.Content,
@@ -1693,11 +1713,14 @@ func (q *Queries) SearchWorkspaceMemories(ctx context.Context, arg SearchWorkspa
 			&i.Visibility,
 			&i.CreatedBy,
 			&i.ImportanceScore,
-			&i.AccessCount,
 			&i.Tags,
+			&i.Source,
+			&i.Embedding,
 			&i.Metadata,
-			&i.IsActive,
 			&i.IsPinned,
+			&i.IsActive,
+			&i.IsArchived,
+			&i.AccessCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -1719,7 +1742,7 @@ WHERE id = $1
 
 type UpdateInvitationStatusParams struct {
 	ID     pgtype.UUID `json:"id"`
-	Status string      `json:"status"`
+	Status *string     `json:"status"`
 }
 
 func (q *Queries) UpdateInvitationStatus(ctx context.Context, arg UpdateInvitationStatusParams) error {
@@ -1731,12 +1754,12 @@ const updateInvitationToken = `-- name: UpdateInvitationToken :one
 UPDATE workspace_invitations
 SET token = $2, expires_at = $3, updated_at = NOW()
 WHERE id = $1 AND status = 'pending'
-RETURNING id, workspace_id, email, token, role_id, role_name, invited_by_id, invited_by_name, status, expires_at, accepted_at, accepted_by_user_id, created_at, updated_at
+RETURNING id, workspace_id, email, role_id, role_name, token, status, expires_at, invited_by, invited_by_id, invited_by_name, invited_at, accepted_at, accepted_by, accepted_by_user_id, created_at, updated_at
 `
 
 type UpdateInvitationTokenParams struct {
 	ID        pgtype.UUID        `json:"id"`
-	Token     string             `json:"token"`
+	Token     *string            `json:"token"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 }
 
@@ -1747,14 +1770,17 @@ func (q *Queries) UpdateInvitationToken(ctx context.Context, arg UpdateInvitatio
 		&i.ID,
 		&i.WorkspaceID,
 		&i.Email,
-		&i.Token,
 		&i.RoleID,
 		&i.RoleName,
-		&i.InvitedByID,
-		&i.InvitedByName,
+		&i.Token,
 		&i.Status,
 		&i.ExpiresAt,
+		&i.InvitedBy,
+		&i.InvitedByID,
+		&i.InvitedByName,
+		&i.InvitedAt,
 		&i.AcceptedAt,
+		&i.AcceptedBy,
 		&i.AcceptedByUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -1777,7 +1803,7 @@ SET
     expertise_areas = COALESCE($12, expertise_areas),
     updated_at = NOW()
 WHERE workspace_id = $1 AND user_id = $2
-RETURNING id, workspace_id, user_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, preferred_output_style, communication_preferences, expertise_areas, created_at, updated_at
+RETURNING id, user_id, workspace_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, expertise_areas, bio, settings, created_at, updated_at
 `
 
 type UpdateUserWorkspaceProfileParams struct {
@@ -1813,8 +1839,8 @@ func (q *Queries) UpdateUserWorkspaceProfile(ctx context.Context, arg UpdateUser
 	var i UserWorkspaceProfile
 	err := row.Scan(
 		&i.ID,
-		&i.WorkspaceID,
 		&i.UserID,
+		&i.WorkspaceID,
 		&i.DisplayName,
 		&i.Title,
 		&i.Department,
@@ -1824,9 +1850,9 @@ func (q *Queries) UpdateUserWorkspaceProfile(ctx context.Context, arg UpdateUser
 		&i.Timezone,
 		&i.WorkingHours,
 		&i.NotificationPreferences,
-		&i.PreferredOutputStyle,
-		&i.CommunicationPreferences,
 		&i.ExpertiseAreas,
+		&i.Bio,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1843,7 +1869,7 @@ SET
     settings = COALESCE($6, settings),
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, name, slug, description, logo_url, plan_type, max_members, max_projects, max_storage_gb, settings, owner_id, created_at, updated_at
+RETURNING id, name, slug, description, logo_url, plan_type, owner_id, settings, created_at, updated_at
 `
 
 type UpdateWorkspaceParams struct {
@@ -1872,11 +1898,8 @@ func (q *Queries) UpdateWorkspace(ctx context.Context, arg UpdateWorkspaceParams
 		&i.Description,
 		&i.LogoUrl,
 		&i.PlanType,
-		&i.MaxMembers,
-		&i.MaxProjects,
-		&i.MaxStorageGb,
-		&i.Settings,
 		&i.OwnerID,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1887,7 +1910,7 @@ const updateWorkspaceMemberRole = `-- name: UpdateWorkspaceMemberRole :one
 UPDATE workspace_members
 SET role_id = $3, role_name = $4, updated_at = NOW()
 WHERE workspace_id = $1 AND user_id = $2
-RETURNING id, workspace_id, user_id, role_id, role_name, status, invited_by, invited_at, joined_at, custom_permissions, created_at, updated_at
+RETURNING id, workspace_id, user_id, role_id, role_name, status, invited_at, joined_at, invited_by, created_at, updated_at
 `
 
 type UpdateWorkspaceMemberRoleParams struct {
@@ -1912,10 +1935,9 @@ func (q *Queries) UpdateWorkspaceMemberRole(ctx context.Context, arg UpdateWorks
 		&i.RoleID,
 		&i.RoleName,
 		&i.Status,
-		&i.InvitedBy,
 		&i.InvitedAt,
 		&i.JoinedAt,
-		&i.CustomPermissions,
+		&i.InvitedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1954,22 +1976,22 @@ SET
     is_pinned = COALESCE($12, is_pinned),
     updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
-RETURNING id, workspace_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, access_count, tags, metadata, is_active, is_pinned, created_at, updated_at
+RETURNING id, workspace_id, user_id, title, summary, content, memory_type, category, scope_type, scope_id, visibility, created_by, importance_score, tags, source, embedding, metadata, is_pinned, is_active, is_archived, access_count, created_at, updated_at
 `
 
 type UpdateWorkspaceMemoryParams struct {
-	ID              pgtype.UUID    `json:"id"`
-	WorkspaceID     pgtype.UUID    `json:"workspace_id"`
-	Title           *string        `json:"title"`
-	Summary         *string        `json:"summary"`
-	Content         *string        `json:"content"`
-	MemoryType      *string        `json:"memory_type"`
-	Category        *string        `json:"category"`
-	Visibility      *string        `json:"visibility"`
-	ImportanceScore pgtype.Numeric `json:"importance_score"`
-	Tags            []string       `json:"tags"`
-	Metadata        []byte         `json:"metadata"`
-	IsPinned        *bool          `json:"is_pinned"`
+	ID              pgtype.UUID `json:"id"`
+	WorkspaceID     pgtype.UUID `json:"workspace_id"`
+	Title           *string     `json:"title"`
+	Summary         *string     `json:"summary"`
+	Content         *string     `json:"content"`
+	MemoryType      *string     `json:"memory_type"`
+	Category        *string     `json:"category"`
+	Visibility      *string     `json:"visibility"`
+	ImportanceScore *float64    `json:"importance_score"`
+	Tags            []string    `json:"tags"`
+	Metadata        []byte      `json:"metadata"`
+	IsPinned        *bool       `json:"is_pinned"`
 }
 
 func (q *Queries) UpdateWorkspaceMemory(ctx context.Context, arg UpdateWorkspaceMemoryParams) (WorkspaceMemory, error) {
@@ -1991,6 +2013,7 @@ func (q *Queries) UpdateWorkspaceMemory(ctx context.Context, arg UpdateWorkspace
 	err := row.Scan(
 		&i.ID,
 		&i.WorkspaceID,
+		&i.UserID,
 		&i.Title,
 		&i.Summary,
 		&i.Content,
@@ -2001,11 +2024,14 @@ func (q *Queries) UpdateWorkspaceMemory(ctx context.Context, arg UpdateWorkspace
 		&i.Visibility,
 		&i.CreatedBy,
 		&i.ImportanceScore,
-		&i.AccessCount,
 		&i.Tags,
+		&i.Source,
+		&i.Embedding,
 		&i.Metadata,
-		&i.IsActive,
 		&i.IsPinned,
+		&i.IsActive,
+		&i.IsArchived,
+		&i.AccessCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -2016,7 +2042,7 @@ const updateWorkspaceProjectMemberRole = `-- name: UpdateWorkspaceProjectMemberR
 UPDATE workspace_project_members
 SET project_role = $3, notification_level = COALESCE($4, notification_level), updated_at = NOW()
 WHERE project_id = $1 AND user_id = $2
-RETURNING id, project_id, user_id, workspace_id, project_role, assigned_by, assigned_at, notification_level, created_at, updated_at
+RETURNING id, workspace_id, project_id, user_id, project_role, assigned_by, assigned_at, notification_level, permissions, created_at, updated_at
 `
 
 type UpdateWorkspaceProjectMemberRoleParams struct {
@@ -2036,13 +2062,14 @@ func (q *Queries) UpdateWorkspaceProjectMemberRole(ctx context.Context, arg Upda
 	var i WorkspaceProjectMember
 	err := row.Scan(
 		&i.ID,
+		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.UserID,
-		&i.WorkspaceID,
 		&i.ProjectRole,
 		&i.AssignedBy,
 		&i.AssignedAt,
 		&i.NotificationLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -2061,7 +2088,7 @@ SET
     permissions = COALESCE($9, permissions),
     updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2 AND is_system = FALSE
-RETURNING id, workspace_id, name, display_name, description, color, icon, permissions, is_system, is_default, hierarchy_level, created_at, updated_at
+RETURNING id, workspace_id, name, display_name, description, color, icon, hierarchy_level, is_system, is_default, permissions, created_at, updated_at
 `
 
 type UpdateWorkspaceRoleParams struct {
@@ -2097,10 +2124,10 @@ func (q *Queries) UpdateWorkspaceRole(ctx context.Context, arg UpdateWorkspaceRo
 		&i.Description,
 		&i.Color,
 		&i.Icon,
-		&i.Permissions,
+		&i.HierarchyLevel,
 		&i.IsSystem,
 		&i.IsDefault,
-		&i.HierarchyLevel,
+		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -2123,7 +2150,7 @@ SET
     notification_preferences = COALESCE(EXCLUDED.notification_preferences, user_workspace_profiles.notification_preferences),
     expertise_areas = COALESCE(EXCLUDED.expertise_areas, user_workspace_profiles.expertise_areas),
     updated_at = NOW()
-RETURNING id, workspace_id, user_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, preferred_output_style, communication_preferences, expertise_areas, created_at, updated_at
+RETURNING id, user_id, workspace_id, display_name, title, department, avatar_url, work_email, phone, timezone, working_hours, notification_preferences, expertise_areas, bio, settings, created_at, updated_at
 `
 
 type UpsertUserWorkspaceProfileParams struct {
@@ -2159,8 +2186,8 @@ func (q *Queries) UpsertUserWorkspaceProfile(ctx context.Context, arg UpsertUser
 	var i UserWorkspaceProfile
 	err := row.Scan(
 		&i.ID,
-		&i.WorkspaceID,
 		&i.UserID,
+		&i.WorkspaceID,
 		&i.DisplayName,
 		&i.Title,
 		&i.Department,
@@ -2170,9 +2197,9 @@ func (q *Queries) UpsertUserWorkspaceProfile(ctx context.Context, arg UpsertUser
 		&i.Timezone,
 		&i.WorkingHours,
 		&i.NotificationPreferences,
-		&i.PreferredOutputStyle,
-		&i.CommunicationPreferences,
 		&i.ExpertiseAreas,
+		&i.Bio,
+		&i.Settings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -405,7 +405,7 @@ func (q *Queries) GetDashboardByShareToken(ctx context.Context, shareToken *stri
 }
 
 const getDashboardTemplate = `-- name: GetDashboardTemplate :one
-SELECT id, name, description, category, layout, thumbnail_url, is_default, sort_order, created_at FROM dashboard_templates
+SELECT id, name, description, preview_image_url, layout, is_default, sort_order, target_roles, created_at, updated_at FROM dashboard_templates
 WHERE id = $1
 `
 
@@ -416,12 +416,13 @@ func (q *Queries) GetDashboardTemplate(ctx context.Context, id pgtype.UUID) (Das
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Category,
+		&i.PreviewImageUrl,
 		&i.Layout,
-		&i.ThumbnailUrl,
 		&i.IsDefault,
 		&i.SortOrder,
+		&i.TargetRoles,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -455,7 +456,7 @@ func (q *Queries) GetDefaultDashboard(ctx context.Context, userID string) (UserD
 }
 
 const getDefaultTemplate = `-- name: GetDefaultTemplate :one
-SELECT id, name, description, category, layout, thumbnail_url, is_default, sort_order, created_at FROM dashboard_templates
+SELECT id, name, description, preview_image_url, layout, is_default, sort_order, target_roles, created_at, updated_at FROM dashboard_templates
 WHERE is_default = TRUE
 LIMIT 1
 `
@@ -467,12 +468,13 @@ func (q *Queries) GetDefaultTemplate(ctx context.Context) (DashboardTemplate, er
 		&i.ID,
 		&i.Name,
 		&i.Description,
-		&i.Category,
+		&i.PreviewImageUrl,
 		&i.Layout,
-		&i.ThumbnailUrl,
 		&i.IsDefault,
 		&i.SortOrder,
+		&i.TargetRoles,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -571,7 +573,7 @@ func (q *Queries) GetUpcomingTasksDueByDate(ctx context.Context, arg GetUpcoming
 }
 
 const getWidgetType = `-- name: GetWidgetType :one
-SELECT id, widget_type, name, description, category, config_schema, default_config, default_size, min_size, sse_events, is_enabled, requires_feature, created_at FROM dashboard_widgets
+SELECT id, widget_type, name, description, category, icon, default_config, supported_sizes, min_width, min_height, is_enabled, is_premium, required_permissions, created_at, updated_at FROM dashboard_widgets
 WHERE id = $1
 `
 
@@ -584,20 +586,22 @@ func (q *Queries) GetWidgetType(ctx context.Context, id pgtype.UUID) (DashboardW
 		&i.Name,
 		&i.Description,
 		&i.Category,
-		&i.ConfigSchema,
+		&i.Icon,
 		&i.DefaultConfig,
-		&i.DefaultSize,
-		&i.MinSize,
-		&i.SseEvents,
+		&i.SupportedSizes,
+		&i.MinWidth,
+		&i.MinHeight,
 		&i.IsEnabled,
-		&i.RequiresFeature,
+		&i.IsPremium,
+		&i.RequiredPermissions,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getWidgetTypeByName = `-- name: GetWidgetTypeByName :one
-SELECT id, widget_type, name, description, category, config_schema, default_config, default_size, min_size, sse_events, is_enabled, requires_feature, created_at FROM dashboard_widgets
+SELECT id, widget_type, name, description, category, icon, default_config, supported_sizes, min_width, min_height, is_enabled, is_premium, required_permissions, created_at, updated_at FROM dashboard_widgets
 WHERE widget_type = $1
 `
 
@@ -610,20 +614,22 @@ func (q *Queries) GetWidgetTypeByName(ctx context.Context, widgetType string) (D
 		&i.Name,
 		&i.Description,
 		&i.Category,
-		&i.ConfigSchema,
+		&i.Icon,
 		&i.DefaultConfig,
-		&i.DefaultSize,
-		&i.MinSize,
-		&i.SseEvents,
+		&i.SupportedSizes,
+		&i.MinWidth,
+		&i.MinHeight,
 		&i.IsEnabled,
-		&i.RequiresFeature,
+		&i.IsPremium,
+		&i.RequiredPermissions,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getWidgetsByCategory = `-- name: GetWidgetsByCategory :many
-SELECT id, widget_type, name, description, category, config_schema, default_config, default_size, min_size, sse_events, is_enabled, requires_feature, created_at FROM dashboard_widgets
+SELECT id, widget_type, name, description, category, icon, default_config, supported_sizes, min_width, min_height, is_enabled, is_premium, required_permissions, created_at, updated_at FROM dashboard_widgets
 WHERE category = $1 AND is_enabled = TRUE
 ORDER BY name
 `
@@ -643,14 +649,16 @@ func (q *Queries) GetWidgetsByCategory(ctx context.Context, category *string) ([
 			&i.Name,
 			&i.Description,
 			&i.Category,
-			&i.ConfigSchema,
+			&i.Icon,
 			&i.DefaultConfig,
-			&i.DefaultSize,
-			&i.MinSize,
-			&i.SseEvents,
+			&i.SupportedSizes,
+			&i.MinWidth,
+			&i.MinHeight,
 			&i.IsEnabled,
-			&i.RequiresFeature,
+			&i.IsPremium,
+			&i.RequiredPermissions,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -707,7 +715,7 @@ func (q *Queries) GetWorkloadHeatmapData(ctx context.Context, arg GetWorkloadHea
 }
 
 const listAllWidgetTypes = `-- name: ListAllWidgetTypes :many
-SELECT id, widget_type, name, description, category, config_schema, default_config, default_size, min_size, sse_events, is_enabled, requires_feature, created_at FROM dashboard_widgets
+SELECT id, widget_type, name, description, category, icon, default_config, supported_sizes, min_width, min_height, is_enabled, is_premium, required_permissions, created_at, updated_at FROM dashboard_widgets
 ORDER BY category, name
 `
 
@@ -726,14 +734,16 @@ func (q *Queries) ListAllWidgetTypes(ctx context.Context) ([]DashboardWidget, er
 			&i.Name,
 			&i.Description,
 			&i.Category,
-			&i.ConfigSchema,
+			&i.Icon,
 			&i.DefaultConfig,
-			&i.DefaultSize,
-			&i.MinSize,
-			&i.SseEvents,
+			&i.SupportedSizes,
+			&i.MinWidth,
+			&i.MinHeight,
 			&i.IsEnabled,
-			&i.RequiresFeature,
+			&i.IsPremium,
+			&i.RequiredPermissions,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -747,7 +757,7 @@ func (q *Queries) ListAllWidgetTypes(ctx context.Context) ([]DashboardWidget, er
 
 const listDashboardTemplates = `-- name: ListDashboardTemplates :many
 
-SELECT id, name, description, category, layout, thumbnail_url, is_default, sort_order, created_at FROM dashboard_templates
+SELECT id, name, description, preview_image_url, layout, is_default, sort_order, target_roles, created_at, updated_at FROM dashboard_templates
 ORDER BY sort_order, name
 `
 
@@ -767,12 +777,13 @@ func (q *Queries) ListDashboardTemplates(ctx context.Context) ([]DashboardTempla
 			&i.ID,
 			&i.Name,
 			&i.Description,
-			&i.Category,
+			&i.PreviewImageUrl,
 			&i.Layout,
-			&i.ThumbnailUrl,
 			&i.IsDefault,
 			&i.SortOrder,
+			&i.TargetRoles,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -827,7 +838,7 @@ func (q *Queries) ListUserDashboards(ctx context.Context, userID string) ([]User
 
 const listWidgetTypes = `-- name: ListWidgetTypes :many
 
-SELECT id, widget_type, name, description, category, config_schema, default_config, default_size, min_size, sse_events, is_enabled, requires_feature, created_at FROM dashboard_widgets
+SELECT id, widget_type, name, description, category, icon, default_config, supported_sizes, min_width, min_height, is_enabled, is_premium, required_permissions, created_at, updated_at FROM dashboard_widgets
 WHERE is_enabled = TRUE
 ORDER BY category, name
 `
@@ -850,14 +861,16 @@ func (q *Queries) ListWidgetTypes(ctx context.Context) ([]DashboardWidget, error
 			&i.Name,
 			&i.Description,
 			&i.Category,
-			&i.ConfigSchema,
+			&i.Icon,
 			&i.DefaultConfig,
-			&i.DefaultSize,
-			&i.MinSize,
-			&i.SseEvents,
+			&i.SupportedSizes,
+			&i.MinWidth,
+			&i.MinHeight,
 			&i.IsEnabled,
-			&i.RequiresFeature,
+			&i.IsPremium,
+			&i.RequiredPermissions,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

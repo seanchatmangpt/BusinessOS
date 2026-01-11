@@ -16,7 +16,7 @@ UPDATE notification_batches
 SET pending_ids = array_append(pending_ids, $2),
     pending_count = pending_count + 1
 WHERE id = $1
-RETURNING id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, first_at, dispatch_at, status
+RETURNING id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, status, dispatch_at, created_at, updated_at
 `
 
 type AddToBatchParams struct {
@@ -36,9 +36,10 @@ func (q *Queries) AddToBatch(ctx context.Context, arg AddToBatchParams) (Notific
 		&i.EntityID,
 		&i.PendingIds,
 		&i.PendingCount,
-		&i.FirstAt,
-		&i.DispatchAt,
 		&i.Status,
+		&i.DispatchAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -49,7 +50,7 @@ INSERT INTO notification_batches (
     pending_ids, pending_count, dispatch_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, 1, $7
-) RETURNING id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, first_at, dispatch_at, status
+) RETURNING id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, status, dispatch_at, created_at, updated_at
 `
 
 type CreateBatchParams struct {
@@ -82,9 +83,10 @@ func (q *Queries) CreateBatch(ctx context.Context, arg CreateBatchParams) (Notif
 		&i.EntityID,
 		&i.PendingIds,
 		&i.PendingCount,
-		&i.FirstAt,
-		&i.DispatchAt,
 		&i.Status,
+		&i.DispatchAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -97,7 +99,7 @@ INSERT INTO notifications (
     batch_id, batch_count, priority, metadata
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
-) RETURNING id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at
+) RETURNING id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at
 `
 
 type CreateNotificationParams struct {
@@ -148,13 +150,13 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		&i.SenderID,
 		&i.SenderName,
 		&i.SenderAvatarUrl,
-		&i.IsRead,
-		&i.ReadAt,
 		&i.BatchID,
 		&i.BatchCount,
-		&i.ChannelsSent,
 		&i.Priority,
 		&i.Metadata,
+		&i.IsRead,
+		&i.ReadAt,
+		&i.ChannelsSent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -168,7 +170,7 @@ INSERT INTO notification_preferences (
     quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-) RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, created_at, updated_at
+) RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, muted_types, custom_settings, created_at, updated_at
 `
 
 type CreateNotificationPreferencesParams struct {
@@ -219,6 +221,8 @@ func (q *Queries) CreateNotificationPreferences(ctx context.Context, arg CreateN
 		&i.EmailDigestEnabled,
 		&i.EmailDigestTime,
 		&i.EmailDigestTimezone,
+		&i.MutedTypes,
+		&i.CustomSettings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -377,7 +381,7 @@ func (q *Queries) GetAllPushSubscriptions(ctx context.Context, limit int32) ([]P
 }
 
 const getBatchNotifications = `-- name: GetBatchNotifications :many
-SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at FROM notifications
+SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at FROM notifications
 WHERE batch_id = $1
 ORDER BY created_at ASC
 `
@@ -403,13 +407,13 @@ func (q *Queries) GetBatchNotifications(ctx context.Context, batchID pgtype.UUID
 			&i.SenderID,
 			&i.SenderName,
 			&i.SenderAvatarUrl,
-			&i.IsRead,
-			&i.ReadAt,
 			&i.BatchID,
 			&i.BatchCount,
-			&i.ChannelsSent,
 			&i.Priority,
 			&i.Metadata,
+			&i.IsRead,
+			&i.ReadAt,
+			&i.ChannelsSent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -424,7 +428,7 @@ func (q *Queries) GetBatchNotifications(ctx context.Context, batchID pgtype.UUID
 }
 
 const getBatchesReadyToDispatch = `-- name: GetBatchesReadyToDispatch :many
-SELECT id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, first_at, dispatch_at, status FROM notification_batches
+SELECT id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, status, dispatch_at, created_at, updated_at FROM notification_batches
 WHERE status = 'pending' AND dispatch_at <= NOW()
 ORDER BY dispatch_at ASC
 LIMIT 100
@@ -448,9 +452,10 @@ func (q *Queries) GetBatchesReadyToDispatch(ctx context.Context) ([]Notification
 			&i.EntityID,
 			&i.PendingIds,
 			&i.PendingCount,
-			&i.FirstAt,
-			&i.DispatchAt,
 			&i.Status,
+			&i.DispatchAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -463,7 +468,7 @@ func (q *Queries) GetBatchesReadyToDispatch(ctx context.Context) ([]Notification
 }
 
 const getNotification = `-- name: GetNotification :one
-SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at FROM notifications
+SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at FROM notifications
 WHERE id = $1 AND user_id = $2
 `
 
@@ -487,13 +492,13 @@ func (q *Queries) GetNotification(ctx context.Context, arg GetNotificationParams
 		&i.SenderID,
 		&i.SenderName,
 		&i.SenderAvatarUrl,
-		&i.IsRead,
-		&i.ReadAt,
 		&i.BatchID,
 		&i.BatchCount,
-		&i.ChannelsSent,
 		&i.Priority,
 		&i.Metadata,
+		&i.IsRead,
+		&i.ReadAt,
+		&i.ChannelsSent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -502,7 +507,7 @@ func (q *Queries) GetNotification(ctx context.Context, arg GetNotificationParams
 
 const getNotificationPreferences = `-- name: GetNotificationPreferences :one
 
-SELECT id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, created_at, updated_at FROM notification_preferences
+SELECT id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, muted_types, custom_settings, created_at, updated_at FROM notification_preferences
 WHERE user_id = $1
   AND (workspace_id = $2 OR (workspace_id IS NULL AND $2::uuid IS NULL))
 LIMIT 1
@@ -532,6 +537,8 @@ func (q *Queries) GetNotificationPreferences(ctx context.Context, arg GetNotific
 		&i.EmailDigestEnabled,
 		&i.EmailDigestTime,
 		&i.EmailDigestTimezone,
+		&i.MutedTypes,
+		&i.CustomSettings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -539,7 +546,7 @@ func (q *Queries) GetNotificationPreferences(ctx context.Context, arg GetNotific
 }
 
 const getNotificationPreferencesByUser = `-- name: GetNotificationPreferencesByUser :one
-SELECT id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, created_at, updated_at FROM notification_preferences
+SELECT id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, muted_types, custom_settings, created_at, updated_at FROM notification_preferences
 WHERE user_id = $1 AND workspace_id IS NULL
 LIMIT 1
 `
@@ -562,6 +569,8 @@ func (q *Queries) GetNotificationPreferencesByUser(ctx context.Context, userID s
 		&i.EmailDigestEnabled,
 		&i.EmailDigestTime,
 		&i.EmailDigestTimezone,
+		&i.MutedTypes,
+		&i.CustomSettings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -569,7 +578,7 @@ func (q *Queries) GetNotificationPreferencesByUser(ctx context.Context, userID s
 }
 
 const getNotificationsByEntity = `-- name: GetNotificationsByEntity :many
-SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at FROM notifications
+SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at FROM notifications
 WHERE entity_type = $1 AND entity_id = $2
 ORDER BY created_at DESC
 LIMIT $3
@@ -602,13 +611,13 @@ func (q *Queries) GetNotificationsByEntity(ctx context.Context, arg GetNotificat
 			&i.SenderID,
 			&i.SenderName,
 			&i.SenderAvatarUrl,
-			&i.IsRead,
-			&i.ReadAt,
 			&i.BatchID,
 			&i.BatchCount,
-			&i.ChannelsSent,
 			&i.Priority,
 			&i.Metadata,
+			&i.IsRead,
+			&i.ReadAt,
+			&i.ChannelsSent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -623,7 +632,7 @@ func (q *Queries) GetNotificationsByEntity(ctx context.Context, arg GetNotificat
 }
 
 const getNotificationsForUser = `-- name: GetNotificationsForUser :many
-SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at FROM notifications
+SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at FROM notifications
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -656,13 +665,13 @@ func (q *Queries) GetNotificationsForUser(ctx context.Context, arg GetNotificati
 			&i.SenderID,
 			&i.SenderName,
 			&i.SenderAvatarUrl,
-			&i.IsRead,
-			&i.ReadAt,
 			&i.BatchID,
 			&i.BatchCount,
-			&i.ChannelsSent,
 			&i.Priority,
 			&i.Metadata,
+			&i.IsRead,
+			&i.ReadAt,
+			&i.ChannelsSent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -678,7 +687,7 @@ func (q *Queries) GetNotificationsForUser(ctx context.Context, arg GetNotificati
 
 const getPendingBatch = `-- name: GetPendingBatch :one
 
-SELECT id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, first_at, dispatch_at, status FROM notification_batches
+SELECT id, user_id, batch_key, type, entity_type, entity_id, pending_ids, pending_count, status, dispatch_at, created_at, updated_at FROM notification_batches
 WHERE user_id = $1 AND batch_key = $2 AND status = 'pending'
 `
 
@@ -700,9 +709,10 @@ func (q *Queries) GetPendingBatch(ctx context.Context, arg GetPendingBatchParams
 		&i.EntityID,
 		&i.PendingIds,
 		&i.PendingCount,
-		&i.FirstAt,
-		&i.DispatchAt,
 		&i.Status,
+		&i.DispatchAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -755,7 +765,7 @@ func (q *Queries) GetUnreadCount(ctx context.Context, userID string) (int64, err
 }
 
 const getUnreadNotificationsForUser = `-- name: GetUnreadNotificationsForUser :many
-SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at FROM notifications
+SELECT id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at FROM notifications
 WHERE user_id = $1 AND is_read = FALSE
 ORDER BY created_at DESC
 LIMIT $2
@@ -787,13 +797,13 @@ func (q *Queries) GetUnreadNotificationsForUser(ctx context.Context, arg GetUnre
 			&i.SenderID,
 			&i.SenderName,
 			&i.SenderAvatarUrl,
-			&i.IsRead,
-			&i.ReadAt,
 			&i.BatchID,
 			&i.BatchCount,
-			&i.ChannelsSent,
 			&i.Priority,
 			&i.Metadata,
+			&i.IsRead,
+			&i.ReadAt,
+			&i.ChannelsSent,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -849,7 +859,7 @@ const markNotificationAsRead = `-- name: MarkNotificationAsRead :one
 UPDATE notifications
 SET is_read = TRUE, read_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, is_read, read_at, batch_id, batch_count, channels_sent, priority, metadata, created_at, updated_at
+RETURNING id, user_id, workspace_id, type, title, body, entity_type, entity_id, sender_id, sender_name, sender_avatar_url, batch_id, batch_count, priority, metadata, is_read, read_at, channels_sent, created_at, updated_at
 `
 
 type MarkNotificationAsReadParams struct {
@@ -872,13 +882,13 @@ func (q *Queries) MarkNotificationAsRead(ctx context.Context, arg MarkNotificati
 		&i.SenderID,
 		&i.SenderName,
 		&i.SenderAvatarUrl,
-		&i.IsRead,
-		&i.ReadAt,
 		&i.BatchID,
 		&i.BatchCount,
-		&i.ChannelsSent,
 		&i.Priority,
 		&i.Metadata,
+		&i.IsRead,
+		&i.ReadAt,
+		&i.ChannelsSent,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -917,7 +927,7 @@ SET
     email_digest_timezone = COALESCE($12, email_digest_timezone),
     updated_at = NOW()
 WHERE user_id = $1 AND (workspace_id = $13 OR (workspace_id IS NULL AND $13 IS NULL))
-RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, created_at, updated_at
+RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, muted_types, custom_settings, created_at, updated_at
 `
 
 type UpdateNotificationPreferencesParams struct {
@@ -968,6 +978,8 @@ func (q *Queries) UpdateNotificationPreferences(ctx context.Context, arg UpdateN
 		&i.EmailDigestEnabled,
 		&i.EmailDigestTime,
 		&i.EmailDigestTimezone,
+		&i.MutedTypes,
+		&i.CustomSettings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -994,7 +1006,7 @@ INSERT INTO notification_preferences (
     email_digest_time = EXCLUDED.email_digest_time,
     email_digest_timezone = EXCLUDED.email_digest_timezone,
     updated_at = NOW()
-RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, created_at, updated_at
+RETURNING id, user_id, workspace_id, email_enabled, push_enabled, in_app_enabled, type_settings, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone, email_digest_enabled, email_digest_time, email_digest_timezone, muted_types, custom_settings, created_at, updated_at
 `
 
 type UpsertNotificationPreferencesParams struct {
@@ -1045,6 +1057,8 @@ func (q *Queries) UpsertNotificationPreferences(ctx context.Context, arg UpsertN
 		&i.EmailDigestEnabled,
 		&i.EmailDigestTime,
 		&i.EmailDigestTimezone,
+		&i.MutedTypes,
+		&i.CustomSettings,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
