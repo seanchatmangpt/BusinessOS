@@ -835,6 +835,24 @@
 			const response = await getCustomAgents(false); // Only active agents
 			customAgents = response.agents || [];
 			console.log('[Chat] Loaded', customAgents.length, 'custom agents');
+
+			// Add custom agents to availableAgents for @mention autocomplete
+			// Convert CustomAgent to AgentPreset format
+			const customAgentPresets: AgentPreset[] = customAgents.map(agent => ({
+				id: agent.id,
+				name: agent.name,
+				display_name: agent.display_name,
+				description: agent.description || null,
+				avatar: agent.avatar || null,
+				category: agent.category || 'custom'
+			}));
+
+			// Remove any existing custom agents to avoid duplicates, then append new ones
+			// Keep only built-in agents (category !== 'custom'), then add fresh custom agent list
+			const builtInAgents = availableAgents.filter(a => a.category !== 'custom');
+			availableAgents = [...builtInAgents, ...customAgentPresets];
+			console.log('[Chat] Total available agents for @mention:', availableAgents.length,
+				'(', customAgentPresets.length, 'custom,', builtInAgents.length, 'built-in)');
 		} catch (e) {
 			console.error('Failed to load custom agents:', e);
 			customAgents = [];
@@ -1087,8 +1105,12 @@ Use this context to inform your responses.`;
 		loadProjects();
 		loadTeamMembers();
 		loadCommands(); // Load slash commands for autocomplete
-		loadAgentPresets(); // Load agent presets for @mention
-		loadCustomAgents(); // Load custom agents for agent selector
+
+		// Load agents in sequence: presets first, then custom agents
+		// This ensures custom agents can be added to availableAgents array
+		await loadAgentPresets(); // Load agent presets for @mention
+		await loadCustomAgents(); // Load custom agents and add to @mention list
+
 		checkWhisperStatus(); // Check if voice transcription is available
 
 		// Load thinking settings to sync COT mode
