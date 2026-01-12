@@ -6,6 +6,7 @@ This document covers common issues you may encounter when setting up BusinessOS 
 
 ## Table of Contents
 - [Google OAuth "Client Not Found" Error](#google-oauth-client-not-found-error)
+- [Terminal "zsh not found" Error (Linux)](#terminal-zsh-not-found-error-linux)
 - [Database Connection Issues](#database-connection-issues)
 - [Redis Connection Issues](#redis-connection-issues)
 - [Port Already in Use](#port-already-in-use)
@@ -68,6 +69,41 @@ You should now see your actual Google Client ID.
 
 ### Prevention
 When adding new OAuth providers or environment variables that need to be read from `.env` in development mode, always add them to the `applyDotenvOverrides()` function in `config.go`.
+
+---
+
+## Terminal "zsh not found" Error (Linux)
+
+### Symptoms
+- BusinessOS terminal shows: `failed to start PTY: exec: "zsh": executable file not found in $PATH`
+- Terminal window shows error and disconnects immediately
+
+### Root Cause
+The terminal was defaulting to `zsh` shell, which is standard on macOS but not installed by default on Linux/Ubuntu.
+
+### Fix Options
+
+**Option 1: Install zsh (recommended)**
+```bash
+sudo apt install zsh
+```
+
+After installing, the first time you open the terminal you'll see a configuration wizard. Just type `0` and press Enter to create a basic config.
+
+**Option 2: The code fix (already applied)**
+
+If you're on an older version, update `desktop/backend-go/internal/terminal/websocket.go`:
+
+The terminal now auto-detects the available shell:
+- macOS: uses `zsh` if available, falls back to `bash`
+- Linux: uses `bash` (since zsh isn't installed by default)
+
+After updating, rebuild the backend:
+```bash
+cd desktop/backend-go
+go build -o server cmd/server/main.go
+./server
+```
 
 ---
 
