@@ -136,9 +136,7 @@ func (h *WebSocketHandler) HandleConnection(w http.ResponseWriter, r *http.Reque
 	cols := parseIntParam(query.Get("cols"), 80)
 	rows := parseIntParam(query.Get("rows"), 24)
 	shell := query.Get("shell")
-	if shell == "" {
-		shell = "zsh" // Default to zsh on macOS
-	}
+	// Leave shell empty to let getShellPath auto-detect (zsh on macOS, bash on Linux)
 	workingDir := query.Get("cwd")
 	logging.Debug("[Terminal] Config: cols=%d, rows=%d, shell=%s", cols, rows, shell)
 
