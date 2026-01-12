@@ -287,6 +287,7 @@ ALLOWED_ORIGINS=http://localhost:5173
 
 ## Next Steps
 
+- [COMMON_ISSUES.md](./COMMON_ISSUES.md) - Troubleshooting common setup issues
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Full system architecture
 - [FRONTEND.md](./FRONTEND.md) - SvelteKit patterns and components
 - [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Production deployment

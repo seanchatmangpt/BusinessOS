@@ -366,6 +366,16 @@ func applyDotenvOverrides(cfg *Config, vars map[string]string) {
 	if v := strings.TrimSpace(vars["REDIS_KEY_HMAC_SECRET"]); v != "" {
 		cfg.RedisKeyHMACSecret = v
 	}
+	// Google OAuth
+	if v := strings.TrimSpace(vars["GOOGLE_CLIENT_ID"]); v != "" {
+		cfg.GoogleClientID = v
+	}
+	if v := strings.TrimSpace(vars["GOOGLE_CLIENT_SECRET"]); v != "" {
+		cfg.GoogleClientSecret = v
+	}
+	if v := strings.TrimSpace(vars["GOOGLE_REDIRECT_URI"]); v != "" {
+		cfg.GoogleRedirectURI = v
+	}
 }
 
 // GetActiveProvider returns the currently configured AI provider
