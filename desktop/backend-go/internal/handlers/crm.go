@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -424,6 +425,7 @@ func (h *Handlers) ListPipelines(c *gin.Context) {
 	queries := sqlc.New(h.pool)
 	pipelines, err := queries.ListPipelines(c.Request.Context(), user.ID)
 	if err != nil {
+		slog.Error("Failed to list pipelines", "error", err, "user_id", user.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list pipelines"})
 		return
 	}

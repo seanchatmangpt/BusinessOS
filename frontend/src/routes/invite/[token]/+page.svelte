@@ -27,6 +27,12 @@
 		status = 'accepting';
 		errorMessage = '';
 
+		if (!token) {
+			status = 'error';
+			errorMessage = 'Invalid invitation link';
+			return;
+		}
+
 		try {
 			await acceptWorkspaceInvite(token);
 			status = 'success';

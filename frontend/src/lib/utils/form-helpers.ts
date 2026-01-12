@@ -96,7 +96,7 @@ export function sanitizeInput(input: string): string {
  * Format form data for API submission
  */
 export function formatFormData<T extends Record<string, any>>(data: T): T {
-	const formatted = { ...data };
+	const formatted = { ...data } as Record<string, any>;
 
 	for (const [key, value] of Object.entries(formatted)) {
 		if (typeof value === 'string') {
@@ -104,7 +104,7 @@ export function formatFormData<T extends Record<string, any>>(data: T): T {
 		}
 	}
 
-	return formatted;
+	return formatted as T;
 }
 
 /**

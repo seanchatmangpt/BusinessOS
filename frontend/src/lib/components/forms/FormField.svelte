@@ -47,7 +47,7 @@
 			{placeholder}
 			{minLength}
 			{maxLength}
-			autoComplete={autoComplete || undefined}
+			autocomplete={autoComplete ?? undefined}
 			bind:value
 			class="input input-bordered w-full {error ? 'input-error' : ''}"
 		/>
@@ -76,8 +76,8 @@
 			{disabled}
 			{placeholder}
 			{rows}
-			{minLength}
-			{maxLength}
+			minlength={minLength}
+			maxlength={maxLength}
 			bind:value
 			class="textarea textarea-bordered w-full {error ? 'textarea-error' : ''}"
 		/>
@@ -110,7 +110,7 @@
 				{name}
 				type="checkbox"
 				{required}
-				{disabled}
+				disabled={!!disabled}
 				bind:checked={value}
 				class="checkbox checkbox-primary"
 			/>

@@ -76,7 +76,10 @@ func (h *GoogleAuthHandler) InitiateGoogleLogin(c *gin.Context) {
 	c.SetCookie("oauth_state", state, 600, "/", "", false, true)
 	c.SetCookie("oauth_redirect", redirectAfter, 600, "/", "", false, true)
 
-	authURL := h.oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	// Force Google to show account picker every time (don't auto-login)
+	authURL := h.oauthConfig.AuthCodeURL(state,
+		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("prompt", "select_account"))
 
 	// Redirect to Google OAuth
 	c.Redirect(http.StatusTemporaryRedirect, authURL)

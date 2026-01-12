@@ -141,7 +141,7 @@
 	{/if}
 
 	<!-- Form Fields -->
-	<FormSection {title: 'Basic Information'} description="Agent identity and core settings">
+	<FormSection title="Basic Information" description="Agent identity and core settings">
 		{#each fields as field (field.name)}
 			{#if !['system_prompt', 'category', 'temperature', 'max_tokens', 'thinking_enabled', 'streaming_enabled'].includes(field.name)}
 				<FormField

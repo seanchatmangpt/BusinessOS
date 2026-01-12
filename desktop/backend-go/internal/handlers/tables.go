@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -294,6 +295,7 @@ func (h *Handlers) ListTables(c *gin.Context) {
 		WorkspaceID: workspaceID,
 	})
 	if err != nil {
+		slog.Error("Failed to list tables", "error", err, "user_id", user.ID, "workspace_id", workspaceID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list tables"})
 		return
 	}
@@ -301,7 +303,11 @@ func (h *Handlers) ListTables(c *gin.Context) {
 	// Get row counts for each table
 	response := make([]TableResponse, len(tables))
 	for i, t := range tables {
-		rowCount, _ := queries.CountCustomRecords(ctx, t.ID)
+		rowCount, err := queries.CountCustomRecords(ctx, t.ID)
+		if err != nil {
+			slog.Warn("Failed to count records for table", "error", err, "table_id", t.ID)
+			rowCount = 0 // Use 0 as fallback
+		}
 		response[i] = tableToResponse(t, rowCount)
 	}
 

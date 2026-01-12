@@ -83,19 +83,85 @@
 		help: {
 			path: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
 			bgColor: '#0EA5E9'
+		},
+		agents: {
+			path: 'M12 7c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 0V4m0 3v3M7.5 17.5c0-1.38 2.015-2.5 4.5-2.5s4.5 1.12 4.5 2.5V21H7.5v-3.5z',
+			bgColor: '#9C27B0'
+		},
+		crm: {
+			path: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+			bgColor: '#00897B'
+		},
+		integrations: {
+			path: 'M8 12l-4-4m0 0l4-4m-4 4h16m-8 8l4-4m0 0l-4-4',
+			bgColor: '#3F51B5'
+		},
+		'knowledge-v2': {
+			path: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+			bgColor: '#FF6F00'
+		},
+		notifications: {
+			path: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
+			bgColor: '#D32F2F'
+		},
+		profile: {
+			path: 'M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+			bgColor: '#0288D1'
+		},
+		'voice-notes': {
+			path: 'M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z',
+			bgColor: '#C2185B'
+		},
+		usage: {
+			path: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+			bgColor: '#455A64'
+		},
+		tables: {
+			path: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z',
+			bgColor: '#6366F1'
+		},
+		communication: {
+			path: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+			bgColor: '#E53935'
+		},
+		pages: {
+			path: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+			bgColor: '#7CB342'
 		}
 	};
 
-	// Get all available modules for dock
+	// Smart dock: Show 8 modules (core + recently focused)
+	const MAX_DOCK_MODULES = 8;
+	const ALWAYS_SHOW: ModuleId[] = ['dashboard', 'chat', 'tasks', 'settings'];  // Always visible
+
 	let dockModules = $derived.by(() => {
-		const modules: ModuleId[] = [];
-		CORE_MODULES.forEach(m => modules.push(m));
-		windows.forEach(w => {
-			if (!CORE_MODULES.includes(w.module as any)) {
-				modules.push(w.module);
+		// Start with always-show modules
+		const modules: ModuleId[] = [...ALWAYS_SHOW];
+
+		// Get recently focused modules (sorted by lastFocused time)
+		const recentModules = [...windows]
+			.filter(w => w.lastFocused > 0 && !ALWAYS_SHOW.includes(w.module))
+			.sort((a, b) => b.lastFocused - a.lastFocused)
+			.slice(0, MAX_DOCK_MODULES - ALWAYS_SHOW.length)
+			.map(w => w.module);
+
+		// Add recent modules
+		recentModules.forEach(m => {
+			if (!modules.includes(m)) {
+				modules.push(m);
 			}
 		});
-		return modules;
+
+		// If we don't have enough, fill with core modules
+		if (modules.length < MAX_DOCK_MODULES) {
+			CORE_MODULES.forEach(m => {
+				if (modules.length < MAX_DOCK_MODULES && !modules.includes(m)) {
+					modules.push(m);
+				}
+			});
+		}
+
+		return modules.slice(0, MAX_DOCK_MODULES);
 	});
 
 	// Check if a module is currently focused

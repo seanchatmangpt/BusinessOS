@@ -230,7 +230,7 @@ func main() {
 		DO $$
 		BEGIN
 			IF NOT EXISTS (
-				SELECT 1 FROM information_schema.columns 
+				SELECT 1 FROM information_schema.columns
 				WHERE table_name = 'projects' AND column_name = 'progress'
 			) THEN
 				ALTER TABLE projects ADD COLUMN progress INTEGER DEFAULT 0;
@@ -241,6 +241,78 @@ func main() {
 		log.Printf("Warning adding progress: %v", err)
 	} else {
 		fmt.Println("✓ progress column OK")
+	}
+
+	// Add start_date column to tasks
+	_, err = conn.Exec(ctx, `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'tasks' AND column_name = 'start_date'
+			) THEN
+				ALTER TABLE tasks ADD COLUMN start_date TIMESTAMP;
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Warning adding start_date to tasks: %v", err)
+	} else {
+		fmt.Println("✓ tasks.start_date column OK")
+	}
+
+	// Add parent_task_id column to tasks
+	_, err = conn.Exec(ctx, `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'tasks' AND column_name = 'parent_task_id'
+			) THEN
+				ALTER TABLE tasks ADD COLUMN parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE;
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Warning adding parent_task_id to tasks: %v", err)
+	} else {
+		fmt.Println("✓ tasks.parent_task_id column OK")
+	}
+
+	// Add custom_status_id column to tasks
+	_, err = conn.Exec(ctx, `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'tasks' AND column_name = 'custom_status_id'
+			) THEN
+				ALTER TABLE tasks ADD COLUMN custom_status_id UUID;
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Warning adding custom_status_id to tasks: %v", err)
+	} else {
+		fmt.Println("✓ tasks.custom_status_id column OK")
+	}
+
+	// Add position column to tasks
+	_, err = conn.Exec(ctx, `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'tasks' AND column_name = 'position'
+			) THEN
+				ALTER TABLE tasks ADD COLUMN position INT DEFAULT 0;
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Warning adding position to tasks: %v", err)
+	} else {
+		fmt.Println("✓ tasks.position column OK")
 	}
 
 	// Add owner_id column to projects (no FK since users table may not exist)
@@ -1037,6 +1109,28 @@ Focus on actionable, realistic plans. Consider constraints and dependencies.',
 		fmt.Println("✓ custom_agents.is_featured column OK")
 	}
 
+	// Add apply_personalization column
+	_, err = conn.Exec(ctx, `
+		ALTER TABLE custom_agents
+		ADD COLUMN IF NOT EXISTS apply_personalization BOOLEAN DEFAULT FALSE;
+	`)
+	if err != nil {
+		log.Printf("Warning adding apply_personalization: %v", err)
+	} else {
+		fmt.Println("✓ custom_agents.apply_personalization column OK")
+	}
+
+	// Add behavior_override column
+	_, err = conn.Exec(ctx, `
+		ALTER TABLE custom_agents
+		ADD COLUMN IF NOT EXISTS behavior_override TEXT;
+	`)
+	if err != nil {
+		log.Printf("Warning adding behavior_override: %v", err)
+	} else {
+		fmt.Println("✓ custom_agents.behavior_override column OK")
+	}
+
 	// Create index for featured agents lookup
 	_, err = conn.Exec(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_custom_agents_featured
@@ -1049,5 +1143,52 @@ Focus on actionable, realistic plans. Consider constraints and dependencies.',
 		fmt.Println("✓ idx_custom_agents_featured index OK")
 	}
 
-	fmt.Println("Migration complete!")
+	// ===== Apply Full Migration Files =====
+
+	// Apply workspaces migration (020_workspaces.sql)
+	workspacesSQLPath := "internal/database/migrations/020_workspaces.sql"
+	if workspacesSQL, err := os.ReadFile(workspacesSQLPath); err == nil {
+		fmt.Println("\nApplying workspaces migration...")
+		_, err = conn.Exec(ctx, string(workspacesSQL))
+		if err != nil {
+			log.Printf("Warning applying workspaces migration (tables may already exist): %v", err)
+			fmt.Println("✓ workspaces migration attempted (with warnings)")
+		} else {
+			fmt.Println("✓ workspaces migration complete")
+		}
+	} else {
+		log.Printf("Note: Could not read %s: %v", workspacesSQLPath, err)
+	}
+
+	// Apply notifications migration (016_notifications.sql)
+	notificationsSQLPath := "internal/database/migrations/016_notifications.sql"
+	if notificationsSQL, err := os.ReadFile(notificationsSQLPath); err == nil {
+		fmt.Println("\nApplying notifications migration...")
+		_, err = conn.Exec(ctx, string(notificationsSQL))
+		if err != nil {
+			log.Printf("Warning applying notifications migration (tables may already exist): %v", err)
+			fmt.Println("✓ notifications migration attempted (with warnings)")
+		} else {
+			fmt.Println("✓ notifications migration complete")
+		}
+	} else {
+		log.Printf("Note: Could not read %s: %s", notificationsSQLPath, err)
+	}
+
+	// Apply background_jobs migration (036_background_jobs.sql)
+	backgroundJobsSQLPath := "internal/database/migrations/036_background_jobs.sql"
+	if backgroundJobsSQL, err := os.ReadFile(backgroundJobsSQLPath); err == nil {
+		fmt.Println("\nApplying background_jobs migration...")
+		_, err = conn.Exec(ctx, string(backgroundJobsSQL))
+		if err != nil {
+			log.Printf("Warning applying background_jobs migration (tables may already exist): %v", err)
+			fmt.Println("✓ background_jobs migration attempted (with warnings)")
+		} else {
+			fmt.Println("✓ background_jobs migration complete")
+		}
+	} else {
+		log.Printf("Note: Could not read %s: %v", backgroundJobsSQLPath, err)
+	}
+
+	fmt.Println("\nMigration complete!")
 }

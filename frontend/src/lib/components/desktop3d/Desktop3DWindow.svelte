@@ -212,11 +212,11 @@
 	function getModuleRoute(module: string): string {
 		switch (module) {
 			case 'pages':
-				return '/pages';
+				return '/knowledge-v2';  // pages redirects to knowledge-v2
 			case 'contexts':
-				return '/pages';
+				return '/knowledge-v2';  // contexts also redirects to knowledge-v2
 			case 'communication':
-				return '/communication/calendar';
+				return '/communication/calendar';  // communication redirects to calendar tab
 			default:
 				return `/${module}`;
 		}
@@ -331,6 +331,8 @@
 						src="{getModuleRoute(window.module)}?embed=true"
 						title={window.title}
 						class="window-iframe"
+						sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+						loading="eager"
 					></iframe>
 				</div>
 			</div>

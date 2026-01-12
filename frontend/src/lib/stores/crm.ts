@@ -181,7 +181,7 @@ function createCRMStore() {
 					return { ...s, pipelines, currentPipeline, loading: false };
 				});
 				// Load stages for current pipeline
-				if (currentPipeline) {
+				if (currentPipeline?.id) {
 					this.loadPipelineStages(currentPipeline.id);
 				}
 			} catch (error) {

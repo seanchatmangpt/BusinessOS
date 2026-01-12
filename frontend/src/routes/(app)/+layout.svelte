@@ -28,11 +28,14 @@
 	}
 
 	onMount(() => {
+		// Skip initialization in embed mode - iframes don't need workspace/notification systems
+		if (isEmbedMode) return;
+
 		// Initialize workspace store
 		loadSavedWorkspace();
 		// Load projects for sidebar
 		loadProjects();
-		
+
 		// Initialize notifications (SSE + Push)
 		notificationStore.initialize();
 		initializePush();
@@ -72,6 +75,9 @@
 	}
 
 	$effect(() => {
+		// Skip auth check in embed mode (for 3D Desktop iframes)
+		if (isEmbedMode) return;
+
 		if (!$session.isPending && !$session.data) {
 			goto('/login');
 		}

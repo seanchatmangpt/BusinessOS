@@ -38,8 +38,15 @@ export const ALL_MODULES = [
 	'settings',
 	'terminal',
 	'nodes',
-	'files',
-	'help'
+	'help',
+	'agents',
+	'crm',
+	'integrations',
+	'knowledge-v2',
+	'notifications',
+	'profile',
+	'voice-notes',
+	'usage'
 ] as const;
 
 export type ModuleId = (typeof ALL_MODULES)[number];
@@ -95,8 +102,15 @@ export const MODULE_INFO: Record<
 	daily: { title: 'Daily Log', color: '#26A69A', icon: 'edit' },
 	settings: { title: 'Settings', color: '#78909C', icon: 'settings' },
 	terminal: { title: 'Terminal', color: '#37474F', icon: 'terminal' },
-	files: { title: 'Files', color: '#5D4037', icon: 'folder-open' },
-	help: { title: 'Help', color: '#607D8B', icon: 'help-circle' }
+	help: { title: 'Help', color: '#607D8B', icon: 'help-circle' },
+	agents: { title: 'Agents', color: '#9C27B0', icon: 'bot' },
+	crm: { title: 'CRM', color: '#00897B', icon: 'building' },
+	integrations: { title: 'Integrations', color: '#3F51B5', icon: 'plug' },
+	'knowledge-v2': { title: 'Knowledge', color: '#FF6F00', icon: 'book-open' },
+	notifications: { title: 'Notifications', color: '#D32F2F', icon: 'bell' },
+	profile: { title: 'Profile', color: '#0288D1', icon: 'user' },
+	'voice-notes': { title: 'Voice Notes', color: '#C2185B', icon: 'mic' },
+	usage: { title: 'Usage', color: '#455A64', icon: 'bar-chart' }
 };
 
 // Default state
@@ -104,7 +118,7 @@ const defaultState: Desktop3DState = {
 	viewMode: 'orb',
 	windows: [],
 	focusedWindowId: null,
-	sphereRadius: 95,  // Expanded radius for more spacing between windows
+	sphereRadius: 120,  // Expanded radius for more spacing (was 95, now 120 for 22 modules)
 	gridColumns: 4,
 	gridSpacing: 130,
 	autoRotate: true,
@@ -112,8 +126,8 @@ const defaultState: Desktop3DState = {
 };
 
 // RING-BASED SPHERE LAYOUT - structured layers like a geodesic dome
-// Creates 3 rings: top (3), middle (6), bottom (3) = 12 total
-// For different totals, distributes proportionally
+// Dynamically creates 3-5 rings based on module count
+// Distributes modules evenly across rings to avoid overcrowding
 
 interface RingConfig {
 	y: number;        // Height on sphere (-1 to 1)
@@ -122,10 +136,12 @@ interface RingConfig {
 }
 
 function getRingLayout(total: number): RingConfig[] {
-	// 3-RING SPHERE LAYOUT: top, middle, bottom
+	// 1-3 modules: single ring at center
 	if (total <= 3) {
 		return [{ y: 0, count: total, startIndex: 0 }];
 	}
+
+	// 4-6 modules: 2 rings (top, bottom)
 	if (total <= 6) {
 		const top = Math.floor(total / 2);
 		const bottom = total - top;
@@ -134,7 +150,9 @@ function getRingLayout(total: number): RingConfig[] {
 			{ y: -0.5, count: bottom, startIndex: top }
 		];
 	}
-	if (total <= 9) {
+
+	// 7-12 modules: 3 rings (top, middle, bottom)
+	if (total <= 12) {
 		const middle = Math.ceil(total / 2);
 		const remaining = total - middle;
 		const top = Math.ceil(remaining / 2);
@@ -145,14 +163,35 @@ function getRingLayout(total: number): RingConfig[] {
 			{ y: -0.6, count: bottom, startIndex: top + middle }
 		];
 	}
-	// 10+ modules: 3 top, N middle, 3 bottom
-	const top = 3;
-	const bottom = 3;
-	const middle = total - top - bottom;
+
+	// 13-18 modules: 4 rings (better distribution)
+	if (total <= 18) {
+		const perRing = Math.ceil(total / 4);
+		const top = Math.min(perRing, total);
+		const upperMid = Math.min(perRing, total - top);
+		const lowerMid = Math.min(perRing, total - top - upperMid);
+		const bottom = total - top - upperMid - lowerMid;
+		return [
+			{ y: 0.65, count: top, startIndex: 0 },
+			{ y: 0.22, count: upperMid, startIndex: top },
+			{ y: -0.22, count: lowerMid, startIndex: top + upperMid },
+			{ y: -0.65, count: bottom, startIndex: top + upperMid + lowerMid }
+		];
+	}
+
+	// 19+ modules: 5 rings (maximum distribution)
+	const perRing = Math.ceil(total / 5);
+	const top = Math.min(perRing, total);
+	const upperMid = Math.min(perRing, total - top);
+	const middle = Math.min(perRing, total - top - upperMid);
+	const lowerMid = Math.min(perRing, total - top - upperMid - middle);
+	const bottom = total - top - upperMid - middle - lowerMid;
 	return [
-		{ y: 0.6, count: top, startIndex: 0 },
-		{ y: 0, count: middle, startIndex: top },
-		{ y: -0.6, count: bottom, startIndex: top + middle }
+		{ y: 0.7, count: top, startIndex: 0 },
+		{ y: 0.35, count: upperMid, startIndex: top },
+		{ y: 0, count: middle, startIndex: top + upperMid },
+		{ y: -0.35, count: lowerMid, startIndex: top + upperMid + middle },
+		{ y: -0.7, count: bottom, startIndex: top + upperMid + middle + lowerMid }
 	];
 }
 
@@ -234,14 +273,14 @@ function createDesktop3DStore() {
 	return {
 		subscribe,
 
-		// Initialize with core modules
+		// Initialize with ALL modules (every available module in the 3D Desktop)
 		initialize: () => {
 			update((state) => {
-				const windows: Window3DState[] = CORE_MODULES.map((module, index) => {
+				const windows: Window3DState[] = ALL_MODULES.map((module, index) => {
 					const info = MODULE_INFO[module];
 					const position = calculateOrbPosition(
 						index,
-						CORE_MODULES.length,
+						ALL_MODULES.length,
 						state.sphereRadius,
 						module
 					);
@@ -257,7 +296,7 @@ function createDesktop3DStore() {
 						targetScale: 1,
 						opacity: 1,
 						targetOpacity: 1,
-						isCore: true,
+						isCore: CORE_MODULES.includes(module as any),
 						isOpen: true,
 						isFocused: false,
 						lastFocused: Date.now(),
@@ -313,7 +352,10 @@ function createDesktop3DStore() {
 				// If going to focused mode without a focused window, don't change
 				if (mode === 'focused' && !state.focusedWindowId) return state;
 
-				const newState = { ...state, viewMode: mode, animating: true };
+				// Re-enable auto-rotate when leaving focused mode
+				const autoRotate = mode !== 'focused';
+
+				const newState = { ...state, viewMode: mode, autoRotate, animating: true };
 
 				// Recalculate positions after state update
 				setTimeout(() => {
@@ -371,7 +413,8 @@ function createDesktop3DStore() {
 					...state,
 					windows,
 					focusedWindowId: null,
-					viewMode: 'orb'
+					viewMode: 'orb',
+					autoRotate: true  // Re-enable auto-rotate when exiting focus mode
 				};
 			});
 			desktop3dStore.recalculatePositions();

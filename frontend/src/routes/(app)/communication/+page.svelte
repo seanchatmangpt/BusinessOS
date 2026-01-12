@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
-	// Redirect to default tab (calendar)
+	// Redirect to default tab (calendar), preserving query params (like ?embed=true)
 	onMount(() => {
-		goto('/communication/calendar', { replaceState: true });
+		const searchParams = $page.url.searchParams.toString();
+		const targetUrl = searchParams
+			? `/communication/calendar?${searchParams}`
+			: '/communication/calendar';
+		goto(targetUrl, { replaceState: true });
 	});
 </script>
 
