@@ -48,8 +48,14 @@ type Handlers struct {
 	auditService             *services.WorkspaceAuditService   // Workspace audit logging
 	projectAccessService     *services.ProjectAccessService    // Project-level access control
 	// OSA Integration - AI Agent Orchestration
-	osaClient      *osa.ResilientClient      // OSA resilient client with circuit breaker
-	osaSyncService *services.OSASyncService  // OSA sync service for bidirectional sync
+	osaClient           *osa.ResilientClient              // OSA resilient client with circuit breaker
+	osaSyncService      *services.OSASyncService          // OSA sync service for bidirectional sync
+	osaFileSyncService  *services.OSAFileSyncService      // OSA file polling service
+	osaWorkspaceInit    *services.OSAWorkspaceInitService // OSA workspace initialization service
+	osaWorkflowsHandler *OSAWorkflowsHandler              // OSA workflows handler
+	osaWebhooksHandler  *OSAWebhooksHandler               // OSA webhooks handler
+	osaBuildEventBus    *services.BuildEventBus           // OSA build event bus for real-time streaming
+	osaStreamingHandler *OSAStreamingHandler              // OSA SSE streaming handler
 }
 
 // NewHandlers creates a new Handlers instance
@@ -145,6 +151,16 @@ func (h *Handlers) SetProjectAccessService(projectAccessService *services.Projec
 func (h *Handlers) SetOSAServices(client *osa.ResilientClient, syncService *services.OSASyncService) {
 	h.osaClient = client
 	h.osaSyncService = syncService
+}
+
+// SetOSAFileServices sets the OSA file sync and workflow services
+func (h *Handlers) SetOSAFileServices(fileSyncService *services.OSAFileSyncService, workspaceInit *services.OSAWorkspaceInitService, workflowsHandler *OSAWorkflowsHandler, webhooksHandler *OSAWebhooksHandler, eventBus *services.BuildEventBus, streamingHandler *OSAStreamingHandler) {
+	h.osaFileSyncService = fileSyncService
+	h.osaWorkspaceInit = workspaceInit
+	h.osaWorkflowsHandler = workflowsHandler
+	h.osaWebhooksHandler = webhooksHandler
+	h.osaBuildEventBus = eventBus
+	h.osaStreamingHandler = streamingHandler
 }
 
 // RegisterRoutes registers all API routes
@@ -790,7 +806,8 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	strictRateLimit := middleware.StrictRateLimitMiddleware()
 
 	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg, h.sessionCache)
-	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg)
+	logger := slog.Default()
+	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg, h.osaWorkspaceInit, logger)
 	authRoutes := api.Group("/auth")
 	{
 		// Email/Password auth (public) - strict rate limiting
@@ -935,9 +952,34 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		osaAuth := api.Group("/osa")
 		osaAuth.Use(auth)
 		{
+			// Generation endpoints
 			osaAuth.POST("/generate", h.HandleGenerateApp)
 			osaAuth.GET("/status/:app_id", h.HandleGetAppStatus)
 			osaAuth.GET("/workspaces", h.HandleListWorkspaces)
+
+			// Workflow endpoints (if handlers are initialized)
+			if h.osaWorkflowsHandler != nil {
+				osaAuth.GET("/workflows", h.osaWorkflowsHandler.ListWorkflows)
+				osaAuth.GET("/workflows/:id", h.osaWorkflowsHandler.GetWorkflow)
+				osaAuth.GET("/workflows/:id/files", h.osaWorkflowsHandler.GetWorkflowFiles)
+				osaAuth.GET("/workflows/:id/files/:type", h.osaWorkflowsHandler.GetFileContent)
+				osaAuth.GET("/files/:id/content", h.osaWorkflowsHandler.GetFileContentByID)
+				osaAuth.POST("/modules/install", h.osaWorkflowsHandler.InstallModule)
+				osaAuth.POST("/sync/trigger", h.osaWorkflowsHandler.TriggerSync)
+			}
+
+			// Webhook management endpoints (if handlers are initialized)
+			if h.osaWebhooksHandler != nil {
+				osaAuth.GET("/webhooks", h.osaWebhooksHandler.ListWebhooks)
+				osaAuth.POST("/webhooks/register", h.osaWebhooksHandler.RegisterWebhook)
+			}
+
+			// SSE streaming endpoints (if handlers are initialized)
+			if h.osaStreamingHandler != nil {
+				osaAuth.GET("/stream/build/:app_id", h.osaStreamingHandler.StreamBuildProgress)
+				osaAuth.GET("/stream/stats", h.osaStreamingHandler.GetStreamStats)
+				osaAuth.GET("/stream/stats/:app_id", h.osaStreamingHandler.GetAppStreamStats)
+			}
 		}
 		log.Printf("✅ OSA authenticated API routes registered at /api/osa/*")
 
@@ -951,11 +993,18 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 			osaInternal.GET("/health", h.HandleInternalOSAHealth)
 		}
 		log.Printf("✅ OSA internal API routes registered at /api/internal/osa/*")
-
-		// OSA Webhook routes - /webhooks/osa (OSA → BusinessOS callbacks)
-		// Note: Webhooks are registered in main.go outside the /api group
-		// They use HMAC verification instead of JWT auth
 	} else {
 		log.Printf("DEBUG: Skipping OSA routes, osaClient is nil")
+	}
+
+	// OSA Webhook receiver routes - /api/osa/webhooks (OSA-5 → BusinessOS)
+	// Public endpoints with HMAC verification (no JWT auth)
+	if h.osaWebhooksHandler != nil {
+		osaWebhooks := api.Group("/osa/webhooks")
+		{
+			osaWebhooks.POST("/workflow-complete", h.osaWebhooksHandler.HandleWorkflowComplete)
+			osaWebhooks.POST("/build-event", h.osaWebhooksHandler.HandleBuildEvent)
+		}
+		log.Printf("✅ OSA webhook receiver routes registered at /api/osa/webhooks/*")
 	}
 }

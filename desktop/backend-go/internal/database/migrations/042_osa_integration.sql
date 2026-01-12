@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS osa_modules (
     ui_definition JSONB,     -- Frontend components (Svelte files, routes)
 
     -- Ownership and tracking
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_by VARCHAR(255) REFERENCES "user"(id) ON DELETE SET NULL,
     workspace_id UUID, -- Links to osa_workspaces (added below)
 
     -- Status
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS osa_workspaces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Ownership
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
 
     -- Display mode
@@ -153,7 +153,7 @@ CREATE TABLE IF NOT EXISTS osa_execution_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Association
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
     app_id UUID REFERENCES osa_generated_apps(id) ON DELETE SET NULL,
     workspace_id UUID REFERENCES osa_workspaces(id) ON DELETE CASCADE,
 
