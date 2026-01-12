@@ -24,6 +24,33 @@ export * from './profile';
 export * from './memory';
 export * from './context-tree';
 export * from './gmail';
+// CRM module - skip wildcard export to avoid conflicts with clients/dashboard types
+// Import CRM types directly: import { type Company, type Deal } from '$lib/api/crm';
+// Export specific non-conflicting CRM types
+export type {
+  Company,
+  CompaniesResponse,
+  CreateCompanyData,
+  UpdateCompanyData,
+  Pipeline,
+  PipelinesResponse,
+  CreatePipelineData,
+  UpdatePipelineData,
+  PipelineStage,
+  StagesResponse,
+  CreateStageData,
+  UpdateStageData,
+  Deal,
+  DealsResponse,
+  DealStats,
+  CRMActivity,
+  ActivitiesResponse,
+  ContactCompanyRelation,
+  ContactsResponse,
+  LinkContactData
+} from './crm';
+// Re-export CRM deal types with CRM prefix to avoid conflicts
+export type { CreateDealData as CRMCreateDealData, UpdateDealData as CRMUpdateDealData, ActivityType as CRMActivityType, CreateActivityData as CRMCreateActivityData } from './crm';
 
 // Pedro Tasks API modules
 export * from './learning';
@@ -50,6 +77,7 @@ import * as aiApi from './ai';
 import * as profileApi from './profile';
 import * as memoryApi from './memory';
 import * as contextTreeApi from './context-tree';
+import * as crmApi from './crm';
 import * as base from './base';
 
 // Consolidated api object exposing common domain functions for backward compatibility.
@@ -255,6 +283,48 @@ export const api = {
   getContextSession: contextTreeApi.getContextSession,
   updateContextSession: contextTreeApi.updateContextSession,
   endContextSession: contextTreeApi.endContextSession,
+
+  // CRM - Companies
+  getCompanies: crmApi.getCompanies,
+  getCompany: crmApi.getCompany,
+  createCompany: crmApi.createCompany,
+  updateCompany: crmApi.updateCompany,
+  deleteCompany: crmApi.deleteCompany,
+  searchCompanies: crmApi.searchCompanies,
+  getCompanyContacts: crmApi.getCompanyContacts,
+  linkContactToCompany: crmApi.linkContactToCompany,
+  unlinkContactFromCompany: crmApi.unlinkContactFromCompany,
+
+  // CRM - Pipelines
+  getPipelines: crmApi.getPipelines,
+  getPipeline: crmApi.getPipeline,
+  createPipeline: crmApi.createPipeline,
+  updatePipeline: crmApi.updatePipeline,
+  deletePipeline: crmApi.deletePipeline,
+
+  // CRM - Pipeline Stages
+  getPipelineStages: crmApi.getPipelineStages,
+  createPipelineStage: crmApi.createPipelineStage,
+  updatePipelineStage: crmApi.updatePipelineStage,
+  deletePipelineStage: crmApi.deletePipelineStage,
+  reorderPipelineStages: crmApi.reorderPipelineStages,
+
+  // CRM - Deals
+  getCRMDeals: crmApi.getDeals,
+  getCRMDeal: crmApi.getDeal,
+  createCRMDeal: crmApi.createDeal,
+  updateCRMDeal: crmApi.updateDeal,
+  deleteCRMDeal: crmApi.deleteDeal,
+  moveDealToStage: crmApi.moveDealToStage,
+  updateDealStatus: crmApi.updateDealStatus,
+  getDealStats: crmApi.getDealStats,
+
+  // CRM - Activities
+  getCRMActivities: crmApi.getActivities,
+  getDealActivities: crmApi.getDealActivities,
+  createCRMActivity: crmApi.createActivity,
+  completeCRMActivity: crmApi.completeActivity,
+  deleteCRMActivity: crmApi.deleteActivity,
 
   // Raw helper to inspect base URL if needed
   apiBase: base.getApiBaseUrl,

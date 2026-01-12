@@ -285,12 +285,60 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		clients.PUT("/:id/deals/:dealId", h.UpdateClientDeal)
 	}
 
-	// Deals routes - /api/deals
+	// Deals routes - /api/deals (legacy simple deals)
 	deals := api.Group("/deals")
 	deals.Use(auth)
 	{
 		deals.GET("", h.ListDeals)
 		deals.PATCH("/:id/stage", h.UpdateDealStage)
+	}
+
+	// CRM routes - /api/crm (full CRM pipeline system)
+	crm := api.Group("/crm")
+	crm.Use(auth)
+	{
+		// Companies
+		crm.GET("/companies", h.ListCompanies)
+		crm.POST("/companies", h.CreateCompany)
+		crm.GET("/companies/search", h.SearchCompanies)
+		crm.GET("/companies/:id", h.GetCompany)
+		crm.PUT("/companies/:id", h.UpdateCompany)
+		crm.DELETE("/companies/:id", h.DeleteCompany)
+		// Company contacts (linking to clients)
+		crm.GET("/companies/:id/contacts", h.ListCompanyContacts)
+		crm.POST("/companies/:id/contacts", h.LinkContactToCompany)
+		crm.DELETE("/companies/:id/contacts/:relationId", h.UnlinkContactFromCompany)
+
+		// Pipelines
+		crm.GET("/pipelines", h.ListPipelines)
+		crm.POST("/pipelines", h.CreatePipeline)
+		crm.GET("/pipelines/:id", h.GetPipeline)
+		crm.PUT("/pipelines/:id", h.UpdatePipeline)
+		crm.DELETE("/pipelines/:id", h.DeletePipeline)
+		// Pipeline stages
+		crm.GET("/pipelines/:id/stages", h.ListPipelineStages)
+		crm.POST("/pipelines/:id/stages", h.CreatePipelineStage)
+		crm.PUT("/pipelines/:id/stages/:stageId", h.UpdatePipelineStage)
+		crm.DELETE("/pipelines/:id/stages/:stageId", h.DeletePipelineStage)
+		crm.POST("/pipelines/:id/stages/reorder", h.ReorderPipelineStages)
+
+		// Deals (CRM pipeline deals)
+		crm.GET("/deals", h.ListCRMDeals)
+		crm.POST("/deals", h.CreateCRMDeal)
+		crm.GET("/deals/stats", h.GetCRMDealStats)
+		crm.GET("/deals/:id", h.GetCRMDeal)
+		crm.PUT("/deals/:id", h.UpdateCRMDeal)
+		crm.PATCH("/deals/:id/stage", h.MoveCRMDealStage)
+		crm.PATCH("/deals/:id/status", h.UpdateCRMDealStatus)
+		crm.DELETE("/deals/:id", h.DeleteCRMDeal)
+		// Deal activities
+		crm.GET("/deals/:id/activities", h.ListDealActivities)
+
+		// Activities
+		crm.GET("/activities", h.ListCRMActivities)
+		crm.POST("/activities", h.CreateCRMActivity)
+		crm.POST("/activities/:id/complete", h.CompleteCRMActivity)
+		crm.DELETE("/activities/:id", h.DeleteCRMActivity)
 	}
 
 	// Dashboard routes - /api/dashboard
