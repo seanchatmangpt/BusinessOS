@@ -7,10 +7,11 @@
 	interface Props {
 		size?: 'sm' | 'md' | 'lg';
 		isPulsing?: boolean;
+		isThinking?: boolean;
 		class?: string;
 	}
 
-	let { size = 'md', isPulsing = true, class: className = '' }: Props = $props();
+	let { size = 'md', isPulsing = true, isThinking = false, class: className = '' }: Props = $props();
 
 	const sizeMap = {
 		sm: 'w-16 h-16',
@@ -22,6 +23,7 @@
 <div
 	class="orb-container {sizeMap[size]} {className}"
 	class:is-pulsing={isPulsing}
+	class:is-thinking={isThinking}
 >
 	<div class="orb">
 		<div class="orb-shimmer"></div>
@@ -89,6 +91,30 @@
 		}
 		100% {
 			background-position: 1000px 0;
+		}
+	}
+
+	/* Thinking state - more intense animation */
+	.orb-container.is-thinking .orb {
+		animation: thinking-pulse 1s ease-in-out infinite;
+		box-shadow:
+			0 0 60px var(--orb-glow, rgba(99, 102, 241, 0.6)),
+			0 0 100px var(--orb-glow, rgba(99, 102, 241, 0.3)),
+			inset 0 0 30px var(--orb-inner-glow, rgba(255, 255, 255, 0.4));
+	}
+
+	.orb-container.is-thinking .orb-shimmer {
+		animation: shimmer 1.5s linear infinite;
+	}
+
+	@keyframes thinking-pulse {
+		0%, 100% {
+			transform: scale(1);
+			filter: brightness(1.1);
+		}
+		50% {
+			transform: scale(1.08);
+			filter: brightness(1.3);
 		}
 	}
 

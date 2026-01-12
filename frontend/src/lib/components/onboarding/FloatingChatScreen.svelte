@@ -1,19 +1,14 @@
 <!--
   FloatingChatScreen.svelte
   Layout container for conversational onboarding
-  Features: PurpleOrb header, back button, theme toggle, scrollable message area
+  Features: PurpleOrb header, scrollable message area
 -->
 <script lang="ts">
 	import { type Snippet } from 'svelte';
 	import PurpleOrb from './PurpleOrb.svelte';
-	import ThemeToggle from './ThemeToggle.svelte';
-	import { ArrowLeftIcon } from './icons';
 
 	interface Props {
-		showBack?: boolean;
-		showThemeToggle?: boolean;
 		title?: string;
-		onBack?: () => void;
 		header?: Snippet;
 		children?: Snippet;
 		footer?: Snippet;
@@ -21,40 +16,18 @@
 	}
 
 	let {
-		showBack = true,
-		showThemeToggle = true,
 		title = '',
-		onBack,
 		header,
 		children,
 		footer,
 		class: className = ''
 	}: Props = $props();
-
-	let isDark = $state(false);
-
-	// Initialize theme from document on mount
-	$effect(() => {
-		if (typeof document !== 'undefined') {
-			isDark = document.documentElement.classList.contains('dark');
-		}
-	});
 </script>
 
 <div class="floating-chat-screen {className}">
 	<!-- Header -->
 	<header class="header">
 		<div class="header-left">
-			{#if showBack}
-				<button
-					type="button"
-					class="back-btn"
-					onclick={onBack}
-					aria-label="Go back"
-				>
-					<ArrowLeftIcon size={20} />
-				</button>
-			{/if}
 			{#if title}
 				<h1 class="title">{title}</h1>
 			{/if}
@@ -69,9 +42,7 @@
 		</div>
 
 		<div class="header-right">
-			{#if showThemeToggle}
-				<ThemeToggle bind:isDark />
-			{/if}
+			<!-- Empty for balance -->
 		</div>
 	</header>
 
@@ -129,24 +100,6 @@
 		justify-content: center;
 	}
 
-	.back-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
-		border: none;
-		background-color: var(--secondary, #f9fafb);
-		color: var(--foreground, #1f2937);
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.back-btn:hover {
-		background-color: var(--accent, #f3f4f6);
-	}
-
 	.title {
 		font-size: 18px;
 		font-weight: 600;
@@ -178,15 +131,6 @@
 	:global(.dark) .header {
 		background-color: var(--background, #0a0a0a);
 		border-color: var(--border, #2a2a2a);
-	}
-
-	:global(.dark) .back-btn {
-		background-color: var(--secondary, #1a1a1a);
-		color: var(--foreground, #f9fafb);
-	}
-
-	:global(.dark) .back-btn:hover {
-		background-color: var(--accent, #2a2a2a);
 	}
 
 	:global(.dark) .footer {

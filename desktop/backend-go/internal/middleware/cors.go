@@ -26,7 +26,14 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 			// In production with no origins specified, allow all
 			validOrigins = []string{"*"}
 		} else {
-			validOrigins = []string{"http://localhost:5173", "http://localhost:5174", "http://localhost:3000"}
+			validOrigins = []string{
+				"http://localhost:5173",
+				"http://localhost:5174",
+				"http://localhost:5175",
+				"http://localhost:5176",
+				"http://localhost:5177",
+				"http://localhost:3000",
+			}
 		}
 	}
 

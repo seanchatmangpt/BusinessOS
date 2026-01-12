@@ -1,26 +1,26 @@
 <!--
   ConversationalOnboarding.svelte
   Main conversational onboarding flow with AI agent
-  Based on the architecture defined in ONBOARDING_ARCHITECTURE.md
+  Hybrid: Chips for quick-select + Chat input for open questions
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import FloatingChatScreen from './FloatingChatScreen.svelte';
-	import MessageBubble from './MessageBubble.svelte';
-	import ChatInput from './ChatInput.svelte';
+	import PurpleOrb from './PurpleOrb.svelte';
 	import SequentialTypewriter from './SequentialTypewriter.svelte';
-	import TypingIndicator from './TypingIndicator.svelte';
-	import ToolPicker from './ToolPicker.svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
-	import CompletionScreen from './CompletionScreen.svelte';
-	import FallbackForm from './FallbackForm.svelte';
 
 	type OnboardingPhase = 
 		| 'intro'
 		| 'conversation'
-		| 'integrations'
-		| 'completion'
-		| 'fallback';
+		| 'integrations';
+
+	type QuestionType = 
+		| 'companyName'      // chat input
+		| 'businessType'     // chips
+		| 'teamSize'         // chips (skip if freelance)
+		| 'role'             // chat input
+		| 'challenge'        // chat input
+		| 'complete';
 
 	interface Message {
 		id: string;
@@ -34,41 +34,109 @@
 		businessType?: string;
 		teamSize?: string;
 		role?: string;
-		goals?: string[];
-		challenges?: string[];
+		challenge?: string;
+		integrations?: string[];
+	}
+
+	interface ChipOption {
+		id: string;
+		label: string;
+		icon?: string;
 	}
 
 	interface Props {
 		sessionId?: string;
 		onComplete?: (data: ExtractedData) => void;
-		onBack?: () => void;
 		class?: string;
 	}
 
 	let {
 		sessionId,
 		onComplete,
-		onBack,
 		class: className = ''
 	}: Props = $props();
 
 	// State
 	let phase = $state<OnboardingPhase>('intro');
+	let currentQuestion = $state<QuestionType>('companyName');
 	let messages = $state<Message[]>([]);
 	let isAgentTyping = $state(false);
 	let extractedData = $state<ExtractedData>({});
-	let lowConfidenceCount = $state(0);
 	let introComplete = $state(false);
+	let currentAgentMessage = $state('');
 
 	// Integration state
 	let selectedIntegrations = $state<string[]>([]);
 	let integrationStatuses = $state<Record<string, 'disconnected' | 'connecting' | 'connected' | 'error'>>({});
+	let recommendedIntegrations = $state<string[]>([]);
 
-	// Intro messages
+	// Input state
+	let inputValue = $state('');
+	let isRecording = $state(false);
+	let inputRef = $state<HTMLInputElement | null>(null);
+
+	// Chip options
+	const businessTypeOptions: ChipOption[] = [
+		{ id: 'agency', label: 'Agency' },
+		{ id: 'startup', label: 'Startup' },
+		{ id: 'freelance', label: 'Freelance' },
+		{ id: 'ecommerce', label: 'E-commerce' },
+		{ id: 'consulting', label: 'Consulting' },
+		{ id: 'other', label: 'Other' }
+	];
+
+	const teamSizeOptions: ChipOption[] = [
+		{ id: 'solo', label: 'Just me' },
+		{ id: '2-5', label: '2-5' },
+		{ id: '6-15', label: '6-15' },
+		{ id: '16-50', label: '16-50' },
+		{ id: '50+', label: '50+' }
+	];
+
+	// Questions config
+	const questions: Record<QuestionType, { message: string; inputType: 'chat' | 'chips'; chips?: ChipOption[] }> = {
+		companyName: {
+			message: "What's your company called?",
+			inputType: 'chat'
+		},
+		businessType: {
+			message: "What kind of work do you do?",
+			inputType: 'chips',
+			chips: businessTypeOptions
+		},
+		teamSize: {
+			message: "How big is your team?",
+			inputType: 'chips',
+			chips: teamSizeOptions
+		},
+		role: {
+			message: "What's your role?",
+			inputType: 'chat'
+		},
+		challenge: {
+			message: "What's the biggest challenge you're hoping to solve?",
+			inputType: 'chat'
+		},
+		complete: {
+			message: "Perfect! Let's connect your favorite tools.",
+			inputType: 'chat'
+		}
+	};
+
+	// Get current question config
+	let currentQuestionConfig = $derived(questions[currentQuestion]);
+
+	// Computed current step for progress indicator
+	let currentStep = $derived(
+		phase === 'intro' ? 1 : 
+		phase === 'conversation' ? 2 : 
+		3
+	);
+
+	// Simplified intro
 	const introLines = [
-		"Hi there! I'm your BusinessOS assistant.",
-		"I'll help you set up your workspace in just a few minutes.",
-		"Let's start with a quick chat to understand your needs."
+		"Hi! I'm here to help set up your workspace.",
+		"What's your company called?"
 	];
 
 	// Available integrations
@@ -84,25 +152,126 @@
 		{ id: 'fathom', name: 'Fathom', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#7C3AED"/><path fill="white" d="M8 12a4 4 0 0 1 8 0v4H8v-4z"/></svg>' }
 	];
 
-	// Fallback form fields
-	const fallbackFields = [
-		{ id: 'workspaceName', label: 'Workspace Name', type: 'text' as const, placeholder: 'e.g., Acme Corp', required: true },
-		{ id: 'businessType', label: 'Business Type', type: 'select' as const, required: true, options: [
-			{ value: 'agency', label: 'Agency / Consultancy' },
-			{ value: 'startup', label: 'Startup / Tech Company' },
-			{ value: 'freelancer', label: 'Freelancer / Solo' },
-			{ value: 'enterprise', label: 'Enterprise' },
-			{ value: 'other', label: 'Other' }
-		]},
-		{ id: 'teamSize', label: 'Team Size', type: 'select' as const, required: true, options: [
-			{ value: 'solo', label: 'Just me' },
-			{ value: '2-5', label: '2-5 people' },
-			{ value: '6-15', label: '6-15 people' },
-			{ value: '16-50', label: '16-50 people' },
-			{ value: '50+', label: '50+ people' }
-		]},
-		{ id: 'goals', label: 'What do you want to accomplish?', type: 'textarea' as const, placeholder: 'Tell us about your main goals...', required: false }
-	];
+	// Skip to integrations
+	function skipToIntegrations() {
+		phase = 'integrations';
+		computeRecommendedIntegrations();
+	}
+
+	// Auto-focus input when showing chat input questions
+	$effect(() => {
+		if (phase === 'conversation' && currentQuestionConfig.inputType === 'chat' && inputRef && !isAgentTyping) {
+			setTimeout(() => inputRef?.focus(), 100);
+		}
+	});
+
+	// Handle form submit for chat input questions
+	function handleFormSubmit(e: Event) {
+		e.preventDefault();
+		if (inputValue.trim() && !isAgentTyping) {
+			handleChatAnswer(inputValue.trim());
+			inputValue = '';
+		}
+	}
+
+	// Handle voice input toggle
+	function toggleVoiceInput() {
+		if (isRecording) {
+			isRecording = false;
+		} else {
+			isRecording = true;
+		}
+	}
+
+	// Handle chip selection
+	function handleChipSelect(chipId: string) {
+		if (currentQuestion === 'businessType') {
+			extractedData = { ...extractedData, businessType: chipId };
+			
+			// Branching: If freelance, skip team size
+			if (chipId === 'freelance') {
+				extractedData = { ...extractedData, teamSize: 'solo' };
+				advanceToQuestion('role');
+			} else {
+				advanceToQuestion('teamSize');
+			}
+		} else if (currentQuestion === 'teamSize') {
+			extractedData = { ...extractedData, teamSize: chipId };
+			advanceToQuestion('role');
+		}
+	}
+
+	// Handle chat answer
+	function handleChatAnswer(answer: string) {
+		if (currentQuestion === 'companyName') {
+			extractedData = { ...extractedData, workspaceName: answer };
+			advanceToQuestion('businessType');
+		} else if (currentQuestion === 'role') {
+			extractedData = { ...extractedData, role: answer };
+			advanceToQuestion('challenge');
+		} else if (currentQuestion === 'challenge') {
+			extractedData = { ...extractedData, challenge: answer };
+			advanceToQuestion('complete');
+		}
+	}
+
+	// Advance to next question with animation
+	function advanceToQuestion(nextQuestion: QuestionType) {
+		isAgentTyping = true;
+		
+		setTimeout(() => {
+			currentQuestion = nextQuestion;
+			currentAgentMessage = questions[nextQuestion].message;
+			isAgentTyping = false;
+			
+			// If complete, go to integrations
+			if (nextQuestion === 'complete') {
+				computeRecommendedIntegrations();
+				setTimeout(() => {
+					phase = 'integrations';
+				}, 1500);
+			}
+		}, 800);
+	}
+
+	// Compute recommended integrations based on answers
+	function computeRecommendedIntegrations() {
+		const challenge = extractedData.challenge?.toLowerCase() || '';
+		const businessType = extractedData.businessType || '';
+		
+		// Challenge-based recommendations
+		if (challenge.includes('organiz') || challenge.includes('chaos') || challenge.includes('mess')) {
+			recommendedIntegrations = ['notion', 'google', 'linear'];
+		} else if (challenge.includes('scale') || challenge.includes('grow') || challenge.includes('automat')) {
+			recommendedIntegrations = ['linear', 'slack', 'airtable'];
+		} else if (challenge.includes('client') || challenge.includes('customer') || challenge.includes('crm')) {
+			recommendedIntegrations = ['hubspot', 'slack', 'google'];
+		} else if (challenge.includes('team') || challenge.includes('collaborat') || challenge.includes('communic')) {
+			recommendedIntegrations = ['slack', 'notion', 'linear'];
+		} else if (challenge.includes('time') || challenge.includes('busy') || challenge.includes('meeting')) {
+			recommendedIntegrations = ['google', 'fathom', 'slack'];
+		} else {
+			// Default by business type
+			if (businessType === 'agency' || businessType === 'consulting') {
+				recommendedIntegrations = ['hubspot', 'slack', 'notion'];
+			} else if (businessType === 'startup') {
+				recommendedIntegrations = ['linear', 'slack', 'notion'];
+			} else if (businessType === 'freelance') {
+				recommendedIntegrations = ['google', 'notion', 'fathom'];
+			} else {
+				recommendedIntegrations = ['google', 'slack', 'notion'];
+			}
+		}
+	}
+
+	// Handle intro completion
+	function handleIntroComplete() {
+		introComplete = true;
+		currentAgentMessage = questions.companyName.message;
+		setTimeout(() => {
+			phase = 'conversation';
+		}, 300);
+	}
 
 	// Generate unique ID
 	function generateId(): string {
@@ -117,100 +286,6 @@
 			content,
 			timestamp: new Date()
 		}];
-	}
-
-	// Simulate agent response (to be replaced with actual API call)
-	async function getAgentResponse(userMessage: string): Promise<{ response: string; confidence: number; extractedData?: Partial<ExtractedData> }> {
-		// TODO: Replace with actual Grok API call
-		await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-		// Simple mock response logic
-		const lowerMessage = userMessage.toLowerCase();
-		
-		if (lowerMessage.includes('marketing') || lowerMessage.includes('agency')) {
-			return {
-				response: "A marketing agency - that's exciting! Managing client campaigns and creative projects must keep you busy. What's the biggest challenge you face in coordinating work across your team?",
-				confidence: 0.85,
-				extractedData: { businessType: 'agency' }
-			};
-		}
-
-		if (lowerMessage.includes('startup') || lowerMessage.includes('tech')) {
-			return {
-				response: "Startups move fast! What stage are you at - early stage building your product, or scaling up your operations?",
-				confidence: 0.82,
-				extractedData: { businessType: 'startup' }
-			};
-		}
-
-		if (lowerMessage.includes('team') || lowerMessage.includes('people')) {
-			const teamMatch = userMessage.match(/(\d+)/);
-			const teamSize = teamMatch ? teamMatch[1] : undefined;
-			return {
-				response: `Got it! With ${teamSize || 'your'} team members, collaboration tools will be key. What tools are you currently using that you'd like to connect?`,
-				confidence: 0.78,
-				extractedData: teamSize ? { teamSize } : undefined
-			};
-		}
-
-		return {
-			response: "That's helpful context! Tell me more about your day-to-day work - what tasks take up most of your time?",
-			confidence: 0.65
-		};
-	}
-
-	// Handle user message
-	async function handleUserMessage(message: string) {
-		if (!message.trim()) return;
-
-		addMessage('user', message);
-		isAgentTyping = true;
-
-		try {
-			const result = await getAgentResponse(message);
-			
-			// Update extracted data
-			if (result.extractedData) {
-				extractedData = { ...extractedData, ...result.extractedData };
-			}
-
-			// Check confidence
-			if (result.confidence < 0.8) {
-				lowConfidenceCount++;
-				if (lowConfidenceCount >= 2) {
-					// Too many low confidence responses, offer fallback
-					isAgentTyping = false;
-					addMessage('agent', "I want to make sure I understand you correctly. Would you prefer to fill out a quick form instead? It might be faster!");
-					// Could add a button here to switch to fallback
-					return;
-				}
-			}
-
-			isAgentTyping = false;
-			addMessage('agent', result.response);
-
-			// Check if we have enough data to move to integrations
-			if (extractedData.businessType && extractedData.teamSize) {
-				await new Promise(resolve => setTimeout(resolve, 1000));
-				addMessage('agent', "Great! I have a good understanding of your needs now. Let's connect your favorite tools to BusinessOS.");
-				setTimeout(() => {
-					phase = 'integrations';
-				}, 1500);
-			}
-
-		} catch (error) {
-			isAgentTyping = false;
-			addMessage('agent', "I apologize, I had trouble processing that. Could you rephrase?");
-		}
-	}
-
-	// Handle intro completion
-	function handleIntroComplete() {
-		introComplete = true;
-		setTimeout(() => {
-			phase = 'conversation';
-			addMessage('agent', "So, what kind of work does your team do? Are you running an agency, a startup, or something else?");
-		}, 500);
 	}
 
 	// Handle integration connect
@@ -233,155 +308,406 @@
 		selectedIntegrations = selectedIntegrations.filter(id => id !== integrationId);
 	}
 
-	// Complete integrations phase
+	// Complete integrations and finish onboarding
 	function completeIntegrations() {
-		phase = 'completion';
-	}
-
-	// Handle final completion
-	function handleComplete() {
-		onComplete?.({
-			...extractedData,
-			// Add integrations to data
-		});
-	}
-
-	// Handle fallback form submission
-	function handleFallbackSubmit(values: Record<string, string>) {
+		// Add integrations to extracted data
 		extractedData = {
-			workspaceName: values.workspaceName,
-			businessType: values.businessType,
-			teamSize: values.teamSize,
-			goals: values.goals ? [values.goals] : []
+			...extractedData,
+			integrations: selectedIntegrations
 		};
-		phase = 'integrations';
+		
+		// Call onComplete to redirect to /windows
+		onComplete?.(extractedData);
 	}
-
-	// Completion items
-	const completionItems = $derived([
-		{ label: 'Workspace configured', completed: !!extractedData.businessType },
-		{ label: 'Team preferences saved', completed: !!extractedData.teamSize },
-		{ label: `${selectedIntegrations.length} integrations connected`, completed: selectedIntegrations.length > 0 }
-	]);
 </script>
 
-<FloatingChatScreen
-	showBack={phase !== 'completion'}
-	{onBack}
-	class={className}
->
-	{#snippet footer()}
-		{#if phase === 'conversation'}
-			<ChatInput
-				placeholder="Type your response..."
-				disabled={isAgentTyping}
-				onSend={handleUserMessage}
-			/>
-		{:else if phase === 'integrations'}
-			<div class="integrations-footer">
-				<button class="skip-btn" onclick={completeIntegrations}>
-					{selectedIntegrations.length > 0 ? 'Continue' : 'Skip for now'}
-				</button>
-			</div>
-		{/if}
-	{/snippet}
+<div class="onboarding-screen {className}">
+	<!-- Progress indicator -->
+	<div class="progress-dots">
+		<span class="dot" class:active={currentStep >= 1} class:current={currentStep === 1}></span>
+		<span class="dot" class:active={currentStep >= 2} class:current={currentStep === 2}></span>
+		<span class="dot" class:active={currentStep >= 3} class:current={currentStep === 3}></span>
+	</div>
 
-	<div class="onboarding-content">
-		{#if phase === 'intro'}
-			<div class="intro-container">
-				<SequentialTypewriter
-					lines={introLines}
-					speed={25}
-					lineDelay={400}
-					onComplete={handleIntroComplete}
-				/>
+	{#if phase === 'intro' || phase === 'conversation'}
+		<!-- Skip button -->
+		<button class="skip-btn" onclick={skipToIntegrations}>
+			Skip
+		</button>
+
+		<!-- Centered layout for intro and conversation -->
+		<div class="centered-layout">
+			<div class="orb-section">
+				<PurpleOrb size="lg" isThinking={isAgentTyping} />
 			</div>
-		{:else if phase === 'conversation'}
-			<div class="messages-container">
-				{#each messages as message (message.id)}
-					<MessageBubble sender={message.sender}>
-						{message.content}
-					</MessageBubble>
-				{/each}
-				{#if isAgentTyping}
-					<MessageBubble sender="agent" isTyping={true} />
+
+			<div class="text-section">
+				{#if phase === 'intro'}
+					<SequentialTypewriter
+						lines={introLines}
+						speed={30}
+						lineDelay={600}
+						onComplete={handleIntroComplete}
+					/>
+				{:else}
+					<!-- Current question text -->
+					{#if isAgentTyping}
+						<div class="agent-text typing">
+							<span class="dot"></span>
+							<span class="dot"></span>
+							<span class="dot"></span>
+						</div>
+					{:else}
+						<p class="agent-text">
+							{currentAgentMessage}
+						</p>
+					{/if}
 				{/if}
 			</div>
-		{:else if phase === 'integrations'}
+
+			{#if phase === 'conversation' && !isAgentTyping}
+				<div class="input-section">
+					<!-- Chips for businessType and teamSize -->
+					{#if currentQuestionConfig.inputType === 'chips' && currentQuestionConfig.chips}
+						<div class="chips-container">
+							{#each currentQuestionConfig.chips as chip (chip.id)}
+								<button 
+									class="chip"
+									onclick={() => handleChipSelect(chip.id)}
+								>
+									{chip.label}
+								</button>
+							{/each}
+						</div>
+					{:else}
+						<!-- Chat input for other questions -->
+						<form class="minimal-input" onsubmit={handleFormSubmit}>
+							<button 
+								type="button" 
+								class="voice-btn" 
+								class:recording={isRecording}
+								onclick={toggleVoiceInput}
+								disabled={isAgentTyping}
+								aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
+							>
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+									<path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+									<line x1="12" x2="12" y1="19" y2="22"/>
+								</svg>
+							</button>
+							<input
+								type="text"
+								bind:this={inputRef}
+								bind:value={inputValue}
+								placeholder={isRecording ? 'Listening...' : 'Type here...'}
+								disabled={isAgentTyping || isRecording}
+								autocomplete="off"
+							/>
+							<button type="submit" class="send-btn" disabled={isAgentTyping || !inputValue.trim()} aria-label="Send">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<path d="m5 12 7-7 7 7"/>
+									<path d="M12 19V5"/>
+								</svg>
+							</button>
+						</form>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{:else if phase === 'integrations'}
+		<!-- Integrations phase -->
+		<div class="integrations-layout">
 			<div class="integrations-container">
 				<h2 class="section-title">Connect your tools</h2>
 				<p class="section-subtitle">
-					Select the tools you use and we'll sync your data automatically.
+					{#if recommendedIntegrations.length > 0}
+						Based on your answers, we recommend starting with these.
+					{:else}
+						Select the tools you use and we'll sync your data automatically.
+					{/if}
 				</p>
 				<div class="integrations-grid">
-					{#each integrations as integration (integration.id)}
-						<IntegrationCard
-							name={integration.name}
-							icon={integration.icon}
-							status={integrationStatuses[integration.id] || 'disconnected'}
-							onConnect={() => handleIntegrationConnect(integration.id)}
-							onDisconnect={() => handleIntegrationDisconnect(integration.id)}
-						/>
+					<!-- Show recommended first with badge -->
+					{#each integrations.sort((a, b) => {
+						const aRec = recommendedIntegrations.includes(a.id) ? 0 : 1;
+						const bRec = recommendedIntegrations.includes(b.id) ? 0 : 1;
+						return aRec - bRec;
+					}) as integration (integration.id)}
+						<div class="integration-wrapper" class:recommended={recommendedIntegrations.includes(integration.id)}>
+							{#if recommendedIntegrations.includes(integration.id)}
+								<span class="recommended-badge">Recommended</span>
+							{/if}
+							<IntegrationCard
+								name={integration.name}
+								icon={integration.icon}
+								status={integrationStatuses[integration.id] || 'disconnected'}
+								onConnect={() => handleIntegrationConnect(integration.id)}
+								onDisconnect={() => handleIntegrationDisconnect(integration.id)}
+							/>
+						</div>
 					{/each}
 				</div>
+				<button class="continue-btn" onclick={completeIntegrations}>
+					{selectedIntegrations.length > 0 ? 'Continue' : "I'll do this later"}
+				</button>
 			</div>
-		{:else if phase === 'completion'}
-			<CompletionScreen
-				title="You're all set!"
-				subtitle="Your workspace is ready. Here's what we've configured:"
-				items={completionItems}
-				primaryAction="Go to Dashboard"
-				onPrimaryClick={handleComplete}
-			/>
-		{:else if phase === 'fallback'}
-			<FallbackForm
-				title="Quick Setup"
-				subtitle="Just a few details to get you started."
-				fields={fallbackFields}
-				onSubmit={handleFallbackSubmit}
-			/>
-		{/if}
-	</div>
-</FloatingChatScreen>
+		</div>
+	{/if}
+</div>
 
 <style>
-	.onboarding-content {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
+	.onboarding-screen {
+		min-height: 100vh;
+		background-color: var(--background, #ffffff);
+		color: var(--foreground, #1f2937);
+		position: relative;
 	}
 
-	.intro-container {
-		flex: 1;
+	/* Progress dots */
+	.progress-dots {
+		position: fixed;
+		top: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		gap: 8px;
+		z-index: 10;
+	}
+
+	.progress-dots .dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background-color: var(--border, #e5e7eb);
+		transition: all 0.3s ease;
+	}
+
+	.progress-dots .dot.active {
+		background-color: var(--primary, #6366f1);
+	}
+
+	.progress-dots .dot.current {
+		transform: scale(1.25);
+	}
+
+	/* Skip button */
+	.skip-btn {
+		position: fixed;
+		top: 20px;
+		right: 24px;
+		padding: 8px 16px;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--muted-foreground, #6b7280);
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		transition: color 0.2s;
+		z-index: 10;
+	}
+
+	.skip-btn:hover {
+		color: var(--foreground, #1f2937);
+	}
+
+	/* Centered layout for intro/conversation */
+	.centered-layout {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 48px 24px;
+		gap: 32px;
+	}
+
+	.orb-section {
+		display: flex;
+		justify-content: center;
+	}
+
+	.text-section {
+		text-align: center;
+		max-width: 400px;
+	}
+
+	.text-section :global(.sequential-typewriter) {
+		font-size: 18px;
+		line-height: 1.6;
+		color: var(--foreground, #1f2937);
+	}
+
+	.agent-text {
+		font-size: 18px;
+		line-height: 1.6;
+		color: var(--foreground, #1f2937);
+		margin: 0;
+	}
+
+	/* Typing dots */
+	.agent-text.typing {
+		display: flex;
+		justify-content: center;
+		gap: 6px;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		background-color: var(--muted-foreground, #9ca3af);
+		border-radius: 50%;
+		animation: bounce 1.4s infinite ease-in-out both;
+	}
+
+	.dot:nth-child(1) { animation-delay: -0.32s; }
+	.dot:nth-child(2) { animation-delay: -0.16s; }
+	.dot:nth-child(3) { animation-delay: 0s; }
+
+	@keyframes bounce {
+		0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+		40% { transform: scale(1); opacity: 1; }
+	}
+
+	/* Minimal input */
+	.input-section {
+		margin-top: 16px;
+	}
+
+	/* Chips for quick selection */
+	.chips-container {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10px;
+		justify-content: center;
+		max-width: 400px;
+	}
+
+	.chip {
+		padding: 10px 20px;
+		font-size: 14px;
+		font-weight: 500;
+		border: 1px solid var(--border, #e5e7eb);
+		border-radius: 20px;
+		background: var(--card, #ffffff);
+		color: var(--foreground, #1f2937);
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.chip:hover {
+		border-color: var(--primary, #6366f1);
+		background: var(--primary, #6366f1);
+		color: white;
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+	}
+
+	.minimal-input {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		background: var(--card, #f9fafb);
+		border: 1px solid var(--border, #e5e7eb);
+		border-radius: 24px;
+		padding: 4px;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.minimal-input:focus-within {
+		border-color: var(--primary, #6366f1);
+		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+	}
+
+	.minimal-input input {
+		border: none;
+		outline: none;
+		background: transparent;
+		font-size: 15px;
+		color: var(--foreground, #1f2937);
+		width: 160px;
+		padding: 8px 12px;
+	}
+
+	.minimal-input input::placeholder {
+		color: var(--muted-foreground, #9ca3af);
+	}
+
+	/* Voice button */
+	.voice-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: none;
+		background: transparent;
+		color: var(--muted-foreground, #6b7280);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.voice-btn:hover:not(:disabled) {
+		background: var(--accent, #f3f4f6);
+		color: var(--foreground, #1f2937);
+	}
+
+	.voice-btn.recording {
+		background: #ef4444;
+		color: white;
+		animation: pulse-recording 1.5s infinite;
+	}
+
+	@keyframes pulse-recording {
+		0%, 100% { transform: scale(1); }
+		50% { transform: scale(1.1); }
+	}
+
+	.voice-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	/* Send button */
+	.send-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		border: none;
+		background: var(--primary, #6366f1);
+		color: white;
+		cursor: pointer;
+		transition: opacity 0.2s, transform 0.2s;
+	}
+
+	.send-btn:hover:not(:disabled) {
+		opacity: 0.9;
+		transform: scale(1.05);
+	}
+
+	.send-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	/* Integrations layout */
+	.integrations-layout {
+		min-height: 100vh;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 48px 24px;
 	}
 
-	.intro-container :global(.sequential-typewriter) {
-		font-size: 24px;
-		line-height: 1.6;
-		max-width: 500px;
-		text-align: center;
-		color: var(--foreground, #1f2937);
-	}
-
-	.messages-container {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 16px;
-		padding-bottom: 24px;
-		overflow-y: auto;
-	}
-
 	.integrations-container {
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
-		max-width: 600px;
-		margin: 0 auto;
+		max-width: 500px;
 		width: 100%;
 	}
 
@@ -390,12 +716,14 @@
 		font-weight: 600;
 		color: var(--foreground, #1f2937);
 		margin: 0;
+		text-align: center;
 	}
 
 	.section-subtitle {
 		font-size: 15px;
 		color: var(--muted-foreground, #6b7280);
 		margin: 0;
+		text-align: center;
 	}
 
 	.integrations-grid {
@@ -404,38 +732,67 @@
 		gap: 12px;
 	}
 
-	.integrations-footer {
-		display: flex;
-		justify-content: flex-end;
+	.integration-wrapper {
+		position: relative;
 	}
 
-	.skip-btn {
-		padding: 12px 24px;
+	.integration-wrapper.recommended {
+		order: -1;
+	}
+
+	.recommended-badge {
+		position: absolute;
+		top: -6px;
+		right: 12px;
+		background: var(--primary, #6366f1);
+		color: white;
+		font-size: 10px;
+		font-weight: 600;
+		padding: 2px 8px;
+		border-radius: 10px;
+		z-index: 1;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.continue-btn {
+		margin-top: 8px;
+		padding: 14px 28px;
 		font-size: 15px;
 		font-weight: 500;
 		border: none;
-		border-radius: 8px;
-		background-color: var(--primary, #000000);
-		color: var(--primary-foreground, #ffffff);
+		border-radius: 24px;
+		background-color: var(--primary, #6366f1);
+		color: white;
 		cursor: pointer;
-		transition: opacity 0.2s ease;
+		transition: opacity 0.2s, transform 0.2s;
+		align-self: center;
 	}
 
-	.skip-btn:hover {
+	.continue-btn:hover {
 		opacity: 0.9;
+		transform: translateY(-1px);
 	}
 
 	/* Dark mode */
-	:global(.dark) .intro-container :global(.sequential-typewriter) {
+	:global(.dark) .text-section :global(.sequential-typewriter) {
+		color: var(--foreground, #f9fafb);
+	}
+
+	:global(.dark) .agent-text {
+		color: var(--foreground, #f9fafb);
+	}
+
+	:global(.dark) .minimal-input {
+		background: var(--card, #1f2937);
+		border-color: var(--border, #374151);
+	}
+
+	:global(.dark) .minimal-input input {
 		color: var(--foreground, #f9fafb);
 	}
 
 	:global(.dark) .section-title {
 		color: var(--foreground, #f9fafb);
-	}
-
-	:global(.dark) .skip-btn {
-		background-color: var(--primary, #ffffff);
-		color: var(--primary-foreground, #000000);
 	}
 </style>

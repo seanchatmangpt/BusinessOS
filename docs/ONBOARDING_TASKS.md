@@ -17,10 +17,46 @@ UI components are complete. Backend integration and AI agent work remains.
 - [x] Main ConversationalOnboarding component
 - [x] Component index exports
 - [x] CSS variables for orb theming
+- [x] Progress indicator (dots)
+- [x] Skip button
+- [x] Orb thinking animation
+- [x] Auto-focus input
+- [x] Voice input button (UI only)
 
 ---
 
 ## 🔄 IN PROGRESS / TODO
+
+### 0. Enhanced Question Flow (Priority: HIGH) ⬅️ CURRENT
+**Location:** `frontend/src/lib/components/onboarding/`
+
+**Hybrid Chat + Chips UI:**
+- [ ] Add ChipSelector component for quick-select options
+- [ ] Chips for: Business type (Agency/Startup/Freelance/E-commerce/Consulting/Other)
+- [ ] Chips for: Team size (Just me/2-5/6-15/16-50/50+)
+- [ ] Chat input for: Company name, Role, Main challenge
+
+**New Questions (2 strategic additions):**
+- [ ] "What's your role?" (chat input after team size)
+- [ ] "What's the biggest challenge you're hoping to solve?" (chat input, final question)
+
+**Branching Logic:**
+- [ ] Skip team size if "Freelance" selected
+- [ ] "Other" business type opens text input
+- [ ] Track answers to recommend integrations
+
+**Smart Integration Recommendations:**
+| Goal | Recommend |
+|------|-----------|
+| Organize chaos | ⭐ Notion, ⭐ Calendar, Linear |
+| Scale operations | ⭐ Linear, ⭐ Slack, Airtable |
+| Client management | ⭐ HubSpot, ⭐ Slack, Calendar |
+| Team collaboration | ⭐ Slack, ⭐ Notion, Linear |
+| Save time | ⭐ Calendar, ⭐ Fathom |
+
+**Estimated effort:** 3-4 hours
+
+---
 
 ### 1. Database Schema (Priority: HIGH)
 **Location:** `desktop/backend-go/internal/database/migrations/`
