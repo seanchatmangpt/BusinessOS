@@ -2,6 +2,19 @@
 # BusinessOS Terminal Init Script
 # This file is sourced when the terminal starts (works in both bash and zsh)
 
+# Colors
+C_RESET='\033[0m'
+C_BOLD='\033[1m'
+C_DIM='\033[2m'
+C_CYAN='\033[1;36m'
+C_GREEN='\033[1;32m'
+C_YELLOW='\033[1;33m'
+C_RED='\033[1;31m'
+C_MAGENTA='\033[1;35m'
+C_BLUE='\033[1;34m'
+C_WHITE='\033[1;37m'
+C_GRAY='\033[0;90m'
+
 # OSA CLI - 21-Agent Orchestration System
 osa() {
   # Detect if running in container
@@ -22,7 +35,7 @@ osa() {
 
   # Check if user ID is available
   if [ -z "$USER_ID" ]; then
-    echo "[ERROR] Not authenticated (BUSINESSOS_USER_ID not set)"
+    printf "${C_RED}ERROR${C_RESET} Not authenticated (BUSINESSOS_USER_ID not set)\n"
     return 1
   fi
 
@@ -30,22 +43,24 @@ osa() {
     ""|chat)
       # Interactive chat mode
       echo ""
-      echo "============================================================"
-      echo "  OSA INTERACTIVE MODE"
-      echo "  Type your requests, 'exit' to quit"
-      echo "============================================================"
+      printf "${C_CYAN}${C_BOLD}"
+      echo "  ╭──────────────────────────────────────╮"
+      echo "  │           OSA TERMINAL               │"
+      echo "  │     Type 'exit' to quit              │"
+      echo "  ╰──────────────────────────────────────╯"
+      printf "${C_RESET}"
       echo ""
 
       while true; do
-        # Read user input
-        printf "> "
+        # Read user input with styled prompt
+        printf "${C_MAGENTA}>${C_RESET} "
         read -r user_input
 
         # Check for exit
         case "$user_input" in
           exit|quit|q)
             echo ""
-            echo "Goodbye!"
+            printf "${C_DIM}Goodbye.${C_RESET}\n"
             echo ""
             return 0
             ;;
@@ -54,24 +69,22 @@ osa() {
             ;;
           help|h|\?)
             echo ""
-            echo "Commands:"
-            echo "  Type any request to generate code"
-            echo "  'exit' or 'quit' - Exit chat"
-            echo "  'clear' - Clear screen"
+            printf "${C_CYAN}Commands:${C_RESET}\n"
+            printf "  ${C_WHITE}any text${C_RESET}  ${C_DIM}Chat with OSA${C_RESET}\n"
+            printf "  ${C_WHITE}exit${C_RESET}      ${C_DIM}Leave chat${C_RESET}\n"
+            printf "  ${C_WHITE}clear${C_RESET}     ${C_DIM}Clear screen${C_RESET}\n"
             echo ""
             continue
             ;;
           clear)
             clear
-            echo "OSA Interactive Mode (type 'exit' to quit)"
+            printf "${C_CYAN}OSA Terminal${C_RESET} ${C_DIM}(type 'exit' to quit)${C_RESET}\n"
             echo ""
             continue
             ;;
         esac
 
-        echo ""
-        echo "Processing..."
-        echo ""
+        printf "\n${C_YELLOW}...${C_RESET}\n\n"
 
         # Call the chat endpoint for conversations
         local response=$(curl -s "$OSA_API/api/chat" \
@@ -80,8 +93,6 @@ osa() {
 
         # Check if successful and display response
         if echo "$response" | grep -q '"success":true'; then
-          echo ""
-
           # Extract the response text using sed
           local raw_output=$(echo "$response" | sed 's/.*"response":"//' | sed 's/"[,}].*//')
 
@@ -89,43 +100,35 @@ osa() {
           local output=$(printf '%b' "$raw_output")
 
           if [ -n "$output" ]; then
-            printf '%s\n' "$output"
+            printf "${C_WHITE}%s${C_RESET}\n" "$output"
           else
-            echo "(No response received)"
+            printf "${C_DIM}(No response)${C_RESET}\n"
           fi
           echo ""
         else
-          echo ""
-          echo "[ERROR]"
           local error=$(echo "$response" | grep -oE '"error":"[^"]*"' | head -1 | cut -d'"' -f4)
-          if [ -n "$error" ]; then
-            echo "  $error"
-          else
-            echo "  Request failed. Try again."
-          fi
-          echo ""
+          printf "${C_RED}Error:${C_RESET} %s\n\n" "${error:-Request failed}"
         fi
       done
       ;;
 
     health)
-      echo "Checking OSA health..."
+      printf "${C_CYAN}Checking OSA...${C_RESET}\n"
       local result=$(curl -s "$OSA_API/health" 2>&1)
       if [ "$result" = "OK" ]; then
-        echo "[OK] OSA is healthy"
-        echo "     Orchestrator: $OSA_API"
+        printf "${C_GREEN}OK${C_RESET} OSA is running at ${C_DIM}%s${C_RESET}\n" "$OSA_API"
       else
-        echo "[ERROR] OSA is not responding"
-        echo "        Response: $result"
+        printf "${C_RED}ERROR${C_RESET} OSA not responding\n"
+        printf "${C_DIM}Response: %s${C_RESET}\n" "$result"
       fi
       ;;
 
     agents)
-      echo "Available Agents"
-      echo "=============================================="
+      printf "${C_CYAN}${C_BOLD}Available Agents${C_RESET}\n"
+      printf "${C_DIM}────────────────────────────────────${C_RESET}\n"
       local result=$(curl -s "$OSA_API/api/agents" 2>&1)
       if command -v jq >/dev/null 2>&1; then
-        echo "$result" | jq -r '.[] | "  • \(.type): \(.capabilities | join(", "))"' 2>/dev/null || echo "Response: $result"
+        echo "$result" | jq -r '.[] | "  \(.type): \(.capabilities | join(", "))"' 2>/dev/null || echo "$result"
       else
         echo "$result"
       fi
@@ -133,17 +136,15 @@ osa() {
 
     generate|gen)
       if [ -z "$2" ]; then
-        echo "Usage: osa generate <description>"
-        echo "Example: osa generate \"task management system with kanban board\""
+        printf "${C_YELLOW}Usage:${C_RESET} osa gen ${C_DIM}<description>${C_RESET}\n"
+        printf "${C_DIM}Example: osa gen \"task management system\"${C_RESET}\n"
         return 1
       fi
 
       local description="${*:2}"
-      echo "Generating BusinessOS module: $description"
-      echo "=============================================="
-      echo ""
-      echo "Running 21-agent orchestration..."
-      echo ""
+      printf "\n${C_CYAN}${C_BOLD}Generating:${C_RESET} %s\n" "$description"
+      printf "${C_DIM}────────────────────────────────────${C_RESET}\n\n"
+      printf "${C_YELLOW}Running 21-agent orchestration...${C_RESET}\n\n"
 
       # Call the orchestrator directly
       local response=$(curl -s "$OSA_API/api/orchestrate" \
@@ -152,128 +153,81 @@ osa() {
 
       # Check if successful
       if echo "$response" | grep -q '"success":true'; then
-        echo ""
-        echo "============================================================"
-        echo "  GENERATION COMPLETE"
-        echo "============================================================"
-        echo ""
+        printf "${C_GREEN}${C_BOLD}COMPLETE${C_RESET}\n\n"
 
         # Extract workflow ID
         local wf_id=$(echo "$response" | grep -oE '"workflow_id":"[^"]+"' | head -1 | cut -d'"' -f4)
-        echo "  Workflow: ${wf_id:-N/A}"
-        echo ""
+        printf "${C_DIM}Workflow:${C_RESET} %s\n\n" "${wf_id:-N/A}"
 
         # Count successful agents
         local success_count=$(echo "$response" | grep -o '"success":true' | wc -l | tr -d ' ')
-        echo "  AGENTS EXECUTED: $success_count"
-        echo "  ----------------------------"
-
-        # Extract agent info using grep/sed
-        local agents=$(echo "$response" | grep -oE '"next_agent":"[^"]*"' | cut -d'"' -f4)
-        local times=$(echo "$response" | grep -oE '"execution_ms":[0-9]+' | cut -d':' -f2)
-        local confidences=$(echo "$response" | grep -oE '"confidence":[0-9.]+' | cut -d':' -f2)
-
-        # Display each agent
-        local i=1
-        echo "$agents" | while read -r agent; do
-          local time=$(echo "$times" | sed -n "${i}p")
-          local conf=$(echo "$confidences" | sed -n "${i}p")
-          printf "  %d. %-12s  %4sms  %.0f%% confidence\n" "$i" "${agent:-analysis}" "${time:-0}" "$(echo "${conf:-0} * 100" | bc 2>/dev/null || echo 0)"
-          i=$((i + 1))
-        done
-
-        echo ""
+        printf "${C_CYAN}Agents:${C_RESET} %s executed\n" "$success_count"
 
         # Extract and show generated files
         local files=$(echo "$response" | grep -oE '"path":"[^"]*"' | cut -d'"' -f4)
         if [ -n "$files" ]; then
-          echo "  GENERATED FILES:"
-          echo "  -----------------"
+          printf "\n${C_CYAN}Files:${C_RESET}\n"
           echo "$files" | while read -r file; do
-            [ -n "$file" ] && echo "    - $file"
+            [ -n "$file" ] && printf "  ${C_DIM}-${C_RESET} %s\n" "$file"
           done
         fi
 
-        echo ""
-        echo "  Code generated! Check the OSA workspace for files."
-        echo ""
+        printf "\n${C_GREEN}Done.${C_RESET} Check OSA workspace for files.\n\n"
       else
-        echo ""
-        echo "============================================================"
-        echo "  GENERATION FAILED"
-        echo "============================================================"
-        echo ""
+        printf "${C_RED}${C_BOLD}FAILED${C_RESET}\n\n"
         local error=$(echo "$response" | grep -oE '"error":"[^"]*"' | head -1 | cut -d'"' -f4)
-        if [ -n "$error" ]; then
-          echo "  Error: $error"
-        else
-          echo "  Unknown error occurred"
-        fi
-        echo ""
+        printf "${C_RED}Error:${C_RESET} %s\n\n" "${error:-Unknown error}"
       fi
       ;;
 
     status)
       if [ -z "$2" ]; then
-        echo "Usage: osa status <app-id>"
+        printf "${C_YELLOW}Usage:${C_RESET} osa status ${C_DIM}<app-id>${C_RESET}\n"
         return 1
       fi
 
-      echo "Checking status for: $2"
-      echo "=============================================="
+      printf "${C_CYAN}Status:${C_RESET} %s\n" "$2"
+      printf "${C_DIM}────────────────────────────────────${C_RESET}\n"
 
       local result=$(curl -s -H "X-User-ID: $USER_ID" "$BACKEND_API/api/internal/osa/status/$2" 2>&1)
       if command -v jq >/dev/null 2>&1; then
         echo "$result" | jq -r '
           if .status then
-            "App ID:       \(.app_id // .appId)\n" +
-            "Status:       \(.status)\n" +
-            "Progress:     \((.progress // 0) * 100)%\n" +
-            (if .current_step then "Current Step: \(.current_step)\n" else "" end) +
-            (if .error then "\n[ERROR] \(.error)\n" else "" end)
+            "App ID:   \(.app_id // .appId)\n" +
+            "Status:   \(.status)\n" +
+            "Progress: \((.progress // 0) * 100)%"
           else
-            "[ERROR] " + (.error // .message // "Unknown error")
+            "Error: " + (.error // .message // "Unknown error")
           end'
       else
-        echo "Response: $result"
+        echo "$result"
       fi
       ;;
 
     list)
-      echo "This command is not yet available."
-      echo "Use 'osa agents' to see available agents."
-      echo "Use 'osa gen <description>' to generate a module."
+      printf "${C_DIM}Not yet available.${C_RESET}\n"
+      printf "Use ${C_WHITE}osa agents${C_RESET} or ${C_WHITE}osa gen <desc>${C_RESET}\n"
       ;;
 
     help|--help|-h)
-      cat << 'EOF'
-OSA CLI - 21-Agent AI Orchestration System
-==============================================
-
-Commands:
-  osa                         Start interactive chat mode
-  osa chat                    Alias for interactive mode
-  osa gen <description>       Quick one-shot generation
-  osa agents                  List available AI agents
-  osa health                  Check OSA health
-  osa help                    Show this help
-
-Interactive Mode:
-  Just type 'osa' to start chatting with OSA.
-  Type your requests and get AI-generated responses.
-  Type 'exit' to leave interactive mode.
-
-Examples:
-  osa                         # Start chatting
-  osa gen "task manager"      # Quick generation
-  osa health                  # Check status
-
-EOF
+      echo ""
+      printf "${C_CYAN}${C_BOLD}OSA CLI${C_RESET} ${C_DIM}- 21-Agent AI System${C_RESET}\n"
+      printf "${C_DIM}────────────────────────────────────${C_RESET}\n\n"
+      printf "${C_WHITE}osa${C_RESET}              ${C_DIM}Start chat${C_RESET}\n"
+      printf "${C_WHITE}osa gen${C_RESET} <desc>   ${C_DIM}Generate code${C_RESET}\n"
+      printf "${C_WHITE}osa agents${C_RESET}       ${C_DIM}List agents${C_RESET}\n"
+      printf "${C_WHITE}osa health${C_RESET}       ${C_DIM}Check status${C_RESET}\n"
+      printf "${C_WHITE}osa help${C_RESET}         ${C_DIM}Show this${C_RESET}\n"
+      echo ""
+      printf "${C_DIM}Examples:${C_RESET}\n"
+      printf "  osa\n"
+      printf "  osa gen \"user auth system\"\n"
+      echo ""
       ;;
 
     *)
-      echo "Unknown command: $1"
-      echo "Try 'osa help' for available commands"
+      printf "${C_RED}Unknown:${C_RESET} %s\n" "$1"
+      printf "${C_DIM}Try 'osa help'${C_RESET}\n"
       return 1
       ;;
   esac
@@ -281,6 +235,6 @@ EOF
 
 # Welcome message
 echo ""
-echo "BusinessOS Terminal Ready"
-echo "Type 'osa help' to generate modules with AI"
+printf "${C_CYAN}${C_BOLD}BusinessOS Terminal${C_RESET}\n"
+printf "${C_DIM}Type 'osa' to chat or 'osa help' for commands${C_RESET}\n"
 echo ""
