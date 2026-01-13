@@ -73,50 +73,30 @@ osa() {
         echo "Processing..."
         echo ""
 
-        # Call the orchestrator
-        local response=$(curl -s "$OSA_API/api/orchestrate" \
+        # Call the chat endpoint for conversations
+        local response=$(curl -s "$OSA_API/api/chat" \
           -H "Content-Type: application/json" \
-          -d "{\"prompt\":\"$user_input\",\"context\":{\"user_id\":\"$USER_ID\",\"platform\":\"businessos\"}}" 2>&1)
+          -d "{\"message\":\"$user_input\",\"context\":{\"user_id\":\"$USER_ID\",\"platform\":\"businessos\"}}" 2>&1)
 
-        # Check if successful and display nicely
+        # Check if successful and display response
         if echo "$response" | grep -q '"success":true'; then
-          echo "------------------------------------------------------------"
-          echo "  RESPONSE"
-          echo "------------------------------------------------------------"
           echo ""
 
-          # Extract and display the output text from each agent
-          # Get the last agent's output (most relevant)
-          local raw_output=$(echo "$response" | grep -oE '"output":"[^"]*"' | tail -1 | cut -d'"' -f4)
+          # Extract the response text using sed
+          local raw_output=$(echo "$response" | sed 's/.*"response":"//' | sed 's/"[,}].*//')
 
           # Convert escape sequences properly
-          local output=$(printf '%b' "$raw_output" | head -50)
+          local output=$(printf '%b' "$raw_output")
 
           if [ -n "$output" ]; then
-            printf '%s\n' "$output" | head -40
-            local lines=$(echo "$output" | wc -l)
-            if [ "$lines" -gt 40 ]; then
-              echo ""
-              echo "... (truncated, $lines total lines)"
-            fi
+            printf '%s\n' "$output"
           else
-            # Fallback - show summary
-            local agents=$(echo "$response" | grep -o '"next_agent":"[^"]*"' | wc -l | tr -d ' ')
-            local files=$(echo "$response" | grep -oE '"path":"[^"]*"' | cut -d'"' -f4 | head -5)
-            echo "  Agents completed: $agents"
-            if [ -n "$files" ]; then
-              echo "  Files generated:"
-              echo "$files" | while read -r f; do
-                [ -n "$f" ] && echo "    • $f"
-              done
-            fi
+            echo "(No response received)"
           fi
           echo ""
         else
-          echo "------------------------------------------------------------"
-          echo "  ERROR"
-          echo "------------------------------------------------------------"
           echo ""
+          echo "[ERROR]"
           local error=$(echo "$response" | grep -oE '"error":"[^"]*"' | head -1 | cut -d'"' -f4)
           if [ -n "$error" ]; then
             echo "  $error"
