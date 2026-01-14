@@ -65,9 +65,14 @@
 			xterm?.focus();
 		}, 0);
 
-		// Fit to container
+		// Fit to container - CRITICAL for proper terminal size
 		setTimeout(() => {
 			fitAddon?.fit();
+			// After fit, update backend with actual terminal size
+			if (xterm && fitAddon) {
+				const { cols, rows } = fitAddon.proposeDimensions() || { cols: 80, rows: 24 };
+				console.log(`[Terminal] Fitted to ${cols}x${rows}`);
+			}
 		}, 100);
 
 		// Handle user input
@@ -93,6 +98,17 @@
 				isConnected = true;
 				connectionError = null;
 				console.log('Terminal connected:', sessionId, metadata);
+
+				// CRITICAL: Send actual terminal size after fit
+				setTimeout(() => {
+					if (xterm && fitAddon && service?.isConnected()) {
+						const dims = fitAddon.proposeDimensions();
+						if (dims) {
+							console.log(`[Terminal] Resizing PTY to actual size: ${dims.cols}x${dims.rows}`);
+							service.resize(dims.cols, dims.rows);
+						}
+					}
+				}, 150);
 			},
 			onDisconnect: () => {
 				isConnected = false;
