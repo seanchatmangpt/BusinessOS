@@ -386,6 +386,12 @@ func (m *Manager) buildEnvironment(userID string) map[string]string {
 	env["TERM"] = "xterm-256color"
 	env["LANG"] = "en_US.UTF-8"
 	env["COLORTERM"] = "truecolor"
+
+	// Set PS1 to show current directory in prompt
+	// %F{cyan} = cyan color, %~ = current directory (relative to home), %f = reset color
+	// This will show: MIOSA-LEGION ~/Desktop %
+	env["PS1"] = "%F{green}%n@%m%f %F{cyan}%~%f %# "
+
 	return env
 }
 
