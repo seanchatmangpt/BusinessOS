@@ -146,7 +146,17 @@
 
 	// Keyboard shortcuts
 	function handleKeydown(e: KeyboardEvent) {
-		// Escape - unfocus or exit
+		// CRITICAL: Don't intercept keys when user is typing in an input, textarea, or iframe (terminal!)
+		// This allows terminal to receive ALL keyboard input including arrow keys, Enter, etc.
+		const target = e.target as HTMLElement;
+		const isInteractiveElement =
+			target?.tagName === 'INPUT' ||
+			target?.tagName === 'TEXTAREA' ||
+			target?.isContentEditable ||
+			target?.closest('iframe') ||
+			document.activeElement?.tagName === 'IFRAME';
+
+		// Escape - unfocus or exit (ALWAYS allow this, even in terminal)
 		if (e.key === 'Escape') {
 			e.preventDefault();
 			if ($desktop3dStore.focusedWindowId) {
@@ -154,6 +164,12 @@
 			} else {
 				onExit?.();
 			}
+			return; // Early return after handling Escape
+		}
+
+		// Don't handle any other shortcuts when user is interacting with terminal/inputs
+		if (isInteractiveElement) {
+			return;
 		}
 
 		// Space - toggle view mode (only when not focused)
