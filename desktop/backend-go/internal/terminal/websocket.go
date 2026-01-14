@@ -249,6 +249,12 @@ func (h *WebSocketHandler) handleInput(conn *websocket.Conn, session *Session, e
 			}
 			logging.Info("[Terminal] 🔵 INPUT RECEIVED: %q (hex: %s)", msg.Data, strings.Join(hexBytes, " "))
 
+			// Log if arrow keys are detected
+			if strings.Contains(msg.Data, "\x1b[A") || strings.Contains(msg.Data, "\x1b[B") ||
+				strings.Contains(msg.Data, "\x1b[C") || strings.Contains(msg.Data, "\x1b[D") {
+				logging.Info("[Terminal] 🎯 ARROW KEY DETECTED in input")
+			}
+
 			// Validate and sanitize user input before execution
 			inputData := msg.Data
 
@@ -269,9 +275,20 @@ func (h *WebSocketHandler) handleInput(conn *websocket.Conn, session *Session, e
 				logging.Info("[Terminal] ✅ QuickValidate PASSED (no sanitizer needed)")
 			}
 
+			// After sanitization, verify arrow keys passed through
+			if strings.Contains(msg.Data, "\x1b[A") || strings.Contains(msg.Data, "\x1b[B") ||
+				strings.Contains(msg.Data, "\x1b[C") || strings.Contains(msg.Data, "\x1b[D") {
+				if strings.Contains(inputData, "\x1b[A") || strings.Contains(inputData, "\x1b[B") ||
+					strings.Contains(inputData, "\x1b[C") || strings.Contains(inputData, "\x1b[D") {
+					logging.Info("[Terminal] ✅ ARROW KEY PASSED sanitizer")
+				} else {
+					logging.Warn("[Terminal] ⚠️  Escape sequence was STRIPPED by sanitizer")
+				}
+			}
+
 			// DEBUG: Log what we're sending to PTY (use Info so it always shows)
 			// Convert to hex for arrow keys
-			hexBytes := make([]string, len(inputData))
+			hexBytes = make([]string, len(inputData))
 			for i, b := range []byte(inputData) {
 				hexBytes[i] = fmt.Sprintf("%02x", b)
 			}

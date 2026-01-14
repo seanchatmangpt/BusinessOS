@@ -150,18 +150,19 @@ func (s *InputSanitizer) compilePatterns() {
 
 	// Dangerous ANSI escape sequences that can hijack terminals
 	// Reference: https://xtermjs.org/docs/guides/security/
+	// NOTE: Patterns updated to NOT block safe terminal sequences (arrow keys, function keys)
 	escapePatterns := []string{
 		`\x1b\].*\x07`,           // OSC (Operating System Command) - can change title, clipboard
-		`\x1b\[.*[Hf]`,           // Cursor positioning (can be used for UI spoofing)
+		`\x1b\[[0-9;]+[Hf]`,      // Cursor positioning WITH coordinates (dangerous) - safe Home/End allowed
 		`\x1b\[2J`,               // Clear screen (potential UI attack)
 		`\x1b\[.*[su]`,           // Save/restore cursor (UI manipulation)
-		`\x1b\[.*[ABCDK]`,        // Cursor movement (excessive)
+		`\x1b\[[0-9]+[ABCDK]`,    // Cursor movement WITH parameters (excessive) - bare arrow keys allowed
 		`\x1b\[.*[mp]`,           // SGR (can make text invisible)
 		`\x1b\[\?1049[hl]`,       // Alternate screen buffer (can hide content)
 		`\x1b\[\?25[hl]`,         // Show/hide cursor (UI attack)
 		`\x1b\]52;`,              // Clipboard access (critical!)
 		`\x1b\]8;`,               // OSC 8 hyperlink injection (2024 attack vector)
-		`\x1b\[.*J`,              // Erase display variants
+		`\x1b\[[0-9]+J`,          // Erase display with params (bare clear allowed)
 		`\x9b`,                   // CSI (8-bit) - alternative escape
 		`\x9d`,                   // OSC (8-bit) - alternative escape
 	}
@@ -257,8 +258,70 @@ func (s *InputSanitizer) ValidateInput(input string, userID string) *ValidationR
 	return result
 }
 
+// isSafeEscapeSequence checks if a sequence is a safe terminal control code
+func isSafeEscapeSequence(input string) bool {
+	// Safe cursor movement (arrow keys - no parameters)
+	safeSequences := []string{
+		"\x1b[A",  // Arrow Up
+		"\x1b[B",  // Arrow Down
+		"\x1b[C",  // Arrow Right
+		"\x1b[D",  // Arrow Left
+
+		// Application cursor keys (alternate mode)
+		"\x1bOA",  // Up in application mode
+		"\x1bOB",  // Down in application mode
+		"\x1bOC",  // Right in application mode
+		"\x1bOD",  // Left in application mode
+
+		// Safe editing keys (no parameters)
+		"\x1b[H",  // Home (no params)
+		"\x1b[F",  // End (no params)
+		"\x1b[3~", // Delete
+		"\x1b[2~", // Insert
+		"\x1b[5~", // Page Up
+		"\x1b[6~", // Page Down
+
+		// Function keys
+		"\x1b[OP", // F1
+		"\x1b[OQ", // F2
+		"\x1b[OR", // F3
+		"\x1b[OS", // F4
+		"\x1b[[A", // F1 (alternate)
+		"\x1b[[B", // F2 (alternate)
+		"\x1b[[C", // F3 (alternate)
+		"\x1b[[D", // F4 (alternate)
+		"\x1b[[E", // F5 (alternate)
+		"\x1b[15~", // F5
+		"\x1b[17~", // F6
+		"\x1b[18~", // F7
+		"\x1b[19~", // F8
+		"\x1b[20~", // F9
+		"\x1b[21~", // F10
+		"\x1b[23~", // F11
+		"\x1b[24~", // F12
+
+		// Tab and shift-tab
+		"\t",
+		"\x1b[Z", // Shift-tab
+	}
+
+	for _, safe := range safeSequences {
+		if input == safe {
+			return true
+		}
+	}
+
+	return false
+}
+
 // filterEscapeSequences removes dangerous ANSI escape sequences
 func (s *InputSanitizer) filterEscapeSequences(input string) string {
+	// First, check if input is a safe terminal sequence
+	if isSafeEscapeSequence(input) {
+		return input // Pass through unchanged
+	}
+
+	// Otherwise, filter dangerous patterns
 	result := input
 	for _, pattern := range s.escapePatterns {
 		result = pattern.ReplaceAllString(result, "")
@@ -339,9 +402,20 @@ func QuickValidate(input string) bool {
 	if len(input) > 100 {
 		return false // Needs full validation
 	}
-	if strings.ContainsAny(input, "\x00\x1b\x9b\x9d") {
-		return false // Contains special chars
+
+	// Check if it's a safe terminal control sequence (arrow keys, function keys)
+	if strings.HasPrefix(input, "\x1b") || strings.HasPrefix(input, "\x9b") || strings.HasPrefix(input, "\x9d") {
+		if isSafeEscapeSequence(input) {
+			return true // Safe sequence - no full validation needed
+		}
+		return false // Unknown escape - needs full validation
 	}
+
+	// Check for null bytes (still dangerous)
+	if strings.ContainsRune(input, '\x00') {
+		return false
+	}
+
 	// Check for common dangerous command prefixes
 	lower := strings.ToLower(strings.TrimSpace(input))
 	dangerousPrefixes := []string{
