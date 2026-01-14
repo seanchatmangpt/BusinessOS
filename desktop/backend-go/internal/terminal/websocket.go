@@ -2,6 +2,7 @@ package terminal
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -256,8 +257,13 @@ func (h *WebSocketHandler) handleInput(conn *websocket.Conn, session *Session, e
 				inputData = result.Sanitized
 			}
 
-			// DEBUG: Log what we're sending to PTY
-			logging.Debug("[Terminal] DEBUG: Sending to PTY: %q (len=%d)", inputData, len(inputData))
+			// DEBUG: Log what we're sending to PTY (use Info so it always shows)
+			// Convert to hex for arrow keys
+			hexBytes := make([]string, len(inputData))
+			for i, b := range []byte(inputData) {
+				hexBytes[i] = fmt.Sprintf("%02x", b)
+			}
+			logging.Info("[Terminal] 🔑 Sending to PTY: %q (hex: %s, len=%d)", inputData, strings.Join(hexBytes, " "), len(inputData))
 
 			// Write validated input to PTY or Docker container
 			if session.IsContainerized() {
