@@ -387,10 +387,10 @@ func (m *Manager) buildEnvironment(userID string) map[string]string {
 	env["LANG"] = "en_US.UTF-8"
 	env["COLORTERM"] = "truecolor"
 
-	// Set PS1 to show current directory in prompt like a normal terminal
-	// %~ = current directory (relative to home with ~)
-	// This will show: ~/Desktop $
-	env["PS1"] = "%~ $ "
+	// Set PS1 to show computer name and current directory
+	// %m = computer name, %~ = current directory (relative to home with ~)
+	// This will show: MIOSA-LEGION ~/Desktop $
+	env["PS1"] = "%m %~ $ "
 
 	return env
 }

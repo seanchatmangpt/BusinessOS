@@ -149,12 +149,17 @@
 		// CRITICAL: Don't intercept keys when user is typing in an input, textarea, or iframe (terminal!)
 		// This allows terminal to receive ALL keyboard input including arrow keys, Enter, etc.
 		const target = e.target as HTMLElement;
+		const activeEl = document.activeElement;
+
+		// DEBUG: Log keyboard events to diagnose focus issues
+		console.log('[Desktop3D] Key pressed:', e.key, 'target:', target?.tagName, 'activeElement:', activeEl?.tagName);
+
 		const isInteractiveElement =
 			target?.tagName === 'INPUT' ||
 			target?.tagName === 'TEXTAREA' ||
 			target?.isContentEditable ||
 			target?.closest('iframe') ||
-			document.activeElement?.tagName === 'IFRAME';
+			activeEl?.tagName === 'IFRAME';
 
 		// Escape - unfocus or exit (ALWAYS allow this, even in terminal)
 		if (e.key === 'Escape') {
@@ -169,6 +174,7 @@
 
 		// Don't handle any other shortcuts when user is interacting with terminal/inputs
 		if (isInteractiveElement) {
+			console.log('[Desktop3D] Skipping shortcut - interactive element has focus');
 			return;
 		}
 

@@ -77,6 +77,10 @@
 
 		// Handle user input
 		xterm.onData((data) => {
+			// DEBUG: Log what keys are being sent
+			const bytes = Array.from(data).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
+			console.log(`[Terminal] Sending key: "${data}" (hex: ${bytes})`);
+
 			if (service?.isConnected()) {
 				service.sendInput(data);
 			}
@@ -135,12 +139,41 @@
 	}
 
 	function focusTerminal() {
+		console.log('[Terminal] 🎯 Focusing terminal...');
 		xterm?.focus();
+
+		// CRITICAL: Also ensure the xterm textarea element is focused
+		setTimeout(() => {
+			const textarea = terminalContainer?.querySelector('.xterm-helper-textarea') as HTMLTextAreaElement;
+			if (textarea) {
+				console.log('[Terminal] 🎯 Found xterm textarea, focusing it directly');
+				textarea.focus();
+			} else {
+				console.warn('[Terminal] ⚠️ Could not find xterm textarea element');
+			}
+		}, 0);
 	}
 
 	onMount(() => {
 		initTerminal();
 		window.addEventListener('resize', handleResize);
+
+		// CRITICAL: Add global keyboard event listener to debug arrow keys
+		function debugKeyDown(event: KeyboardEvent) {
+			// Log ALL keyboard events with capture to see if they're reaching the browser
+			if (event.key.startsWith('Arrow') || event.key === 'Enter') {
+				console.log('[Terminal] 🔑 Global keyboard event:', {
+					key: event.key,
+					target: (event.target as HTMLElement)?.tagName,
+					activeElement: document.activeElement?.tagName,
+					containerFocused: terminalContainer?.contains(document.activeElement),
+					captured: event.eventPhase === Event.CAPTURING_PHASE
+				});
+			}
+		}
+
+		// Use capture phase to intercept events BEFORE any handlers
+		window.addEventListener('keydown', debugKeyDown, { capture: true });
 
 		// Also observe container resize
 		const resizeObserver = new ResizeObserver(() => {
@@ -152,6 +185,7 @@
 
 		return () => {
 			resizeObserver.disconnect();
+			window.removeEventListener('keydown', debugKeyDown, { capture: true });
 		};
 	});
 
@@ -162,7 +196,14 @@
 	});
 </script>
 
-<div class="terminal-wrapper">
+<div
+	class="terminal-wrapper"
+	onclick={focusTerminal}
+	onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') focusTerminal(); }}
+	role="button"
+	tabindex="0"
+	aria-label="Terminal window"
+>
 	{#if connectionError}
 		<div class="connection-status error">
 			Connection Error: {connectionError}
@@ -178,6 +219,7 @@
 		onclick={focusTerminal}
 		role="application"
 		tabindex="-1"
+		aria-label="Terminal content"
 	></div>
 </div>
 
