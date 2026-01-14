@@ -223,7 +223,7 @@
 	}
 
 	// Track iframe element for focus management
-	let iframeElement: HTMLIFrameElement | null = null;
+	let iframeElement = $state<HTMLIFrameElement | null>(null);
 
 	// Track previous focus state to only focus on transition
 	let wasFocused = $state(false);
