@@ -1147,6 +1147,19 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		modules.GET("/:module/integrations", integrationsHandler.GetModuleIntegrations)
 	}
 
+	// Desktop 3D Layout routes - /api/desktop3d
+	// Custom 3D Desktop layout persistence
+	desktop3d := api.Group("/desktop3d")
+	desktop3d.Use(auth)
+	{
+		desktop3d.GET("/layouts", h.ListDesktop3DLayouts)
+		desktop3d.POST("/layouts", h.CreateDesktop3DLayout)
+		desktop3d.GET("/layouts/active", h.GetActiveDesktop3DLayout)
+		desktop3d.POST("/layouts/:id/activate", h.ActivateDesktop3DLayout)
+		desktop3d.DELETE("/layouts/:id", h.DeleteDesktop3DLayout)
+	}
+	slog.Info("Desktop 3D layout routes registered")
+
 	// Onboarding routes - /api/onboarding
 	// Conversational AI onboarding with workspace setup
 	onboardingAIService := services.NewOnboardingAIService()

@@ -6,6 +6,10 @@
 	import Desktop3DControls from './Desktop3DControls.svelte';
 	import Desktop3DDock from './Desktop3DDock.svelte';
 	import MenuBar from '$lib/components/desktop/MenuBar.svelte';
+	import PermissionPrompt from './PermissionPrompt.svelte';
+	import EditModeToolbar from './EditModeToolbar.svelte';
+	import { desktop3dPermissions } from '$lib/services/desktop3dPermissions';
+	import { desktop3dLayoutStore } from '$lib/stores/desktop3dLayoutStore';
 
 	interface Props {
 		onExit?: () => void;
@@ -13,9 +17,27 @@
 
 	let { onExit }: Props = $props();
 
-	// Initialize store on mount
+	// Initialize store and permissions on mount
 	onMount(() => {
+		console.log('[Desktop3D] Initializing 3D Desktop mode...');
 		desktop3dStore.initialize();
+
+		// Initialize permission service
+		desktop3dPermissions.initialize();
+		console.log('[Desktop3D] Permission service initialized');
+
+		// Initialize layout system
+		desktop3dLayoutStore.initialize();
+		console.log('[Desktop3D] Layout system initialized');
+	});
+
+	// Cleanup on unmount
+	onDestroy(() => {
+		console.log('[Desktop3D] Cleaning up 3D Desktop mode...');
+
+		// CRITICAL: Release camera and microphone streams
+		desktop3dPermissions.cleanup();
+		console.log('[Desktop3D] Cleanup complete');
 	});
 
 	// Keyboard shortcuts
@@ -184,6 +206,12 @@
 			</svg>
 		</button>
 	{/if}
+
+	<!-- Permission Prompt (shows 2s after entering 3D Desktop) -->
+	<PermissionPrompt />
+
+	<!-- Edit Mode Toolbar (for custom layout management) -->
+	<EditModeToolbar />
 </div>
 
 <style>

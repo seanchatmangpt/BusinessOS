@@ -585,6 +585,40 @@ function createDesktop3DStore() {
 
 				return { ...state, windows };
 			});
+		},
+
+		// Update window position (used by layout system)
+		updateWindowPosition: (
+			moduleId: ModuleId,
+			position: { x: number; y: number; z: number },
+			rotation?: { x: number; y: number; z: number },
+			scale?: number
+		) => {
+			update((state) => {
+				const windows = state.windows.map((w) => {
+					if (w.module === moduleId) {
+						// Convert position object to tuple
+						const positionTuple: [number, number, number] = [position.x, position.y, position.z];
+
+						// Convert rotation object to tuple (or use existing)
+						const rotationTuple: [number, number, number] = rotation
+							? [rotation.x, rotation.y, rotation.z]
+							: w.rotation;
+
+						return {
+							...w,
+							position: positionTuple,
+							targetPosition: positionTuple,
+							rotation: rotationTuple,
+							scale: scale !== undefined ? scale : w.scale,
+							targetScale: scale !== undefined ? scale : w.targetScale
+						};
+					}
+					return w;
+				});
+
+				return { ...state, windows };
+			});
 		}
 	};
 }
