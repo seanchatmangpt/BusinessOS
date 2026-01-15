@@ -111,7 +111,7 @@ function createLayoutStore() {
 		 */
 		initialize: async () => {
 			console.log('[Layout Store] Initializing...');
-			await get(desktop3dLayoutStore).loadLayouts();
+			await desktop3dLayoutStore.loadLayouts();
 		},
 
 		/**
