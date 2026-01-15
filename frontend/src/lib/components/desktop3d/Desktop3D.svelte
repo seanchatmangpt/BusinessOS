@@ -8,7 +8,7 @@
 	import Desktop3DControls from './Desktop3DControls.svelte';
 	import Desktop3DDock from './Desktop3DDock.svelte';
 	import MenuBar from '$lib/components/desktop/MenuBar.svelte';
-	import AppRegistryModal from '$lib/components/desktop/AppRegistryModal.svelte';
+	import { openAppRegistry } from '$lib/stores/appRegistryStore';
 	// import PermissionPrompt from './PermissionPrompt.svelte'; // DISABLED: Permissions now requested lazily when features enabled
 	import LayoutManager from './LayoutManager.svelte';
 	import LiveCaptions from './LiveCaptions.svelte';
@@ -44,9 +44,6 @@
 
 	// Layout manager state
 	let showLayoutManager = $state(false);
-
-	// App registry modal state
-	let showAppRegistry = $state(false);
 
 	// Conversation persistence
 	let conversationId = $state<string | null>(null);
@@ -1123,7 +1120,10 @@ RESPOND NOW:`;
 		onToggleView={handleToggleView}
 		onToggleAutoRotate={() => desktop3dStore.toggleAutoRotate()}
 		onExit={handleExit}
-		onOpenAppRegistry={() => showAppRegistry = true}
+		onOpenAppRegistry={() => {
+			console.log('[Desktop3D] onOpenAppRegistry callback triggered - using store');
+			openAppRegistry();
+		}}
 	/>
 
 	<!-- Bottom Dock -->
@@ -1158,13 +1158,7 @@ RESPOND NOW:`;
 		/>
 	{/if}
 
-	<!-- App Registry Modal -->
-	{#if showAppRegistry}
-		<AppRegistryModal
-			workspaceId={$currentWorkspaceId || 'a438da8e-d245-4e7a-bde2-3a053499ab87'}
-			onClose={() => showAppRegistry = false}
-		/>
-	{/if}
+	<!-- App Registry Modal is now rendered by MenuBar using global store -->
 
 	<!-- Live Captions (voice command feedback) -->
 	<LiveCaptions {userMessage} {osaMessage} command={lastCommand} {isListening} {isSpeaking} />

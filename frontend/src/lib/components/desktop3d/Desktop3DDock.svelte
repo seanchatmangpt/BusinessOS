@@ -23,7 +23,11 @@
 	let hoveredModule: ModuleId | null = $state(null);
 
 	// Icon SVG paths for each module
-	const moduleIcons: Record<string, { path: string; bgColor: string }> = {
+	const moduleIcons: Record<string, { path?: string; bgColor: string; imageUrl?: string }> = {
+		'app-store': {
+			imageUrl: '/logos/integrations/AppleStore_whitelogo.png',
+			bgColor: '#0D84FF'
+		},
 		dashboard: {
 			path: 'M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zm0 6a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1h-4a1 1 0 01-1-1v-5zm-10 1a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3z',
 			bgColor: '#1E88E5'
@@ -127,7 +131,7 @@
 		pages: {
 			path: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
 			bgColor: '#7CB342'
-		}
+		},
 	};
 
 	// Smart dock: Show 8 modules (core + recently focused)
@@ -195,9 +199,13 @@
 				onmouseleave={() => hoveredModule = null}
 			>
 				<div class="dock-icon" style="background-color: {icon.bgColor}">
-					<svg class="dock-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d={icon.path} />
-					</svg>
+					{#if icon.imageUrl}
+						<img src={icon.imageUrl} alt={info.title} class="dock-icon-image" />
+					{:else}
+						<svg class="dock-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<path d={icon.path} />
+						</svg>
+					{/if}
 				</div>
 				{#if focused}
 					<div class="dock-indicator"></div>
@@ -267,6 +275,13 @@
 		width: 24px;
 		height: 24px;
 		stroke: white;
+	}
+
+	.dock-icon-image {
+		width: 32px;
+		height: 32px;
+		object-fit: contain;
+		border-radius: 4px;
 	}
 
 	.dock-item:hover .dock-icon {

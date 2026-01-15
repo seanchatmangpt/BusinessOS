@@ -1025,6 +1025,8 @@
 								<FileBrowser />
 							{:else if win.module === 'help'}
 								<iframe src="/help?embed=true" title="Help" class="module-iframe"></iframe>
+							{:else if win.module === 'app-store'}
+								<iframe src="/app-store?embed=true" title="App Store" class="module-iframe"></iframe>
 							{:else if win.module.startsWith('user-app-')}
 								{@const appId = win.module.replace('user-app-', '')}
 								{@const userApp = $userAppsStore.apps.find(app => app.id === appId)}

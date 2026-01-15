@@ -21,7 +21,8 @@ export const CORE_MODULES = [
 	'daily',
 	'terminal',
 	'settings',
-	'help'
+	'help',
+	'app-store'
 ] as const;
 
 // All available modules
@@ -47,7 +48,8 @@ export const ALL_MODULES = [
 	'notifications',
 	'profile',
 	'voice-notes',
-	'usage'
+	'usage',
+	'app-store'
 ] as const;
 
 export type ModuleId = (typeof ALL_MODULES)[number];
@@ -120,7 +122,8 @@ export const MODULE_INFO: Record<
 	notifications: { title: 'Notifications', color: '#D32F2F', icon: 'bell' },
 	profile: { title: 'Profile', color: '#0288D1', icon: 'user' },
 	'voice-notes': { title: 'Voice Notes', color: '#C2185B', icon: 'mic' },
-	usage: { title: 'Usage', color: '#455A64', icon: 'bar-chart' }
+	usage: { title: 'Usage', color: '#455A64', icon: 'bar-chart' },
+	'app-store': { title: 'App Store', color: '#0D84FF', icon: 'store' }
 };
 
 // Default state

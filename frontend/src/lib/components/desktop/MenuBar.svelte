@@ -10,6 +10,7 @@
 	import LayoutManager from '$lib/components/desktop3d/LayoutManager.svelte';
 	import AppRegistryModal from '$lib/components/desktop/AppRegistryModal.svelte';
 	import { currentWorkspaceId } from '$lib/stores/workspaces';
+	import { showAppRegistry, openAppRegistry, closeAppRegistry } from '$lib/stores/appRegistryStore';
 
 	const session = useSession();
 
@@ -17,7 +18,6 @@
 	let showLayoutManager = $state(false);
 	let showSaveLayoutModal = $state(false);
 	let layoutNameInput = $state('');
-	let showAppRegistry = $state(false);
 
 	// Theme state
 	const isDarkMode = $derived($themeStore.resolvedTheme === 'dark');
@@ -180,7 +180,7 @@
 				}
 				break;
 			case 'add-apps':
-				showAppRegistry = true;
+				openAppRegistry();
 				break;
 		}
 	}
@@ -597,8 +597,8 @@
 <LayoutManager show={showLayoutManager} onClose={() => showLayoutManager = false} />
 
 <!-- App Registry Modal -->
-{#if showAppRegistry && $currentWorkspaceId}
-	<AppRegistryModal workspaceId={$currentWorkspaceId} onClose={() => showAppRegistry = false} />
+{#if $showAppRegistry && $currentWorkspaceId}
+	<AppRegistryModal workspaceId={$currentWorkspaceId} onClose={closeAppRegistry} />
 {/if}
 
 <style>

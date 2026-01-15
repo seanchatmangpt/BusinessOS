@@ -84,7 +84,8 @@ const moduleDefaults: Record<string, { title: string; width: number; height: num
 	folder: { title: 'Folder', width: 600, height: 450, minWidth: 300, minHeight: 250 },
 	files: { title: 'Files', width: 900, height: 600, minWidth: 500, minHeight: 400 },
 	finder: { title: 'Finder', width: 900, height: 600, minWidth: 500, minHeight: 400 },
-	help: { title: 'Help', width: 900, height: 650, minWidth: 600, minHeight: 450 }
+	help: { title: 'Help', width: 900, height: 650, minWidth: 600, minHeight: 450 },
+	'app-store': { title: 'App Store', width: 1100, height: 800, minWidth: 800, minHeight: 600 }
 };
 
 // Initial desktop icon positions (right side, top to bottom)
@@ -106,6 +107,18 @@ const initialDesktopIcons: DesktopIcon[] = [
 	{ id: 'icon-settings', module: 'settings', label: 'Settings', x: -2, y: 4 },
 	{ id: 'icon-ai-settings', module: 'ai-settings', label: 'AI Settings', x: -2, y: 5 },
 	{ id: 'icon-integrations', module: 'integrations', label: 'Integrations', x: -2, y: 6 },
+	{
+		id: 'icon-app-store',
+		module: 'app-store',
+		label: 'App Store',
+		x: -3,
+		y: 0,
+		customIcon: {
+			type: 'image',
+			imageUrl: '/logos/integrations/AppleStore_whitelogo.png',
+			backgroundColor: '#0D84FF' // Apple blue
+		}
+	},
 	{ id: 'icon-trash', module: 'trash', label: 'Trash', x: -1, y: -1 }, // Bottom right
 ];
 
@@ -147,13 +160,23 @@ function loadSavedSettings(): Partial<WindowStore> {
 				desktopIcons = [...desktopIcons, ...newIcons];
 			}
 
-			// Update labels for existing icons to match defaults (preserve user positions)
+			// Update labels and customIcon for existing icons to match defaults (preserve user positions)
 			// This ensures label renames like "Contexts" -> "Knowledge" are applied
-			const defaultLabels = new Map(initialDesktopIcons.map(i => [i.id, i.label]));
+			// and new customIcon configs are applied to existing icons
+			const defaultIconData = new Map(initialDesktopIcons.map(i => [i.id, { label: i.label, customIcon: i.customIcon }]));
 			desktopIcons = desktopIcons.map((icon: DesktopIcon) => {
-				const defaultLabel = defaultLabels.get(icon.id);
-				if (defaultLabel && icon.label !== defaultLabel) {
-					return { ...icon, label: defaultLabel };
+				const defaults = defaultIconData.get(icon.id);
+				if (defaults) {
+					let updated = icon;
+					// Update label if changed in defaults
+					if (defaults.label && icon.label !== defaults.label) {
+						updated = { ...updated, label: defaults.label };
+					}
+					// Apply customIcon from defaults if not already set on saved icon
+					if (defaults.customIcon && !icon.customIcon) {
+						updated = { ...updated, customIcon: defaults.customIcon };
+					}
+					return updated;
 				}
 				return icon;
 			});

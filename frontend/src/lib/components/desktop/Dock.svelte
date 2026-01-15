@@ -329,7 +329,12 @@
 	}
 
 	// Icon data for each module
-	const moduleIcons: Record<string, { path: string; color: string; bgColor: string; isTerminal?: boolean; isFolder?: boolean; isFinder?: boolean }> = {
+	const moduleIcons: Record<string, { path?: string; color: string; bgColor: string; isTerminal?: boolean; isFolder?: boolean; isFinder?: boolean; imageUrl?: string }> = {
+		'app-store': {
+			imageUrl: '/logos/integrations/AppleStore_whitelogo.png',
+			color: '#0D84FF',
+			bgColor: '#0D84FF'
+		},
 		platform: {
 			path: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
 			color: '#333333',
@@ -1548,8 +1553,8 @@
 							{iconStyle === 'gradient' ? `--gradient-start: ${icon.color}; --gradient-end: ${icon.bgColor};` : ''}
 						"
 					>
-						{#if icon.isUserApp && icon.imageUrl}
-							<!-- User app with logo -->
+						{#if icon.imageUrl}
+							<!-- Module or user app with logo image -->
 							<img src={icon.imageUrl} alt={item.label} class="dock-icon-image" />
 						{:else if icon.isTerminal}
 							<span class="terminal-prompt">&gt;_</span>

@@ -40,7 +40,15 @@
 		<!-- Add App Button -->
 		<button
 			class="control-btn add-app-btn"
-			onclick={onOpenAppRegistry}
+			onclick={() => {
+				console.log('[Desktop3DControls] Add App button clicked!');
+				console.log('[Desktop3DControls] onOpenAppRegistry:', onOpenAppRegistry);
+				if (onOpenAppRegistry) {
+					onOpenAppRegistry();
+				} else {
+					console.error('[Desktop3DControls] onOpenAppRegistry is undefined!');
+				}
+			}}
 			title="Add Web App"
 		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
