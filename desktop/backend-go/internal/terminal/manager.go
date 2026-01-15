@@ -387,10 +387,16 @@ func (m *Manager) buildEnvironment(userID string) map[string]string {
 	env["LANG"] = "en_US.UTF-8"
 	env["COLORTERM"] = "truecolor"
 
-	// Set PS1 to show computer name and current directory
-	// %m = computer name, %~ = current directory (relative to home with ~)
-	// This will show: MIOSA-LEGION ~/Desktop $
-	env["PS1"] = "%m %~ $ "
+	// Enhanced PS1 to show Docker container info
+	// Shows: [🐳 docker] ~/workspace $
+	// Colors: green for docker indicator, cyan for path, white for $
+	if m.useContainers {
+		// Running in Docker container
+		env["PS1"] = "\\[\\033[1;32m\\][🐳 docker]\\[\\033[0m\\] \\[\\033[1;36m\\]\\w\\[\\033[0m\\] \\$ "
+	} else {
+		// Running in local PTY
+		env["PS1"] = "\\[\\033[1;35m\\][local]\\[\\033[0m\\] \\[\\033[1;36m\\]\\w\\[\\033[0m\\] \\$ "
+	}
 
 	env["BUSINESSOS_USER_ID"] = userID // Pass user ID to container for internal API calls
 	return env
