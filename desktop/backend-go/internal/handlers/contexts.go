@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
 	"github.com/rhl/businessos-backend/internal/middleware"
+	"github.com/rhl/businessos-backend/internal/utils"
 )
 
 // ListContexts returns all contexts for the current user
@@ -691,11 +690,9 @@ func stringToContextType(t string) sqlc.Contexttype {
 	return sqlc.ContexttypeCUSTOM
 }
 
-// generateShareID generates a random share ID
+// generateShareID generates a random share ID using internal/utils
 func generateShareID() string {
-	bytes := make([]byte, 8)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
+	return utils.MustGenerateRandomHex(8) // 8 bytes = 16 hex chars
 }
 
 // stringPtr returns a pointer to a string, or nil if the string is empty

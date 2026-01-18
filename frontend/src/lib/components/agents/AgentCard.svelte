@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CustomAgent } from '$lib/api/ai/types';
   import { categoryColors } from '$lib/stores/agents';
+  import { getInitials } from '$lib/utils/formatters';
 
   interface Props {
     agent: CustomAgent;
@@ -14,16 +15,6 @@
 
   let showMenu = $state(false);
   let showDeleteConfirm = $state(false);
-
-  function getInitials(name: string | undefined) {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
 
   function getCategoryColor(category?: string) {
     if (!category) return categoryColors['uncategorized'];

@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
+	"github.com/rhl/businessos-backend/internal/utils"
 )
 
 // SorxService handles communication with the Sorx skill execution engine.
@@ -119,8 +120,8 @@ func (s *SorxService) ValidateTicketRequest(ctx context.Context, req CredentialT
 // IssueCredentialTicket creates a signed ticket for credential retrieval.
 func (s *SorxService) IssueCredentialTicket(ctx context.Context, req CredentialTicketRequest) (*CredentialTicket, error) {
 	// Generate nonce
-	nonce := make([]byte, 16)
-	if _, err := rand.Read(nonce); err != nil {
+	nonce, err := utils.GenerateNonce(16)
+	if err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
 

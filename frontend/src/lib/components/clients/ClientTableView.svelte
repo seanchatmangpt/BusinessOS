@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ClientListResponse, ClientStatus } from '$lib/api';
 	import { statusColors, statusLabels } from '$lib/stores/clients';
+	import { getInitials, formatDate, formatCurrency } from '$lib/utils/formatters';
 
 	interface Props {
 		clients: ClientListResponse[];
@@ -9,34 +10,6 @@
 	}
 
 	let { clients, onClientClick, onStatusChange }: Props = $props();
-
-	function formatCurrency(value: number | null): string {
-		if (value === null) return '-';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(value);
-	}
-
-	function formatDate(dateStr: string | null): string {
-		if (!dateStr) return '-';
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
-
-	function getInitials(name: string): string {
-		return name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	}
 </script>
 
 <div class="flex-1 overflow-auto">

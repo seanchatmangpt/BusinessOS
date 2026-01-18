@@ -1,3 +1,15 @@
+---
+title: BusinessOS Frontend API Patterns Complete Documentation
+author: Roberto Luna (with Claude Code)
+created: 2025-12-15
+updated: 2026-01-19
+category: Backend
+type: Reference
+status: Active
+part_of: API Documentation
+relevance: Active
+---
+
 # BusinessOS Frontend API Patterns - Complete Documentation
 
 ## Executive Summary

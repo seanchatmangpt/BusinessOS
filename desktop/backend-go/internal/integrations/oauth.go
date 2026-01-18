@@ -2,14 +2,14 @@
 package integrations
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/rhl/businessos-backend/internal/utils"
 )
 
 // OAuthConfig holds the configuration for an OAuth 2.0 provider.
@@ -25,11 +25,7 @@ type OAuthConfig struct {
 // GenerateState creates a cryptographically secure random state string.
 // Used for CSRF protection in OAuth flows.
 func GenerateState() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("failed to generate state: %w", err)
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return utils.GenerateOAuthState()
 }
 
 // BuildAuthURL constructs the authorization URL for an OAuth flow.

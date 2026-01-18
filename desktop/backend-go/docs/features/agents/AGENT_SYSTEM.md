@@ -1,3 +1,15 @@
+---
+title: BusinessOS Agent System Architecture
+author: Roberto Luna (with Claude Code)
+created: 2025-12-10
+updated: 2026-01-19
+category: Agents
+type: Guide
+status: Active
+part_of: Agent V2 System
+relevance: Active
+---
+
 # BusinessOS Agent System Architecture
 
 > **Version:** V2 Architecture (Current)

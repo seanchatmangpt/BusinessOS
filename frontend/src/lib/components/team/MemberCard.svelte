@@ -2,6 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import StatusBadge from './StatusBadge.svelte';
 	import CapacityBar from './CapacityBar.svelte';
+	import { getInitials } from '$lib/utils/formatters';
 
 	type Status = 'available' | 'busy' | 'overloaded' | 'ooo';
 
@@ -30,15 +31,6 @@
 		capacity,
 		onClick
 	}: Props = $props();
-
-	function getInitials(name: string) {
-		return name
-			.split(' ')
-			.map(n => n.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	}
 </script>
 
 <div

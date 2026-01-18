@@ -17,7 +17,7 @@ import io
 import json
 import os
 import subprocess
-from typing import AsyncIterator
+import traceback
 
 import grpc
 import numpy as np
@@ -29,6 +29,16 @@ from livekit.agents import JobContext, WorkerOptions, cli
 from voice.v1 import voice_pb2, voice_pb2_grpc
 
 load_dotenv()
+
+
+def safe_log_exception(context: str, error: Exception,
+                       print_trace: bool = False, should_raise: bool = False):
+    """Centralized exception logging."""
+    print(f"[{context}] ❌ {error}", flush=True)
+    if print_trace:
+        traceback.print_exc()
+    if should_raise:
+        raise
 
 # Configuration
 GRPC_SERVER = os.getenv("GRPC_VOICE_SERVER", "localhost:50051")
@@ -59,8 +69,7 @@ class AudioOutputManager:
             self._is_published = True
             print("[AudioOutput] ✅ Audio track published successfully")
         except Exception as e:
-            print(f"[AudioOutput] ❌ Failed to publish track: {e}")
-            raise
+            safe_log_exception("AudioOutput", e, should_raise=True)
 
     async def play_audio_chunk(self, audio_bytes: bytes):
         """
@@ -127,9 +136,7 @@ class AudioOutputManager:
             print(f"[AudioOutput] ✅ Played {len(audio_bytes)} bytes ({len(pcm_data)} samples)")
 
         except Exception as e:
-            print(f"[AudioOutput] ❌ Playback error: {e}")
-            import traceback
-            traceback.print_exc()
+            safe_log_exception("AudioOutput", e, print_trace=True)
 
     async def cleanup(self):
         """Cleanup resources."""
@@ -138,7 +145,7 @@ class AudioOutputManager:
                 await self.room.local_participant.unpublish_track(self.track.sid)
                 print("[AudioOutput] 🧹 Track unpublished")
             except Exception as e:
-                print(f"[AudioOutput] ⚠️ Cleanup error: {e}")
+                safe_log_exception("AudioOutput", e)
 
 
 async def entrypoint(ctx: JobContext):
@@ -148,7 +155,7 @@ async def entrypoint(ctx: JobContext):
 
     audio_output = None
     channel = None
-    session_id = ctx.room.name
+    session_id = None
 
     try:
         # Connect to room and wait for user
@@ -210,7 +217,7 @@ async def entrypoint(ctx: JobContext):
                     ))
                     sequence += 1
                 except Exception as e:
-                    print(f"[Adapter] ❌ Send error: {e}", flush=True)
+                    safe_log_exception("Adapter", e)
                     break
 
         # Task 2: Receive responses from Go
@@ -241,9 +248,7 @@ async def entrypoint(ctx: JobContext):
                         print(f"[Adapter] ❌ Error: {response.error}", flush=True)
 
                 except Exception as e:
-                    print(f"[Adapter] ❌ Receive error: {e}", flush=True)
-                    import traceback
-                    traceback.print_exc()
+                    safe_log_exception("Adapter", e, print_trace=True)
                     break
 
         async def send_to_frontend(msg_type: str, text: str):
@@ -255,16 +260,14 @@ async def entrypoint(ctx: JobContext):
                     reliable=True,
                 )
             except Exception as e:
-                print(f"[Adapter] ❌ Data send failed: {e}", flush=True)
+                safe_log_exception("Adapter", e)
 
         # Run both tasks concurrently
         print(f"[Adapter] Starting send/receive tasks...", flush=True)
         await asyncio.gather(send_frames(), receive_responses())
 
     except Exception as e:
-        print(f"[Adapter] ❌ Fatal error: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
+        safe_log_exception("Adapter", e, print_trace=True)
     finally:
         print(f"[Adapter] Cleaning up...", flush=True)
         try:
@@ -273,7 +276,7 @@ async def entrypoint(ctx: JobContext):
             if channel:
                 await channel.close()
         except Exception as cleanup_err:
-            print(f"[Adapter] Cleanup error: {cleanup_err}", flush=True)
+            safe_log_exception("Adapter", cleanup_err)
         print(f"[Adapter] Session ended: {session_id}", flush=True)
 
 

@@ -1,3 +1,15 @@
+---
+title: BusinessOS Onboarding System
+author: Roberto Luna (with Claude Code)
+created: 2026-01-11
+updated: 2026-01-19
+category: Frontend
+type: Guide
+status: Active
+part_of: AI-Powered Onboarding
+relevance: Recent
+---
+
 # BusinessOS Onboarding System
 
 **Complete Technical Documentation for Team**

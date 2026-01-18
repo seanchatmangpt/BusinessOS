@@ -1,3 +1,15 @@
+---
+title: Onboarding System Quick Reference
+author: Roberto Luna (with Claude Code)
+created: 2026-01-11
+updated: 2026-01-19
+category: Frontend
+type: Reference
+status: Active
+part_of: AI-Powered Onboarding
+relevance: Recent
+---
+
 # Onboarding System - Quick Reference
 
 **Fast lookup for common tasks and troubleshooting**

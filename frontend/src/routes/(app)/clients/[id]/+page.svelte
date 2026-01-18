@@ -15,6 +15,7 @@
 		InteractionType,
 		DealStage
 	} from '$lib/api';
+	import { getInitials, formatDate, formatCurrency } from '$lib/utils/formatters';
 
 	// Check if we're in embed mode to propagate to links
 	const embedSuffix = $derived($page.url.searchParams.get('embed') === 'true' ? '?embed=true' : '');
@@ -61,25 +62,6 @@
 		};
 	});
 
-	function formatCurrency(value: number | null): string {
-		if (value === null || value === undefined) return '-';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(value);
-	}
-
-	function formatDate(dateStr: string | null): string {
-		if (!dateStr) return '-';
-		return new Date(dateStr).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			year: 'numeric'
-		});
-	}
-
 	function formatDateTime(dateStr: string): string {
 		return new Date(dateStr).toLocaleDateString('en-US', {
 			month: 'short',
@@ -88,15 +70,6 @@
 			hour: 'numeric',
 			minute: '2-digit'
 		});
-	}
-
-	function getInitials(name: string): string {
-		return name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
 	}
 
 	async function handleStatusChange(status: ClientStatus) {

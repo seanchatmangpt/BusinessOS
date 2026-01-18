@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -13,6 +11,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
+	"github.com/rhl/businessos-backend/internal/utils"
 )
 
 // ============================================================================
@@ -508,9 +507,7 @@ func (h *Handlers) CreateDashboardFromTemplate(c *gin.Context) {
 // ============================================================================
 
 func generateShareToken() string {
-	bytes := make([]byte, 16)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
+	return utils.MustGenerateRandomHex(16) // 16 bytes = 32 hex chars
 }
 
 func transformDashboard(d sqlc.UserDashboard) gin.H {

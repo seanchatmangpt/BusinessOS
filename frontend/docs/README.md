@@ -1,3 +1,15 @@
+---
+title: BusinessOS Frontend Documentation
+author: Roberto Luna (with Claude Code)
+created: 2025-12-01
+updated: 2026-01-19
+category: Frontend
+type: Reference
+status: Active
+part_of: Frontend Documentation
+relevance: Active
+---
+
 # BusinessOS Frontend Documentation
 
 **Version:** 2.0.0

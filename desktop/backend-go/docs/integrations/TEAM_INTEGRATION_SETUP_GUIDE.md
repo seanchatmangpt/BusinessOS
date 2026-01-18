@@ -1,3 +1,15 @@
+---
+title: BusinessOS Integration Setup Guide for Developers
+author: Roberto Luna (with Claude Code)
+created: 2026-01-18
+updated: 2026-01-19
+category: Backend
+type: Guide
+status: Active
+part_of: Integration System
+relevance: Recent
+---
+
 # BusinessOS Integration Setup Guide for Developers
 
 > **Last Updated:** January 2026

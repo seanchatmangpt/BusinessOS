@@ -1,3 +1,15 @@
+---
+title: App Store Integration System
+author: Roberto Luna (with Claude Code)
+created: 2026-01-13
+updated: 2026-01-19
+category: Frontend
+type: Guide
+status: Active
+part_of: App Store Feature
+relevance: Recent
+---
+
 # App Store Integration System
 
 ## Overview

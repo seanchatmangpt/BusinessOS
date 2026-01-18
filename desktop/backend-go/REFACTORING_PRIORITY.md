@@ -1,3 +1,15 @@
+---
+title: Backend Refactoring Priority Quick Reference
+author: Roberto Luna (with Claude Code)
+created: 2026-01-19
+updated: 2026-01-19
+category: Backend
+type: Guide
+status: Active
+part_of: Codebase Cleanup Initiative
+relevance: Recent
+---
+
 # Backend Refactoring Priority Quick Reference
 
 **Generated:** 2026-01-19

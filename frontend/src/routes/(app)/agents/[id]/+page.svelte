@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import type { CustomAgent } from '$lib/api/ai/types';
   import AgentSandbox from '$lib/components/agents/AgentSandbox.svelte';
+  import { getInitials, formatDate } from '$lib/utils/formatters';
 
   let agent: CustomAgent | null = $state(null);
   let loading = $state(true);
@@ -14,16 +15,6 @@
   let showDeleteConfirm = $state(false);
   let isTogglingActive = $state(false);
 
-  function getInitials(name: string | undefined) {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map((n) => n.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-
   function getCategoryColor(category?: string) {
     if (!category) return categoryColors['uncategorized'];
     return categoryColors[category] || categoryColors['custom'];
@@ -32,10 +23,6 @@
   function getCategoryLabel(category?: string) {
     if (!category) return categoryLabels['uncategorized'];
     return categoryLabels[category] || category;
-  }
-
-  function formatDate(dateString: string) {
-    return new Date(dateString).toLocaleString();
   }
 
   async function loadAgent() {

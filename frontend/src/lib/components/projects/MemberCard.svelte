@@ -3,6 +3,7 @@
 	import RoleSelector from './RoleSelector.svelte';
 	import { Shield, Users, Eye, Edit3, Trash2, MoreVertical } from 'lucide-svelte';
 	import { DropdownMenu } from 'bits-ui';
+	import { getInitials } from '$lib/utils/formatters';
 
 	interface Props {
 		member: ProjectMember;
@@ -21,16 +22,6 @@
 		onRoleChange,
 		onRemove
 	}: Props = $props();
-
-	function getInitials(name: string): string {
-		if (!name) return '?';
-		return name
-			.split(' ')
-			.map((n) => n.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	}
 
 	function getRoleIcon(role: ProjectRole) {
 		switch (role) {

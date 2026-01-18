@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { scale } from 'svelte/transition';
 	import StatusBadge from './StatusBadge.svelte';
+	import { getInitials } from '$lib/utils/formatters';
 
 	type Status = 'available' | 'busy' | 'overloaded' | 'ooo';
 
@@ -15,15 +16,6 @@
 	}
 
 	let { id, name, role, avatar, status, depth = 0, onClick }: Props = $props();
-
-	function getInitials(name: string) {
-		return name
-			.split(' ')
-			.map(n => n.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	}
 </script>
 
 <div

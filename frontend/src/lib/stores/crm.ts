@@ -1,6 +1,7 @@
 // CRM Store - Sales Pipeline Management
 import { writable } from 'svelte/store';
 import * as crmApi from '$lib/api/crm';
+import { formatCurrency as formatCurrencyUtil } from '$lib/utils/formatters';
 import type {
 	Company,
 	Pipeline,
@@ -597,15 +598,10 @@ export const lifecycleStageLabels: Record<string, string> = {
 	partner: 'Partner'
 };
 
-// Format currency for display
+// Format currency for display - re-export from utils
 export function formatCurrency(amount: number | undefined, currency = 'USD'): string {
 	if (amount === undefined || amount === null) return '-';
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency,
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 0
-	}).format(amount);
+	return formatCurrencyUtil(amount, currency);
 }
 
 // Format deal probability

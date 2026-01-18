@@ -1,3 +1,15 @@
+---
+title: OSA Build API Reference
+author: Roberto Luna (with Claude Code)
+created: 2026-01-11
+updated: 2026-01-19
+category: Backend
+type: Reference
+status: Active
+part_of: OSA Build Phase 3
+relevance: Recent
+---
+
 # OSA Build API Reference
 
 Comprehensive API documentation for the OSA Build Phase 3 endpoints, including onboarding flow, user analysis, personalized app generation, and username management.

@@ -1,0 +1,392 @@
+Path,Created,Author,LastModified,LastAuthor,Type,Category,Relevance,PartOf,Status,Lines
+./TEAM_DOCUMENTATION_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,workspace,recent,Workspace,complete,     392
+./frontend/docs/PAGES_ARCHITECTURE.md,2026-01-07,Roberto H luna,2026-01-07,Roberto H luna,architecture,frontend,recent,Frontend,active,     383
+./frontend/docs/PHASE_3_SUMMARY.md,2026-01-14,robertohluna,2026-01-14,robertohluna,report,frontend,recent,Frontend,complete,     434
+./frontend/docs/development/FRONTEND.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Frontend,active,     935
+./frontend/docs/INSTALL_TEST_DEPS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Frontend,active,     113
+./frontend/docs/features/buttons/BUTTON_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,    1046
+./frontend/docs/features/FRONTEND_NOTIFICATIONS_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Notifications,active,     489
+./frontend/docs/features/desktop/3D_DESKTOP_APP_INTEGRATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     332
+./frontend/docs/features/app-store/APP_STORE_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,    1069
+./frontend/docs/features/gesture-system/3D_DESKTOP_GESTURE_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,3D Desktop,active,     687
+./frontend/docs/features/gesture-system/GESTURE_SYSTEM_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,active,     868
+./frontend/docs/features/gesture-system/MOTION_TRACKING_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,active,     326
+./frontend/docs/features/gesture-system/TESTING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Gesture System,active,     187
+./frontend/docs/features/gesture-system/GESTURE_IMPROVEMENTS_ROADMAP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,active,     801
+./frontend/docs/features/gesture-system/MEDIAPIPE_OPTIMIZATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,active,     341
+./frontend/docs/features/onboarding/README_ONBOARDING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Onboarding,active,     339
+./frontend/docs/features/onboarding/ONBOARDING_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Onboarding,active,    1981
+./frontend/docs/features/onboarding/ONBOARDING_QUICK_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Onboarding,active,     382
+./frontend/docs/features/onboarding/QUICK_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Onboarding,active,     389
+./frontend/docs/team-review/README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Documentation,active,      79
+./frontend/docs/team-review/RECENT_FRONTEND_CHANGES.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Documentation,active,     564
+./frontend/docs/setup/GETTING_STARTED_OSA.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,guide,frontend,recent,Frontend,active,     533
+./frontend/docs/PHASE_3_AUDIT_AND_NEXT_STEPS.md,2026-01-14,robertohluna,2026-01-14,robertohluna,report,frontend,recent,Frontend,active,     529
+./frontend/docs/README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,readme,frontend,recent,Frontend,active,     570
+./frontend/docs/components/FORM_PATTERNS_INDEX.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Frontend,active,     457
+./frontend/docs/components/FORM_COMPONENTS_USAGE_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,guide,frontend,recent,Frontend,active,     726
+./frontend/docs/architecture/3D_DESKTOP_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,3D Desktop,active,     334
+./frontend/docs/architecture/IOS_TO_DESKTOP_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,    1495
+./frontend/docs/architecture/3D_DESKTOP_FEATURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,3D Desktop,active,     144
+./frontend/README.md,2025-12-11,Roberto H luna,2025-12-11,Roberto H luna,readme,frontend,historical,Frontend,reference,      38
+./frontend/DOCS_HERE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Frontend,active,      37
+./frontend/CLAUDE.md,2025-12-21,Roberto H luna,2025-12-21,Roberto H luna,documentation,frontend,active,Frontend,active,     930
+./frontend/src/lib/components/chat/ROLE_BASED_UI.md,2026-01-06,PAMF2,2026-01-06,PAMF2,documentation,frontend,recent,Frontend,active,     447
+./frontend/src/lib/components/projects/USAGE_EXAMPLE.md,2026-01-06,PAMF2,2026-01-06,PAMF2,documentation,frontend,recent,Frontend,active,     382
+./frontend/src/lib/components/workspace/WORKSPACE_CREATE_IMPLEMENTATION.md,2026-01-06,PAMF2,2026-01-06,PAMF2,implementation,frontend,recent,Workspace,active,     331
+./frontend/src/lib/components/thinking/TemplateEditor.example.md,2026-01-11,PAMF2,2026-01-11,PAMF2,template,frontend,recent,Frontend,active,     214
+./frontend/src/lib/components/osa/BuildProgress.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,documentation,frontend,recent,Frontend,active,     340
+./frontend/src/lib/api/README.md,2025-12-19,Javaris0629,2025-12-19,Javaris0629,api-guide,frontend,historical,API,reference,       0
+./frontend/src/lib/onboarding/SVELTE_ONBOARDING_DOCUMENTATION.md,2026-01-13,Javaris0629,2026-01-13,Javaris0629,documentation,frontend,recent,Onboarding,active,     934
+./frontend/src/routes/window/osa/[id]/README.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,readme,frontend,recent,Frontend,active,     234
+./articletouse/papers/arxiv/2507.13334/notes.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,general,recent,General,active,     161
+./articletouse/papers/arxiv/2510.04618/notes.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,general,recent,General,active,     286
+./articletouse/README.md,2026-01-08,PAMF2,2026-01-08,PAMF2,readme,general,recent,General,active,     343
+./articletouse/daily_check.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,agents,recent,Agents,active,     280
+./svelte-onboarding/SVELTE_ONBOARDING_DOCUMENTATION.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,documentation,frontend,recent,Onboarding,active,     934
+./SYSTEM_RUNNING.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,architecture,general,recent,General,active,     340
+./.claude/van-router.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Claude Code,active,     356
+./.claude/workflows/pact-framework.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Claude Code,active,     662
+./.claude/agents/devops/angel-devops.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Claude Code,active,     274
+./.claude/agents/ai-integration/oracle-ai.md,2026-01-11,PAMF2,2026-01-11,PAMF2,implementation,integrations,recent,Integrations,active,     200
+./.claude/agents/frontend-specialist.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,frontend,recent,Claude Code,active,      32
+./.claude/agents/migration-specialist.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,database,recent,Claude Code,active,      30
+./.claude/agents/performance/dragon-golang.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,backend,recent,Claude Code,active,     163
+./.claude/agents/performance/blitz-hyperperformance.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Claude Code,active,     117
+./.claude/agents/performance/cache-database.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,database,recent,Claude Code,active,     196
+./.claude/agents/backend-specialist.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,backend,recent,Claude Code,active,      33
+./.claude/COMMANDS_CHEATSHEET.md,2026-01-11,PAMF2,2026-01-11,PAMF2,reference,agents,recent,Claude Code,active,     319
+./.claude/README.md,2026-01-11,PAMF2,2026-01-11,PAMF2,readme,agents,recent,Claude Code,active,      67
+./.claude/swarms/swarm-coordinator.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Claude Code,active,     641
+./.claude/skills/testing-expert/SKILL.md,2026-01-11,PAMF2,2026-01-11,PAMF2,test-report,agents,recent,Skills,active,      43
+./.claude/skills/database-migration-expert/SKILL.md,2026-01-11,PAMF2,2026-01-11,PAMF2,skill,database,recent,Skills,active,      31
+./.claude/skills/svelte-frontend-expert/SKILL.md,2026-01-11,PAMF2,2026-01-11,PAMF2,skill,frontend,recent,Skills,active,      37
+./.claude/skills/go-backend-expert/SKILL.md,2026-01-11,PAMF2,2026-01-11,PAMF2,skill,backend,recent,Skills,active,      44
+./desktop/backend-go/docker/workspace/README.md,2025-12-22,OSOSerious,2025-12-22,OSOSerious,readme,frontend,active,Workspace,active,      76
+./desktop/backend-go/DUPLICATE_CODE_ANALYSIS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Frontend,active,    1132
+./desktop/backend-go/internal/middleware/RATE_LIMITING.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,documentation,frontend,recent,Frontend,active,     363
+./desktop/backend-go/internal/integrations/osa/RESILIENCE.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,implementation,frontend,recent,Integrations,active,     564
+./desktop/backend-go/internal/container/RACE_CONDITION_ANALYSIS.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,analysis,frontend,recent,Frontend,active,     399
+./desktop/backend-go/internal/livekit/CONTEXT_HIERARCHY_PLAN.md,2026-01-17,Roberto H luna,2026-01-17,Roberto H luna,planning,frontend,recent,Voice System,active,     216
+./desktop/backend-go/internal/sync/outbox/README.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,readme,frontend,recent,Sync Engine,active,     450
+./desktop/backend-go/internal/sync/IMPLEMENTATION_COMPLETE.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,test-report,frontend,recent,Sync Engine,complete,     265
+./desktop/backend-go/internal/sync/NATS_CLIENT_README.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,readme,frontend,recent,Sync Engine,active,     598
+./desktop/backend-go/internal/sync/OUTBOX_PROCESSOR_GUIDE.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,guide,frontend,recent,Sync Engine,active,     151
+./desktop/backend-go/internal/sync/README.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,readme,frontend,recent,Sync Engine,active,     284
+./desktop/backend-go/internal/sync/messaging/IMPLEMENTATION_SUMMARY.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,implementation,frontend,recent,Sync Engine,complete,     382
+./desktop/backend-go/internal/sync/messaging/README.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,readme,frontend,recent,Sync Engine,active,     479
+./desktop/backend-go/internal/sync/CONFLICT_DETECTOR_README.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,readme,frontend,recent,Sync Engine,active,     350
+./desktop/backend-go/internal/logging/SANITIZED_LOGGING_GUIDE.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,guide,frontend,recent,Frontend,active,     253
+./desktop/backend-go/internal/logging/IMPLEMENTATION_SUMMARY.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,implementation,frontend,recent,Frontend,complete,     382
+./desktop/backend-go/internal/services/METADATA_EXTRACTOR.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,documentation,frontend,recent,Frontend,active,     265
+./desktop/backend-go/docs/project-management-enhancement.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,documentation,frontend,recent,Frontend,active,     364
+./desktop/backend-go/docs/QUICK_START_VALIDATION.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,documentation,frontend,recent,Frontend,active,     272
+./desktop/backend-go/docs/database/DATABASE_LOCATION_INFO.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Database,active,     316
+./desktop/backend-go/docs/database/supabase_auth_implementation.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Database,active,     290
+./desktop/backend-go/docs/database/database_troubleshooting.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Database,active,     264
+./desktop/backend-go/docs/database/supabase/SUPABASE_SETUP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Database,active,     215
+./desktop/backend-go/docs/database/DATABASE_SETUP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Database,active,     420
+./desktop/backend-go/docs/database/SUPABASE_MIGRATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Database,active,     313
+./desktop/backend-go/docs/ENVIRONMENT_SETUP.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,documentation,frontend,recent,Frontend,active,     350
+./desktop/backend-go/docs/CUSTOM_AGENTS_VALIDATION.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,frontend,recent,Custom Agents,active,     477
+./desktop/backend-go/docs/TODO_CLEANUP.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,task-list,frontend,recent,Frontend,active,      84
+./desktop/backend-go/docs/BusinessOS Go Backend - Deployment Guide 2d25ac02f07780418f75faa723a66696.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,guide,frontend,recent,Frontend,active,    1150
+./desktop/backend-go/docs/OSA_SSE_QUICK_START.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,documentation,frontend,recent,Frontend,active,     291
+./desktop/backend-go/docs/TECHNICAL_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,reference,frontend,recent,Frontend,active,    1427
+./desktop/backend-go/docs/VOICE_ENVIRONMENT_CONFIG.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,documentation,frontend,recent,Voice System,active,     231
+./desktop/backend-go/docs/BusinessOS API Reference 2d25ac02f077807daaf5cf502984cf6c.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,api-reference,frontend,recent,Frontend,active,     386
+./desktop/backend-go/docs/VAD_INTEGRATION.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,implementation,frontend,recent,Voice System,active,     257
+./desktop/backend-go/docs/README_TEST_TRACK_3.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Frontend,active,     293
+./desktop/backend-go/docs/features/BACKGROUND_JOBS_INTEGRATION_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     386
+./desktop/backend-go/docs/features/THINKING_SYSTEM_INTEGRATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Integrations,active,     445
+./desktop/backend-go/docs/features/workspace/workspace_frontend_integration_complete.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Workspace,complete,     455
+./desktop/backend-go/docs/features/workspace/workspace_implementation_verification.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Workspace,active,     596
+./desktop/backend-go/docs/features/workspace/workspace_implementation_status_complete.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Workspace,complete,     495
+./desktop/backend-go/docs/features/workspace/workspace_memory_ui_guide.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Workspace,active,     628
+./desktop/backend-go/docs/features/workspace/workspace_invite_audit_implementation.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Workspace,active,     692
+./desktop/backend-go/docs/features/workspace/workspace_schema_analysis.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Workspace,active,     542
+./desktop/backend-go/docs/features/agents/CUSTOM_AGENTS_METAS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Custom Agents,active,     370
+./desktop/backend-go/docs/features/agents/CUSTOM_JOB_HANDLERS_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Background Jobs,active,     578
+./desktop/backend-go/docs/features/agents/CUSTOM_AGENTS_PRODUCTION_CHECKLIST.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Custom Agents,active,     725
+./desktop/backend-go/docs/features/agents/AGENT_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Custom Agents,active,    1316
+./desktop/backend-go/docs/features/agents/CUSTOM_AGENTS_REVIEW_AND_IMPROVEMENTS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Custom Agents,active,     597
+./desktop/backend-go/docs/features/voice/VOICE_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Voice System,active,    1525
+./desktop/backend-go/docs/features/voice/VOICE_SYSTEM_STATUS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Voice System,active,     305
+./desktop/backend-go/docs/features/voice/MICROPHONE_PERMISSIONS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Voice System,active,      72
+./desktop/backend-go/docs/features/voice/VOICE_TESTING_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Voice System,active,     177
+./desktop/backend-go/docs/features/BACKGROUND_JOBS_README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Background Jobs,active,     353
+./desktop/backend-go/docs/features/BACKGROUND_JOBS_QUICKSTART.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Background Jobs,active,     299
+./desktop/backend-go/docs/team-review/RECENT_BACKEND_CHANGES.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Documentation,active,     567
+./desktop/backend-go/docs/team-review/README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Documentation,active,     375
+./desktop/backend-go/docs/REDIS_QUICKSTART.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,guide,frontend,recent,Frontend,active,     165
+./desktop/backend-go/docs/SECURITY_UPDATES.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,security,frontend,recent,Security,active,     280
+./desktop/backend-go/docs/REDIS_KEY_SECURITY.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,security,frontend,recent,Security,active,     327
+./desktop/backend-go/docs/AGENT_DASHBOARD_TOOL_NOTES.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,documentation,frontend,recent,Dashboard,active,     302
+./desktop/backend-go/docs/Developer Quick Start Guide 2d25ac02f07780d8bbdfe55de9a2f839.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,guide,frontend,recent,Frontend,active,     232
+./desktop/backend-go/docs/DOCUMENTATION_MOVE_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,frontend,recent,Frontend,complete,     365
+./desktop/backend-go/docs/OSA_INTEGRATION_INDEX.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,implementation,frontend,recent,Integrations,active,     589
+./desktop/backend-go/docs/OSA_SETUP_GUIDE.md,2026-01-11,OSOSerious,2026-01-13,Roberto H luna,guide,frontend,recent,Frontend,active,    1088
+./desktop/backend-go/docs/README.md,2026-01-08,Roberto H luna,2026-01-19,Roberto H luna,readme,frontend,recent,Frontend,active,     421
+./desktop/backend-go/docs/integrations/GOOGLE_APIS_QUICK_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-reference,frontend,recent,Integrations,active,     272
+./desktop/backend-go/docs/integrations/integration_day3_verification.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     440
+./desktop/backend-go/docs/integrations/INTEGRATIONS_MASTER_LIST.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     744
+./desktop/backend-go/docs/integrations/integration_auth_day_verification.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     873
+./desktop/backend-go/docs/integrations/INTEGRATION_INFRASTRUCTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,    1106
+./desktop/backend-go/docs/integrations/INTEGRATION_PHASES.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     510
+./desktop/backend-go/docs/integrations/OSA_INTEGRATION_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     493
+./desktop/backend-go/docs/integrations/INTEGRATION_SETUP_CHECKLIST.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     412
+./desktop/backend-go/docs/integrations/google-oauth/OAUTH_TESTING_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     249
+./desktop/backend-go/docs/integrations/google-oauth/test-google-oauth-flow.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     156
+./desktop/backend-go/docs/integrations/TEAM_INTEGRATION_SETUP_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     751
+./desktop/backend-go/docs/integrations/integration_day2_verification.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     619
+./desktop/backend-go/docs/integrations/INTEGRATION_SETUP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     398
+./desktop/backend-go/docs/integrations/INTEGRATIONS_PHASED_PLAN.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     847
+./desktop/backend-go/docs/integrations/LIVE_SYNC_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Integrations,active,     655
+./desktop/backend-go/docs/integrations/livekit/LIVEKIT_ROOM_MONITOR_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Voice System,complete,     296
+./desktop/backend-go/docs/integrations/INTEGRATION_DATA_MAPPING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     449
+./desktop/backend-go/docs/integrations/integration_day1_verification.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Integrations,active,     170
+./desktop/backend-go/docs/integrations/WALKTHROUGH_INTEGRATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,implementation,frontend,recent,Integrations,active,     341
+./desktop/backend-go/docs/LIVEKIT_ROOM_MONITOR_IMPLEMENTATION.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,implementation,frontend,recent,Voice System,active,     318
+./desktop/backend-go/docs/CHANGELOG_2024-12-24.md,2025-12-24,Roberto H luna,2026-01-12,Roberto H luna,changelog,frontend,recent,Frontend,active,      98
+./desktop/backend-go/docs/architecture/BUSINESSOS_AGENT_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,      70
+./desktop/backend-go/docs/architecture/INTEGRATION_MODULE_MAPPING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Integrations,active,     159
+./desktop/backend-go/docs/architecture/CONTAINER_MANAGER.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,     193
+./desktop/backend-go/docs/architecture/CONTAINER_EXEC.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,     265
+./desktop/backend-go/docs/architecture/BUSINESSOS_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Frontend,active,    1365
+./desktop/backend-go/docs/REDIS_SECURITY.md,2025-12-23,OSOSerious,2026-01-12,Roberto H luna,security,frontend,recent,Security,active,     319
+./desktop/backend-go/docs/OSA_API_TESTS.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,test-report,frontend,recent,Frontend,active,    1057
+./desktop/backend-go/docs/Session Invalidation Security Implementation - COM 2d25ac02f07780d1ab84c23bc040af66.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,implementation,frontend,recent,Security,active,     434
+./desktop/backend-go/docs/OSA_API_QUICK_REFERENCE.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,api-reference,frontend,recent,Frontend,active,     113
+./desktop/backend-go/docs/api/API_README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     653
+./desktop/backend-go/docs/api/API_CHEATSHEET.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     438
+./desktop/backend-go/docs/api/API_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-reference,frontend,recent,API,active,     385
+./desktop/backend-go/docs/api/API_VISUAL_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     477
+./desktop/backend-go/docs/api/OSA_BUILD_API_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-reference,frontend,recent,OSA Build,active,    1242
+./desktop/backend-go/docs/api/api_rag_endpoints.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     441
+./desktop/backend-go/docs/api/MOBILE_API_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     652
+./desktop/backend-go/docs/api/MOBILE_API.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,    1421
+./desktop/backend-go/docs/api/API_OSA_ONBOARDING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,Onboarding,active,    1287
+./desktop/backend-go/docs/api/API_ENDPOINTS_REFERENCE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-reference,frontend,recent,API,active,    1340
+./desktop/backend-go/docs/api/API_DOCUMENTATION_INDEX.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,frontend,recent,API,active,     423
+./desktop/backend-go/docs/OSA_SSE_STREAMING.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,documentation,frontend,recent,Frontend,active,     461
+./desktop/backend-go/docs/BusinessOS Backend - Terminal System Documentation 2d25ac02f07780319531c26bd49c6242.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,architecture,frontend,recent,Frontend,active,    1980
+./desktop/backend-go/docs/ENVIRONMENT_VALIDATION_GUIDE.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,guide,frontend,recent,Frontend,active,     427
+./desktop/backend-go/docs/TEST_TRACK_3_SUMMARY.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Frontend,complete,     413
+./desktop/backend-go/docs/VOICE_VALIDATION_TESTS.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Voice System,active,     469
+./desktop/backend-go/docs/TIERED_CONTEXT_SYSTEM.md,2025-12-24,Roberto H luna,2026-01-12,Roberto H luna,architecture,frontend,recent,Frontend,active,     218
+./desktop/backend-go/scripts/test/TEST_TRACK_2_COMPLETE.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Testing,complete,     386
+./desktop/backend-go/scripts/test/INTEGRATION_TEST_RESULTS.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Integrations,active,     236
+./desktop/backend-go/scripts/test/README.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Testing,active,      96
+./desktop/backend-go/scripts/test/INTEGRATION_TEST_GUIDE.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Integrations,active,     329
+./desktop/backend-go/scripts/README.md,2026-01-02,PAMF2,2026-01-08,PAMF2,readme,frontend,recent,Frontend,active,      81
+./desktop/backend-go/scripts/README_RESET_ONBOARDING.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,readme,frontend,recent,Onboarding,active,      76
+./desktop/backend-go/skills/dashboard-management/references/EXAMPLES.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     552
+./desktop/backend-go/skills/dashboard-management/references/WIDGETS.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     420
+./desktop/backend-go/skills/dashboard-management/references/ERRORS.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     387
+./desktop/backend-go/skills/dashboard-management/references/CONFIGS.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     316
+./desktop/backend-go/skills/dashboard-management/SKILL.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     271
+./desktop/backend-go/skills/dashboard-management/prompts/error_recovery.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     213
+./desktop/backend-go/skills/dashboard-management/prompts/clarification.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Dashboard,active,     166
+./desktop/backend-go/skills/task-management/references/FILTERS.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,task-list,frontend,recent,Skills,active,      89
+./desktop/backend-go/skills/task-management/SKILL.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,task-list,frontend,recent,Skills,active,     172
+./desktop/backend-go/skills/notification-management/SKILL.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Notifications,active,     181
+./desktop/backend-go/skills/analytics-insights/references/METRICS.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Skills,active,      81
+./desktop/backend-go/skills/analytics-insights/SKILL.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Skills,active,     178
+./desktop/backend-go/skills/project-management/SKILL.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Skills,active,     167
+./desktop/backend-go/skills/README.md,2026-01-14,Javaris0629,2026-01-14,Javaris0629,skill,frontend,recent,Skills,active,     110
+./desktop/backend-go/REFACTORING_PRIORITY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Frontend,active,     281
+./desktop/backend-go/CLAUDE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,frontend,recent,Frontend,active,     156
+./docs/research/MEDIAPIPE_ALTERNATIVES.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,api-guide,backend,recent,Backend,active,     218
+./docs/research/deep_research.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,general,recent,General,active,      86
+./docs/research/rag_performance_report_template.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,template,agents,recent,Agents,active,     517
+./docs/research/multimodal_search_integration.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,integrations,recent,Integrations,active,     678
+./docs/research/FOUNDATIONAL_MODULES_RESEARCH.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,general,recent,General,active,    1332
+./docs/FORM_PATTERNS_INDEX.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,general,recent,General,active,     457
+./docs/FILE_CLEANUP_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,active,     280
+./docs/DASHBOARD_ANALYTICS_SCHEMA_REVIEW.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,analysis,database,recent,Dashboard,active,     659
+./docs/DELIVERY_CHECKLIST.md,2026-01-08,PAMF2,2026-01-08,PAMF2,task-list,general,recent,General,active,     341
+./docs/SECURITY_CLEANUP_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,security,recent,Security,active,     217
+./docs/OSA_BUILD_USER_FLOW_GUIDE.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,guide,frontend,recent,OSA Build,active,     448
+./docs/OSA_BUILD_SOCIAL_SYSTEM.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,architecture,frontend,recent,OSA Build,active,     779
+./docs/AGENT_VALIDATION_EXAMPLES.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Agents,active,     359
+./docs/context/TEMPLATE.md,2025-12-21,Roberto H luna,2025-12-21,Roberto H luna,template,general,active,General,active,      38
+./docs/CODEBASE_CLEANUP_MASTER_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,active,    1078
+./docs/patterns/TEMPLATE.md,2025-12-21,Roberto H luna,2025-12-21,Roberto H luna,template,general,active,General,active,      33
+./docs/archive/fixes/PERMISSION_SYSTEM_FIX_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,workspace,recent,Workspace,archived,     435
+./docs/archive/fixes/CRITICAL_FIX_APPLIED.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,general,recent,General,archived,     182
+./docs/archive/research/GAPS_V2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,general,recent,General,archived,      48
+./docs/archive/research/CONTAINER_ORCHESTRATION_RESEARCH_2025.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,agents,recent,Agents,archived,    1215
+./docs/archive/research/LED_GESTURE_SYSTEM_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,archived,     413
+./docs/archive/research/SCALABILITY_ARCHITECTURE_RESEARCH.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,architecture,recent,Architecture,archived,     910
+./docs/archive/research/SCALABILITY_QUICK_REFERENCE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,frontend,recent,Frontend,archived,     357
+./docs/archive/research/gesture-iterations/GESTURE_SYSTEM_CLEAN.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,archived,     194
+./docs/archive/research/gesture-iterations/GESTURE_SYSTEM_FINAL.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,archived,     310
+./docs/archive/research/gesture-iterations/GESTURE_SPEC_FINAL.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Gesture System,archived,     289
+./docs/archive/research/gesture-iterations/GESTURE_SYSTEM_REDESIGN.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,archived,     466
+./docs/archive/research/gesture-iterations/GESTURE_CLEANUP_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,frontend,recent,Gesture System,archived,     475
+./docs/archive/research/gesture-iterations/GESTURE_SYSTEM_SPEC.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,frontend,recent,Gesture System,archived,     507
+./docs/archive/research/gesture-iterations/GESTURE_CONTROLS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,frontend,recent,Gesture System,archived,     178
+./docs/archive/CONTAINER_ORCHESTRATION_RESEARCH_2025.md,2025-12-23,OSOSerious,2025-12-23,OSOSerious,analysis,agents,active,Agents,archived,    1215
+./docs/archive/migrations/SUPABASE_MIGRATION_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,database,recent,Database,archived,     337
+./docs/archive/releases/RELEASE_NOTES_2026_01_02.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,changelog,general,recent,General,archived,     383
+./docs/archive/releases/CHANGELOG_2025-12-28.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,changelog,general,recent,General,archived,     215
+./docs/archive/tasks/PEDRO_TASKS_REMAINING_GAPS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,task-list,agents,recent,Agents,archived,     140
+./docs/archive/tasks/PLAN_integrations_audit.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,integrations,recent,Integrations,archived,     438
+./docs/archive/tasks/PEDRO_BACKEND_TASKS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,task-list,backend,recent,Backend,archived,     646
+./docs/archive/tasks/pedro-tasks-frontend-integration.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,frontend,recent,Integrations,archived,     262
+./docs/archive/tasks/pedro_tasks.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,task-list,project-mgmt,recent,Project-Mgmt,archived,     987
+./docs/archive/tasks/PR_REVIEW_PEDRO_AGENTV2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,analysis,agents,recent,Agents,archived,    2294
+./docs/archive/tasks/PEDRO_BACKEND_TASKS_V2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,task-list,backend,recent,Backend,archived,    2294
+./docs/archive/tasks/taks_v2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,task-list,project-mgmt,recent,Project-Mgmt,archived,    1103
+./docs/archive/PRs/PR_DESCRIPTION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,general,recent,General,archived,     355
+./docs/archive/features/USERNAME_SYSTEM_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,general,recent,General,archived,     175
+./docs/archive/planning/HAND_GESTURE_PLAN.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,planning,frontend,recent,Gesture System,archived,     386
+./docs/archive/SCALABILITY_ARCHITECTURE_RESEARCH.md,2025-12-23,OSOSerious,2025-12-23,OSOSerious,architecture,architecture,active,Architecture,archived,     910
+./docs/archive/troubleshooting/FIX_AUDIO_OUTPUT_NOW.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,voice,recent,Voice,archived,     354
+./docs/archive/status/LINEAR_TASKS_STATUS_2026_01_06.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,project-mgmt,recent,Project-Mgmt,archived,     318
+./docs/archive/status/VOICE_CLEANUP_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,voice,recent,Voice System,archived,     233
+./docs/archive/status/BACKEND_READINESS_ASSESSMENT.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,backend,recent,Backend,archived,     547
+./docs/archive/status/pedro_tasks_status_update.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,project-mgmt,recent,Project-Mgmt,archived,     267
+./docs/archive/status/day3_summary.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,general,recent,General,archived,     156
+./docs/archive/status/ontem_vs_hoje_comparacao.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,general,recent,General,archived,     573
+./docs/archive/status/feature7_implementation_status.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,archived,     448
+./docs/archive/status/READY_TO_TEST.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,testing,recent,Testing,archived,     249
+./docs/archive/status/feature1_workspace_status.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,workspace,recent,Workspace,archived,     531
+./docs/archive/status/STATUS_RESUMO_2026_01_02.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,general,recent,General,archived,     167
+./docs/archive/status/VALIDATION_IMPLEMENTATION_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,general,recent,General,archived,     287
+./docs/archive/status/VOICE_SYSTEM_READY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,voice,recent,Voice System,archived,     216
+./docs/archive/status/feature1_role_based_agents_status.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,agents,recent,Agents,archived,     528
+./docs/archive/status/CLEANUP_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,archived,     103
+./docs/archive/status/ACTUAL_STATUS_2026_01_02.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,report,general,recent,General,archived,     118
+./docs/archive/status/system_status.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,general,recent,General,archived,     282
+./docs/archive/status/HYBRID_VOICE_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,voice,recent,Voice System,archived,     294
+./docs/archive/operations/RESTART_INSTRUCTIONS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,general,recent,General,archived,     203
+./docs/archive/operations/START_VOICE_SYSTEM.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,voice,recent,Voice System,archived,     221
+./docs/archive/testing/MICROPHONE_INPUT_VERIFICATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,voice,recent,Voice,archived,     467
+./docs/archive/testing/TRANSCRIPT_FIX_TEST.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,testing,recent,Testing,archived,     230
+./docs/archive/testing/TEST_VOICE_MINIMAL.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,voice,recent,Voice System,archived,     154
+./docs/archive/testing/INTELLIGENT_PARSER_TEST_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,frontend,recent,Frontend,archived,     229
+./docs/archive/verification/CONTEXT_HIERARCHY_VERIFICATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,general,recent,General,archived,     415
+./docs/archive/verification/FINAL_VERIFICATION_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,general,recent,General,archived,     497
+./docs/archive/architecture/VOICE_HYBRID_GO_ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,backend,recent,Voice System,archived,     397
+./docs/archive/SCALABILITY_QUICK_REFERENCE.md,2025-12-23,OSOSerious,2025-12-23,OSOSerious,reference,frontend,active,Frontend,archived,     357
+./docs/archive/implementation/CURL_TEST_RESULTS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,test-report,testing,recent,Testing,archived,     378
+./docs/archive/implementation/REDIS_PUBSUB_WIRING.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,archived,     161
+./docs/archive/implementation/LOGGING_MIGRATION_CHECKLIST.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,database,recent,Database,archived,     368
+./docs/archive/REDIS_PUBSUB_WIRING.md,2025-12-23,OSOSerious,2025-12-23,OSOSerious,documentation,general,active,General,archived,     161
+./docs/archive/LOGGING_MIGRATION_CHECKLIST.md,2025-12-23,OSOSerious,2025-12-23,OSOSerious,task-list,database,active,Database,archived,     368
+./docs/archive/reports/ELECTRON_WEB_PARITY_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,archived,     248
+./docs/TRACK_3A_IMPORT_MAP.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,general,recent,General,active,     317
+./docs/TESTING_OSA_ONBOARDING.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,Onboarding,active,    2147
+./docs/security/SECURITY_BACKEND.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,security,backend,recent,Security,active,     382
+./docs/development/BACKEND_GO_README.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,readme,backend,recent,Backend,active,     158
+./docs/development/outputs.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,general,recent,General,active,     768
+./docs/development/COMMON_ISSUES.md,2026-01-12,robertohluna,2026-01-12,robertohluna,documentation,general,recent,General,active,     246
+./docs/development/BACKEND.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,backend,recent,Backend,active,     931
+./docs/development/DEVELOPER_QUICKSTART.md,2026-01-08,Roberto H luna,2026-01-12,robertohluna,guide,frontend,recent,Frontend,active,     294
+./docs/development/FRONTEND.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,frontend,recent,Frontend,active,     935
+./docs/development/GETTING_STARTED_OSA.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,guide,agents,recent,Agents,active,     533
+./docs/development/DEVELOPMENT.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,general,recent,General,active,     275
+./docs/development/VOLUME_USAGE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,general,recent,General,active,     278
+./docs/FRONTEND_NOTIFICATIONS_GUIDE.md,2026-01-11,Javaris0629,2026-01-11,Javaris0629,guide,frontend,recent,Notifications,active,     489
+./docs/FRONTEND_DOCS_REORGANIZATION.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,frontend,recent,Frontend,active,     431
+./docs/AGENT_VALIDATION.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Agents,active,     309
+./docs/ADVANCED_TASKMANAGER.md,2026-01-08,PAMF2,2026-01-08,PAMF2,task-list,project-mgmt,recent,Project-Mgmt,active,     520
+./docs/magic_link_email.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,documentation,agents,recent,Agents,active,    1675
+./docs/START_HERE.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,general,recent,General,active,     400
+./docs/PRODUCTION_READINESS_ASSESSMENT.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,report,general,recent,General,active,     308
+./docs/features/KNOWLEDGE_OS_INTEGRATION_PLAN.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,integrations,recent,Integrations,active,     459
+./docs/features/FUTURE_FEATURES.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,active,    1104
+./docs/features/KNOWLEDGE_MODULE_UPDATE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,active,     227
+./docs/features/FEATURES.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,active,     623
+./docs/features/KNOWLEDGE_MODULE_TODO.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,implementation,general,recent,General,active,     291
+./docs/team-review/sprint-summaries/TEMPLATE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,template,workspace,recent,Documentation,active,     312
+./docs/team-review/STRUCTURE_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,workspace,recent,Documentation,complete,     331
+./docs/team-review/pr-reviews/TEMPLATE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,template,workspace,recent,Documentation,active,     224
+./docs/team-review/QUICK_START_GUIDE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,guide,frontend,recent,Documentation,active,     310
+./docs/team-review/release-notes/TEMPLATE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,template,workspace,recent,Documentation,active,     405
+./docs/team-review/DOCUMENTATION_MAP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,workspace,recent,Documentation,active,     333
+./docs/team-review/README.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,workspace,recent,Documentation,active,     131
+./docs/planning/DESKTOP3D_ROADMAP.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,planning,frontend,recent,3D Desktop,active,     424
+./docs/planning/PLATFORM_TAXONOMY.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,planning,architecture,recent,Architecture,active,     343
+./docs/planning/DESKTOP3D_PHASE1_PLAN.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,planning,frontend,recent,3D Desktop,active,    1243
+./docs/planning/FINAL_TAXONOMY.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,planning,architecture,recent,Architecture,active,     592
+./docs/planning/PRODUCTION_READINESS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,planning,architecture,recent,Architecture,active,     340
+./docs/planning/BUSINESSOS_TAXONOMY_v2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,planning,architecture,recent,Architecture,superseded,     452
+./docs/planning/PHASE_STATUS_AND_NEXT_STEPS.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,architecture,recent,Architecture,active,     348
+./docs/REORGANIZATION_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,complete,     266
+./docs/sorxdocs/SORX_2.0_SPECIFICATION.md,2026-01-04,Roberto H luna,2026-01-04,Roberto H luna,documentation,general,active,General,active,    5946
+./docs/OSA_BUILD_ONBOARDING_FLOW.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,documentation,frontend,recent,OSA Build,active,     617
+./docs/OSA_BUILD_TESTING_PLAN.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,test-report,frontend,recent,OSA Build,active,    1638
+./docs/EMAIL_TEMPLATES.md,2026-01-13,Javaris0629,2026-01-13,Javaris0629,template,agents,recent,Agents,active,     705
+./docs/decisions/2026-01-06_feature1_checkpoint.md,2026-01-06,PAMF2,2026-01-06,PAMF2,implementation,general,recent,General,active,     339
+./docs/CODEBASE_ORGANIZATION_IMPROVEMENTS.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,documentation,general,recent,General,active,    1051
+./docs/OSA_BUILD_DEEP_IMPLEMENTATION_PLAN.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,implementation,frontend,recent,OSA Build,active,    1167
+./docs/CLAUDE_CODE_OPTIMIZATION_GUIDE.md,2026-01-11,PAMF2,2026-01-11,PAMF2,guide,frontend,recent,Frontend,active,    1451
+./docs/CLAUDE_CODE_QUICKSTART.md,2026-01-11,PAMF2,2026-01-11,PAMF2,guide,frontend,recent,Frontend,active,     297
+./docs/architecture/ARCHITECTURE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,architecture,recent,Architecture,active,     447
+./docs/architecture/MIOSA_VISION_PART2.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,agents,recent,Agents,active,    2852
+./docs/architecture/FILE_IMPORT_ARCHITECTURE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,architecture,recent,Architecture,active,    1077
+./docs/architecture/ARCHITECTURE_DIAGRAMS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,architecture,recent,Architecture,active,     627
+./docs/architecture/TERMINAL_SYSTEM.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,architecture,recent,Architecture,active,    1800
+./docs/architecture/MIOSA_VISION_PART1.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,architecture,agents,recent,Agents,active,    1674
+./docs/architecture/ARCHITECTURE_COMPARISON_DIAGRAM.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,architecture,architecture,recent,Architecture,active,     407
+./docs/DASHBOARD_AGENT_TOOL.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,documentation,agents,recent,Dashboard,active,     391
+./docs/EXECUTIVE_SUMMARY.md,2026-01-11,OSOSerious,2026-01-11,OSOSerious,report,general,recent,General,complete,     341
+./docs/README_ONBOARDING.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,readme,frontend,recent,Onboarding,active,     339
+./docs/ONBOARDING_TASKS.md,2026-01-11,Javaris0629,2026-01-13,Javaris0629,task-list,frontend,recent,Onboarding,active,     243
+./docs/deployment/CLOUD-INFRASTRUCTURE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,infrastructure,recent,Infrastructure,active,     404
+./docs/deployment/DEPLOYMENT_GUIDE.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,guide,frontend,recent,Frontend,active,    1066
+./docs/deployment/DEPLOYMENT.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,infrastructure,recent,Infrastructure,active,     557
+./docs/WORKFLOW_EXAMPLE.md,2026-01-08,PAMF2,2026-01-08,PAMF2,documentation,general,recent,General,active,     269
+./docs/AGENT_SKILLS_TASK_LIST.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,task-list,agents,recent,Skills,active,     443
+./docs/implementation/00-IMPLEMENTATION-INDEX.md,2026-01-09,Roberto H luna,2026-01-09,OSOSerious,implementation,general,recent,General,active,     260
+./docs/implementation/07-WORKFLOWS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     108
+./docs/implementation/01-WORKSPACES.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,workspace,recent,Workspace,active,     251
+./docs/implementation/10-SYNC-ENGINE.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,integrations,recent,Sync Engine,active,      78
+./docs/implementation/08-ADVANCED-RAG.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,agents,recent,Agents,active,      73
+./docs/implementation/02-CUSTOM-AGENTS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,agents,recent,Agents,active,     314
+./docs/implementation/17-GLOBAL-SEARCH.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     410
+./docs/implementation/14-PEDRO-CONVERSATION-INTEL.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     288
+./docs/implementation/09-TERMINAL-FILESYSTEM.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,architecture,general,recent,General,active,      77
+./docs/implementation/11-PEDRO-DOCUMENTS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     323
+./docs/implementation/JAVARIS-UI-TASKS.md,2026-01-11,Javaris0629,2026-01-11,Javaris0629,implementation,frontend,recent,Frontend,active,     146
+./docs/implementation/05-COMMANDS-DELEGATION.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     367
+./docs/implementation/03-MEMORIES-USER-FACTS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     359
+./docs/implementation/04-THINKING-COT.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,agents,recent,Agents,active,     301
+./docs/implementation/18-TEAM-PERMISSIONS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,workspace,recent,Workspace,active,     376
+./docs/implementation/15-JAVARIS-NOTIFICATIONS.md,2026-01-09,Roberto H luna,2026-01-11,Javaris0629,implementation,project-mgmt,recent,Notifications,active,     486
+./docs/implementation/06-INTEGRATIONS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,integrations,recent,Integrations,active,     380
+./docs/implementation/19-AUDIT-LOGS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     464
+./docs/implementation/16-TEAM-INVITATIONS.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,workspace,recent,Workspace,active,     357
+./docs/implementation/12-PEDRO-LEARNING.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     373
+./docs/implementation/13-PEDRO-APP-PROFILER.md,2026-01-09,Roberto H luna,2026-01-09,Roberto H luna,implementation,general,recent,General,active,     230
+./docs/COMMENTS_MENTIONS_FLOW.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,documentation,general,recent,General,active,     291
+./docs/ONBOARDING_QUICK_REFERENCE.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,reference,frontend,recent,Onboarding,active,     382
+./docs/DELETED_FILES_BACKUP/ai-thinking-ts-backup-2026-01-11.md,2026-01-11,PAMF2,2026-01-11,PAMF2,documentation,agents,recent,Agents,active,     121
+./docs/TASKMANAGER_EXAMPLES.md,2026-01-08,PAMF2,2026-01-08,PAMF2,task-list,project-mgmt,recent,Project-Mgmt,active,     522
+./docs/adrs/TEMPLATE.md,2025-12-21,Roberto H luna,2025-12-21,Roberto H luna,template,general,active,General,active,      38
+./docs/adrs/ADR-001-crm-clients-separation.md,2026-01-12,Roberto H luna,2026-01-12,Roberto H luna,adr,general,recent,General,active,     106
+./docs/BUSINESSOS_TABLES_RECOMMENDATIONS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,general,recent,General,active,     903
+./docs/PR_REVIEW.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,analysis,general,recent,General,active,    1448
+./docs/FORM_COMPONENTS_USAGE_GUIDE.md,2026-01-08,PAMF2,2026-01-08,PAMF2,guide,frontend,recent,Frontend,active,     726
+./docs/DEEPGRAM_SETUP.md,2026-01-14,robertohluna,2026-01-14,robertohluna,documentation,voice,recent,Voice System,active,     187
+./docs/SPRINT_PLAN_Q1_BETA.md,2026-01-08,PAMF2,2026-01-08,PAMF2,planning,general,recent,General,active,    3020
+./docs/NOCODB_CODE_PATTERNS.md,2026-01-08,Roberto H luna,2026-01-08,Roberto H luna,documentation,general,recent,General,active,    1338
+./docs/handoffs/HANDOFF_2026-01-09.md,2026-01-09,OSOSerious,2026-01-09,OSOSerious,documentation,general,recent,General,active,     170
+./docs/MCP_SECURITY_ASSESSMENT.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,report,security,recent,Security,active,     556
+./docs/AGENT_SKILLS_OVERVIEW.md,2026-01-08,Javaris0629,2026-01-08,Javaris0629,skill,agents,recent,Skills,active,     379
+./docs/reports/PR-cloud-infrastructure.md,2025-12-21,Roberto H luna,2025-12-21,Roberto H luna,report,infrastructure,active,Infrastructure,active,     216
+./docs/reports/MASTER_AUDIT_SYNTHESIS.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,report,general,recent,General,active,     621
+./docs/reports/AUDIT_VISUAL_DASHBOARD.md,2026-01-18,Roberto H luna,2026-01-18,Roberto H luna,report,project-mgmt,recent,Dashboard,active,     507
+./docs/reports/QUALITY_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,active,     464
+./docs/reports/MASTER_TEST_REPORT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,testing,recent,Testing,active,     332
+./README.md,2025-12-11,Roberto H luna,2026-01-19,Roberto H luna,readme,general,recent,General,active,     348
+./TASKS.md,2026-01-08,PAMF2,2026-01-11,PAMF2,task-list,project-mgmt,recent,Project-Mgmt,active,     217
+./DOCUMENTATION_REORGANIZATION_SUMMARY.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,report,general,recent,General,complete,     478
+./python-voice-agent/docs/ARCHITECTURE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,architecture,voice,recent,Voice System,active,     300
+./python-voice-agent/docs/TESTING.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,voice,recent,Voice System,active,     149
+./python-voice-agent/docs/DEPLOYMENT.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,documentation,voice,recent,Voice System,active,     236
+./python-voice-agent/README.md,2026-01-17,Roberto H luna,2026-01-17,Roberto H luna,readme,voice,recent,Voice System,active,     104
+./CLAUDE.md,2025-12-21,Roberto H luna,2026-01-08,PAMF2,documentation,agents,recent,Agents,active,     448
+./BACKEND_DOCS_MOVE_COMPLETE.md,2026-01-19,Roberto H luna,2026-01-19,Roberto H luna,test-report,backend,recent,Backend,complete,     354

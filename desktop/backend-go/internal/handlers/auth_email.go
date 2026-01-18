@@ -4,14 +4,15 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/config"
+	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
+	"github.com/rhl/businessos-backend/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -75,7 +76,12 @@ func (h *EmailAuthHandler) SignUp(c *gin.Context) {
 	}
 
 	// Create user
-	userID := generateUserID()
+	userID, err := utils.GenerateUserID()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate user ID"})
+		return
+	}
+
 	_, err = h.pool.Exec(ctx, `
 		INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt")
 		VALUES ($1, $2, $3, false, NOW(), NOW())
@@ -86,7 +92,12 @@ func (h *EmailAuthHandler) SignUp(c *gin.Context) {
 	}
 
 	// Store password in account table (Better Auth compatible)
-	accountID := generateUserID()
+	accountID, err := utils.GenerateUserID()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate account ID"})
+		return
+	}
+
 	_, err = h.pool.Exec(ctx, `
 		INSERT INTO account (id, "userId", "accountId", "providerId", password, "createdAt", "updatedAt")
 		VALUES ($1, $2, $3, 'credential', $4, NOW(), NOW())
@@ -105,28 +116,8 @@ func (h *EmailAuthHandler) SignUp(c *gin.Context) {
 		return
 	}
 
-	// Set session cookie with environment-dependent configuration
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
-	domain := os.Getenv("COOKIE_DOMAIN")
-	if domain == "" {
-		domain = "" // Current domain
-	}
-
-	sameSite := http.SameSiteLaxMode // Secure default for production
-	if os.Getenv("ALLOW_CROSS_ORIGIN") == "true" {
-		sameSite = http.SameSiteNoneMode
-	}
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "better-auth.session_token",
-		Value:    sessionToken,
-		Path:     "/",
-		Domain:   domain,
-		MaxAge:   60 * 60 * 24 * 30, // 30 days - persistent login
-		HttpOnly: true,
-		Secure:   isProduction,
-		SameSite: sameSite,
-	})
+	// Set session cookie
+	middleware.SetSessionCookie(c, sessionToken)
 
 	// Send welcome notification
 	if h.notificationTriggers != nil {
@@ -204,33 +195,8 @@ func (h *EmailAuthHandler) SignIn(c *gin.Context) {
 		return
 	}
 
-	// Set session cookie with environment-dependent configuration
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
-	domain := os.Getenv("COOKIE_DOMAIN")
-	if domain == "" {
-		domain = "" // Current domain
-	}
-
-	// For development, use SameSite=None to allow cross-origin cookies (different ports)
-	// Browsers allow SameSite=None without Secure for localhost
-	sameSite := http.SameSiteLaxMode
-	secure := isProduction
-
-	if !isProduction {
-		sameSite = http.SameSiteNoneMode
-		secure = false // localhost is exempt from Secure requirement for SameSite=None
-	}
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "better-auth.session_token",
-		Value:    sessionToken,
-		Path:     "/",
-		Domain:   domain,
-		MaxAge:   60 * 60 * 24 * 30, // 30 days - persistent login
-		HttpOnly: true,
-		Secure:   secure,
-		SameSite: sameSite,
-	})
+	// Set session cookie
+	middleware.SetSessionCookie(c, sessionToken)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
@@ -244,11 +210,19 @@ func (h *EmailAuthHandler) SignIn(c *gin.Context) {
 
 // createSession creates a new session for the user
 func (h *EmailAuthHandler) createSession(ctx context.Context, userID string) (string, error) {
-	sessionToken := generateSessionToken()
-	sessionID := generateSessionID()
+	sessionToken, err := utils.GenerateSessionToken()
+	if err != nil {
+		return "", err
+	}
+
+	sessionID, err := utils.GenerateSessionID()
+	if err != nil {
+		return "", err
+	}
+
 	expiresAt := time.Now().Add(30 * 24 * time.Hour) // 30 days - persistent login
 
-	_, err := h.pool.Exec(ctx, `
+	_, err = h.pool.Exec(ctx, `
 		INSERT INTO session (id, "userId", token, "expiresAt", "createdAt", "updatedAt")
 		VALUES ($1, $2, $3, $4, NOW(), NOW())
 	`, sessionID, userID, sessionToken, expiresAt)

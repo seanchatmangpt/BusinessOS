@@ -1,3 +1,15 @@
+---
+title: BusinessOS Backend Documentation
+author: Roberto Luna (with Claude Code)
+created: 2025-12-01
+updated: 2026-01-19
+category: Backend
+type: Reference
+status: Active
+part_of: Backend Documentation
+relevance: Active
+---
+
 # BusinessOS Backend Documentation
 
 **Version:** 2.0

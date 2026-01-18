@@ -1,3 +1,15 @@
+---
+title: Button Component Standardization
+author: Roberto Luna (with Claude Code)
+created: 2026-01-12
+updated: 2026-01-19
+category: Frontend
+type: Guide
+status: Active
+part_of: Button System Migration
+relevance: Recent
+---
+
 # Button Component Standardization
 
 ## Overview

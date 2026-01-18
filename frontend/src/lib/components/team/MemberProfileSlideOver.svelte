@@ -2,6 +2,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import StatusBadge from './StatusBadge.svelte';
 	import CapacityBar from './CapacityBar.svelte';
+	import { getInitials } from '$lib/utils/formatters';
 
 	type Status = 'available' | 'busy' | 'overloaded' | 'ooo';
 
@@ -51,15 +52,6 @@
 	function handleClose() {
 		open = false;
 		onClose?.();
-	}
-
-	function getInitials(name: string) {
-		return name
-			.split(' ')
-			.map(n => n.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
 	}
 
 	function formatRelativeTime(dateStr: string) {

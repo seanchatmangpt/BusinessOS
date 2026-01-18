@@ -2,14 +2,11 @@ package handlers
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -19,6 +16,7 @@ import (
 	integrations "github.com/rhl/businessos-backend/internal/integrations/google"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
+	"github.com/rhl/businessos-backend/internal/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -70,7 +68,7 @@ func NewGoogleAuthHandler(pool *pgxpool.Pool, cfg *config.Config, sessionCache *
 // InitiateGoogleLogin starts the Google OAuth flow for login
 func (h *GoogleAuthHandler) InitiateGoogleLogin(c *gin.Context) {
 	// Generate random state for CSRF protection
-	state := generateRandomState()
+	state := utils.MustGenerateSessionToken() // Using session token generator for OAuth state
 
 	// Get redirect URL from query (for desktop app flow)
 	redirectAfter := c.Query("redirect")
@@ -163,28 +161,8 @@ func (h *GoogleAuthHandler) HandleGoogleLoginCallback(c *gin.Context) {
 		c.SetCookie("new_user", "true", 60, "/", "", false, true) // 60 seconds, enough for redirect
 	}
 
-	// Set session cookie with environment-dependent configuration
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
-	domain := os.Getenv("COOKIE_DOMAIN")
-	if domain == "" {
-		domain = "" // Current domain
-	}
-
-	sameSite := http.SameSiteLaxMode // Secure default for production
-	if os.Getenv("ALLOW_CROSS_ORIGIN") == "true" {
-		sameSite = http.SameSiteNoneMode
-	}
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "better-auth.session_token",
-		Value:    sessionToken,
-		Path:     "/",
-		Domain:   domain,
-		MaxAge:   60 * 60 * 24 * 30, // 30 days - persistent login
-		HttpOnly: true,
-		Secure:   isProduction,
-		SameSite: sameSite,
-	})
+	// Set session cookie
+	middleware.SetSessionCookie(c, sessionToken)
 
 	// Redirect to app
 	c.Redirect(http.StatusTemporaryRedirect, redirectAfter)
@@ -229,7 +207,10 @@ func (h *GoogleAuthHandler) upsertUser(ctx context.Context, info *GoogleUserInfo
 	}
 
 	// Create new user (with onboarding_completed = false by default)
-	userID := generateUserID()
+	userID, err := utils.GenerateUserID()
+	if err != nil {
+		return "", false, fmt.Errorf("failed to generate user ID: %w", err)
+	}
 	_, err = h.pool.Exec(ctx, `
 		INSERT INTO "user" (id, name, email, "emailVerified", image, onboarding_completed, "createdAt", "updatedAt")
 		VALUES ($1, $2, $3, $4, $5, FALSE, NOW(), NOW())
@@ -244,11 +225,17 @@ func (h *GoogleAuthHandler) upsertUser(ctx context.Context, info *GoogleUserInfo
 
 // createSession creates a new session for the user
 func (h *GoogleAuthHandler) createSession(ctx context.Context, userID string) (string, error) {
-	sessionToken := generateSessionToken()
-	sessionID := generateSessionID()
+	sessionToken, err := utils.GenerateSessionToken()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate session token: %w", err)
+	}
+	sessionID, err := utils.GenerateSessionID()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate session ID: %w", err)
+	}
 	expiresAt := time.Now().Add(30 * 24 * time.Hour) // 30 days - persistent login
 
-	_, err := h.pool.Exec(ctx, `
+	_, err = h.pool.Exec(ctx, `
 		INSERT INTO session (id, "userId", token, "expiresAt", "createdAt", "updatedAt")
 		VALUES ($1, $2, $3, $4, NOW(), NOW())
 	`, sessionID, userID, sessionToken, expiresAt)
@@ -367,28 +354,8 @@ func (h *GoogleAuthHandler) Logout(c *gin.Context) {
 		h.pool.Exec(ctx, `DELETE FROM session WHERE token = $1`, sessionToken)
 	}
 
-	// Clear cookie with environment-dependent configuration (must match how it was set)
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
-	domain := os.Getenv("COOKIE_DOMAIN")
-	if domain == "" {
-		domain = "" // Current domain
-	}
-
-	sameSite := http.SameSiteLaxMode // Secure default for production
-	if os.Getenv("ALLOW_CROSS_ORIGIN") == "true" {
-		sameSite = http.SameSiteNoneMode
-	}
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "better-auth.session_token",
-		Value:    "",
-		Path:     "/",
-		Domain:   domain,
-		MaxAge:   -1, // Delete cookie
-		HttpOnly: true,
-		Secure:   isProduction,
-		SameSite: sameSite,
-	})
+	// Clear session cookie
+	middleware.ClearSessionCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out"})
 }
@@ -434,28 +401,8 @@ func (h *GoogleAuthHandler) LogoutAllSessions(c *gin.Context) {
 	rowsAffected := result.RowsAffected()
 	log.Printf("LogoutAllSessions: deleted %d database sessions for user %s", rowsAffected, user.ID)
 
-	// Clear current session cookie with environment-dependent configuration (must match how it was set)
-	isProduction := os.Getenv("ENVIRONMENT") == "production"
-	domain := os.Getenv("COOKIE_DOMAIN")
-	if domain == "" {
-		domain = "" // Current domain
-	}
-
-	sameSite := http.SameSiteLaxMode // Secure default for production
-	if os.Getenv("ALLOW_CROSS_ORIGIN") == "true" {
-		sameSite = http.SameSiteNoneMode
-	}
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "better-auth.session_token",
-		Value:    "",
-		Path:     "/",
-		Domain:   domain,
-		MaxAge:   -1, // Delete cookie
-		HttpOnly: true,
-		Secure:   isProduction,
-		SameSite: sameSite,
-	})
+	// Clear current session cookie
+	middleware.ClearSessionCookie(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "All sessions invalidated",
@@ -463,30 +410,7 @@ func (h *GoogleAuthHandler) LogoutAllSessions(c *gin.Context) {
 	})
 }
 
-// Helper functions
-func generateRandomState() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
-}
-
-func generateUserID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)[:22]
-}
-
-func generateSessionToken() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
-}
-
-func generateSessionID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)[:22]
-}
+// Helper functions removed - now using internal/utils for random ID generation
 
 // storeGmailTokensAndStartAnalysis stores OAuth tokens and triggers background Gmail analysis
 func (h *GoogleAuthHandler) storeGmailTokensAndStartAnalysis(ctx context.Context, userID string, token *oauth2.Token) error {

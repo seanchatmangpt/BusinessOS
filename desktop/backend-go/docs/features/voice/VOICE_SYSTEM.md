@@ -1,3 +1,15 @@
+---
+title: Voice System Architecture
+author: Roberto Luna (with Claude Code)
+created: 2025-12-20
+updated: 2026-01-19
+category: Voice
+type: Guide
+status: Active
+part_of: Voice Agent System
+relevance: Active
+---
+
 # Voice System Architecture
 
 **Version:** 1.0

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ClientListResponse, ClientStatus } from '$lib/api';
 	import { statusColors, statusLabels } from '$lib/stores/clients';
+	import { getInitials, formatCurrency } from '$lib/utils/formatters';
 
 	interface Props {
 		clients: ClientListResponse[];
@@ -20,25 +21,6 @@
 
 	function getClientsByStatus(status: ClientStatus): ClientListResponse[] {
 		return clients.filter((c) => c.status === status);
-	}
-
-	function formatCurrency(value: number | null): string {
-		if (value === null) return '-';
-		return new Intl.NumberFormat('en-US', {
-			style: 'currency',
-			currency: 'USD',
-			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
-		}).format(value);
-	}
-
-	function getInitials(name: string): string {
-		return name
-			.split(' ')
-			.map((n) => n[0])
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
 	}
 
 	function getTotalValue(clients: ClientListResponse[]): number {

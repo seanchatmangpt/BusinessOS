@@ -2,6 +2,7 @@
 	import { fly, fade } from 'svelte/transition';
 	import CapacityBar from './CapacityBar.svelte';
 	import StatusBadge from './StatusBadge.svelte';
+	import { getInitials } from '$lib/utils/formatters';
 
 	type Status = 'available' | 'busy' | 'overloaded' | 'ooo';
 
@@ -40,15 +41,6 @@
 		const formatDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 		return `Week of ${formatDate(startOfWeek)}-${formatDate(endOfWeek).split(' ')[1]}`;
 	});
-
-	function getInitials(name: string) {
-		return name
-			.split(' ')
-			.map(n => n.charAt(0))
-			.join('')
-			.toUpperCase()
-			.slice(0, 2);
-	}
 </script>
 
 <div class="flex-1 overflow-y-auto p-6">
