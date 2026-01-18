@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/services"
@@ -229,7 +230,7 @@ func (h *UsernameHandler) CompleteOnboarding(c *gin.Context) {
 	}
 
 	// Mark onboarding as complete
-	err := h.service.CompleteOnboarding(c.Request.Context(), uuid.MustParse(user.ID))
+	err := h.userService.CompleteOnboarding(c.Request.Context(), uuid.MustParse(user.ID))
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err, "user_id", user.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete onboarding"})

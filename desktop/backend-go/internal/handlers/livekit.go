@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -8,9 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/livekit/protocol/auth"
+	"github.com/livekit/protocol/livekit"
+	lksdk "github.com/livekit/server-sdk-go/v2"
 )
-
-// Removed: Agent dispatch logic (handled by Python agent in dev mode)
 
 // LiveKitTokenRequest represents a request for a LiveKit room token
 type LiveKitTokenRequest struct {
@@ -106,9 +107,39 @@ func (h *Handlers) HandleLiveKitToken(c *gin.Context) {
 		"user_id", user.ID,
 		"room_name", roomName)
 
-	// DISABLED: Agent dispatch (Python agent handles this via dev mode)
-	// The Python agent running in dev mode will automatically connect when room is created
-	slog.Info("[LiveKit] 🔵 Skipping explicit agent dispatch - Python agent will auto-connect", "room", roomName)
+	// Dispatch Python gRPC agent to the room
+	go func() {
+		ctx := context.Background()
+		agentClient := lksdk.NewAgentDispatchServiceClient(livekitURL, apiKey, apiSecret)
+
+		// Create the room first (if it doesn't exist)
+		roomClient := lksdk.NewRoomServiceClient(livekitURL, apiKey, apiSecret)
+		_, err := roomClient.CreateRoom(ctx, &livekit.CreateRoomRequest{
+			Name:            roomName,
+			EmptyTimeout:    300, // 5 minutes
+			MaxParticipants: 10,
+		})
+		if err != nil {
+			slog.Warn("[LiveKit] Room may already exist", "room", roomName, "error", err)
+		}
+
+		// Dispatch the Python gRPC voice agent to the room
+		dispatch, err := agentClient.CreateDispatch(ctx, &livekit.CreateAgentDispatchRequest{
+			AgentName: "osa-voice-grpc", // Python gRPC adapter registered with LiveKit
+			Room:      roomName,
+		})
+		if err != nil {
+			slog.Error("[LiveKit] Failed to dispatch agent",
+				"room", roomName,
+				"agent", "osa-voice-grpc",
+				"error", err)
+			return
+		}
+		slog.Info("[LiveKit] 🚀 Agent dispatched successfully",
+			"room", roomName,
+			"agent", "osa-voice-grpc",
+			"dispatch_id", dispatch.Id)
+	}()
 
 	c.JSON(http.StatusOK, LiveKitTokenResponse{
 		Token:    token,
