@@ -2,15 +2,26 @@
 	import '../app.css';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { themeStore } from '$lib/stores/themeStore';
 	import { useSession } from '$lib/auth-client';
 	import { simpleVoice, type VoiceState } from '$lib/services/simpleVoice';
 	import VoiceOrbPanel from '$lib/components/desktop3d/VoiceOrbPanel.svelte';
 	import LiveCaptions from '$lib/components/desktop3d/LiveCaptions.svelte';
+	import { isOnboardingComplete } from '$lib/stores/onboardingStore';
 
 	let { children } = $props();
 
 	const session = useSession();
+
+	// Derived: Show voice UI if user completed onboarding OR is on main app pages
+	let showVoiceUI = $derived(
+		$session.data && (
+			$isOnboardingComplete ||
+			$page.url.pathname === '/window' ||
+			$page.url.pathname.startsWith('/(app)')
+		)
+	);
 
 	// Voice state (only for authenticated users)
 	let voiceState = $state<VoiceState>('disconnected');
@@ -79,8 +90,8 @@
 <!-- Page content -->
 {@render children()}
 
-<!-- Voice Orb (only for authenticated users, not on login/register pages) -->
-{#if $session.data}
+<!-- Voice Orb (for authenticated users on main app pages) -->
+{#if showVoiceUI}
 	<VoiceOrbPanel {isListening} {isSpeaking} onToggleListening={toggleVoice} />
 	<LiveCaptions {userMessage} {osaMessage} {isListening} {isSpeaking} />
 {/if}

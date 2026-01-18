@@ -1,12 +1,13 @@
 <!--
 	Onboarding Screen 5: Claim Username
-	User chooses their unique username
+	Simplified username selection matching Wabi design
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { GradientBackground, PillButton, RoundedInput } from '$lib/components/osa';
+	import { PillButton } from '$lib/components/osa';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
 	import { checkUsernameAvailability, setUsername } from '$lib/api/users';
+	import { Check, X } from 'lucide-svelte';
 
 	let username = $state('');
 	let isChecking = $state(false);
@@ -31,7 +32,6 @@
 	}
 
 	async function checkAvailability() {
-		// Validate first
 		const validationError = validateUsername(username);
 		if (validationError) {
 			error = validationError;
@@ -43,16 +43,22 @@
 		error = '';
 
 		try {
+			console.log('[Username] Checking availability for:', username);
 			const response = await checkUsernameAvailability(username);
+			console.log('[Username] Response:', response);
 			isAvailable = response.available;
 
 			if (!response.available) {
 				error = response.reason || 'Username is already taken';
 			}
 		} catch (err) {
+			console.error('[Username] Error checking availability:', err);
+			console.error('[Username] Error details:', {
+				message: err instanceof Error ? err.message : String(err),
+				username: username
+			});
 			error = 'Unable to check availability. Please try again.';
 			isAvailable = null;
-			console.error('Error checking username availability:', err);
 		} finally {
 			isChecking = false;
 		}
@@ -60,28 +66,23 @@
 
 	// Watch for username changes and debounce availability check
 	$effect(() => {
-		// Reset state when username changes
 		isAvailable = null;
 		error = '';
 
-		// Clear any existing timer
 		if (debounceTimer) {
 			clearTimeout(debounceTimer);
 		}
 
-		// Don't check empty username
 		if (!username) {
 			return;
 		}
 
-		// Only auto-check if username passes basic validation
 		const validationError = validateUsername(username);
 		if (validationError) {
 			error = validationError;
 			return;
 		}
 
-		// Auto-check after 500ms of no typing
 		debounceTimer = setTimeout(() => {
 			checkAvailability();
 		}, 500);
@@ -97,11 +98,9 @@
 		error = '';
 
 		try {
-			// Call API to set username
 			const response = await setUsername(username);
 
 			if (response.success) {
-				// Update local store
 				onboardingStore.setUserData({ username });
 				onboardingStore.nextStep();
 				goto('/onboarding/analyzing');
@@ -126,72 +125,237 @@
 	<title>Claim Username - OSA Build</title>
 </svelte:head>
 
-<GradientBackground variant="ready" fullScreen>
-	<div class="username-screen text-center space-y-12 animate-slide-up">
-		<div class="space-y-4">
-			<h1 class="text-5xl font-bold text-gradient">
-				Claim Your Username
+<div class="onboarding-background">
+	<div class="username-screen">
+		<div class="content">
+			<!-- Main Message -->
+			<h1 class="title">
+				Claim your<br />username.
 			</h1>
-			<p class="text-xl text-gray-700 dark:text-gray-300 max-w-xl mx-auto">
-				This will be your unique identity in OSA Build
-			</p>
-		</div>
 
-		<!-- Username input -->
-		<div class="username-input max-w-md mx-auto space-y-6">
-			<div class="space-y-2">
-				<RoundedInput
-					label="Username"
-					type="text"
-					bind:value={username}
-					placeholder="bekorains"
-					required
-					error={error}
-					helperText={isAvailable === true ? '✓ Available!' : ''}
-				/>
+			<!-- Username Input -->
+			<div class="input-section">
+				<div class="input-wrapper">
+					<input
+						id="username"
+						type="text"
+						bind:value={username}
+						placeholder="yourname"
+						class="input-field"
+						class:input-error={error && username}
+						class:input-success={isAvailable === true}
+					/>
+					{#if isAvailable === true}
+						<div class="input-icon input-icon-success">
+							<Check size={20} />
+						</div>
+					{:else if error && username}
+						<div class="input-icon input-icon-error">
+							<X size={20} />
+						</div>
+					{/if}
+				</div>
 
+				{#if error}
+					<p class="helper-text error-text">{error}</p>
+				{:else if isAvailable === true}
+					<p class="helper-text success-text">Available!</p>
+				{:else}
+					<p class="helper-text">At least 3 characters, letters, numbers, and underscores only</p>
+				{/if}
+			</div>
+
+			<!-- CTA Buttons -->
+			<div class="cta">
 				<PillButton
-					variant="secondary"
-					size="sm"
-					onclick={checkAvailability}
-					loading={isChecking}
-					disabled={!username || username.length < 3}
+					variant="primary"
+					size="lg"
+					onclick={handleContinue}
+					disabled={!isAvailable || isChecking}
 				>
-					Check Availability
+					{#if isChecking}
+						Processing...
+					{:else}
+						Continue
+					{/if}
 				</PillButton>
-			</div>
 
-			<!-- Username tips -->
-			<div class="tips glass-card p-6 text-left">
-				<h3 class="font-semibold mb-3">Username tips:</h3>
-				<ul class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-					<li>• At least 3 characters</li>
-					<li>• Letters, numbers, and underscores only</li>
-					<li>• Choose something memorable - this is how others will find you</li>
-				</ul>
+				<button class="back-button" onclick={handleBack}>
+					Back
+				</button>
 			</div>
-		</div>
-
-		<!-- CTA -->
-		<div class="cta-section flex gap-4 justify-center">
-			<PillButton variant="ghost" size="md" onclick={handleBack}>
-				Back
-			</PillButton>
-			<PillButton
-				variant="primary"
-				size="lg"
-				onclick={handleContinue}
-				disabled={!isAvailable || isChecking}
-				loading={isChecking}
-			>
-				Continue
-			</PillButton>
 		</div>
 	</div>
-</GradientBackground>
+</div>
 
 <style>
-	.username-input {
-		animation: fade-in 0.5s ease-out;
+	.onboarding-background {
+		min-height: 100vh;
+		width: 100%;
+		background-image: url('/logos/integrations/MIOSABRANDBackround.png');
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+
+	.username-screen {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem;
+	}
+
+	.content {
+		width: 100%;
+		max-width: 600px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3rem;
+		text-align: center;
+	}
+
+	.title {
+		font-size: 2.75rem;
+		font-weight: 700;
+		color: #1A1A1A;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		margin: 0;
+		animation: fadeIn 0.8s ease-out 0.2s both;
+	}
+
+	.input-section {
+		width: 100%;
+		max-width: 400px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		animation: fadeIn 0.8s ease-out 0.3s both;
+	}
+
+	.input-wrapper {
+		position: relative;
+		width: 100%;
+	}
+
+	.input-field {
+		width: 100%;
+		padding: 1rem 3rem 1rem 1rem;
+		font-size: 1.125rem;
+		color: #1A1A1A;
+		background-color: white;
+		border: 2px solid #D1D5DB;
+		border-radius: 0.75rem;
+		font-family: inherit;
+		transition: all 0.2s ease;
+		/* DEEPER inset shadow to create more pronounced recessed/embedded effect */
+		box-shadow:
+			inset 0 3px 8px 0 rgba(0, 0, 0, 0.12),
+			inset 0 1px 3px 0 rgba(0, 0, 0, 0.08),
+			0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	}
+
+	.input-field:focus {
+		outline: none;
+		border-color: #1A1A1A;
+		/* Enhanced deeper shadow on focus with ring effect */
+		box-shadow:
+			inset 0 3px 8px 0 rgba(0, 0, 0, 0.15),
+			inset 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+			0 0 0 3px rgba(26, 26, 26, 0.1);
+	}
+
+	.input-field::placeholder {
+		color: #9CA3AF;
+	}
+
+	.input-error {
+		border-color: #DC2626;
+	}
+
+	.input-success {
+		border-color: #10B981;
+	}
+
+	.input-icon {
+		position: absolute;
+		right: 1rem;
+		top: 50%;
+		transform: translateY(-50%);
+		pointer-events: none;
+	}
+
+	.input-icon-success {
+		color: #10B981;
+	}
+
+	.input-icon-error {
+		color: #DC2626;
+	}
+
+	.helper-text {
+		font-size: 0.875rem;
+		color: #666666;
+		margin: 0;
+		text-align: left;
+	}
+
+	.error-text {
+		color: #DC2626;
+	}
+
+	.success-text {
+		color: #10B981;
+	}
+
+	.cta {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		animation: fadeIn 0.8s ease-out 0.4s both;
+	}
+
+	.back-button {
+		background: transparent;
+		border: none;
+		color: #666666;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		padding: 0.5rem 1rem;
+		font-family: inherit;
+		transition: color 0.2s ease;
+	}
+
+	.back-button:hover {
+		color: #1A1A1A;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.title {
+			font-size: 2rem;
+		}
+
+		.content {
+			gap: 2.5rem;
+		}
+
+		.input-field {
+			font-size: 1rem;
+		}
 	}
 </style>
