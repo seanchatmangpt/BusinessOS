@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rhl/businessos-backend/internal/agents"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/services"
 	voicev1 "github.com/rhl/businessos-backend/proto/voice/v1"
@@ -44,13 +45,24 @@ func NewVoiceServer(port int, pool *pgxpool.Pool, cfg *config.Config) *VoiceServ
 	// Create tiered context service
 	contextService := services.NewTieredContextService(pool, embeddingService, summarizerService)
 
-	// Create voice controller
+	// Create Agent V2 registry with dependencies
+	// Note: promptPersonalizer is nil for now (voice doesn't need full personalization yet)
+	agentRegistry := agents.NewAgentRegistryV2(pool, cfg, embeddingService, nil)
+
+	// Wrap registry in voice adapter to implement VoiceAgentProvider interface
+	agentProvider := agents.NewVoiceAgentAdapter(agentRegistry)
+
+	// Create voice controller with Agent V2 support
 	voiceController := services.NewVoiceController(
 		pool,
+		cfg,
 		sttService,
 		ttsService,
 		contextService,
+		agentProvider, // Agent V2 provider (via adapter)
 	)
+
+	slog.Info("[VoiceServer] Voice controller created with Agent V2 integration")
 
 	return &VoiceServer{
 		port:            port,
@@ -118,6 +130,11 @@ func (vs *VoiceServer) handleShutdown(ctx context.Context) {
 		slog.Info("[VoiceServer] Context cancelled, shutting down")
 		vs.Shutdown()
 	}
+}
+
+// GetVoiceController returns the voice controller for Pure Go agent
+func (vs *VoiceServer) GetVoiceController() *services.VoiceController {
+	return vs.voiceController
 }
 
 // Shutdown gracefully shuts down the gRPC server

@@ -6,23 +6,44 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rhl/businessos-backend/internal/config"
+	"github.com/rhl/businessos-backend/internal/streaming"
 	voicev1 "github.com/rhl/businessos-backend/proto/voice/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// VoiceAgentProvider defines the interface for agent orchestration in voice
+// This interface allows us to avoid importing the agents package (prevents import cycle)
+type VoiceAgentProvider interface {
+	// ExecuteVoiceAgent runs an agent with the given conversation history and returns streaming response
+	ExecuteVoiceAgent(
+		ctx context.Context,
+		userID string,
+		userName string,
+		conversationID *uuid.UUID,
+		messages []ChatMessage,
+		tieredContext *TieredContext,
+		llmOptions LLMOptions,
+	) (<-chan streaming.StreamEvent, <-chan error)
+}
 
 // VoiceController orchestrates the complete voice pipeline:
 // Audio In → STT (Whisper) → LLM (Agent V2) → TTS (ElevenLabs) → Audio Out
 type VoiceController struct {
 	voicev1.UnimplementedVoiceServiceServer
 	pool           *pgxpool.Pool
-	sttService     *WhisperService
-	ttsService     *ElevenLabsService
+	cfg            *config.Config
+	STTService     *WhisperService    // Exported for Pure Go agent
+	TTSService     *ElevenLabsService // Exported for Pure Go agent
 	contextService *TieredContextService
+	agentProvider  VoiceAgentProvider // Agent V2 system (interface to avoid import cycle)
 
 	// Session management
 	sessions   map[string]*VoiceSession
@@ -44,27 +65,120 @@ type VoiceSession struct {
 	bufferMu    sync.Mutex
 
 	// Conversation history (uses existing Message type from conversation_intelligence.go)
-	messages   []Message
-	messagesMu sync.Mutex
+	Messages   []Message  // Exported for Pure Go agent
+	MessagesMu sync.Mutex // Exported for Pure Go agent
+
+	// User context (cached from DB)
+	UserContext *VoiceUserContext
+	contextMu   sync.Mutex
 
 	// Cancel function for cleanup
 	cancel context.CancelFunc
 }
 
+// VoiceUserContext represents loaded user context for voice sessions
+type VoiceUserContext struct {
+	UserID         string
+	Username       string
+	Email          string
+	DisplayName    string
+	WorkspaceID    string
+	WorkspaceName  string
+	Role           string
+	Title          string
+	Timezone       string
+	OutputStyle    string
+	ExpertiseAreas []string
+}
+
 // NewVoiceController creates a new voice controller
 func NewVoiceController(
 	pool *pgxpool.Pool,
+	cfg *config.Config,
 	sttService *WhisperService,
 	ttsService *ElevenLabsService,
 	contextService *TieredContextService,
+	agentProvider VoiceAgentProvider, // Interface to avoid import cycle
 ) *VoiceController {
 	return &VoiceController{
 		pool:           pool,
-		sttService:     sttService,
-		ttsService:     ttsService,
+		cfg:            cfg,
+		STTService:     sttService,
+		TTSService:     ttsService,
 		contextService: contextService,
+		agentProvider:  agentProvider,
 		sessions:       make(map[string]*VoiceSession),
 	}
+}
+
+// buildUserContext loads user context from database for voice sessions
+func (vc *VoiceController) buildUserContext(
+	ctx context.Context,
+	userID string,
+) (*VoiceUserContext, error) {
+	// Query user basic info
+	var userCtx VoiceUserContext
+	userCtx.UserID = userID
+
+	// Query basic user info from user table
+	err := vc.pool.QueryRow(ctx, `
+		SELECT
+			COALESCE(username, 'User') as username,
+			COALESCE(email, '') as email,
+			COALESCE(name, username, 'User') as display_name
+		FROM "user"
+		WHERE id = $1
+	`, userID).Scan(&userCtx.Username, &userCtx.Email, &userCtx.DisplayName)
+
+	if err != nil {
+		slog.Warn("[VoiceController] User not found, using defaults",
+			"user_id", userID, "error", err)
+		userCtx.Username = "User"
+		userCtx.DisplayName = "User"
+		// Continue with defaults - voice should still work
+	}
+
+	// Query workspace membership (get primary workspace)
+	err = vc.pool.QueryRow(ctx, `
+		SELECT
+			wm.workspace_id,
+			w.name as workspace_name,
+			wm.role,
+			COALESCE(uwp.title, '') as title,
+			COALESCE(uwp.timezone, 'UTC') as timezone,
+			COALESCE(uwp.preferred_output_style, 'concise') as output_style,
+			COALESCE(uwp.expertise_areas, '{}') as expertise_areas
+		FROM workspace_members wm
+		JOIN workspaces w ON w.id = wm.workspace_id
+		LEFT JOIN user_workspace_profiles uwp
+			ON uwp.workspace_id = wm.workspace_id AND uwp.user_id = wm.user_id
+		WHERE wm.user_id = $1
+		  AND wm.status = 'active'
+		ORDER BY wm.created_at ASC
+		LIMIT 1
+	`, userID).Scan(
+		&userCtx.WorkspaceID,
+		&userCtx.WorkspaceName,
+		&userCtx.Role,
+		&userCtx.Title,
+		&userCtx.Timezone,
+		&userCtx.OutputStyle,
+		&userCtx.ExpertiseAreas,
+	)
+
+	if err != nil {
+		slog.Debug("[VoiceController] No workspace found for user",
+			"user_id", userID, "error", err)
+		// User may not have workspace yet - OK for voice
+	}
+
+	slog.Info("[VoiceController] User context loaded",
+		"user_id", userID,
+		"username", userCtx.Username,
+		"workspace", userCtx.WorkspaceName,
+		"role", userCtx.Role)
+
+	return &userCtx, nil
 }
 
 // ProcessVoice handles bidirectional audio streaming
@@ -79,7 +193,7 @@ func (vc *VoiceController) ProcessVoice(stream voicev1.VoiceService_ProcessVoice
 	}
 
 	// Get or create session
-	session, err = vc.getOrCreateSession(ctx, firstFrame.SessionId, firstFrame.UserId)
+	session, err = vc.GetOrCreateSession(ctx, firstFrame.SessionId, firstFrame.UserId)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create session: %v", err)
 	}
@@ -187,7 +301,7 @@ func (vc *VoiceController) processCompleteUtterance(
 
 	// Convert audio bytes to io.Reader for existing Whisper service
 	audioReader := bytes.NewReader(audioData)
-	transcriptionResult, err := vc.sttService.Transcribe(ctx, audioReader, "wav")
+	transcriptionResult, err := vc.STTService.Transcribe(ctx, audioReader, "wav")
 	if err != nil {
 		return fmt.Errorf("STT failed: %w", err)
 	}
@@ -205,16 +319,16 @@ func (vc *VoiceController) processCompleteUtterance(
 	})
 
 	// Add to session history
-	session.messagesMu.Lock()
-	session.messages = append(session.messages, Message{
+	session.MessagesMu.Lock()
+	session.Messages = append(session.Messages, Message{
 		Role:      "user",
 		Content:   transcript,
 		Timestamp: time.Now(),
 	})
-	session.messagesMu.Unlock()
+	session.MessagesMu.Unlock()
 
 	// 2. LLM: Get agent response using Agent V2 system
-	agentResponse, err := vc.getAgentResponse(ctx, session, transcript)
+	agentResponse, err := vc.GetAgentResponse(ctx, session, transcript)
 	if err != nil {
 		return fmt.Errorf("LLM failed: %w", err)
 	}
@@ -230,13 +344,13 @@ func (vc *VoiceController) processCompleteUtterance(
 	})
 
 	// Add to session history
-	session.messagesMu.Lock()
-	session.messages = append(session.messages, Message{
+	session.MessagesMu.Lock()
+	session.Messages = append(session.Messages, Message{
 		Role:      "agent",
 		Content:   agentResponse,
 		Timestamp: time.Now(),
 	})
-	session.messagesMu.Unlock()
+	session.MessagesMu.Unlock()
 
 	// 3. TTS: Convert text to audio
 	session.State = voicev1.SessionState_SPEAKING
@@ -245,7 +359,7 @@ func (vc *VoiceController) processCompleteUtterance(
 		State: voicev1.SessionState_SPEAKING,
 	})
 
-	audioBytes, err := vc.ttsService.TextToSpeech(ctx, agentResponse)
+	audioBytes, err := vc.TTSService.TextToSpeech(ctx, agentResponse)
 	if err != nil {
 		return fmt.Errorf("TTS failed: %w", err)
 	}
@@ -282,20 +396,189 @@ func (vc *VoiceController) processCompleteUtterance(
 	return nil
 }
 
-// getAgentResponse gets LLM response using Agent V2 system
-func (vc *VoiceController) getAgentResponse(
+// GetAgentResponse gets LLM response using Agent V2 system
+// Exported for Pure Go voice agent
+func (vc *VoiceController) GetAgentResponse(
 	ctx context.Context,
 	session *VoiceSession,
 	userMessage string,
 ) (string, error) {
-	// TODO: Integrate with Agent V2 system
-	// For now, return a placeholder
-	// This will be replaced with actual Agent V2 orchestration
+	// If no agent provider, use fallback response
+	if vc.agentProvider == nil {
+		slog.Warn("[VoiceController] No agent provider configured, using fallback")
+		return generateFallbackResponse(userMessage), nil
+	}
 
-	slog.Warn("[VoiceController] Using placeholder agent response (Agent V2 integration pending)")
+	// Create timeout context for agent execution (30s max for voice)
+	agentCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
-	// Placeholder response
-	return fmt.Sprintf("I heard you say: %s. This is a placeholder response. Agent V2 integration coming next.", userMessage), nil
+	// Convert session messages to ChatMessage format
+	session.MessagesMu.Lock()
+	chatMessages := make([]ChatMessage, len(session.Messages))
+	for i, msg := range session.Messages {
+		chatMessages[i] = ChatMessage{
+			Role:    msg.Role,
+			Content: msg.Content,
+		}
+	}
+	session.MessagesMu.Unlock()
+
+	// Build tiered context for the agent
+	var tieredCtx *TieredContext
+	if vc.contextService != nil {
+		tieredReq := TieredContextRequest{
+			UserID: session.UserID,
+			// Add workspace/project context if available
+			// For now, basic user context
+		}
+		tieredCtx, _ = vc.contextService.BuildTieredContext(agentCtx, tieredReq)
+	}
+
+	// Get voice-optimized LLM options
+	llmOpts := getVoiceLLMOptions()
+
+	// Load user context (cached in session)
+	session.contextMu.Lock()
+	if session.UserContext == nil {
+		session.UserContext, _ = vc.buildUserContext(agentCtx, session.UserID)
+		if session.UserContext == nil {
+			// Fallback if loading failed
+			session.UserContext = &VoiceUserContext{
+				UserID:      session.UserID,
+				Username:    "User",
+				DisplayName: "User",
+			}
+		}
+	}
+	userCtx := session.UserContext
+	session.contextMu.Unlock()
+
+	// Use loaded user name
+	userName := userCtx.DisplayName
+	if userName == "" {
+		userName = userCtx.Username
+	}
+
+	// Execute agent via provider interface (handles Agent V2 internally)
+	// Note: conversationID is nil for voice sessions (they have their own session ID)
+	events, errs := vc.agentProvider.ExecuteVoiceAgent(
+		agentCtx,
+		session.UserID,
+		userName,
+		nil, // No conversation ID for voice
+		chatMessages,
+		tieredCtx,
+		llmOpts,
+	)
+
+	// Accumulate response from streaming events
+	response, err := accumulateStreamingResponse(agentCtx, events, errs)
+	if err != nil {
+		slog.Error("[VoiceController] Agent execution failed",
+			"error", err,
+			"session_id", session.SessionID)
+		// Return fallback response on error
+		return generateFallbackResponse(userMessage), nil
+	}
+
+	slog.Info("[VoiceController] Agent response generated",
+		"session_id", session.SessionID,
+		"response_len", len(response))
+
+	return response, nil
+}
+
+// getVoiceLLMOptions returns LLM options optimized for voice conversations
+// Voice needs shorter, more concise responses than text chat
+func getVoiceLLMOptions() LLMOptions {
+	return LLMOptions{
+		Temperature:       0.7, // Slightly creative but consistent
+		MaxTokens:         500, // Short responses for voice (vs 8192 for chat)
+		TopP:              0.9,
+		ThinkingEnabled:   false, // No thinking tags in voice responses
+		MaxThinkingTokens: 0,
+	}
+}
+
+// accumulateStreamingResponse accumulates tokens from streaming events into final response
+func accumulateStreamingResponse(
+	ctx context.Context,
+	events <-chan streaming.StreamEvent,
+	errs <-chan error,
+) (string, error) {
+	var fullResponse strings.Builder
+
+	for {
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("context cancelled: %w", ctx.Err())
+
+		case err, ok := <-errs:
+			if ok && err != nil {
+				return "", fmt.Errorf("agent error: %w", err)
+			}
+
+		case event, ok := <-events:
+			if !ok {
+				// Stream ended successfully
+				return fullResponse.String(), nil
+			}
+
+			// Process event types
+			switch event.Type {
+			case streaming.EventTypeToken:
+				// Accumulate text tokens from Content field
+				fullResponse.WriteString(event.Content)
+
+			case streaming.EventTypeThinking,
+				streaming.EventTypeThinkingStart,
+				streaming.EventTypeThinkingChunk,
+				streaming.EventTypeThinkingEnd:
+				// Ignore thinking events for voice (voice responses should be direct)
+				slog.Debug("[VoiceController] Thinking event (ignored for voice)")
+
+			case streaming.EventTypeDone:
+				// Stream completed
+				return fullResponse.String(), nil
+
+			case streaming.EventTypeError:
+				// Error event - message in Content field
+				if event.Content != "" {
+					return "", fmt.Errorf("agent error event: %s", event.Content)
+				}
+				return "", fmt.Errorf("unknown error event")
+
+			default:
+				// Ignore other event types (tool calls, artifacts, etc.)
+				slog.Debug("[VoiceController] Ignoring event type for voice",
+					"type", event.Type)
+			}
+		}
+	}
+}
+
+// generateFallbackResponse generates a simple fallback response when Agent V2 unavailable
+func generateFallbackResponse(userMessage string) string {
+	// Simple pattern matching for common queries
+	responses := map[string]string{
+		"hello":  "Hello! How can I help you today?",
+		"hi":     "Hi there! What can I do for you?",
+		"help":   "I'm OSA, your AI assistant. I can help you with various tasks. What would you like to know?",
+		"thanks": "You're welcome! Is there anything else I can help with?",
+		"bye":    "Goodbye! Feel free to ask me anything anytime.",
+	}
+
+	// Check for simple matches
+	lowerMsg := strings.ToLower(userMessage)
+	for key, response := range responses {
+		if strings.Contains(lowerMsg, key) {
+			return response
+		}
+	}
+
+	// Default response
+	return fmt.Sprintf("I understand you said: %s. I'm here to help! What would you like to know more about?", userMessage)
 }
 
 // GetSessionContext retrieves user context for voice session
@@ -303,21 +586,39 @@ func (vc *VoiceController) GetSessionContext(
 	ctx context.Context,
 	req *voicev1.SessionRequest,
 ) (*voicev1.SessionContext, error) {
-	session, err := vc.getOrCreateSession(ctx, req.SessionId, req.UserId)
+	session, err := vc.GetOrCreateSession(ctx, req.SessionId, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get session: %v", err)
 	}
 
-	// TODO: Fetch actual user data from database
-	// TODO: Fetch workspace context
-	// TODO: Fetch conversation history
-	// TODO: Fetch RAG context
+	// Load user context (use cached if available)
+	session.contextMu.Lock()
+	if session.UserContext == nil {
+		session.UserContext, _ = vc.buildUserContext(ctx, session.UserID)
+	}
+	userCtx := session.UserContext
+	session.contextMu.Unlock()
+
+	// Default fallback
+	userName := "User"
+	workspaceID := session.WorkspaceID
+
+	// Use loaded context if available
+	if userCtx != nil {
+		userName = userCtx.DisplayName
+		if userName == "" {
+			userName = userCtx.Username
+		}
+		if userCtx.WorkspaceID != "" {
+			workspaceID = userCtx.WorkspaceID
+		}
+	}
 
 	return &voicev1.SessionContext{
 		SessionId:   session.SessionID,
 		UserId:      session.UserID,
-		UserName:    "User", // TODO: fetch from DB
-		WorkspaceId: session.WorkspaceID,
+		UserName:    userName,
+		WorkspaceId: workspaceID,
 		AgentRole:   session.AgentRole,
 	}, nil
 }
@@ -351,8 +652,9 @@ func (vc *VoiceController) UpdateSessionState(
 	}, nil
 }
 
-// getOrCreateSession gets an existing session or creates a new one
-func (vc *VoiceController) getOrCreateSession(
+// GetOrCreateSession gets an existing session or creates a new one
+// Exported for Pure Go voice agent
+func (vc *VoiceController) GetOrCreateSession(
 	ctx context.Context,
 	sessionID string,
 	userID string,
@@ -375,7 +677,7 @@ func (vc *VoiceController) getOrCreateSession(
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 		audioBuffer: make([]byte, 0, 1024*1024), // 1MB initial capacity
-		messages:    make([]Message, 0, 100),
+		Messages:    make([]Message, 0, 100),
 		cancel:      cancel,
 	}
 
