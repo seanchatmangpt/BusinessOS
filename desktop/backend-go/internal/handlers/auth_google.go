@@ -123,7 +123,7 @@ func (h *GoogleAuthHandler) HandleGoogleLoginCallback(c *gin.Context) {
 	}
 
 	// Create or update user in database
-	userID, err := h.upsertUser(c.Request.Context(), userInfo)
+	userID, isNewUser, err := h.upsertUser(c.Request.Context(), userInfo)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
 		return
@@ -139,6 +139,12 @@ func (h *GoogleAuthHandler) HandleGoogleLoginCallback(c *gin.Context) {
 	// Clear OAuth cookies
 	c.SetCookie("oauth_state", "", -1, "/", "", false, true)
 	c.SetCookie("oauth_redirect", "", -1, "/", "", false, true)
+
+	// Set a temporary cookie to indicate if this is a new user
+	// Frontend will check this to decide whether to redirect to onboarding
+	if isNewUser {
+		c.SetCookie("new_user", "true", 60, "/", "", false, true) // 60 seconds, enough for redirect
+	}
 
 	// Set session cookie with environment-dependent configuration
 	isProduction := os.Getenv("ENVIRONMENT") == "production"
@@ -184,7 +190,8 @@ func (h *GoogleAuthHandler) getGoogleUserInfo(accessToken string) (*GoogleUserIn
 }
 
 // upsertUser creates or updates a user based on Google info
-func (h *GoogleAuthHandler) upsertUser(ctx context.Context, info *GoogleUserInfo) (string, error) {
+// Returns (userID, isNewUser, error)
+func (h *GoogleAuthHandler) upsertUser(ctx context.Context, info *GoogleUserInfo) (string, bool, error) {
 	// Check if user exists by email
 	var existingID string
 	err := h.pool.QueryRow(ctx, `
@@ -199,23 +206,23 @@ func (h *GoogleAuthHandler) upsertUser(ctx context.Context, info *GoogleUserInfo
 			WHERE id = $4
 		`, info.Name, info.Picture, info.VerifiedEmail, existingID)
 		if err != nil {
-			return "", fmt.Errorf("failed to update user: %w", err)
+			return "", false, fmt.Errorf("failed to update user: %w", err)
 		}
-		return existingID, nil
+		return existingID, false, nil // Existing user
 	}
 
-	// Create new user
+	// Create new user (with onboarding_completed = false by default)
 	userID := generateUserID()
 	_, err = h.pool.Exec(ctx, `
-		INSERT INTO "user" (id, name, email, "emailVerified", image, "createdAt", "updatedAt")
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		INSERT INTO "user" (id, name, email, "emailVerified", image, onboarding_completed, "createdAt", "updatedAt")
+		VALUES ($1, $2, $3, $4, $5, FALSE, NOW(), NOW())
 	`, userID, info.Name, info.Email, info.VerifiedEmail, info.Picture)
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create user: %w", err)
+		return "", false, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return userID, nil
+	return userID, true, nil // New user
 }
 
 // createSession creates a new session for the user
@@ -277,16 +284,16 @@ func (h *GoogleAuthHandler) GetCurrentSession(c *gin.Context) {
 
 	var userID, userName, userEmail, sessionID string
 	var userImage *string
-	var emailVerified bool
+	var emailVerified, onboardingCompleted bool
 	var sessionExpiresAt time.Time
 
 	err = h.pool.QueryRow(ctx, `
-		SELECT u.id, u.name, u.email, u."emailVerified", u.image, s.id, s."expiresAt"
+		SELECT u.id, u.name, u.email, u."emailVerified", u.image, COALESCE(u.onboarding_completed, FALSE), s.id, s."expiresAt"
 		FROM session s
 		JOIN "user" u ON s."userId" = u.id
 		WHERE s.token = $1 AND s."expiresAt" > NOW()
 	`, sessionToken).Scan(
-		&userID, &userName, &userEmail, &emailVerified, &userImage, &sessionID, &sessionExpiresAt,
+		&userID, &userName, &userEmail, &emailVerified, &userImage, &onboardingCompleted, &sessionID, &sessionExpiresAt,
 	)
 
 	if err != nil {
@@ -298,15 +305,16 @@ func (h *GoogleAuthHandler) GetCurrentSession(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[GetCurrentSession] Found user: %s (%s)", userName, userEmail)
+	log.Printf("[GetCurrentSession] Found user: %s (%s), onboarding: %v", userName, userEmail, onboardingCompleted)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
-			"id":            userID,
-			"name":          userName,
-			"email":         userEmail,
-			"emailVerified": emailVerified,
-			"image":         userImage,
+			"id":                  userID,
+			"name":                userName,
+			"email":               userEmail,
+			"emailVerified":       emailVerified,
+			"image":               userImage,
+			"onboardingCompleted": onboardingCompleted,
 		},
 		"session": gin.H{
 			"id":        sessionID,

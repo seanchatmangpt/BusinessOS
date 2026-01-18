@@ -959,6 +959,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		// Protected routes
 		users.GET("/me", auth, usernameHandler.GetCurrentUser)
 		users.PATCH("/me/username", auth, usernameHandler.SetUsername)
+		users.POST("/me/complete-onboarding", auth, usernameHandler.CompleteOnboarding)
 	}
 
 	// MCP routes - /api/mcp

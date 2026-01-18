@@ -212,3 +212,34 @@ func (h *UsernameHandler) GetCurrentUser(c *gin.Context) {
 		UsernameClaimedAt: usernameClaimedAt,
 	})
 }
+
+// CompleteOnboarding marks the user's onboarding as complete
+func (h *UsernameHandler) CompleteOnboarding(c *gin.Context) {
+	// Get authenticated user from middleware
+	userInterface, exists := c.Get(middleware.UserContextKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+		return
+	}
+
+	user, ok := userInterface.(*middleware.BetterAuthUser)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user context"})
+		return
+	}
+
+	// Mark onboarding as complete
+	err := h.service.CompleteOnboarding(c.Request.Context(), uuid.MustParse(user.ID))
+	if err != nil {
+		slog.Error("Failed to complete onboarding", "error", err, "user_id", user.ID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete onboarding"})
+		return
+	}
+
+	slog.Info("User completed onboarding", "user_id", user.ID)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Onboarding completed successfully",
+	})
+}

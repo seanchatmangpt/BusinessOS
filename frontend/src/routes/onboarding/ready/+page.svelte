@@ -7,6 +7,8 @@
 	import { GradientBackground, PillButton } from '$lib/components/osa';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { cloudServerUrl } from '$lib/auth-client';
 
 	let showSuccess = $state(false);
 	let showContent = $state(false);
@@ -20,11 +22,21 @@
 	});
 
 	async function handleEnterOS() {
-		// Mark onboarding as complete
-		onboardingStore.complete();
+		// Mark onboarding as complete in backend
+		try {
+			const baseUrl = get(cloudServerUrl);
+			await fetch(`${baseUrl}/api/users/me/complete-onboarding`, {
+				method: 'POST',
+				credentials: 'include', // Send session cookie
+			});
+			console.log('Onboarding marked complete in backend');
+		} catch (err) {
+			console.error('Failed to mark onboarding complete:', err);
+			// Continue anyway - localStorage is the source of truth for now
+		}
 
-		// TODO: API call to mark onboarding complete in backend
-		// await fetch('/api/onboarding/complete', { method: 'POST' });
+		// Mark onboarding as complete in localStorage
+		onboardingStore.complete();
 
 		// Navigate to main app
 		goto('/window');

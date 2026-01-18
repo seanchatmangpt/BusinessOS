@@ -312,6 +312,27 @@ func (s *UserService) GetUserByID(ctx context.Context, userID string) (*UserProf
 	return &user, nil
 }
 
+// CompleteOnboarding marks the user's onboarding as complete
+func (s *UserService) CompleteOnboarding(ctx context.Context, userID uuid.UUID) error {
+	_, err := s.pool.Exec(ctx, `
+		UPDATE "user"
+		SET onboarding_completed = TRUE,
+		    "updatedAt" = NOW()
+		WHERE id = $1
+	`, userID.String())
+
+	if err != nil {
+		slog.Error("Failed to complete onboarding",
+			slog.String("user_id", userID.String()),
+			slog.Any("error", err),
+		)
+		return err
+	}
+
+	slog.Info("Onboarding completed", slog.String("user_id", userID.String()))
+	return nil
+}
+
 // UserProfile represents a user's public profile information
 type UserProfile struct {
 	ID                string     `json:"id"`
