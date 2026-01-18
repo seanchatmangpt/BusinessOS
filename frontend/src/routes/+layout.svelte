@@ -10,9 +10,11 @@
 	onMount(() => {
 		// Theme is already applied by the store on creation,
 		// but we ensure it's set on the document
-		const storedTheme = localStorage.getItem('theme');
-		if (storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system') {
-			themeStore.setTheme(storedTheme);
+		if (browser) {
+			const storedTheme = localStorage.getItem('theme');
+			if (storedTheme === 'dark' || storedTheme === 'light' || storedTheme === 'system') {
+				themeStore.setTheme(storedTheme);
+			}
 		}
 	});
 </script>

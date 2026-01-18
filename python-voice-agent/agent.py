@@ -1,172 +1,116 @@
 """
-OSA Voice Agent - LiveKit Native Implementation with Hierarchical Context
-
-Architecture:
-- Level 0 (Identity): OSA personality (always loaded)
-- Level 1 (User Context): Fetched at session start from Go backend
-- Level 2-3 (Node/Data Context): Fetched on-demand via LLM tool calls
-
-Technology Stack:
-- STT: GROQ Whisper large-v3
-- LLM: GROQ Llama 3.1 8B Instant
-- TTS: ElevenLabs Turbo v2.5
-- VAD: Silero
-- Transport: LiveKit WebRTC
+OSA Voice Agent - Minimal Implementation
+Simple voice chat: STT → LLM → TTS
+- Sends transcripts to frontend
+- Auto-disconnects when user leaves (prevents duplicates)
 """
 
 import os
 import json
-import logging
-from livekit.agents import (
-    AutoSubscribe,
-    JobContext,
-    WorkerOptions,
-    cli,
-    voice,
-)
-from livekit import rtc
-# Use dedicated Groq plugin for STT/LLM
+import time
+from livekit.agents import JobContext, WorkerOptions, cli, voice
 from livekit.plugins import groq, elevenlabs, silero
+from livekit import rtc
 from dotenv import load_dotenv
 
-# Import our modules
-from config import config
-from context import fetch_user_context, extract_user_id_from_identity
-from prompts import build_instructions, get_greeting
-from tools import TOOL_DEFINITIONS, execute_tool
-
-# Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+SIMPLE_PROMPT = """You are OSA, a helpful voice assistant.
+Keep responses short (1-2 sentences). Be conversational and natural."""
 
 def prewarm_process(proc):
-    """Prewarm models for faster startup."""
-    logger.info("[Agent] Prewarming models...")
-    # Prewarm VAD model
+    """Prewarm VAD model for faster startup."""
     proc.userdata["vad"] = silero.VAD.load()
-    logger.info("[Agent] VAD model loaded")
-
+    print("[Agent] VAD model preloaded")
 
 async def entrypoint(ctx: JobContext):
-    """Main entrypoint for voice agent with hierarchical context."""
-    logger.info(f"[Agent] Starting voice agent for room: {ctx.room.name}")
+    """Main entrypoint for minimal voice agent."""
+    print(f"[Agent] Starting for room: {ctx.room.name}")
 
-    # Validate configuration
-    try:
-        config.validate()
-    except ValueError as e:
-        logger.error(f"[Agent] Configuration error: {e}")
-        return
-
-    # Wait for participant to connect first
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-
-    # Get participant info
+    # Connect and wait for user
+    await ctx.connect()
     participant = await ctx.wait_for_participant()
-    user_id = extract_user_id_from_identity(participant.identity)
-    logger.info(f"[Agent] Participant connected: {participant.identity} (user: {user_id})")
+    print(f"[Agent] User connected: {participant.name}")
 
-    # LEVEL 1: Fetch user context from Go backend
-    user_context = await fetch_user_context(user_id)
+    # Track if user disconnected
+    user_disconnected = False
 
-    # LEVEL 0 + LEVEL 1: Build comprehensive instructions
-    instructions = build_instructions(user_context)
-    logger.info(f"[Agent] Instructions prepared for user: {user_context.get('name', 'Unknown')}")
+    # Listen for user disconnect - shut down agent when user leaves
+    @ctx.room.on("participant_disconnected")
+    def on_participant_disconnected(p: rtc.RemoteParticipant):
+        nonlocal user_disconnected
+        if p.identity == participant.identity:
+            print(f"[Agent] User {p.name} disconnected - shutting down agent")
+            user_disconnected = True
+            # Disconnect agent from room
+            ctx.room.disconnect()
 
-    # Get prewarmed VAD or load it
-    vad_instance = ctx.proc.userdata.get("vad") or silero.VAD.load()
+    # Get prewarmed VAD
+    vad = ctx.proc.userdata.get("vad") or silero.VAD.load()
 
-    # Create the agent with instructions and tools
-    agent = voice.Agent(
-        instructions=instructions,
-        # Register all tools for LLM function calling
-        tools=TOOL_DEFINITIONS,
-    )
-    logger.info(f"[Agent] Agent configured with {len(TOOL_DEFINITIONS)} tools")
-
-    # Create the agent session with STT, LLM, TTS, VAD
+    # Create simple session
     session = voice.AgentSession(
-        vad=vad_instance,
-        # STT: GROQ Whisper
+        vad=vad,
         stt=groq.STT(
-            api_key=config.groq_api_key,
-            model=config.stt_model,
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="whisper-large-v3-turbo"
         ),
-        # LLM: GROQ Llama with tool calling
         llm=groq.LLM(
-            api_key=config.groq_api_key,
-            model=config.llm_model,
+            api_key=os.getenv("GROQ_API_KEY"),
+            model="llama-3.1-8b-instant"
         ),
-        # TTS: ElevenLabs
         tts=elevenlabs.TTS(
-            api_key=config.elevenlabs_api_key,
-            voice_id=config.elevenlabs_voice_id,
-            model=config.tts_model,
+            api_key=os.getenv("ELEVENLABS_API_KEY"),
+            voice_id=os.getenv("ELEVENLABS_VOICE_ID", "KoVIHoyLDrQyd4pGalbs"),
+            model=os.getenv("ELEVENLABS_MODEL", "eleven_flash_v2_5"),
         ),
         allow_interruptions=True,
     )
 
-    # Helper to publish transcripts to frontend via data channel
-    async def publish_transcript(type: str, text: str):
-        """Publish transcript to frontend via data channel."""
+    # Helper to send transcripts to frontend
+    async def publish_transcript(msg_type: str, text: str):
+        """Send transcript to frontend via data channel for captions."""
         try:
-            data = json.dumps({"type": type, "text": text})
+            data = json.dumps({"type": msg_type, "text": text})
             await ctx.room.local_participant.publish_data(
                 data.encode(),
                 reliable=True,
             )
-            logger.info(f"[Agent] Published {type}: {text[:50]}...")
         except Exception as e:
-            logger.error(f"[Agent] Failed to publish transcript: {e}")
+            print(f"[Agent] Failed to send transcript: {e}")
 
-    # Register event handlers for transcripts
-    @session.on("user_speech_committed")
-    def on_user_speech(msg):
-        """Called when user finishes speaking."""
-        logger.info(f"[Agent] User said: {msg.content}")
-        # Publish to frontend
-        import asyncio
-        asyncio.create_task(publish_transcript("user_transcript", msg.content))
+    # Log and send transcripts
+    @session.on("user_input_transcribed")
+    async def on_user_speech(msg):
+        if msg.is_final:  # Only log final transcripts
+            timestamp = time.strftime('%H:%M:%S')
+            print(f"\n{'='*80}")
+            print(f"🎤 USER [{timestamp}]: {msg.transcript}")
+            print(f"{'='*80}\n")
 
-    @session.on("agent_speech_committed")
-    def on_agent_speech(msg):
-        """Called when agent finishes speaking."""
-        logger.info(f"[Agent] Agent said: {msg.content}")
-        # Publish to frontend
-        import asyncio
-        asyncio.create_task(publish_transcript("agent_transcript", msg.content))
+            # Send to frontend
+            await publish_transcript("user_transcript", msg.transcript)
 
-    # Start the agent session with the agent and room
+    @session.on("speech_created")
+    async def on_agent_speech(msg):
+        timestamp = time.strftime('%H:%M:%S')
+        text = msg.text if hasattr(msg, 'text') else str(msg)
+        print(f"\n{'='*80}")
+        print(f"🤖 OSA [{timestamp}]: {text}")
+        print(f"{'='*80}\n")
+
+        # Send to frontend
+        await publish_transcript("agent_transcript", text)
+
+    # Start agent with simple prompt
+    agent = voice.Agent(instructions=SIMPLE_PROMPT)
     await session.start(agent, room=ctx.room)
-
-    # Greet the user naturally
-    greeting = get_greeting(user_context.get("name"))
-    await session.say(greeting)
-    logger.info(f"[Agent] Greeting sent: {greeting}")
-
-    logger.info("[Agent] Voice agent ready and running")
-
-
-async def request_fnc(ctx):
-    """Accept all job requests - agent will join any room"""
-    logger.info(f"[Agent] Job request received for room: {ctx.room.name}")
-    # Accept all jobs
-    await ctx.accept()
-
+    print("[Agent] Voice session started - waiting for speech")
+    print("[Agent] Will auto-shutdown when user disconnects")
 
 if __name__ == "__main__":
-    # Run the agent with explicit configuration
-    logger.info("[Agent] Starting OSA voice agent worker...")
-
-    cli.run_app(
-        WorkerOptions(
-            entrypoint_fnc=entrypoint,
-            prewarm_fnc=prewarm_process,
-            request_fnc=request_fnc,  # Accept all job requests
-            agent_name="osa-voice-agent",  # Explicit agent name for dispatch
-        ),
-    )
+    cli.run_app(WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        prewarm_fnc=prewarm_process,
+        num_idle_processes=0  # No pre-spawned processes in dev mode
+    ))

@@ -66,4 +66,13 @@
 		height: 100%;
 		color: #6b7280;
 	}
+
+	/* Dark mode - force override */
+	:global(.dark) .app-store-page {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .loading-state {
+		color: #9ca3af !important;
+	}
 </style>

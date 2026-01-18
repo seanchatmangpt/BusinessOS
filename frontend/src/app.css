@@ -247,6 +247,27 @@ body {
 	color: #4b5563;
 }
 
+/* Dark mode badge variants */
+:global(.dark) .badge-active {
+	background-color: #166534;
+	color: #dcfce7;
+}
+
+:global(.dark) .badge-paused {
+	background-color: #92400e;
+	color: #fef3c7;
+}
+
+:global(.dark) .badge-completed {
+	background-color: #3730a3;
+	color: #e0e7ff;
+}
+
+:global(.dark) .badge-archived {
+	background-color: #374151;
+	color: #9ca3af;
+}
+
 /* Priority badges */
 .priority-critical {
 	color: #dc2626;
@@ -262,6 +283,23 @@ body {
 
 .priority-low {
 	color: #16a34a;
+}
+
+/* Dark mode priority variants */
+:global(.dark) .priority-critical {
+	color: #f87171;
+}
+
+:global(.dark) .priority-high {
+	color: #fb923c;
+}
+
+:global(.dark) .priority-medium {
+	color: #fbbf24;
+}
+
+:global(.dark) .priority-low {
+	color: #4ade80;
 }
 
 @theme inline {

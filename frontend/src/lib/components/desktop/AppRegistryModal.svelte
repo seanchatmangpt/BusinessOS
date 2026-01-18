@@ -4019,36 +4019,74 @@
 	}
 
 	:global(.dark) .app-card {
-		background: #262626;
-		border-color: #333;
+		background: #262626 !important;
+		border-color: #333 !important;
 	}
 
 	:global(.dark) .app-card:hover {
-		background: #2d2d2d;
-		border-color: #444;
+		background: #2d2d2d !important;
+		border-color: #444 !important;
 	}
 
 	:global(.dark) .app-card.added {
-		background: rgba(34, 197, 94, 0.1);
-		border-color: rgba(34, 197, 94, 0.3);
+		background: rgba(34, 197, 94, 0.1) !important;
+		border-color: rgba(34, 197, 94, 0.3) !important;
 	}
 
 	:global(.dark) .app-name {
-		color: #ffffff;
+		color: #ffffff !important;
 	}
 
+	:global(.dark) .app-desc,
 	:global(.dark) .app-description {
-		color: #9ca3af;
+		color: #9ca3af !important;
+	}
+
+	:global(.dark) .app-logo {
+		background: #333 !important;
 	}
 
 	:global(.dark) .add-btn {
-		background: #333;
-		color: #d1d5db;
+		background: #333 !important;
+		color: #d1d5db !important;
 	}
 
 	:global(.dark) .add-btn:hover {
-		background: #444;
-		color: #ffffff;
+		background: #444 !important;
+		color: #ffffff !important;
+	}
+
+	:global(.dark) .added-badge {
+		background: #22c55e !important;
+		color: white !important;
+	}
+
+	:global(.dark) .remove-badge {
+		background: #ef4444 !important;
+		color: white !important;
+	}
+
+	/* Dark mode for subcategory headers */
+	:global(.dark) .subcategory-header {
+		border-color: #333 !important;
+	}
+
+	:global(.dark) .subcategory-name {
+		color: #d1d5db !important;
+	}
+
+	:global(.dark) .subcategory-count {
+		background: #333 !important;
+		color: #9ca3af !important;
+	}
+
+	/* Dark mode for apps grid section */
+	:global(.dark) .apps-section {
+		background: transparent !important;
+	}
+
+	:global(.dark) .apps-grid {
+		background: transparent !important;
 	}
 
 	:global(.dark) .custom-form {
@@ -4456,5 +4494,313 @@
 	:global(.dark) .myapp-remove:hover {
 		background: rgba(239, 68, 68, 0.2);
 		color: #f87171;
+	}
+
+	/* ===== PAGE MODE DARK STYLES ===== */
+	:global(.dark) .page-container {
+		background: #1a1a1a;
+	}
+
+	:global(.dark) .page-content {
+		background: #1a1a1a;
+	}
+
+	:global(.dark) .page-header {
+		background: #1f1f1f;
+		border-color: #333;
+	}
+
+	:global(.dark) .page-header .header-text h2 {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-header .header-text p {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .main-tabs {
+		background: #1f1f1f;
+		border-color: #333;
+	}
+
+	:global(.dark) .page-container .main-tab {
+		color: #9ca3af;
+		background: #333;
+		border-color: #444;
+	}
+
+	:global(.dark) .page-container .main-tab:hover {
+		background: #444;
+		color: #ffffff;
+		border-color: #555;
+	}
+
+	:global(.dark) .page-container .main-tab.active {
+		background: #0A84FF !important;
+		color: white !important;
+		border-color: #0A84FF !important;
+	}
+
+	:global(.dark) .page-container .sidebar {
+		background: #1f1f1f;
+		border-color: #333;
+	}
+
+	:global(.dark) .page-container .sidebar-title {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .category-btn {
+		color: #d1d5db;
+		background: transparent;
+	}
+
+	:global(.dark) .page-container .category-btn:hover {
+		background: #333;
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .category-btn.active {
+		background: rgba(10, 132, 255, 0.2) !important;
+		color: #0A84FF !important;
+	}
+
+	:global(.dark) .page-container .category-count {
+		color: #6b7280;
+	}
+
+	:global(.dark) .page-container .main-content {
+		background: #1a1a1a;
+	}
+
+	:global(.dark) .page-container .search-wrapper {
+		background: #262626;
+		border-color: #333;
+	}
+
+	:global(.dark) .page-container .search-input {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .search-input::placeholder {
+		color: #6b7280;
+	}
+
+	:global(.dark) .page-container .featured-section {
+		background: #262626 !important;
+		border: 1px solid #333 !important;
+	}
+
+	:global(.dark) .page-container .section-header h3 {
+		color: #ffffff !important;
+	}
+
+	:global(.dark) .page-container .section-icon {
+		color: #0A84FF !important;
+	}
+
+	:global(.dark) .page-container .featured-card {
+		background: #333 !important;
+		border: 1px solid #444 !important;
+	}
+
+	:global(.dark) .page-container .featured-card:hover:not(:disabled) {
+		background: #3d3d3d !important;
+		border-color: #555 !important;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+	}
+
+	:global(.dark) .page-container .featured-card.added {
+		background: rgba(34, 197, 94, 0.15) !important;
+		border-color: rgba(34, 197, 94, 0.3) !important;
+	}
+
+	:global(.dark) .page-container .featured-name {
+		color: #ffffff !important;
+	}
+
+	:global(.dark) .page-container .featured-desc {
+		color: #9ca3af !important;
+	}
+
+	:global(.dark) .page-container .featured-logo {
+		background: #262626 !important;
+	}
+
+	:global(.dark) .page-container .featured-action button {
+		background: #444 !important;
+		color: #d1d5db !important;
+		border-color: #555 !important;
+	}
+
+	:global(.dark) .page-container .featured-action button:hover {
+		background: #555 !important;
+		color: #ffffff !important;
+	}
+
+	:global(.dark) .page-container .app-card {
+		background: #262626 !important;
+		border-color: #333 !important;
+	}
+
+	:global(.dark) .page-container .app-card:hover {
+		background: #2d2d2d !important;
+		border-color: #444 !important;
+	}
+
+	:global(.dark) .page-container .subcategory-header {
+		border-color: #333 !important;
+	}
+
+	:global(.dark) .page-container .subcategory-name {
+		color: #d1d5db !important;
+	}
+
+	:global(.dark) .page-container .subcategory-count {
+		background: #333 !important;
+		color: #9ca3af !important;
+	}
+
+	:global(.dark) .page-container .apps-section .section-header {
+		border-bottom-color: #333 !important;
+	}
+
+	:global(.dark) .page-container .apps-section .section-header h3 {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .section-count,
+	:global(.dark) .page-container .app-count {
+		color: #9ca3af !important;
+	}
+
+	:global(.dark) .page-container .your-apps-count {
+		background: #333 !important;
+		color: #d1d5db !important;
+		border-color: #444 !important;
+	}
+
+	:global(.dark) .page-container .your-apps-section {
+		border-top-color: #333 !important;
+	}
+
+	:global(.dark) .page-container .your-apps-section .sidebar-title {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .myapps-wrapper {
+		background: #1a1a1a;
+	}
+
+	:global(.dark) .page-container .myapps-header h3 {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .myapps-header p {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .myapp-card {
+		background: #262626;
+		border-color: #333;
+	}
+
+	:global(.dark) .page-container .myapp-card:hover {
+		background: #2d2d2d;
+		border-color: #444;
+	}
+
+	:global(.dark) .page-container .myapp-name {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .myapp-url {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .myapp-category {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .myapp-actions button {
+		background: #333;
+		color: #d1d5db;
+	}
+
+	:global(.dark) .page-container .myapp-actions button:hover {
+		background: #444;
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .app-name {
+		color: #ffffff;
+	}
+
+	:global(.dark) .page-container .app-description {
+		color: #9ca3af;
+	}
+
+	:global(.dark) .page-container .add-btn {
+		background: #333;
+		color: #d1d5db;
+	}
+
+	:global(.dark) .page-container .add-btn:hover {
+		background: #444;
+		color: #ffffff;
+	}
+
+	/* Missing dark mode styles for content areas */
+	:global(.dark) .page-container .content-scroll {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .page-container .browse-layout {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .page-container .apps-grid {
+		background: transparent !important;
+	}
+
+	:global(.dark) .page-container .featured-grid {
+		background: transparent !important;
+	}
+
+	/* Ensure base containers override light mode */
+	:global(.dark) .page-container {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .page-content {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .page-container .main-content {
+		background: #1a1a1a !important;
+	}
+
+	/* My Apps wrapper in dark mode */
+	:global(.dark) .page-container .myapps-wrapper {
+		background: #1a1a1a !important;
+	}
+
+	:global(.dark) .page-container .myapps-empty {
+		background: transparent !important;
+		color: #9ca3af !important;
+	}
+
+	:global(.dark) .page-container .myapps-list {
+		background: transparent !important;
+	}
+
+	:global(.dark) .page-container .myapp-item {
+		background: #262626 !important;
+		border-color: #333 !important;
+	}
+
+	:global(.dark) .page-container .myapp-item:hover {
+		background: #2d2d2d !important;
+		border-color: #444 !important;
 	}
 </style>

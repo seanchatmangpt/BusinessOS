@@ -945,6 +945,15 @@ func main() {
 	// NOTE: System Apps Detection routes (macOS native app scanning) moved to feature/native-app-capture branch
 	// For now, we only support web apps via iframe embedding
 
+	// ============================================================
+	// Voice Agent Routes (LiveKit Python Agent Integration)
+	// ============================================================
+
+	// Voice agent minimal context endpoint
+	log.Printf("✅ Voice agent minimal routes registered")
+	log.Printf("   - User Context: GET /api/voice/user-context/:user_id (already registered)")
+	log.Printf("   - LiveKit Token: POST /api/livekit/token (already registered)")
+
 	// Public OSA health endpoint (no auth required)
 	if osaClient != nil {
 		router.GET("/api/osa/health", h.HandleOSAHealth)

@@ -176,18 +176,13 @@ func (h *UserAppsHandler) GetUserApp(c *gin.Context) {
 // @Success 201 {object} sqlc.UserExternalApp
 // @Router /api/user-apps [post]
 func (h *UserAppsHandler) CreateUserApp(c *gin.Context) {
-	// TEMPORARY: Skip auth check for development
 	user := middleware.GetCurrentUser(c)
-	// if user == nil {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
-	// 	return
-	// }
-
-	// Use default user ID for development if not authenticated
-	userID := "J4OG6wYzz6Mz4YcBQee8luJhxeNw2z9A" // roberto@accelerants.ai
-	if user != nil {
-		userID = user.ID
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
 	}
+
+	userID := user.ID
 
 	var req CreateUserAppRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

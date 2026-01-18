@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Microphone Diagnostic Test</title>
+    <style>
+        body {
+            font-family: system-ui;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        #output {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 Microphone Diagnostic Test</h1>
+
+    <button onclick="listDevices()">1. List Available Devices</button>
+    <button onclick="requestMic()">2. Request Microphone Access</button>
+    <button onclick="testStream()">3. Test Audio Stream</button>
+
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            output.innerHTML += `<div class="${className}">[${time}] ${msg}</div>`;
+        }
+
+        async function listDevices() {
+            output.innerHTML = '';
+            log('🔍 Enumerating media devices...');
+
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                log(`\n📱 Found ${devices.length} total devices:`);
+
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                const videoInputs = devices.filter(d => d.kind === 'videoinput');
+
+                log(`\n🎤 Audio Inputs: ${audioInputs.length}`, audioInputs.length > 0 ? 'success' : 'error');
+                audioInputs.forEach((device, i) => {
+                    log(`   ${i + 1}. ${device.label || 'Unnamed Device'} (${device.deviceId.substring(0, 20)}...)`);
+                });
+
+                log(`\n🔊 Audio Outputs: ${audioOutputs.length}`, 'info');
+                audioOutputs.forEach((device, i) => {
+                    log(`   ${i + 1}. ${device.label || 'Unnamed Device'} (${device.deviceId.substring(0, 20)}...)`);
+                });
+
+                log(`\n📹 Video Inputs: ${videoInputs.length}`, 'info');
+                videoInputs.forEach((device, i) => {
+                    log(`   ${i + 1}. ${device.label || 'Unnamed Device'} (${device.deviceId.substring(0, 20)}...)`);
+                });
+
+                if (audioInputs.length === 0) {
+                    log('\n❌ NO MICROPHONE FOUND!', 'error');
+                    log('\n💡 Possible causes:', 'warning');
+                    log('   1. No microphone is connected to your Mac');
+                    log('   2. Browser does not have microphone permission in System Settings');
+                    log('   3. Another app has exclusive access to the microphone');
+                    log('\n🔧 To fix:', 'warning');
+                    log('   1. Go to  → System Settings → Privacy & Security → Microphone');
+                    log('   2. Make sure your browser is checked/enabled');
+                    log('   3. Reload this page and try again');
+                }
+
+            } catch (error) {
+                log(`\n❌ Error: ${error.message}`, 'error');
+                log(`Error name: ${error.name}`, 'error');
+            }
+        }
+
+        async function requestMic() {
+            output.innerHTML = '';
+            log('🎤 Requesting microphone permission...');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('✅ MICROPHONE ACCESS GRANTED!', 'success');
+                log(`\nStream details:`, 'success');
+                log(`  - ID: ${stream.id}`);
+                log(`  - Active: ${stream.active}`);
+                log(`  - Audio tracks: ${stream.getAudioTracks().length}`);
+
+                stream.getAudioTracks().forEach((track, i) => {
+                    log(`\n🎵 Track ${i + 1}:`, 'success');
+                    log(`  - Label: ${track.label}`);
+                    log(`  - Enabled: ${track.enabled}`);
+                    log(`  - Muted: ${track.muted}`);
+                    log(`  - Ready state: ${track.readyState}`);
+                });
+
+                // Stop the stream
+                stream.getTracks().forEach(track => track.stop());
+                log('\n✅ Test stream stopped. Microphone is working!', 'success');
+
+            } catch (error) {
+                log(`\n❌ MICROPHONE ACCESS FAILED!`, 'error');
+                log(`Error: ${error.message}`, 'error');
+                log(`Error name: ${error.name}`, 'error');
+
+                if (error.name === 'NotFoundError') {
+                    log('\n💡 This error means NO MICROPHONE DEVICE was found.', 'warning');
+                    log('\n🔧 To fix:', 'warning');
+                    log('   1. Check System Settings → Sound → Input');
+                    log('   2. Make sure a microphone is selected and working');
+                    log('   3. Check System Settings → Privacy & Security → Microphone');
+                    log('   4. Enable your browser in the microphone permissions');
+                } else if (error.name === 'NotAllowedError') {
+                    log('\n💡 You denied microphone permission.', 'warning');
+                    log('\n🔧 To fix:', 'warning');
+                    log('   1. Click the 🔒 lock icon in the address bar');
+                    log('   2. Allow microphone access');
+                    log('   3. Reload and try again');
+                }
+            }
+        }
+
+        async function testStream() {
+            output.innerHTML = '';
+            log('🎤 Testing live audio stream for 3 seconds...');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('✅ Stream started!', 'success');
+
+                const audioContext = new AudioContext();
+                const source = audioContext.createMediaStreamSource(stream);
+                const analyser = audioContext.createAnalyser();
+                source.connect(analyser);
+
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                let maxVolume = 0;
+                const checkInterval = setInterval(() => {
+                    analyser.getByteFrequencyData(dataArray);
+                    const volume = Math.max(...dataArray);
+                    maxVolume = Math.max(maxVolume, volume);
+                    log(`🔊 Current volume: ${volume} (max: ${maxVolume})`, volume > 10 ? 'success' : 'info');
+                }, 500);
+
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    stream.getTracks().forEach(track => track.stop());
+                    audioContext.close();
+
+                    if (maxVolume > 10) {
+                        log('\n✅ AUDIO DETECTED! Microphone is working!', 'success');
+                    } else {
+                        log('\n⚠️ No audio detected. Try speaking louder or check mic settings.', 'warning');
+                    }
+                }, 3000);
+
+            } catch (error) {
+                log(`\n❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run on load
+        window.onload = () => {
+            log('🚀 Microphone Diagnostic Tool Ready');
+            log('Click "1. List Available Devices" to start\n');
+        };
+    </script>
+</body>
+</html>

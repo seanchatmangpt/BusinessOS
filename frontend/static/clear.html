@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CLEARING CACHE...</title>
+</head>
+<body>
+    <h1 style="font-size: 48px; text-align: center; margin-top: 200px;">
+        CLEARING CACHE...
+    </h1>
+    <script>
+        localStorage.clear();
+        sessionStorage.clear();
+        if ('caches' in window) {
+            caches.keys().then(names => {
+                names.forEach(name => caches.delete(name));
+            });
+        }
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 2000);
+    </script>
+</body>
+</html>

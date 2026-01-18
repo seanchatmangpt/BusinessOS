@@ -5,13 +5,18 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/livekit/protocol/auth"
 	"github.com/livekit/protocol/livekit"
 	lksdk "github.com/livekit/server-sdk-go/v2"
+)
+
+var (
+	dispatchMutex   sync.Mutex
+	dispatchedRooms = make(map[string]bool)
 )
 
 // LiveKitTokenRequest represents a request for a LiveKit room token
@@ -60,14 +65,15 @@ func (h *Handlers) HandleLiveKitToken(c *gin.Context) {
 	// Generate room name if not provided
 	roomName := req.RoomName
 	if roomName == "" {
-		// Create unique room for this voice session
-		roomName = "osa-voice-" + uuid.New().String()[:8]
+		// Use consistent room per user (prevents duplicates)
+		roomName = "osa-voice-" + user.ID
 	}
 
 	// Use user ID as identity if not provided
 	identity := req.Identity
 	if identity == "" {
-		identity = "user-" + user.ID[:8]
+		// Use FULL user ID, not truncated
+		identity = "user-" + user.ID
 	}
 
 	slog.Info("[LiveKit] Generating token",
@@ -90,8 +96,8 @@ func (h *Handlers) HandleLiveKitToken(c *gin.Context) {
 	at.SetVideoGrant(grant).
 		SetIdentity(identity).
 		SetName(user.Name). // Display name
-		SetValidFor(time.Hour * 24).
-		SetMetadata(`{"agent":"osa-voice-agent"}`) // Request agent dispatch via metadata
+		SetValidFor(time.Hour * 24)
+		// NOTE: NOT using SetMetadata for agent dispatch - we do manual dispatch below
 
 	// Generate JWT token
 	token, err := at.ToJWT()
@@ -109,11 +115,27 @@ func (h *Handlers) HandleLiveKitToken(c *gin.Context) {
 
 	// Dispatch agent explicitly via LiveKit API
 	go func() {
+		// Use mutex to prevent race condition when multiple requests come in simultaneously
+		dispatchMutex.Lock()
+		if dispatchedRooms[roomName] {
+			dispatchMutex.Unlock()
+			slog.Info("[LiveKit] Agent already dispatched for room, skipping", "room", roomName)
+			return
+		}
+		dispatchedRooms[roomName] = true
+		dispatchMutex.Unlock()
+
+		// Ensure cleanup on exit
+		defer func() {
+			dispatchMutex.Lock()
+			delete(dispatchedRooms, roomName)
+			dispatchMutex.Unlock()
+		}()
+
 		ctx := context.Background()
-		agentClient := lksdk.NewAgentDispatchServiceClient(livekitURL, apiKey, apiSecret)
+		roomClient := lksdk.NewRoomServiceClient(livekitURL, apiKey, apiSecret)
 
 		// Create the room first (if it doesn't exist)
-		roomClient := lksdk.NewRoomServiceClient(livekitURL, apiKey, apiSecret)
 		_, err := roomClient.CreateRoom(ctx, &livekit.CreateRoomRequest{
 			Name:            roomName,
 			EmptyTimeout:    300, // 5 minutes
@@ -123,7 +145,24 @@ func (h *Handlers) HandleLiveKitToken(c *gin.Context) {
 			slog.Warn("[LiveKit] Room may already exist", "room", roomName, "error", err)
 		}
 
-		// Dispatch the voice agent to the room
+		// Check if agent already exists in room before dispatching
+		participants, err := roomClient.ListParticipants(ctx, &livekit.ListParticipantsRequest{
+			Room: roomName,
+		})
+		if err == nil {
+			// Check if any participant is an agent
+			for _, p := range participants.Participants {
+				if p.Identity != "" && len(p.Identity) > 6 && p.Identity[:6] == "agent-" {
+					slog.Info("[LiveKit] Agent already in room, skipping dispatch",
+						"room", roomName,
+						"agent_identity", p.Identity)
+					return
+				}
+			}
+		}
+
+		// Dispatch the voice agent to the room (only if no agent exists)
+		agentClient := lksdk.NewAgentDispatchServiceClient(livekitURL, apiKey, apiSecret)
 		dispatch, err := agentClient.CreateDispatch(ctx, &livekit.CreateAgentDispatchRequest{
 			AgentName: "osa-voice-agent",
 			Room:      roomName,

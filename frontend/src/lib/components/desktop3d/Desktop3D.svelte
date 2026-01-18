@@ -14,12 +14,9 @@
 	import LiveCaptions from './LiveCaptions.svelte';
 	// Phase 0: Voice Agent Redesign - Replace cloud with silver orb
 	import VoiceOrbPanel from './VoiceOrbPanel.svelte';
-	import { desktop3dPermissions } from '$lib/services/desktop3dPermissions';
 	import { SimpleGestureController } from '$lib/services/simpleGestureController';
 	import * as THREE from 'three';
 	import { desktop3dLayoutStore } from '$lib/stores/desktop3dLayoutStore';
-	// Voice command parsing (still used for local commands)
-	import { voiceCommandParser, type VoiceCommand } from '$lib/services/voiceCommands';
 	// Simple voice service - clean and minimal
 	import { simpleVoice, type VoiceState } from '$lib/services/simpleVoice';
 	import { useSession } from '$lib/auth-client';
@@ -81,6 +78,10 @@
 
 	// Store unsubscribe function for desktop state
 	let unsubscribeDesktopState: (() => void) | null = null;
+
+	// Store voice command event handlers for cleanup
+	let handleVoiceOpenApp: EventListener | null = null;
+	let handleVoiceActivateNode: EventListener | null = null;
 
 	// Gesture control state (SIMPLE - using SimpleGestureController)
 	let gestureControlEnabled = $state(false);
@@ -183,27 +184,36 @@
 		// Voice is handled by LiveKit only
 		console.log('[Desktop3D] Voice system: LiveKit only');
 
-		// Check if media permissions are supported
-		if (!desktop3dPermissions.isSupported()) {
-			console.warn('[Desktop3D] Media permissions not supported in this environment');
-		} else {
-			// Initialize permission service
-			desktop3dPermissions.initialize();
-			console.log('[Desktop3D] Permission service initialized');
+		// Setup voice command event listeners for SSE integration
+		handleVoiceOpenApp = ((event: CustomEvent) => {
+			const { app } = event.detail;
+			console.log('[Desktop3D] Voice command: open app', app);
 
-			// PRE-WARM: Request microphone permission early for faster voice activation
-			// This runs in background so it doesn't block UI
-			console.log('[Desktop3D] 🎤 Pre-warming microphone...');
-			desktop3dPermissions.acquireMicrophoneStream().then((stream) => {
-				if (stream) {
-					console.log('[Desktop3D] ✅ Microphone pre-warmed and ready');
+			// Open app via app registry or desktop store
+			if (app === 'app-store' || app === 'business-os') {
+				openAppRegistry();
+			} else {
+				// Try to open as a module if it matches
+				const moduleId = app as ModuleId;
+				if (ALL_MODULES.includes(moduleId)) {
+					desktop3dStore.openWindow(moduleId);
 				} else {
-					console.log('[Desktop3D] ⚠️ Microphone not available (will request when needed)');
+					console.warn('[Desktop3D] Unknown app:', app);
 				}
-			}).catch((err) => {
-				console.log('[Desktop3D] ⚠️ Microphone pre-warm skipped:', err.message);
-			});
-		}
+			}
+		}) as EventListener;
+
+		handleVoiceActivateNode = ((event: CustomEvent) => {
+			const { nodeId } = event.detail;
+			console.log('[Desktop3D] Voice command: activate node', nodeId);
+			// The voiceCommands service already navigates to /nodes/{nodeId}
+			// Here we could do additional UI updates if needed
+		}) as EventListener;
+
+		window.addEventListener('voice:open-app', handleVoiceOpenApp);
+		window.addEventListener('voice:activate-node', handleVoiceActivateNode);
+
+		console.log('[Desktop3D] ✅ Voice command event listeners registered');
 
 		// Initialize layout system (async - wait for it)
 		await desktop3dLayoutStore.initialize();
@@ -224,8 +234,14 @@
 			unsubscribeDesktopState();
 		}
 
-		// CRITICAL: Release camera and microphone streams
-		desktop3dPermissions.cleanup();
+		// Cleanup voice command event listeners
+		if (handleVoiceOpenApp) {
+			window.removeEventListener('voice:open-app', handleVoiceOpenApp);
+		}
+		if (handleVoiceActivateNode) {
+			window.removeEventListener('voice:activate-node', handleVoiceActivateNode);
+		}
+
 		console.log('[Desktop3D] Cleanup complete');
 	});
 

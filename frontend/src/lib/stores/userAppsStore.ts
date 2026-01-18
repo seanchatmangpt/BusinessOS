@@ -58,13 +58,15 @@ interface UserAppsState {
 	apps: UserApp[];
 	loading: boolean;
 	error: string | null;
+	usingMockApps: boolean; // Track if we're using mock apps (API unavailable)
 }
 
 function createUserAppsStore() {
 	const { subscribe, set, update } = writable<UserAppsState>({
 		apps: [],
 		loading: false,
-		error: null
+		error: null,
+		usingMockApps: false
 	});
 
 	const API_BASE = '/api/user-apps';
@@ -99,7 +101,8 @@ function createUserAppsStore() {
 				update((state) => ({
 					...state,
 					apps,
-					loading: false
+					loading: false,
+					usingMockApps: false
 				}));
 
 				// Register all apps with windowStore for desktop icons
@@ -127,7 +130,8 @@ function createUserAppsStore() {
 						...state,
 						apps: mockApps,
 						loading: false,
-						error: null
+						error: null,
+						usingMockApps: true
 					}));
 
 					// Register mock apps with windowStore
@@ -225,6 +229,34 @@ function createUserAppsStore() {
 		 * Update an existing user app
 		 */
 		async update(appId: string, workspaceId: string, params: UpdateUserAppParams): Promise<UserApp> {
+			// Check if we're using mock apps - handle locally
+			let currentState: UserAppsState = { apps: [], loading: false, error: null, usingMockApps: false };
+			const unsubscribe = subscribe((state: UserAppsState) => { currentState = state; });
+			unsubscribe();
+
+			if (currentState.usingMockApps) {
+				// Handle mock app update locally
+				const existingApp = currentState.apps.find((app: UserApp) => app.id === appId);
+				if (!existingApp) {
+					throw new Error('App not found');
+				}
+
+				const updatedApp: UserApp = {
+					...existingApp,
+					...params,
+					updated_at: new Date().toISOString()
+				};
+
+				update((state) => ({
+					...state,
+					apps: state.apps.map((app) => (app.id === appId ? updatedApp : app))
+				}));
+
+				console.log('[UserApps] Mock app updated locally:', updatedApp.name, params);
+				return updatedApp;
+			}
+
+			// Real API call
 			const queryParams = new URLSearchParams({ workspace_id: workspaceId });
 
 			const response = await fetch(`${API_BASE}/${appId}?${queryParams}`, {
@@ -256,6 +288,26 @@ function createUserAppsStore() {
 		 * Delete a user app
 		 */
 		async delete(appId: string, workspaceId: string): Promise<void> {
+			// Check if we're using mock apps - handle locally
+			let currentState: UserAppsState = { apps: [], loading: false, error: null, usingMockApps: false };
+			const unsubscribe = subscribe((state: UserAppsState) => { currentState = state; });
+			unsubscribe();
+
+			if (currentState.usingMockApps) {
+				// Handle mock app delete locally
+				const existingApp = currentState.apps.find((app: UserApp) => app.id === appId);
+				console.log('[UserApps] Mock app deleted locally:', existingApp?.name);
+
+				update((state) => ({
+					...state,
+					apps: state.apps.filter((app) => app.id !== appId)
+				}));
+
+				windowStore.unregisterUserApp(appId);
+				return;
+			}
+
+			// Real API call
 			const params = new URLSearchParams({ workspace_id: workspaceId });
 
 			const response = await fetch(`${API_BASE}/${appId}?${params}`, {
@@ -305,7 +357,7 @@ function createUserAppsStore() {
 						? {
 								...app,
 								position_x: position.position_x,
-								position_y: position_y,
+								position_y: position.position_y,
 								position_z: position.position_z
 							}
 						: app
@@ -371,7 +423,8 @@ function createUserAppsStore() {
 			set({
 				apps: [],
 				loading: false,
-				error: null
+				error: null,
+				usingMockApps: false
 			});
 		}
 	};

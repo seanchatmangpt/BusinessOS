@@ -13,7 +13,6 @@
 
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
-	import type { VoiceCommand } from '$lib/services/voiceCommands';
 
 	interface Props {
 		/** User's spoken message */
@@ -21,9 +20,6 @@
 
 		/** OSA's response message */
 		osaMessage?: string;
-
-		/** Recognized voice command (if any) */
-		command?: VoiceCommand | null;
 
 		/** Whether actively listening */
 		isListening: boolean;

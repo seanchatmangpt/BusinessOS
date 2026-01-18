@@ -206,10 +206,9 @@ function handleReadSync(data: { read_ids?: string[]; read_all?: boolean; read_at
 				readSet.has(n.id) ? { ...n, is_read: true, read_at: data.read_at } : n
 			)
 		);
-		// Recalculate unread count
-		notifications.subscribe((current) => {
-			unreadCount.set(current.filter((n) => !n.is_read).length);
-		})();
+		// Recalculate unread count using get() instead of subscribe pattern
+		const current = get(notifications);
+		unreadCount.set(current.filter((n) => !n.is_read).length);
 	}
 }
 
@@ -379,9 +378,24 @@ const recentNotifications = derived(notifications, ($notifications) =>
 	$notifications.slice(0, 10)
 );
 
+// Track initialization to prevent duplicate event listeners
+let isInitialized = false;
+
+// Visibility change handler (stored for potential cleanup)
+function handleVisibilityChange() {
+	if (document.visibilityState === 'visible' && !get(isConnected)) {
+		reconnectAttempts = 0;
+		connect();
+	}
+}
+
 // Initialize on import (browser only)
 function initialize() {
 	if (!browser) return;
+
+	// Prevent multiple initializations
+	if (isInitialized) return;
+	isInitialized = true;
 
 	// Fetch initial data
 	fetchNotifications();
@@ -391,12 +405,7 @@ function initialize() {
 	connect();
 
 	// Reconnect when visibility changes (tab comes back into focus)
-	document.addEventListener('visibilitychange', () => {
-		if (document.visibilityState === 'visible' && !get(isConnected)) {
-			reconnectAttempts = 0;
-			connect();
-		}
-	});
+	document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
 // Export store and functions

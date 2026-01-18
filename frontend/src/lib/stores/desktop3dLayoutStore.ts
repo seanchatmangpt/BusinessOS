@@ -87,7 +87,7 @@ function createLayoutStore() {
 		 */
 		getDefaultLayout: (): Layout => {
 			const store = get(desktop3dStore);
-			const modules: ModulePosition[] = store.windows.map((win) => ({
+			const modules: ModulePosition[] = (store.windows || []).map((win) => ({
 				module_id: win.module,
 				position: win.position,
 				rotation: win.rotation || { x: 0, y: 0, z: 0 },
@@ -130,7 +130,7 @@ function createLayoutStore() {
 					const layouts: Layout[] = await response.json();
 
 					// Always include default layout at the beginning
-					const defaultLayout = get(desktop3dLayoutStore).getDefaultLayout();
+					const defaultLayout = desktop3dLayoutStore.getDefaultLayout();
 
 					// Get active layout from backend
 					const activeResponse = await fetch(`${baseUrl}/desktop3d/layouts/active`, {
@@ -165,7 +165,7 @@ function createLayoutStore() {
 				console.error('[Layout Store] ❌ Failed to load layouts:', error);
 
 				// On error, just show default layout
-				const defaultLayout = get(desktop3dLayoutStore).getDefaultLayout();
+				const defaultLayout = desktop3dLayoutStore.getDefaultLayout();
 				update((s) => ({
 					...s,
 					layouts: [defaultLayout],
@@ -188,7 +188,7 @@ function createLayoutStore() {
 			console.log('[Layout Store] Saving layout...', { name });
 
 			const store = get(desktop3dStore);
-			const modules: ModulePosition[] = store.windows.map((win) => ({
+			const modules: ModulePosition[] = (store.windows || []).map((win) => ({
 				module_id: win.module,
 				position: win.position,
 				rotation: win.rotation || { x: 0, y: 0, z: 0 },

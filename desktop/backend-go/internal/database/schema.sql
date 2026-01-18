@@ -2409,33 +2409,6 @@ CREATE INDEX IF NOT EXISTS idx_channel_messages_channel ON channel_messages(chan
 CREATE INDEX IF NOT EXISTS idx_channel_messages_thread ON channel_messages(channel_id, thread_ts);
 
 -- ============================================================================
--- INTEGRATION SYNC LOG (from migration 030)
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS integration_sync_log (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255) NOT NULL,
-    provider_id VARCHAR(100) NOT NULL,
-    sync_type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-
-    -- Sync details
-    records_synced INT DEFAULT 0,
-    records_failed INT DEFAULT 0,
-    error_message TEXT,
-
-    -- Timing
-    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    completed_at TIMESTAMP WITH TIME ZONE,
-    duration_ms INT,
-
-    -- Metadata
-    metadata JSONB DEFAULT '{}'
-);
-
-CREATE INDEX IF NOT EXISTS idx_sync_log_user_provider ON integration_sync_log(user_id, provider_id, started_at DESC);
-
--- ============================================================================
 -- NOTION DATABASES
 -- ============================================================================
 

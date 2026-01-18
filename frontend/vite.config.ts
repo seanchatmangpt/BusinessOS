@@ -115,6 +115,11 @@ export default defineConfig({
 				target: 'http://localhost:8001',
 				changeOrigin: true,
 			},
+			// Voice UI commands - SSE streaming for voice agent integration
+			'/api/ui': {
+				target: 'http://localhost:8001',
+				changeOrigin: true,
+			},
 			'/api/ai': {
 				target: 'http://localhost:8001',
 				changeOrigin: true,
