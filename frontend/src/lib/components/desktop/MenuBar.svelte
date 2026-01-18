@@ -8,6 +8,9 @@
 	import { browser } from '$app/environment';
 	import { isElectron, isMacOS } from '$lib/utils/platform';
 	import LayoutManager from '$lib/components/desktop3d/LayoutManager.svelte';
+	import AppRegistryModal from '$lib/components/desktop/AppRegistryModal.svelte';
+	import { currentWorkspaceId } from '$lib/stores/workspaces';
+	import { showAppRegistry, openAppRegistry, closeAppRegistry } from '$lib/stores/appRegistryStore';
 
 	const session = useSession();
 
@@ -176,6 +179,9 @@
 					desktop3dLayoutStore.resetToDefault();
 				}
 				break;
+			case 'add-apps':
+				openAppRegistry();
+				break;
 		}
 	}
 
@@ -254,6 +260,13 @@
 						{ label: 'Arrange Windows', action: 'arrange', disabled: true },
 						{ label: 'Tile Windows', action: 'tile', disabled: true },
 				  ]
+		},
+		{
+			id: 'apps',
+			label: 'Apps',
+			items: [
+				{ label: 'Add Applications', action: 'add-apps' },
+			]
 		},
 		{
 			id: 'window',
@@ -582,6 +595,11 @@
 
 <!-- Layout Manager Modal (3D Desktop) -->
 <LayoutManager show={showLayoutManager} onClose={() => showLayoutManager = false} />
+
+<!-- App Registry Modal -->
+{#if $showAppRegistry && $currentWorkspaceId}
+	<AppRegistryModal workspaceId={$currentWorkspaceId} onClose={closeAppRegistry} />
+{/if}
 
 <style>
 	.menu-bar {

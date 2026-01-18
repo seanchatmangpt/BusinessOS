@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { windowStore } from '$lib/stores/windowStore';
 	import { desktopSettings } from '$lib/stores/desktopStore';
+	import { userAppsStore } from '$lib/stores/userAppsStore';
 	import { api, apiClient } from '$lib/api';
 
 	const iconStyle = $derived($desktopSettings.iconStyle);
@@ -328,7 +329,12 @@
 	}
 
 	// Icon data for each module
-	const moduleIcons: Record<string, { path: string; color: string; bgColor: string; isTerminal?: boolean; isFolder?: boolean; isFinder?: boolean }> = {
+	const moduleIcons: Record<string, { path?: string; color: string; bgColor: string; isTerminal?: boolean; isFolder?: boolean; isFinder?: boolean; imageUrl?: string }> = {
+		'app-store': {
+			imageUrl: '/logos/integrations/AppleStore_whitelogo.png',
+			color: '#0D84FF',
+			bgColor: '#0D84FF'
+		},
 		platform: {
 			path: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
 			color: '#333333',
@@ -429,7 +435,7 @@
 		}
 	};
 
-	const moduleLabels: Record<string, string> = {
+	const staticModuleLabels: Record<string, string> = {
 		platform: 'Business OS',
 		terminal: 'Terminal',
 		dashboard: 'Dashboard',
@@ -449,6 +455,18 @@
 		help: 'Help',
 		finder: 'Finder'
 	};
+
+	// Merge static labels with dynamic user app labels
+	const moduleLabels = $derived(() => {
+		const labels = { ...staticModuleLabels };
+
+		// Add user app labels
+		for (const app of $userAppsStore.apps) {
+			labels[`user-app-${app.id}`] = app.name;
+		}
+
+		return labels;
+	});
 
 	let hoveredIndex = $state<number | null>(null);
 	let isDragOver = $state(false);
@@ -526,7 +544,7 @@
 			items.push({
 				id: `pinned-${module}`,
 				module,
-				label: folderData?.label || moduleLabels[module] || module,
+				label: folderData?.label || moduleLabels()[module] || module,
 				isOpen,
 				isMinimized: !!minimizedWindow,
 				windowId: minimizedWindow?.id || windows[0]?.id,
@@ -556,7 +574,7 @@
 				items.push({
 					id: `open-${module}`,
 					module,
-					label: moduleLabels[module] || module,
+					label: moduleLabels()[module] || module,
 					isOpen: true,
 					isMinimized: !!minimizedWindow,
 					windowId: minimizedWindow?.id || windows[0]?.id
@@ -1021,6 +1039,29 @@
 				isFolder: true
 			};
 		}
+
+		// Check if it's a user app
+		if (item.module.startsWith('user-app-')) {
+			const appId = item.module.replace('user-app-', '');
+			const app = $userAppsStore.apps.find(a => a.id === appId);
+
+			if (app && app.logo_url) {
+				return {
+					imageUrl: app.logo_url,
+					color: app.color || '#6366F1',
+					bgColor: 'white',
+					isUserApp: true
+				};
+			} else if (app) {
+				// Fallback to default icon if no logo
+				return {
+					path: moduleIcons.dashboard.path,
+					color: app.color || '#6366F1',
+					bgColor: `${app.color || '#6366F1'}20`
+				};
+			}
+		}
+
 		return moduleIcons[item.module] || moduleIcons.dashboard;
 	}
 
@@ -1504,6 +1545,7 @@
 						class="dock-icon"
 						class:terminal={icon.isTerminal}
 						class:finder={icon.isFinder}
+						class:user-app={icon.isUserApp}
 						style="
 							{icon.isFinder ? `background: ${icon.bgColor};` : `background-color: ${iconStyle === 'minimal' ? 'transparent' : icon.bgColor};`}
 							{iconStyle === 'outlined' && !icon.isFinder ? `border: 2px solid ${icon.color}; background-color: transparent;` : ''}
@@ -1511,7 +1553,10 @@
 							{iconStyle === 'gradient' ? `--gradient-start: ${icon.color}; --gradient-end: ${icon.bgColor};` : ''}
 						"
 					>
-						{#if icon.isTerminal}
+						{#if icon.imageUrl}
+							<!-- Module or user app with logo image -->
+							<img src={icon.imageUrl} alt={item.label} class="dock-icon-image" />
+						{:else if icon.isTerminal}
 							<span class="terminal-prompt">&gt;_</span>
 						{:else if icon.isFinder}
 							<!-- Finder happy face icon -->
@@ -2798,6 +2843,19 @@
 	.dock-icon-svg {
 		width: 24px;
 		height: 24px;
+	}
+
+	.dock-icon-image {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		padding: 4px;
+	}
+
+	.dock-icon.user-app {
+		background: white;
+		padding: 0;
+		overflow: hidden;
 	}
 
 	.dock-icon.terminal {

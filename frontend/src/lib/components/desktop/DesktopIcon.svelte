@@ -324,6 +324,11 @@
 			color: '#78909C',
 			bgColor: '#ECEFF1'
 		},
+		'app-store': {
+			path: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+			color: '#0D84FF',
+			bgColor: '#E3F2FD'
+		},
 		folder: {
 			path: 'M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z',
 			color: '#3B82F6',
@@ -408,6 +413,14 @@
 			>
 				{@html customIcon.customSvg}
 			</div>
+		{:else if customIcon?.type === 'image' && customIcon.imageUrl}
+			<!-- Image URL (for user app logos) -->
+			<img
+				src={customIcon.imageUrl}
+				alt={label}
+				class="icon-image-logo"
+				style="width: {svgSize * 1.4}px; height: {svgSize * 1.4}px; object-fit: contain;"
+			/>
 		{:else if isTerminal}
 			<div class="terminal-icon">
 				<span class="terminal-prompt" style="font-size: {svgSize * 0.65}px;">&gt;_</span>
@@ -1097,6 +1110,12 @@
 	.custom-svg-container :global(svg) {
 		width: 100%;
 		height: 100%;
+	}
+
+	/* User app logo image */
+	.icon-image-logo {
+		border-radius: 6px;
+		background: transparent;
 	}
 
 	/* Context Menu */

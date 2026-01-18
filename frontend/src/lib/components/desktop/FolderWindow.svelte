@@ -133,6 +133,7 @@
 							posX={0}
 							posY={0}
 							darkBackground={false}
+							customIcon={icon.customIcon}
 							onSelect={(id, additive) => selectedIconId = id}
 							onOpen={(module) => windowStore.openWindow(module)}
 							onDragStart={(id) => {}}

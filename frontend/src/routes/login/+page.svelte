@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
-	import { signInWithEmail, initiateGoogleOAuth, cloudServerUrl } from '$lib/auth-client';
+	import { signInWithEmail, initiateGoogleOAuth, cloudServerUrl, getSession } from '$lib/auth-client';
 	import { AuthLayout, FormInput, PasswordInput } from '$lib/components/auth';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
@@ -57,7 +57,16 @@
 			}
 
 			loading = false;
-			goto('/window');
+
+			// Check if user has completed onboarding
+			const session = await getSession();
+			if (session.data?.user?.onboardingCompleted === false) {
+				// User hasn't completed onboarding, redirect there
+				goto('/onboarding');
+			} else {
+				// User has completed onboarding, go to main app
+				goto('/window');
+			}
 		} catch (err) {
 			error = (err as Error).message || 'Authentication failed';
 			loading = false;

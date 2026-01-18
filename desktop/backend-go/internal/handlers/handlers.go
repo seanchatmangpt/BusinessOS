@@ -53,19 +53,22 @@ type Handlers struct {
 	auditService           *services.WorkspaceAuditService  // Workspace audit logging
 	projectAccessService   *services.ProjectAccessService   // Project-level access control
 	// Voice services (3D Desktop)
-	whisperService    *services.WhisperService    // Local speech-to-text
-	elevenLabsService *services.ElevenLabsService // Text-to-speech (OSA voice)
+	// NOTE: Voice processing now uses Python LiveKit agents (see python-voice-agent/)
+	whisperService    *services.WhisperService    // Local speech-to-text (for voice notes)
+	elevenLabsService *services.ElevenLabsService // Text-to-speech (OSA voice, for non-voice-agent TTS)
+	// LiveKit token generation is in livekit.go handler (no service needed)
 	// Agent Skills System
 	skillsLoader *services.SkillsLoader // Skills loader for agent prompts
 	// OSA Integration - AI Agent Orchestration
-	osaClient           *osa.ResilientClient              // OSA resilient client with circuit breaker
-	osaSyncService      *services.OSASyncService          // OSA sync service for bidirectional sync
-	osaFileSyncService  *services.OSAFileSyncService      // OSA file polling service
-	osaWorkspaceInit    *services.OSAWorkspaceInitService // OSA workspace initialization service
-	osaWorkflowsHandler *OSAWorkflowsHandler              // OSA workflows handler
-	osaWebhooksHandler  *OSAWebhooksHandler               // OSA webhooks handler
-	osaBuildEventBus    *services.BuildEventBus           // OSA build event bus for real-time streaming
-	osaStreamingHandler *OSAStreamingHandler              // OSA SSE streaming handler
+	osaClient            *osa.ResilientClient              // OSA resilient client with circuit breaker
+	osaSyncService       *services.OSASyncService          // OSA sync service for bidirectional sync
+	osaFileSyncService   *services.OSAFileSyncService      // OSA file polling service
+	osaWorkspaceInit     *services.OSAWorkspaceInitService // OSA workspace initialization service
+	osaWorkflowsHandler  *OSAWorkflowsHandler              // OSA workflows handler
+	osaWebhooksHandler   *OSAWebhooksHandler               // OSA webhooks handler
+	osaBuildEventBus     *services.BuildEventBus           // OSA build event bus for real-time streaming
+	osaStreamingHandler  *OSAStreamingHandler              // OSA SSE streaming handler
+	osaOnboardingHandler *OSAOnboardingHandler             // OSA onboarding handler (Build Your OS flow)
 }
 
 // NewHandlers creates a new Handlers instance
@@ -119,6 +122,9 @@ func (h *Handlers) SetVoiceServices(whisper *services.WhisperService, elevenLabs
 	h.whisperService = whisper
 	h.elevenLabsService = elevenLabs
 }
+
+// SetLiveKitAgent removed - token generation now handled directly in livekit.go handler
+// No separate service needed for Python voice agents
 
 // SetPedroServices sets the Pedro task services (optional, to avoid breaking existing code)
 func (h *Handlers) SetPedroServices(
@@ -212,6 +218,11 @@ func (h *Handlers) SetOSAFileServices(fileSyncService *services.OSAFileSyncServi
 	h.osaWebhooksHandler = webhooksHandler
 	h.osaBuildEventBus = eventBus
 	h.osaStreamingHandler = streamingHandler
+}
+
+// SetOSAOnboardingHandler sets the OSA onboarding handler
+func (h *Handlers) SetOSAOnboardingHandler(handler *OSAOnboardingHandler) {
+	h.osaOnboardingHandler = handler
 }
 
 // RegisterRoutes registers all API routes
@@ -883,18 +894,35 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	{
 		transcribe.POST("", transcriptionHandler.TranscribeAudio)
 		transcribe.GET("/status", transcriptionHandler.GetTranscriptionStatus)
-		transcribe.POST("/realtime", h.HandleRealtimeTranscription) // Real-time voice transcription for active listening
+		// ⚡ Removed deprecated realtime endpoint - LiveKit handles all voice now
 	}
-	slog.Info("Transcription routes registered (including real-time)")
+	slog.Info("Transcription routes registered")
 
 	// OSA Voice routes - /api/osa
-	osa := api.Group("/osa")
-	osa.Use(auth)
+	// NOTE: These routes are deprecated - voice now uses Python LiveKit agent
+	// Uncomment if you need standalone TTS endpoints
+	// osa := api.Group("/osa")
+	// osa.Use(auth)
+	// {
+	// 	osa.POST("/speak", h.HandleOSASpeak)              // Convert text to speech
+	// 	osa.POST("/speak/stream", h.HandleOSASpeakStream) // Stream TTS for long text
+	// }
+	// slog.Info("OSA voice routes registered")
+
+	// LiveKit Voice routes - /api/livekit (Real-time voice with LiveKit)
+	livekit := api.Group("/livekit")
+	livekit.Use(auth)
 	{
-		osa.POST("/speak", h.HandleOSASpeak)              // Convert text to speech
-		osa.POST("/speak/stream", h.HandleOSASpeakStream) // Stream TTS for long text
+		livekit.POST("/token", h.HandleLiveKitToken) // Generate LiveKit room token
+		livekit.GET("/rooms", h.HandleLiveKitRooms)  // Get room info/status
+		// NOTE: /transcribe and /greeting routes deprecated - use /api/voice/* instead
 	}
-	slog.Info("OSA voice routes registered")
+	slog.Info("LiveKit voice routes registered")
+
+	// User context endpoint for Python LiveKit voice agent (no auth - internal service call)
+	// Called by python-voice-agent/ to fetch user context for personalized responses
+	api.GET("/voice/user-context/:user_id", h.HandleVoiceUserContext)
+	slog.Info("Voice user-context route registered")
 
 	// Voice notes routes - /api/voice-notes
 	voiceNotesHandler := NewVoiceNotesHandler(h.pool, h.embeddingService)
@@ -919,6 +947,19 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		profile.POST("/background", h.UploadBackground)
 		profile.GET("/background/:filename", h.GetBackground)
 		profile.DELETE("/background", h.DeleteBackground)
+	}
+
+	// Username routes - /api/users
+	usernameHandler := NewUsernameHandler(h.pool)
+	users := api.Group("/users")
+	{
+		// Public route - check username availability (no auth required for UX)
+		users.GET("/check-username/:username", usernameHandler.CheckUsernameAvailability)
+
+		// Protected routes
+		users.GET("/me", auth, usernameHandler.GetCurrentUser)
+		users.PATCH("/me/username", auth, usernameHandler.SetUsername)
+		users.POST("/me/complete-onboarding", auth, usernameHandler.CompleteOnboarding)
 	}
 
 	// MCP routes - /api/mcp
@@ -981,6 +1022,9 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		terminalRoutes.GET("/sessions", terminalHandler.ListSessions)
 		terminalRoutes.DELETE("/sessions/:id", terminalHandler.CloseSession)
 	}
+
+	// NOTE: Native Window Capture routes moved to feature/native-app-capture branch
+	// Web apps (iframe) are the recommended approach - see user_apps.go
 
 	// Filesystem routes - /api/filesystem (optional auth for dev)
 	filesystem := api.Group("/filesystem")
@@ -1304,5 +1348,22 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 			osaWebhooks.POST("/build-event", h.osaWebhooksHandler.HandleBuildEvent)
 		}
 		log.Printf("✅ OSA webhook receiver routes registered at /api/osa/webhooks/*")
+	}
+
+	// Proxy routes - for embedding external web apps in iframes
+	// These routes strip X-Frame-Options and CSP headers to allow embedding
+	proxy := api.Group("/proxy")
+	{
+		proxy.GET("", h.HandleProxyURL)   // GET /api/proxy?url=<encoded-url>
+		proxy.POST("", h.HandleProxyPost) // POST /api/proxy with JSON body
+	}
+	log.Printf("✅ Proxy routes registered at /api/proxy/*")
+
+	// OSA Onboarding routes - /api/osa-onboarding (Build Your OS flow)
+	if h.osaOnboardingHandler != nil {
+		osaOnboarding := api.Group("/osa-onboarding")
+		osaOnboarding.Use(auth)
+		RegisterOSAOnboardingRoutes(osaOnboarding, h.osaOnboardingHandler)
+		log.Printf("✅ OSA onboarding routes registered at /api/osa-onboarding/*")
 	}
 }
