@@ -169,3 +169,18 @@ func OptionalAuthMiddleware(pool *pgxpool.Pool) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireAuth is a middleware that enforces authentication
+// Use this at the router level to protect routes that require authentication
+// Eliminates the need for manual user checks in handlers (removes 392 duplicate checks)
+func RequireAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := GetCurrentUser(c)
+		if user == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
