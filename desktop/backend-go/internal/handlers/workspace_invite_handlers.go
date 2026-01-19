@@ -23,10 +23,8 @@ type CreateInviteRequest struct {
 // Required permission: invite_members (manager+)
 func (h *Handlers) CreateWorkspaceInvite(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -80,10 +78,9 @@ func (h *Handlers) CreateWorkspaceInvite(c *gin.Context) {
 // Required permission: manage_members (admin+)
 func (h *Handlers) ListWorkspaceInvites(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -110,10 +107,8 @@ type AcceptInviteRequest struct {
 // No workspace permission required (public endpoint for invited users)
 func (h *Handlers) AcceptWorkspaceInvite(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req AcceptInviteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -162,10 +157,8 @@ func (h *Handlers) AcceptWorkspaceInvite(c *gin.Context) {
 // Required permission: manage_members (admin+)
 func (h *Handlers) RevokeWorkspaceInvite(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

@@ -27,10 +27,9 @@ func NewEmbeddingHandler(embeddingService *services.EmbeddingService, contextBui
 // POST /api/embeddings/index/:id
 func (h *EmbeddingHandler) IndexDocument(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	contextID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -66,10 +65,8 @@ func (h *EmbeddingHandler) IndexDocument(c *gin.Context) {
 // POST /api/embeddings/search
 func (h *EmbeddingHandler) SemanticSearch(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Query string `json:"query" binding:"required"`
@@ -104,10 +101,8 @@ func (h *EmbeddingHandler) SemanticSearch(c *gin.Context) {
 // POST /api/embeddings/context
 func (h *EmbeddingHandler) BuildAIContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Query string `json:"query" binding:"required"`
@@ -138,10 +133,8 @@ func (h *EmbeddingHandler) BuildAIContext(c *gin.Context) {
 // GET /api/embeddings/context/:id
 func (h *EmbeddingHandler) GetDocumentContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	contextID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -165,10 +158,8 @@ func (h *EmbeddingHandler) GetDocumentContext(c *gin.Context) {
 // GET /api/embeddings/stats
 func (h *EmbeddingHandler) GetStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	stats, err := h.embeddingService.GetEmbeddingStats(c.Request.Context(), user.ID)
 	if err != nil {

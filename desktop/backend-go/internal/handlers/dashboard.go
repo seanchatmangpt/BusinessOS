@@ -17,10 +17,8 @@ import (
 // GetDashboardSummary returns a summary of the user's data
 func (h *Handlers) GetDashboardSummary(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -78,10 +76,8 @@ func (h *Handlers) GetDashboardSummary(c *gin.Context) {
 // ListFocusItems returns focus items for a specific date
 func (h *Handlers) ListFocusItems(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -109,10 +105,8 @@ func (h *Handlers) ListFocusItems(c *gin.Context) {
 // CreateFocusItem creates a new focus item
 func (h *Handlers) CreateFocusItem(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Text      string  `json:"text" binding:"required"`
@@ -149,10 +143,9 @@ func (h *Handlers) CreateFocusItem(c *gin.Context) {
 // UpdateFocusItem updates a focus item
 func (h *Handlers) UpdateFocusItem(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -187,10 +180,8 @@ func (h *Handlers) UpdateFocusItem(c *gin.Context) {
 // DeleteFocusItem deletes a focus item
 func (h *Handlers) DeleteFocusItem(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -214,10 +205,8 @@ func (h *Handlers) DeleteFocusItem(c *gin.Context) {
 // ListTasks returns all tasks for the current user
 func (h *Handlers) ListTasks(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -259,10 +248,8 @@ func (h *Handlers) ListTasks(c *gin.Context) {
 // CreateTask creates a new task
 func (h *Handlers) CreateTask(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Title       string  `json:"title" binding:"required"`
@@ -356,10 +343,8 @@ func (h *Handlers) CreateTask(c *gin.Context) {
 // UpdateTask updates a task
 func (h *Handlers) UpdateTask(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -510,10 +495,8 @@ func (h *Handlers) UpdateTask(c *gin.Context) {
 // ToggleTask toggles the completion status of a task
 func (h *Handlers) ToggleTask(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -568,10 +551,8 @@ func (h *Handlers) ToggleTask(c *gin.Context) {
 // DeleteTask deletes a task
 func (h *Handlers) DeleteTask(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

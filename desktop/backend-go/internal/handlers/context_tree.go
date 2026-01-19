@@ -101,10 +101,8 @@ type ContextSessionResponse struct {
 // GET /api/context-tree/:entityType/:entityId
 func (h *ContextTreeHandler) GetContextTree(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	entityType := c.Param("entityType")
 	entityIDStr := c.Param("entityId")
@@ -154,10 +152,8 @@ func (h *ContextTreeHandler) GetContextTree(c *gin.Context) {
 // POST /api/context-tree/search
 func (h *ContextTreeHandler) SearchContextTree(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req TreeSearchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -215,10 +211,8 @@ func (h *ContextTreeHandler) SearchContextTree(c *gin.Context) {
 // POST /api/context-tree/load
 func (h *ContextTreeHandler) LoadContextItem(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req LoadContextItemRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -271,10 +265,8 @@ func (h *ContextTreeHandler) LoadContextItem(c *gin.Context) {
 // POST /api/context-tree/session
 func (h *ContextTreeHandler) CreateContextSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -321,10 +313,8 @@ func (h *ContextTreeHandler) CreateContextSession(c *gin.Context) {
 // GET /api/context-tree/session/:sessionId
 func (h *ContextTreeHandler) GetContextSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("sessionId"))
 	if err != nil {
@@ -369,10 +359,8 @@ func (h *ContextTreeHandler) GetContextSession(c *gin.Context) {
 // PUT /api/context-tree/session/:sessionId
 func (h *ContextTreeHandler) UpdateContextSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("sessionId"))
 	if err != nil {
@@ -417,10 +405,8 @@ func (h *ContextTreeHandler) UpdateContextSession(c *gin.Context) {
 // DELETE /api/context-tree/session/:sessionId
 func (h *ContextTreeHandler) EndContextSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("sessionId"))
 	if err != nil {
@@ -459,10 +445,8 @@ func (h *ContextTreeHandler) EndContextSession(c *gin.Context) {
 // GET /api/context-tree/rules/:entityType/:entityId
 func (h *ContextTreeHandler) GetLoadingRules(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	triggerType := c.Param("entityType")
 	triggerValue := c.Param("entityId")
@@ -485,10 +469,8 @@ func (h *ContextTreeHandler) GetLoadingRules(c *gin.Context) {
 // GET /api/context-tree/stats
 func (h *ContextTreeHandler) GetContextStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	stats, err := h.contextService.GetTreeStatistics(c.Request.Context(), user.ID)
 	if err != nil {

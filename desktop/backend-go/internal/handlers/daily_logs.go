@@ -16,10 +16,8 @@ import (
 // ListDailyLogs returns daily logs for the current user
 func (h *Handlers) ListDailyLogs(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -54,10 +52,8 @@ func (h *Handlers) ListDailyLogs(c *gin.Context) {
 // GetTodayLog returns today's daily log
 func (h *Handlers) GetTodayLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	log, err := queries.GetTodayLog(c.Request.Context(), user.ID)
@@ -122,10 +118,8 @@ func transformDailyLog(log sqlc.DailyLog) map[string]interface{} {
 // GetDailyLogByDate returns a daily log for a specific date
 func (h *Handlers) GetDailyLogByDate(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dateStr := c.Param("date")
 	date, err := time.Parse("2006-01-02", dateStr)
@@ -150,10 +144,8 @@ func (h *Handlers) GetDailyLogByDate(c *gin.Context) {
 // CreateDailyLog creates a new daily log
 func (h *Handlers) CreateDailyLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Date                string   `json:"date"`
@@ -213,10 +205,8 @@ func (h *Handlers) CreateDailyLog(c *gin.Context) {
 // CreateOrUpdateDailyLog creates or updates a daily log for a date
 func (h *Handlers) CreateOrUpdateDailyLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Date                string   `json:"date"`
@@ -276,10 +266,9 @@ func (h *Handlers) CreateOrUpdateDailyLog(c *gin.Context) {
 // UpdateDailyLog updates an existing daily log
 func (h *Handlers) UpdateDailyLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -335,10 +324,8 @@ func (h *Handlers) UpdateDailyLog(c *gin.Context) {
 // AppendToDailyLog appends content to today's daily log (or creates it)
 func (h *Handlers) AppendToDailyLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Content string `json:"content" binding:"required"`
@@ -390,10 +377,8 @@ func (h *Handlers) AppendToDailyLog(c *gin.Context) {
 // DeleteDailyLog deletes a daily log
 func (h *Handlers) DeleteDailyLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

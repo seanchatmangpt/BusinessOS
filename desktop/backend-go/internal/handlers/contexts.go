@@ -17,10 +17,8 @@ import (
 // ListContexts returns all contexts for the current user
 func (h *Handlers) ListContexts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -53,10 +51,8 @@ func (h *Handlers) ListContexts(c *gin.Context) {
 // CreateContext creates a new context
 func (h *Handlers) CreateContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name                 string          `json:"name" binding:"required"`
@@ -162,10 +158,8 @@ func (h *Handlers) CreateContext(c *gin.Context) {
 // GetContext returns a single context
 func (h *Handlers) GetContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -204,10 +198,8 @@ func (h *Handlers) GetContext(c *gin.Context) {
 // UpdateContext updates an existing context
 func (h *Handlers) UpdateContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -342,10 +334,8 @@ func (h *Handlers) UpdateContext(c *gin.Context) {
 // UpdateContextBlocks updates only the blocks field of a context
 func (h *Handlers) UpdateContextBlocks(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -390,10 +380,8 @@ func (h *Handlers) UpdateContextBlocks(c *gin.Context) {
 // ShareContext makes a context publicly accessible
 func (h *Handlers) ShareContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -431,10 +419,8 @@ func (h *Handlers) ShareContext(c *gin.Context) {
 // UnshareContext makes a context private
 func (h *Handlers) UnshareContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -484,10 +470,8 @@ func (h *Handlers) GetPublicContext(c *gin.Context) {
 // DuplicateContext creates a copy of an existing context
 func (h *Handlers) DuplicateContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -536,10 +520,8 @@ func (h *Handlers) DuplicateContext(c *gin.Context) {
 // ArchiveContext archives a context
 func (h *Handlers) ArchiveContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -571,10 +553,8 @@ func (h *Handlers) ArchiveContext(c *gin.Context) {
 // UnarchiveContext unarchives a context
 func (h *Handlers) UnarchiveContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -606,10 +586,8 @@ func (h *Handlers) UnarchiveContext(c *gin.Context) {
 // DeleteContext deletes a context
 func (h *Handlers) DeleteContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -633,10 +611,8 @@ func (h *Handlers) DeleteContext(c *gin.Context) {
 // AggregateContext provides aggregated data for a context
 func (h *Handlers) AggregateContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

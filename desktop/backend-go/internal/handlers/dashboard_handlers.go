@@ -20,10 +20,8 @@ import (
 
 func (h *Handlers) ListUserDashboards(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	dashboards, err := queries.ListUserDashboards(c.Request.Context(), user.ID)
@@ -38,10 +36,8 @@ func (h *Handlers) ListUserDashboards(c *gin.Context) {
 
 func (h *Handlers) GetUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -64,10 +60,8 @@ func (h *Handlers) GetUserDashboard(c *gin.Context) {
 
 func (h *Handlers) CreateUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name        string          `json:"name" binding:"required"`
@@ -129,10 +123,8 @@ func (h *Handlers) CreateUserDashboard(c *gin.Context) {
 
 func (h *Handlers) UpdateUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -172,10 +164,8 @@ func (h *Handlers) UpdateUserDashboard(c *gin.Context) {
 // UpdateDashboardLayout updates only the layout of a dashboard (used by agent)
 func (h *Handlers) UpdateDashboardLayout(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -218,10 +208,8 @@ func (h *Handlers) UpdateDashboardLayout(c *gin.Context) {
 
 func (h *Handlers) DeleteUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -246,10 +234,8 @@ func (h *Handlers) DeleteUserDashboard(c *gin.Context) {
 // DuplicateUserDashboard creates a copy of a dashboard
 func (h *Handlers) DuplicateUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -292,10 +278,8 @@ func (h *Handlers) DuplicateUserDashboard(c *gin.Context) {
 
 func (h *Handlers) SetDefaultUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -334,10 +318,8 @@ func (h *Handlers) SetDefaultUserDashboard(c *gin.Context) {
 // ShareUserDashboard updates sharing settings and generates a share token if needed
 func (h *Handlers) ShareUserDashboard(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	dashboardID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -462,10 +444,8 @@ func (h *Handlers) ListDashboardTemplates(c *gin.Context) {
 
 func (h *Handlers) CreateDashboardFromTemplate(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	templateID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

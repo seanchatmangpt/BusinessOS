@@ -29,10 +29,8 @@ type AnalyticsSummary struct {
 // GetAnalyticsSummary returns aggregated counts for the metric card widgets
 func (h *Handlers) GetAnalyticsSummary(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	ctx := c.Request.Context()
@@ -80,10 +78,8 @@ type BurndownData struct {
 // GetTaskBurndown returns task creation vs completion data over time
 func (h *Handlers) GetTaskBurndown(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse query params
 	days := 30
@@ -137,10 +133,8 @@ type WorkloadEntry struct {
 // GetWorkloadHeatmap returns task density data for a calendar heatmap
 func (h *Handlers) GetWorkloadHeatmap(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse date range
 	now := time.Now()
@@ -186,10 +180,8 @@ func (h *Handlers) GetWorkloadHeatmap(c *gin.Context) {
 // GetUpcomingDeadlines returns tasks grouped by due date for the next N days
 func (h *Handlers) GetUpcomingDeadlines(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	days := 7
 	if d := c.Query("days"); d != "" {

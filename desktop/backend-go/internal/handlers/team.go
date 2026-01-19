@@ -16,10 +16,8 @@ import (
 // ListTeamMembers returns all team members for the current user
 func (h *Handlers) ListTeamMembers(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	members, err := queries.ListTeamMembers(c.Request.Context(), user.ID)
@@ -36,10 +34,8 @@ func (h *Handlers) ListTeamMembers(c *gin.Context) {
 // CreateTeamMember creates a new team member
 func (h *Handlers) CreateTeamMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name       string   `json:"name" binding:"required"`
@@ -113,10 +109,8 @@ func (h *Handlers) CreateTeamMember(c *gin.Context) {
 // GetTeamMember returns a single team member
 func (h *Handlers) GetTeamMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -156,10 +150,8 @@ func (h *Handlers) GetTeamMember(c *gin.Context) {
 // UpdateTeamMember updates a team member
 func (h *Handlers) UpdateTeamMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -272,10 +264,8 @@ func (h *Handlers) UpdateTeamMember(c *gin.Context) {
 // UpdateTeamMemberStatus updates a team member's status
 func (h *Handlers) UpdateTeamMemberStatus(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -321,10 +311,8 @@ func (h *Handlers) UpdateTeamMemberStatus(c *gin.Context) {
 // UpdateTeamMemberCapacity updates a team member's capacity
 func (h *Handlers) UpdateTeamMemberCapacity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -367,10 +355,8 @@ func (h *Handlers) UpdateTeamMemberCapacity(c *gin.Context) {
 // AddTeamMemberActivity adds an activity to a team member
 func (h *Handlers) AddTeamMemberActivity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -415,10 +401,8 @@ func (h *Handlers) AddTeamMemberActivity(c *gin.Context) {
 // GetTeamMemberActivities returns activities for a team member
 func (h *Handlers) GetTeamMemberActivities(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -454,10 +438,8 @@ func (h *Handlers) GetTeamMemberActivities(c *gin.Context) {
 // DeleteTeamMember deletes a team member
 func (h *Handlers) DeleteTeamMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

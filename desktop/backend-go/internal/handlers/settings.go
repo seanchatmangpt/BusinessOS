@@ -13,10 +13,8 @@ import (
 // GetSettings returns settings for the current user
 func (h *Handlers) GetSettings(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	settings, err := queries.GetUserSettings(c.Request.Context(), user.ID)
@@ -124,10 +122,8 @@ func (h *Handlers) GetSettings(c *gin.Context) {
 // UpdateSettings updates or creates user settings using atomic upsert
 func (h *Handlers) UpdateSettings(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		DefaultModel       *string                `json:"default_model"`
@@ -293,10 +289,8 @@ func (h *Handlers) GetAvailableModels(c *gin.Context) {
 // This endpoint provides all settings, preferences, and configurations in a single call
 func (h *Handlers) GetFullState(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	ctx := c.Request.Context()
 	queries := sqlc.New(h.pool)

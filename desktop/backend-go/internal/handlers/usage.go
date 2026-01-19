@@ -66,10 +66,8 @@ type UsageTrendResponse struct {
 // GetUsageSummary returns usage summary for a period
 func (h *Handlers) GetUsageSummary(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	period := c.DefaultQuery("period", "today")
 
@@ -146,10 +144,8 @@ func (h *Handlers) GetUsageSummary(c *gin.Context) {
 // GetUsageByProvider returns usage breakdown by provider
 func (h *Handlers) GetUsageByProvider(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	period := c.DefaultQuery("period", "month")
 	startTime, endTime := getPeriodRange(period)
@@ -184,10 +180,8 @@ func (h *Handlers) GetUsageByProvider(c *gin.Context) {
 // GetUsageByModel returns usage breakdown by model
 func (h *Handlers) GetUsageByModel(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	period := c.DefaultQuery("period", "month")
 	startTime, endTime := getPeriodRange(period)
@@ -223,10 +217,8 @@ func (h *Handlers) GetUsageByModel(c *gin.Context) {
 // GetUsageByAgent returns usage breakdown by agent
 func (h *Handlers) GetUsageByAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	period := c.DefaultQuery("period", "month")
 	startTime, endTime := getPeriodRange(period)
@@ -265,10 +257,8 @@ func (h *Handlers) GetUsageByAgent(c *gin.Context) {
 // GetUsageTrend returns daily usage trend
 func (h *Handlers) GetUsageTrend(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Default to last 30 days
 	days := 30
@@ -331,10 +321,8 @@ func (h *Handlers) GetUsageTrend(c *gin.Context) {
 // GetRecentAIUsage returns recent AI usage logs
 func (h *Handlers) GetRecentAIUsage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -354,10 +342,8 @@ func (h *Handlers) GetRecentAIUsage(c *gin.Context) {
 // GetMCPUsage returns MCP tool usage summary
 func (h *Handlers) GetMCPUsage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	period := c.DefaultQuery("period", "month")
 	startTime, endTime := getPeriodRange(period)

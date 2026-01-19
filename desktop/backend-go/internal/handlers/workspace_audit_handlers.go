@@ -20,10 +20,9 @@ import (
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) ListAuditLogs(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -103,10 +102,9 @@ func (h *Handlers) ListAuditLogs(c *gin.Context) {
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) GetAuditLog(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -140,10 +138,9 @@ func (h *Handlers) GetAuditLog(c *gin.Context) {
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) GetUserActivity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -174,10 +171,9 @@ func (h *Handlers) GetUserActivity(c *gin.Context) {
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) GetResourceHistory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -214,10 +210,9 @@ func (h *Handlers) GetResourceHistory(c *gin.Context) {
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) GetActionStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -259,10 +254,9 @@ func (h *Handlers) GetActionStats(c *gin.Context) {
 // Required permission: manage_workspace or admin+ role
 func (h *Handlers) GetMostActiveUsers(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

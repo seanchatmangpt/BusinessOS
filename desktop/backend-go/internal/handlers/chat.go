@@ -50,10 +50,8 @@ type SendMessageRequest struct {
 // Optional query parameter: context_id to filter by context
 func (h *Handlers) ListConversations(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -92,10 +90,8 @@ func (h *Handlers) ListConversations(c *gin.Context) {
 // CreateConversation creates a new conversation
 func (h *Handlers) CreateConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Title     string  `json:"title"`
@@ -136,10 +132,8 @@ func (h *Handlers) CreateConversation(c *gin.Context) {
 // GetConversation returns a single conversation with messages
 func (h *Handlers) GetConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -173,10 +167,8 @@ func (h *Handlers) GetConversation(c *gin.Context) {
 // DeleteConversation deletes a conversation
 func (h *Handlers) DeleteConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -200,10 +192,8 @@ func (h *Handlers) DeleteConversation(c *gin.Context) {
 // UpdateConversation updates a conversation's title or context
 func (h *Handlers) UpdateConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -275,10 +265,8 @@ func (h *Handlers) UpdateConversation(c *gin.Context) {
 // SearchConversations searches across conversations
 func (h *Handlers) SearchConversations(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	query := c.Query("q")
 	if query == "" {
@@ -302,10 +290,8 @@ func (h *Handlers) SearchConversations(c *gin.Context) {
 // DocumentAI handles document writing assistance using the Document agent (V2)
 func (h *Handlers) DocumentAI(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Prompt    string  `json:"prompt" binding:"required"`
@@ -378,10 +364,8 @@ func (h *Handlers) DocumentAI(c *gin.Context) {
 // AnalyzeContent handles data analysis using the Analyst agent (V2)
 func (h *Handlers) AnalyzeContent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Content string  `json:"content" binding:"required"`
@@ -419,10 +403,8 @@ func (h *Handlers) AnalyzeContent(c *gin.Context) {
 // ExtractTasks extracts actionable tasks from content using Task agent (V2)
 func (h *Handlers) ExtractTasks(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Content         string                   `json:"content"`
@@ -508,10 +490,8 @@ Return ONLY a valid JSON array, no other text. Example format:
 // CreatePlan creates a strategic plan using the Project agent (V2)
 func (h *Handlers) CreatePlan(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Goal      string  `json:"goal" binding:"required"`

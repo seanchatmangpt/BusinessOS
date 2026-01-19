@@ -79,10 +79,8 @@ type ShareMemoryRequest struct {
 // POST /api/workspaces/:id/memories
 func (h *WorkspaceMemoryHandlers) CreateMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -183,10 +181,8 @@ func (h *WorkspaceMemoryHandlers) CreateMemory(c *gin.Context) {
 // GET /api/workspaces/:id/memories
 func (h *WorkspaceMemoryHandlers) ListWorkspaceMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -224,10 +220,8 @@ func (h *WorkspaceMemoryHandlers) ListWorkspaceMemories(c *gin.Context) {
 // GET /api/workspaces/:id/memories/private
 func (h *WorkspaceMemoryHandlers) ListPrivateMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -265,10 +259,8 @@ func (h *WorkspaceMemoryHandlers) ListPrivateMemories(c *gin.Context) {
 // GET /api/workspaces/:id/memories/accessible
 func (h *WorkspaceMemoryHandlers) ListAccessibleMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -306,10 +298,8 @@ func (h *WorkspaceMemoryHandlers) ListAccessibleMemories(c *gin.Context) {
 // POST /api/workspaces/:id/memories/:memoryId/share
 func (h *WorkspaceMemoryHandlers) ShareMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -373,10 +363,8 @@ func (h *WorkspaceMemoryHandlers) ShareMemory(c *gin.Context) {
 // DELETE /api/workspaces/:id/memories/:memoryId/share
 func (h *WorkspaceMemoryHandlers) UnshareMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -428,10 +416,8 @@ func (h *WorkspaceMemoryHandlers) UnshareMemory(c *gin.Context) {
 // DELETE /api/workspaces/:id/memories/:memoryId
 func (h *WorkspaceMemoryHandlers) DeleteMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

@@ -273,10 +273,8 @@ func tableGetBool(b *bool) bool {
 // GET /api/tables
 func (h *Handlers) ListTables(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	ctx := c.Request.Context()
 	queries := sqlc.New(h.pool)
@@ -318,10 +316,8 @@ func (h *Handlers) ListTables(c *gin.Context) {
 // GET /api/tables/:id
 func (h *Handlers) GetTable(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -376,10 +372,8 @@ func (h *Handlers) GetTable(c *gin.Context) {
 // POST /api/tables
 func (h *Handlers) CreateTable(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateTableRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -449,10 +443,8 @@ func (h *Handlers) CreateTable(c *gin.Context) {
 // PUT /api/tables/:id
 func (h *Handlers) UpdateTable(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -522,10 +514,8 @@ func (h *Handlers) UpdateTable(c *gin.Context) {
 // DELETE /api/tables/:id
 func (h *Handlers) DeleteTable(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -556,10 +546,8 @@ func (h *Handlers) DeleteTable(c *gin.Context) {
 // GET /api/tables/:id/fields
 func (h *Handlers) ListFields(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -606,10 +594,8 @@ func (h *Handlers) ListFields(c *gin.Context) {
 // POST /api/tables/:id/fields
 func (h *Handlers) CreateField(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -688,10 +674,8 @@ func (h *Handlers) CreateField(c *gin.Context) {
 // PUT /api/tables/:tableId/fields/:fieldId
 func (h *Handlers) UpdateField(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -779,10 +763,8 @@ func (h *Handlers) UpdateField(c *gin.Context) {
 // DELETE /api/tables/:tableId/fields/:fieldId
 func (h *Handlers) DeleteField(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -833,10 +815,8 @@ func (h *Handlers) DeleteField(c *gin.Context) {
 // POST /api/tables/:id/fields/reorder
 func (h *Handlers) ReorderFields(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -888,10 +868,8 @@ func (h *Handlers) ReorderFields(c *gin.Context) {
 // GET /api/tables/:id/rows
 func (h *Handlers) ListRecords(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -972,10 +950,8 @@ func (h *Handlers) ListRecords(c *gin.Context) {
 // GET /api/tables/:id/records/:recordId
 func (h *Handlers) GetRecord(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1021,10 +997,8 @@ func (h *Handlers) GetRecord(c *gin.Context) {
 // POST /api/tables/:id/records
 func (h *Handlers) CreateRecord(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1068,10 +1042,8 @@ func (h *Handlers) CreateRecord(c *gin.Context) {
 // PUT /api/tables/:id/records/:recordId
 func (h *Handlers) UpdateRecord(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1132,10 +1104,8 @@ func (h *Handlers) UpdateRecord(c *gin.Context) {
 // PATCH /api/tables/:id/records/:recordId/fields/:fieldId
 func (h *Handlers) UpdateRecordField(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1208,10 +1178,8 @@ func (h *Handlers) UpdateRecordField(c *gin.Context) {
 // DELETE /api/tables/:id/records/:recordId
 func (h *Handlers) DeleteRecord(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1262,10 +1230,8 @@ func (h *Handlers) DeleteRecord(c *gin.Context) {
 // POST /api/tables/:id/records/bulk-delete
 func (h *Handlers) BulkDeleteRecords(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1325,10 +1291,8 @@ func (h *Handlers) BulkDeleteRecords(c *gin.Context) {
 // GET /api/tables/:id/views
 func (h *Handlers) ListViews(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1367,10 +1331,8 @@ func (h *Handlers) ListViews(c *gin.Context) {
 // POST /api/tables/:id/views
 func (h *Handlers) CreateView(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1439,10 +1401,8 @@ func (h *Handlers) CreateView(c *gin.Context) {
 // PUT /api/tables/:tableId/views/:viewId
 func (h *Handlers) UpdateView(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {
@@ -1551,10 +1511,8 @@ func (h *Handlers) UpdateView(c *gin.Context) {
 // DELETE /api/tables/:tableId/views/:viewId
 func (h *Handlers) DeleteView(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	tableID, err := tableParseUUID(c.Param("id"))
 	if err != nil {

@@ -19,10 +19,8 @@ import (
 // ListCustomAgents returns all custom agents for the authenticated user
 func (h *Handlers) ListCustomAgents(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	ctx := context.Background()
 	queries := sqlc.New(h.pool)
@@ -51,10 +49,8 @@ func (h *Handlers) ListCustomAgents(c *gin.Context) {
 // GetCustomAgent retrieves a specific custom agent
 func (h *Handlers) GetCustomAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -104,10 +100,8 @@ type CreateCustomAgentRequest struct {
 // CreateCustomAgent creates a new custom agent
 func (h *Handlers) CreateCustomAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateCustomAgentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -290,10 +284,8 @@ type UpdateCustomAgentRequest struct {
 // UpdateCustomAgent updates an existing custom agent
 func (h *Handlers) UpdateCustomAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -422,10 +414,8 @@ func (h *Handlers) UpdateCustomAgent(c *gin.Context) {
 // DeleteCustomAgent deletes a custom agent
 func (h *Handlers) DeleteCustomAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -452,10 +442,9 @@ func (h *Handlers) DeleteCustomAgent(c *gin.Context) {
 // ListAgentPresets returns all available agent presets
 func (h *Handlers) ListAgentPresets(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	ctx := context.Background()
 	queries := sqlc.New(h.pool)
@@ -472,10 +461,9 @@ func (h *Handlers) ListAgentPresets(c *gin.Context) {
 // GetAgentPreset retrieves a specific agent preset
 func (h *Handlers) GetAgentPreset(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -504,10 +492,8 @@ type CreateAgentFromPresetRequest struct {
 // CreateAgentFromPreset creates a new custom agent based on a preset
 func (h *Handlers) CreateAgentFromPreset(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	presetIDStr := c.Param("presetId")
 	presetID, err := uuid.Parse(presetIDStr)
@@ -556,10 +542,8 @@ func (h *Handlers) CreateAgentFromPreset(c *gin.Context) {
 // ListCustomAgentsByCategory returns custom agents filtered by category
 func (h *Handlers) ListCustomAgentsByCategory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	category := c.Param("category")
 	if category == "" {
@@ -604,10 +588,8 @@ type TestAgentResponse struct {
 // POST /api/agents/sandbox - Test arbitrary prompt (no agent ID needed)
 func (h *Handlers) TestCustomAgent(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req TestAgentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -18,10 +18,8 @@ import (
 // GET /api/projects/:id/members
 func (h *Handlers) ListProjectMembers(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -56,10 +54,8 @@ func (h *Handlers) ListProjectMembers(c *gin.Context) {
 // POST /api/projects/:id/members
 func (h *Handlers) AddProjectMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -126,10 +122,8 @@ func (h *Handlers) AddProjectMember(c *gin.Context) {
 // PUT /api/projects/:id/members/:memberId/role
 func (h *Handlers) UpdateProjectMemberRole(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -200,10 +194,8 @@ func (h *Handlers) UpdateProjectMemberRole(c *gin.Context) {
 // DELETE /api/projects/:id/members/:memberId
 func (h *Handlers) RemoveProjectMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -253,10 +245,8 @@ func (h *Handlers) RemoveProjectMember(c *gin.Context) {
 // GET /api/projects/:id/access/:userId
 func (h *Handlers) CheckProjectAccess(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

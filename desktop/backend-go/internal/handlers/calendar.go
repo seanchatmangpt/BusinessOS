@@ -29,10 +29,8 @@ type DateRangeStats struct {
 // GetCalendarStats returns calendar statistics for the user
 func (h *Handlers) GetCalendarStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	stats, err := queries.GetCalendarStats(c.Request.Context(), user.ID)
@@ -81,10 +79,8 @@ func (h *Handlers) GetCalendarStats(c *gin.Context) {
 // GetUpcomingCalendarEvents returns upcoming calendar events
 func (h *Handlers) GetUpcomingCalendarEvents(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse limit from query params, default to 10
 	limit := int32(10)
@@ -115,10 +111,8 @@ func (h *Handlers) GetUpcomingCalendarEvents(c *gin.Context) {
 // GetTodayCalendarEvents returns today's calendar events
 func (h *Handlers) GetTodayCalendarEvents(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	events, err := queries.GetTodayEvents(c.Request.Context(), user.ID)

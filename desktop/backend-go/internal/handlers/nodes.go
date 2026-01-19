@@ -16,10 +16,8 @@ import (
 // ListNodes returns all nodes for the current user
 func (h *Handlers) ListNodes(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	nodes, err := queries.ListNodes(c.Request.Context(), user.ID)
@@ -129,10 +127,8 @@ func nodeUUIDToString(id pgtype.UUID) string {
 // GetNodeTree returns all nodes organized as a tree
 func (h *Handlers) GetNodeTree(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	nodes, err := queries.GetNodeTree(c.Request.Context(), user.ID)
@@ -150,10 +146,8 @@ func (h *Handlers) GetNodeTree(c *gin.Context) {
 // CreateNode creates a new node
 func (h *Handlers) CreateNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name            string   `json:"name" binding:"required"`
@@ -251,10 +245,8 @@ func (h *Handlers) CreateNode(c *gin.Context) {
 // GetNode returns a single node
 func (h *Handlers) GetNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -293,10 +285,8 @@ func (h *Handlers) GetNode(c *gin.Context) {
 // GetNodeChildren returns children of a node
 func (h *Handlers) GetNodeChildren(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -320,10 +310,8 @@ func (h *Handlers) GetNodeChildren(c *gin.Context) {
 // GetActiveNode returns the currently active node
 func (h *Handlers) GetActiveNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	node, err := queries.GetActiveNode(c.Request.Context(), user.ID)
@@ -338,10 +326,8 @@ func (h *Handlers) GetActiveNode(c *gin.Context) {
 // ActivateNode sets a node as the active node
 func (h *Handlers) ActivateNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -379,10 +365,8 @@ func (h *Handlers) ActivateNode(c *gin.Context) {
 // DeactivateNode deactivates a node
 func (h *Handlers) DeactivateNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -414,10 +398,8 @@ func (h *Handlers) DeactivateNode(c *gin.Context) {
 // UpdateNode updates a node
 func (h *Handlers) UpdateNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -534,10 +516,8 @@ func (h *Handlers) UpdateNode(c *gin.Context) {
 // ReorderNodes updates sort order for multiple nodes
 func (h *Handlers) ReorderNodes(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Orders []struct {
@@ -581,10 +561,8 @@ func (h *Handlers) ReorderNodes(c *gin.Context) {
 // ArchiveNode archives a node
 func (h *Handlers) ArchiveNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -616,10 +594,8 @@ func (h *Handlers) ArchiveNode(c *gin.Context) {
 // UnarchiveNode restores an archived node
 func (h *Handlers) UnarchiveNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -651,10 +627,8 @@ func (h *Handlers) UnarchiveNode(c *gin.Context) {
 // DeleteNode deletes a node
 func (h *Handlers) DeleteNode(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -708,10 +682,8 @@ func stringToNodeHealth(h string) sqlc.Nodehealth {
 // GetNodeLinks returns all linked items for a node
 func (h *Handlers) GetNodeLinks(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -747,10 +719,8 @@ func (h *Handlers) GetNodeLinks(c *gin.Context) {
 // GetNodeLinkCounts returns counts of linked items for a node
 func (h *Handlers) GetNodeLinkCounts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -787,10 +757,8 @@ func (h *Handlers) GetNodeLinkCounts(c *gin.Context) {
 // LinkNodeProject links a project to a node
 func (h *Handlers) LinkNodeProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -840,10 +808,8 @@ func (h *Handlers) LinkNodeProject(c *gin.Context) {
 // UnlinkNodeProject unlinks a project from a node
 func (h *Handlers) UnlinkNodeProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -884,10 +850,8 @@ func (h *Handlers) UnlinkNodeProject(c *gin.Context) {
 // LinkNodeContext links a context to a node
 func (h *Handlers) LinkNodeContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -937,10 +901,8 @@ func (h *Handlers) LinkNodeContext(c *gin.Context) {
 // UnlinkNodeContext unlinks a context from a node
 func (h *Handlers) UnlinkNodeContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -981,10 +943,8 @@ func (h *Handlers) UnlinkNodeContext(c *gin.Context) {
 // LinkNodeConversation links a conversation to a node
 func (h *Handlers) LinkNodeConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1034,10 +994,8 @@ func (h *Handlers) LinkNodeConversation(c *gin.Context) {
 // UnlinkNodeConversation unlinks a conversation from a node
 func (h *Handlers) UnlinkNodeConversation(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

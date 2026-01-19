@@ -27,10 +27,8 @@ func (h *Handlers) createMCPService(userID string) *services.MCPService {
 
 func (h *Handlers) ListMCPTools(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	mcpService := h.createMCPService(user.ID)
 	tools := mcpService.GetAllTools()
@@ -40,10 +38,8 @@ func (h *Handlers) ListMCPTools(c *gin.Context) {
 
 func (h *Handlers) ExecuteMCPTool(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Tool      string                 `json:"tool" binding:"required"`

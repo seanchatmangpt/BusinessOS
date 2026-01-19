@@ -28,10 +28,8 @@ func NewLearningHandler(learning *services.LearningService) *LearningHandler {
 func (h *LearningHandler) RecordFeedback(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	var req struct {
@@ -92,10 +90,8 @@ func (h *LearningHandler) RecordFeedback(c *gin.Context) {
 func (h *LearningHandler) ObserveBehavior(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	var req struct {
@@ -121,10 +117,8 @@ func (h *LearningHandler) ObserveBehavior(c *gin.Context) {
 func (h *LearningHandler) GetPersonalizationProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	profile, err := h.learning.GetPersonalizationProfile(ctx, userID)
@@ -169,10 +163,8 @@ func (h *LearningHandler) GetPersonalizationProfile(c *gin.Context) {
 func (h *LearningHandler) UpdateProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	var profile services.PersonalizationProfile
@@ -198,10 +190,8 @@ func (h *LearningHandler) UpdateProfile(c *gin.Context) {
 func (h *LearningHandler) DetectPatterns(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	patterns, err := h.learning.DetectPatternsToUserFacts(ctx, userID)
@@ -217,10 +207,8 @@ func (h *LearningHandler) DetectPatterns(c *gin.Context) {
 func (h *LearningHandler) GetLearnings(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	agentType := c.Query("agent_type")
@@ -273,10 +261,8 @@ func (h *LearningHandler) ApplyLearning(c *gin.Context) {
 func (h *LearningHandler) RefreshProfile(c *gin.Context) {
 	ctx := c.Request.Context()
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 	userID := user.ID
 
 	if err := h.learning.RefreshProfileFromPatterns(ctx, userID); err != nil {

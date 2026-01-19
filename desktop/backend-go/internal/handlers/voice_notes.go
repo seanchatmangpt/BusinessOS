@@ -54,10 +54,8 @@ type VoiceNoteResponse struct {
 // UploadVoiceNote handles voice note upload with transcription
 func (h *VoiceNotesHandler) UploadVoiceNote(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse multipart form with 50MB max for audio
 	if err := c.Request.ParseMultipartForm(50 << 20); err != nil {
@@ -221,10 +219,8 @@ func stringPtrOrNil(s string) *string {
 // GetVoiceNote serves a voice note audio file
 func (h *VoiceNotesHandler) GetVoiceNote(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	noteID := c.Param("id")
 	if noteID == "" {
@@ -274,10 +270,8 @@ func (h *VoiceNotesHandler) GetVoiceNote(c *gin.Context) {
 // DeleteVoiceNote deletes a voice note
 func (h *VoiceNotesHandler) DeleteVoiceNote(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	noteID := c.Param("id")
 	if noteID == "" {
@@ -317,10 +311,8 @@ func (h *VoiceNotesHandler) DeleteVoiceNote(c *gin.Context) {
 // ListVoiceNotes lists all voice notes for the user from database
 func (h *VoiceNotesHandler) ListVoiceNotes(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Optional filters
 	contextID := c.Query("context_id")
@@ -432,10 +424,8 @@ func (h *VoiceNotesHandler) ListVoiceNotes(c *gin.Context) {
 // GetVoiceNoteStats returns aggregate stats for the user's voice notes
 func (h *VoiceNotesHandler) GetVoiceNoteStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	if h.pool == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database not available"})
@@ -469,10 +459,8 @@ func pgtypeNumericToFloat64(n pgtype.Numeric) float64 {
 // RetranscribeVoiceNote re-transcribes an existing voice note
 func (h *VoiceNotesHandler) RetranscribeVoiceNote(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	if !h.whisper.IsAvailable() {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Transcription not available"})

@@ -19,10 +19,8 @@ import (
 // UploadProfilePhoto handles profile photo upload
 func (h *Handlers) UploadProfilePhoto(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse multipart form with 5MB max for profile photos
 	if err := c.Request.ParseMultipartForm(5 << 20); err != nil {
@@ -123,10 +121,8 @@ func (h *Handlers) GetProfilePhoto(c *gin.Context) {
 // DeleteProfilePhoto removes the user's profile photo
 func (h *Handlers) DeleteProfilePhoto(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Remove profile photo directory
 	profileDir := filepath.Join("uploads", "profiles", user.ID)
@@ -150,10 +146,8 @@ func (h *Handlers) DeleteProfilePhoto(c *gin.Context) {
 // UpdateProfile updates the user's profile information
 func (h *Handlers) UpdateProfile(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name string `json:"name"`
@@ -183,10 +177,8 @@ func (h *Handlers) UpdateProfile(c *gin.Context) {
 // UploadBackground handles background image upload
 func (h *Handlers) UploadBackground(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse multipart form with 10MB max
 	if err := c.Request.ParseMultipartForm(10 << 20); err != nil {
@@ -253,10 +245,8 @@ func (h *Handlers) UploadBackground(c *gin.Context) {
 // GetBackground serves a background image file
 func (h *Handlers) GetBackground(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	filename := c.Param("filename")
 	if filename == "" {
@@ -280,10 +270,8 @@ func (h *Handlers) GetBackground(c *gin.Context) {
 // DeleteBackground deletes the user's background image
 func (h *Handlers) DeleteBackground(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Get background directory
 	backgroundDir := filepath.Join("uploads", "backgrounds", user.ID)

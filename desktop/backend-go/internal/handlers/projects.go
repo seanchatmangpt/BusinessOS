@@ -18,10 +18,8 @@ import (
 // ListProjects returns all projects for the current user
 func (h *Handlers) ListProjects(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -63,10 +61,8 @@ func (h *Handlers) ListProjects(c *gin.Context) {
 // CreateProject creates a new project
 func (h *Handlers) CreateProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name            string          `json:"name" binding:"required"`
@@ -165,10 +161,8 @@ func (h *Handlers) CreateProject(c *gin.Context) {
 // GetProject returns a single project with notes
 func (h *Handlers) GetProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -219,10 +213,8 @@ func (h *Handlers) GetProject(c *gin.Context) {
 // UpdateProject updates an existing project
 func (h *Handlers) UpdateProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -379,10 +371,8 @@ func (h *Handlers) UpdateProject(c *gin.Context) {
 // DeleteProject deletes a project
 func (h *Handlers) DeleteProject(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -406,10 +396,8 @@ func (h *Handlers) DeleteProject(c *gin.Context) {
 // AddProjectNote adds a note to a project
 func (h *Handlers) AddProjectNote(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -541,10 +529,8 @@ func projectTimestamptzToString(t pgtype.Timestamptz) *string {
 // GetProjectStats returns project statistics for the user
 func (h *Handlers) GetProjectStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	stats, err := queries.GetProjectStats(c.Request.Context(), user.ID)
@@ -560,10 +546,8 @@ func (h *Handlers) GetProjectStats(c *gin.Context) {
 // GetOverdueProjects returns overdue projects for the user
 func (h *Handlers) GetOverdueProjects(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	projects, err := queries.GetOverdueProjects(c.Request.Context(), user.ID)
@@ -579,10 +563,8 @@ func (h *Handlers) GetOverdueProjects(c *gin.Context) {
 // GetUpcomingProjects returns projects due within 7 days
 func (h *Handlers) GetUpcomingProjects(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	projects, err := queries.GetUpcomingProjects(c.Request.Context(), user.ID)

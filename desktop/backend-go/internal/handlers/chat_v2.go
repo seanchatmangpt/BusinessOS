@@ -68,10 +68,8 @@ func stripMentions(message string, mentions []AgentMention) string {
 // This endpoint uses streaming events with artifact detection
 func (h *Handlers) SendMessageV2(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req SendMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

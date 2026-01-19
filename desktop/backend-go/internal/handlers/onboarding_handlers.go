@@ -60,10 +60,8 @@ func (h *OnboardingHandler) RegisterOnboardingRoutes(r *gin.RouterGroup, authMid
 // GET /api/onboarding/status
 func (h *OnboardingHandler) CheckOnboardingStatus(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	status, err := h.onboardingService.CheckOnboardingStatus(c.Request.Context(), user.ID)
 	if err != nil {
@@ -78,10 +76,8 @@ func (h *OnboardingHandler) CheckOnboardingStatus(c *gin.Context) {
 // POST /api/onboarding/sessions
 func (h *OnboardingHandler) CreateSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	session, err := h.onboardingService.CreateSession(c.Request.Context(), user.ID)
 	if err != nil {
@@ -106,10 +102,8 @@ func (h *OnboardingHandler) CreateSession(c *gin.Context) {
 // GET /api/onboarding/sessions/:id
 func (h *OnboardingHandler) GetSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -139,10 +133,8 @@ func (h *OnboardingHandler) GetSession(c *gin.Context) {
 // GET /api/onboarding/resume
 func (h *OnboardingHandler) GetResumeableSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	session, err := h.onboardingService.GetResumeableSession(c.Request.Context(), user.ID)
 	if err != nil {
@@ -176,10 +168,8 @@ func (h *OnboardingHandler) GetResumeableSession(c *gin.Context) {
 // DELETE /api/onboarding/sessions/:id
 func (h *OnboardingHandler) AbandonSession(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -200,10 +190,8 @@ func (h *OnboardingHandler) AbandonSession(c *gin.Context) {
 // POST /api/onboarding/sessions/:id/messages
 func (h *OnboardingHandler) SendMessage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -230,10 +218,8 @@ func (h *OnboardingHandler) SendMessage(c *gin.Context) {
 // GET /api/onboarding/sessions/:id/history
 func (h *OnboardingHandler) GetConversationHistory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -265,10 +251,9 @@ func (h *OnboardingHandler) GetConversationHistory(c *gin.Context) {
 // POST /api/onboarding/sessions/:id/integrations
 func (h *OnboardingHandler) SelectIntegrations(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	_, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -296,10 +281,8 @@ func (h *OnboardingHandler) SelectIntegrations(c *gin.Context) {
 // PUT /api/onboarding/sessions/:id/complete
 func (h *OnboardingHandler) CompleteOnboarding(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -328,10 +311,8 @@ func (h *OnboardingHandler) CompleteOnboarding(c *gin.Context) {
 // POST /api/onboarding/fallback
 func (h *OnboardingHandler) SubmitFallbackForm(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		SessionID uuid.UUID                  `json:"session_id" binding:"required"`
@@ -355,10 +336,8 @@ func (h *OnboardingHandler) SubmitFallbackForm(c *gin.Context) {
 // POST /api/onboarding/sessions/:id/messages/stream
 func (h *OnboardingHandler) SendMessageStream(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -421,10 +400,8 @@ func (h *OnboardingHandler) SendMessageStream(c *gin.Context) {
 // GET /api/onboarding/sessions/:id/recommendations
 func (h *OnboardingHandler) GetRecommendations(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

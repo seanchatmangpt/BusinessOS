@@ -153,10 +153,7 @@ type UpdateFactRequest struct {
 // GET /api/memories
 func (h *MemoryHandler) ListMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Parse query params
 	memoryType := c.Query("type")
@@ -228,10 +225,8 @@ func (h *MemoryHandler) ListMemories(c *gin.Context) {
 // POST /api/memories
 func (h *MemoryHandler) CreateMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateMemoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -332,10 +327,8 @@ func (h *MemoryHandler) CreateMemory(c *gin.Context) {
 // GET /api/memories/:id
 func (h *MemoryHandler) GetMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -374,10 +367,8 @@ func (h *MemoryHandler) GetMemory(c *gin.Context) {
 // PUT /api/memories/:id
 func (h *MemoryHandler) UpdateMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -498,10 +489,8 @@ func (h *MemoryHandler) UpdateMemory(c *gin.Context) {
 // DELETE /api/memories/:id
 func (h *MemoryHandler) DeleteMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -528,10 +517,8 @@ func (h *MemoryHandler) DeleteMemory(c *gin.Context) {
 // POST /api/memories/:id/pin
 func (h *MemoryHandler) PinMemory(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -580,10 +567,8 @@ func (h *MemoryHandler) PinMemory(c *gin.Context) {
 // POST /api/memories/search
 func (h *MemoryHandler) SearchMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req MemorySearchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -678,10 +663,8 @@ func (h *MemoryHandler) SearchMemories(c *gin.Context) {
 // POST /api/memories/relevant
 func (h *MemoryHandler) GetRelevantMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req RelevantMemoriesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -786,10 +769,8 @@ func (h *MemoryHandler) GetRelevantMemories(c *gin.Context) {
 // GET /api/memories/project/:projectId
 func (h *MemoryHandler) GetProjectMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	projectID, err := uuid.Parse(c.Param("projectId"))
 	if err != nil {
@@ -838,10 +819,8 @@ func (h *MemoryHandler) GetProjectMemories(c *gin.Context) {
 // GET /api/memories/node/:nodeId
 func (h *MemoryHandler) GetNodeMemories(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	nodeID, err := uuid.Parse(c.Param("nodeId"))
 	if err != nil {
@@ -894,10 +873,8 @@ func (h *MemoryHandler) GetNodeMemories(c *gin.Context) {
 // GET /api/user-facts
 func (h *MemoryHandler) ListUserFacts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	factType := c.Query("type")
 	activeOnly := c.Query("active") != "false"
@@ -948,10 +925,8 @@ func (h *MemoryHandler) ListUserFacts(c *gin.Context) {
 // PUT /api/user-facts/:key
 func (h *MemoryHandler) UpdateUserFact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	factKey := c.Param("key")
 	if factKey == "" {
@@ -1005,10 +980,8 @@ func (h *MemoryHandler) UpdateUserFact(c *gin.Context) {
 // POST /api/user-facts/:key/confirm
 func (h *MemoryHandler) ConfirmUserFact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	factKey := c.Param("key")
 	if factKey == "" {
@@ -1045,10 +1018,8 @@ func (h *MemoryHandler) ConfirmUserFact(c *gin.Context) {
 // POST /api/user-facts/:key/reject
 func (h *MemoryHandler) RejectUserFact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	factKey := c.Param("key")
 	if factKey == "" {
@@ -1084,10 +1055,8 @@ func (h *MemoryHandler) RejectUserFact(c *gin.Context) {
 // DELETE /api/user-facts/:key
 func (h *MemoryHandler) DeleteUserFact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	factKey := c.Param("key")
 	if factKey == "" {
@@ -1118,10 +1087,8 @@ func (h *MemoryHandler) DeleteUserFact(c *gin.Context) {
 // GET /api/memories/stats
 func (h *MemoryHandler) GetMemoryStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	stats := MemoryStatsResponse{
 		ByType:     make(map[string]int),

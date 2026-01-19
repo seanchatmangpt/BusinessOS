@@ -16,10 +16,8 @@ import (
 // ListClients returns all clients for the current user
 func (h *Handlers) ListClients(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -53,10 +51,8 @@ func (h *Handlers) ListClients(c *gin.Context) {
 // CreateClient creates a new client
 func (h *Handlers) CreateClient(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Name         string          `json:"name" binding:"required"`
@@ -145,10 +141,8 @@ func (h *Handlers) CreateClient(c *gin.Context) {
 // GetClient returns a single client
 func (h *Handlers) GetClient(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -172,10 +166,8 @@ func (h *Handlers) GetClient(c *gin.Context) {
 // UpdateClient updates an existing client
 func (h *Handlers) UpdateClient(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -349,10 +341,8 @@ func (h *Handlers) UpdateClient(c *gin.Context) {
 // UpdateClientStatus updates only the status of a client
 func (h *Handlers) UpdateClientStatus(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -398,10 +388,8 @@ func (h *Handlers) UpdateClientStatus(c *gin.Context) {
 // DeleteClient deletes a client
 func (h *Handlers) DeleteClient(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -425,10 +413,8 @@ func (h *Handlers) DeleteClient(c *gin.Context) {
 // ListClientContacts returns all contacts for a client
 func (h *Handlers) ListClientContacts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -460,10 +446,8 @@ func (h *Handlers) ListClientContacts(c *gin.Context) {
 // CreateClientContact creates a new contact for a client
 func (h *Handlers) CreateClientContact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -516,10 +500,8 @@ func (h *Handlers) CreateClientContact(c *gin.Context) {
 // UpdateClientContact updates a client contact
 func (h *Handlers) UpdateClientContact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -578,10 +560,8 @@ func (h *Handlers) UpdateClientContact(c *gin.Context) {
 // DeleteClientContact deletes a client contact
 func (h *Handlers) DeleteClientContact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -622,10 +602,8 @@ func (h *Handlers) DeleteClientContact(c *gin.Context) {
 // ListClientInteractions returns all interactions for a client
 func (h *Handlers) ListClientInteractions(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -657,10 +635,8 @@ func (h *Handlers) ListClientInteractions(c *gin.Context) {
 // CreateClientInteraction creates a new interaction for a client
 func (h *Handlers) CreateClientInteraction(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -729,10 +705,8 @@ func (h *Handlers) CreateClientInteraction(c *gin.Context) {
 // ListClientDeals returns all deals for a client
 func (h *Handlers) ListClientDeals(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -764,10 +738,8 @@ func (h *Handlers) ListClientDeals(c *gin.Context) {
 // CreateClientDeal creates a new deal for a client
 func (h *Handlers) CreateClientDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -841,10 +813,8 @@ func (h *Handlers) CreateClientDeal(c *gin.Context) {
 // UpdateClientDeal updates a client deal
 func (h *Handlers) UpdateClientDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	clientID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

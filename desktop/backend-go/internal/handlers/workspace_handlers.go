@@ -17,10 +17,8 @@ import (
 // POST /api/workspaces
 func (h *Handlers) CreateWorkspace(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req services.CreateWorkspaceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,10 +39,8 @@ func (h *Handlers) CreateWorkspace(c *gin.Context) {
 // GET /api/workspaces
 func (h *Handlers) ListWorkspaces(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaces, err := h.workspaceService.ListUserWorkspaces(c.Request.Context(), user.ID)
 	if err != nil {
@@ -59,10 +55,8 @@ func (h *Handlers) ListWorkspaces(c *gin.Context) {
 // GET /api/workspaces/:id
 func (h *Handlers) GetWorkspace(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -90,10 +84,8 @@ func (h *Handlers) GetWorkspace(c *gin.Context) {
 // PUT /api/workspaces/:id
 func (h *Handlers) UpdateWorkspace(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -131,10 +123,8 @@ func (h *Handlers) UpdateWorkspace(c *gin.Context) {
 // DELETE /api/workspaces/:id
 func (h *Handlers) DeleteWorkspace(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -159,10 +149,8 @@ func (h *Handlers) DeleteWorkspace(c *gin.Context) {
 // GET /api/workspaces/:id/members
 func (h *Handlers) ListWorkspaceMembers(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -190,10 +178,8 @@ func (h *Handlers) ListWorkspaceMembers(c *gin.Context) {
 // POST /api/workspaces/:id/members/invite
 func (h *Handlers) AddWorkspaceMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -231,10 +217,8 @@ func (h *Handlers) AddWorkspaceMember(c *gin.Context) {
 // PUT /api/workspaces/:id/members/:userId
 func (h *Handlers) UpdateWorkspaceMemberRole(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -276,10 +260,8 @@ func (h *Handlers) UpdateWorkspaceMemberRole(c *gin.Context) {
 // DELETE /api/workspaces/:id/members/:userId
 func (h *Handlers) RemoveWorkspaceMember(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -317,10 +299,8 @@ func (h *Handlers) RemoveWorkspaceMember(c *gin.Context) {
 // GET /api/workspaces/:id/roles
 func (h *Handlers) ListWorkspaceRoles(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -352,10 +332,8 @@ func (h *Handlers) ListWorkspaceRoles(c *gin.Context) {
 // GET /api/workspaces/:id/profile
 func (h *Handlers) GetWorkspaceProfile(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -401,10 +379,9 @@ func (h *Handlers) GetWorkspaceProfile(c *gin.Context) {
 // PUT /api/workspaces/:id/profile
 func (h *Handlers) UpdateWorkspaceProfile(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	_, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -421,10 +398,8 @@ func (h *Handlers) UpdateWorkspaceProfile(c *gin.Context) {
 // GET /api/workspaces/:id/role-context
 func (h *Handlers) GetUserRoleContext(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	workspaceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

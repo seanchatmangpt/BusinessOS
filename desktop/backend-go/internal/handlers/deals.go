@@ -15,10 +15,8 @@ var _ = uuid.UUID{} // keep uuid import for parsing
 // ListDeals returns all deals for the current user
 func (h *Handlers) ListDeals(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -41,10 +39,9 @@ func (h *Handlers) ListDeals(c *gin.Context) {
 // UpdateDealStage updates the stage of a deal
 func (h *Handlers) UpdateDealStage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

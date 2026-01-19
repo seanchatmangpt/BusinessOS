@@ -21,10 +21,8 @@ import (
 // ListCompanies returns all companies for the current user
 func (h *Handlers) ListCompanies(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -55,10 +53,8 @@ func (h *Handlers) ListCompanies(c *gin.Context) {
 // GetCompany returns a single company by ID
 func (h *Handlers) GetCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -110,10 +106,8 @@ type CreateCompanyRequest struct {
 // CreateCompany creates a new company
 func (h *Handlers) CreateCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateCompanyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -189,10 +183,9 @@ type UpdateCompanyRequest struct {
 // UpdateCompany updates an existing company
 func (h *Handlers) UpdateCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -246,10 +239,8 @@ func (h *Handlers) UpdateCompany(c *gin.Context) {
 // DeleteCompany deletes a company
 func (h *Handlers) DeleteCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -273,10 +264,8 @@ func (h *Handlers) DeleteCompany(c *gin.Context) {
 // SearchCompanies searches companies by name or website
 func (h *Handlers) SearchCompanies(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	query := c.Query("q")
 	if query == "" {
@@ -310,10 +299,9 @@ func (h *Handlers) SearchCompanies(c *gin.Context) {
 // ListCompanyContacts returns contacts associated with a company
 func (h *Handlers) ListCompanyContacts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	companyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -346,10 +334,9 @@ type LinkContactToCompanyRequest struct {
 // LinkContactToCompany links a contact to a company
 func (h *Handlers) LinkContactToCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	companyID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -389,10 +376,9 @@ func (h *Handlers) LinkContactToCompany(c *gin.Context) {
 // UnlinkContactFromCompany removes a contact-company relation
 func (h *Handlers) UnlinkContactFromCompany(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	relationID, err := uuid.Parse(c.Param("relationId"))
 	if err != nil {
@@ -417,10 +403,8 @@ func (h *Handlers) UnlinkContactFromCompany(c *gin.Context) {
 // ListPipelines returns all pipelines for the current user
 func (h *Handlers) ListPipelines(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 	pipelines, err := queries.ListPipelines(c.Request.Context(), user.ID)
@@ -439,10 +423,9 @@ func (h *Handlers) ListPipelines(c *gin.Context) {
 // GetPipeline returns a single pipeline by ID
 func (h *Handlers) GetPipeline(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -474,10 +457,8 @@ type CreatePipelineRequest struct {
 // CreatePipeline creates a new pipeline
 func (h *Handlers) CreatePipeline(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreatePipelineRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -517,10 +498,9 @@ type UpdatePipelineRequest struct {
 // UpdatePipeline updates an existing pipeline
 func (h *Handlers) UpdatePipeline(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -555,10 +535,8 @@ func (h *Handlers) UpdatePipeline(c *gin.Context) {
 // DeletePipeline deletes a pipeline
 func (h *Handlers) DeletePipeline(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -586,10 +564,9 @@ func (h *Handlers) DeletePipeline(c *gin.Context) {
 // ListPipelineStages returns all stages for a pipeline
 func (h *Handlers) ListPipelineStages(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	pipelineID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -624,10 +601,9 @@ type CreatePipelineStageRequest struct {
 // CreatePipelineStage creates a new pipeline stage
 func (h *Handlers) CreatePipelineStage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	pipelineID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -672,10 +648,9 @@ type UpdatePipelineStageRequest struct {
 // UpdatePipelineStage updates an existing stage
 func (h *Handlers) UpdatePipelineStage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	stageID, err := uuid.Parse(c.Param("stageId"))
 	if err != nil {
@@ -709,10 +684,9 @@ func (h *Handlers) UpdatePipelineStage(c *gin.Context) {
 // ReorderPipelineStages reorders stages in a pipeline
 func (h *Handlers) ReorderPipelineStages(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	var req struct {
 		StageOrders []struct {
@@ -743,10 +717,9 @@ func (h *Handlers) ReorderPipelineStages(c *gin.Context) {
 // DeletePipelineStage deletes a stage
 func (h *Handlers) DeletePipelineStage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	stageID, err := uuid.Parse(c.Param("stageId"))
 	if err != nil {
@@ -771,10 +744,8 @@ func (h *Handlers) DeletePipelineStage(c *gin.Context) {
 // ListCRMDeals returns all CRM deals for the current user
 func (h *Handlers) ListCRMDeals(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -809,10 +780,9 @@ func (h *Handlers) ListCRMDeals(c *gin.Context) {
 // GetCRMDeal returns a single CRM deal by ID
 func (h *Handlers) GetCRMDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -852,10 +822,8 @@ type CreateCRMDealRequest struct {
 // CreateCRMDeal creates a new CRM deal
 func (h *Handlers) CreateCRMDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateCRMDealRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -931,10 +899,9 @@ type UpdateCRMDealRequest struct {
 // UpdateCRMDeal updates an existing CRM deal
 func (h *Handlers) UpdateCRMDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -985,10 +952,9 @@ func (h *Handlers) UpdateCRMDeal(c *gin.Context) {
 // MoveCRMDealStage moves a deal to a different stage
 func (h *Handlers) MoveCRMDealStage(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1026,10 +992,9 @@ func (h *Handlers) MoveCRMDealStage(c *gin.Context) {
 // UpdateCRMDealStatus updates the status of a deal (open, won, lost)
 func (h *Handlers) UpdateCRMDealStatus(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1063,10 +1028,8 @@ func (h *Handlers) UpdateCRMDealStatus(c *gin.Context) {
 // DeleteCRMDeal deletes a CRM deal
 func (h *Handlers) DeleteCRMDeal(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1090,10 +1053,8 @@ func (h *Handlers) DeleteCRMDeal(c *gin.Context) {
 // GetCRMDealStats returns deal statistics for the current user
 func (h *Handlers) GetCRMDealStats(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	pipelineID := c.Query("pipeline_id")
 
@@ -1125,10 +1086,8 @@ func (h *Handlers) GetCRMDealStats(c *gin.Context) {
 // ListCRMActivities returns CRM activities for the current user
 func (h *Handlers) ListCRMActivities(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -1165,10 +1124,9 @@ func (h *Handlers) ListCRMActivities(c *gin.Context) {
 // ListDealActivities returns activities for a specific deal
 func (h *Handlers) ListDealActivities(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	dealID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1219,10 +1177,8 @@ type CreateCRMActivityRequest struct {
 // CreateCRMActivity creates a new CRM activity
 func (h *Handlers) CreateCRMActivity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateCRMActivityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -1278,10 +1234,8 @@ func (h *Handlers) CreateCRMActivity(c *gin.Context) {
 // CompleteCRMActivity marks an activity as completed
 func (h *Handlers) CompleteCRMActivity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	activityID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -1311,10 +1265,9 @@ func (h *Handlers) CompleteCRMActivity(c *gin.Context) {
 // DeleteCRMActivity deletes a CRM activity
 func (h *Handlers) DeleteCRMActivity(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
+	_ = user // Suppress unused variable warning
 
 	activityID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

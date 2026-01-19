@@ -106,10 +106,8 @@ func (h *UsernameHandler) CheckUsernameAvailability(c *gin.Context) {
 // PATCH /api/users/me/username
 func (h *UsernameHandler) SetUsername(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req SetUsernameRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -180,10 +178,8 @@ func (h *UsernameHandler) SetUsername(c *gin.Context) {
 // GET /api/users/me
 func (h *UsernameHandler) GetCurrentUser(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	ctx := c.Request.Context()
 	profile, err := h.userService.GetUserByID(ctx, user.ID)

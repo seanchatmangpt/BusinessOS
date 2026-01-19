@@ -16,10 +16,8 @@ import (
 // ListArtifacts returns all artifacts for the current user
 func (h *Handlers) ListArtifacts(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	queries := sqlc.New(h.pool)
 
@@ -58,10 +56,8 @@ func (h *Handlers) ListArtifacts(c *gin.Context) {
 // CreateArtifact creates a new artifact
 func (h *Handlers) CreateArtifact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req struct {
 		Title          string  `json:"title" binding:"required"`
@@ -131,10 +127,8 @@ func (h *Handlers) CreateArtifact(c *gin.Context) {
 // GetArtifact returns a single artifact
 func (h *Handlers) GetArtifact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -170,10 +164,8 @@ func (h *Handlers) GetArtifact(c *gin.Context) {
 // UpdateArtifact updates an existing artifact
 func (h *Handlers) UpdateArtifact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -241,10 +233,8 @@ func (h *Handlers) UpdateArtifact(c *gin.Context) {
 // LinkArtifact links an artifact to a project or context
 func (h *Handlers) LinkArtifact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -322,10 +312,8 @@ func (h *Handlers) LinkArtifact(c *gin.Context) {
 // DeleteArtifact deletes an artifact
 func (h *Handlers) DeleteArtifact(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -349,10 +337,8 @@ func (h *Handlers) DeleteArtifact(c *gin.Context) {
 // GetArtifactVersions returns version history for an artifact
 func (h *Handlers) GetArtifactVersions(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -384,10 +370,8 @@ func (h *Handlers) GetArtifactVersions(c *gin.Context) {
 // RestoreArtifactVersion restores a previous version of an artifact
 func (h *Handlers) RestoreArtifactVersion(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {

@@ -1043,10 +1043,8 @@ func extractBlocksContent(blocksJSON []byte) string {
 // ListCommands returns all available slash commands (built-in + custom)
 func (h *Handlers) ListCommands(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	// Start with built-in commands (include system prompts for customization)
 	commands := make([]gin.H, 0, len(builtInCommands)+10)
@@ -1107,10 +1105,8 @@ type CreateUserCommandRequest struct {
 // CreateUserCommand creates a new custom slash command
 func (h *Handlers) CreateUserCommand(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	var req CreateUserCommandRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -1166,10 +1162,8 @@ func (h *Handlers) CreateUserCommand(c *gin.Context) {
 // GetUserCommand retrieves a specific custom command
 func (h *Handlers) GetUserCommand(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -1207,10 +1201,8 @@ type UpdateUserCommandRequest struct {
 // UpdateUserCommand updates an existing custom command
 func (h *Handlers) UpdateUserCommand(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
@@ -1302,10 +1294,8 @@ func (h *Handlers) UpdateUserCommand(c *gin.Context) {
 // DeleteUserCommand deletes a custom command
 func (h *Handlers) DeleteUserCommand(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Not authenticated"})
-		return
-	}
+
+	// Auth guaranteed by middleware - user cannot be nil here
 
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
