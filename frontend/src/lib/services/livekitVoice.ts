@@ -117,14 +117,37 @@ class LiveKitVoiceService {
 					const audioElement = track.attach();
 					audioElement.autoplay = true;
 					audioElement.volume = 1.0;
+					audioElement.muted = false; // Ensure not muted
+
+					// Add to body for playback
 					document.body.appendChild(audioElement);
+
+					console.log('[LiveKit] Audio element state:', {
+						paused: audioElement.paused,
+						muted: audioElement.muted,
+						volume: audioElement.volume,
+						readyState: audioElement.readyState,
+						src: audioElement.src
+					});
 
 					// Force play to bypass autoplay restrictions
 					audioElement.play().then(() => {
 						console.log('[LiveKit] ✅ Audio playing successfully!');
+						console.log('[LiveKit] After play - paused:', audioElement.paused, 'currentTime:', audioElement.currentTime);
 					}).catch((err) => {
 						console.error('[LiveKit] ❌ Audio play failed:', err);
 						console.error('[LiveKit] This is likely a browser autoplay policy restriction');
+					});
+
+					// Listen for audio events
+					audioElement.addEventListener('playing', () => {
+						console.log('[LiveKit] 🔊 Audio actually playing now!');
+					});
+					audioElement.addEventListener('ended', () => {
+						console.log('[LiveKit] Audio playback ended');
+					});
+					audioElement.addEventListener('error', (e) => {
+						console.error('[LiveKit] Audio error:', e);
 					});
 				}
 			});

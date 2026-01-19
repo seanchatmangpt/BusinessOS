@@ -239,6 +239,19 @@ Remember: You're having a real conversation, not just answering questions. Be pr
 
     # Note: Agent transcripts are sent directly from GoBackendLLMStream via the callback
 
+    # Listen for agent speech events (TTS output)
+    @session.on("agent_speech_committed")
+    def on_agent_speech(event):
+        print(f"🔊 [TTS] Agent speech committed (audio generated)")
+
+    @session.on("agent_started_speaking")
+    def on_agent_speaking():
+        print(f"🔊 [TTS] Agent started speaking (audio playing)")
+
+    @session.on("agent_stopped_speaking")
+    def on_agent_stopped():
+        print(f"🔊 [TTS] Agent stopped speaking")
+
     # Start the session with the agent
     print("=" * 60)
     print("[GROQ-WHISPER MODE] Starting agent session...")

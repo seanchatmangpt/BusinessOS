@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rhl/businessos-backend/internal/database/sqlc"
 )
 
 // VoiceChatMessage represents a single message in the conversation
@@ -73,8 +74,16 @@ Remember: You're having a real conversation, not just answering questions. Be pr
 
 	ctx := c.Request.Context()
 
-	// Call Groq API directly
-	response, err := h.callGroqAPI(ctx, req.Messages)
+	// Get user ID from session if available (for tool execution context)
+	userID := ""
+	if user, exists := c.Get("user"); exists {
+		if u, ok := user.(*sqlc.User); ok {
+			userID = u.ID
+		}
+	}
+
+	// Call Groq API with tools support
+	response, err := h.callGroqAPIWithTools(ctx, req.Messages, userID)
 	if err != nil {
 		slog.Error("failed to get response from Groq", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Groq API error: %v", err)})
