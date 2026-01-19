@@ -1,7 +1,7 @@
 """
-OSA Voice Agent - Groq Whisper STT Version
-Uses Groq Whisper for STT, Go Backend for LLM, ElevenLabs for TTS
-Requires: GROQ_API_KEY + ELEVENLABS_API_KEY + Backend running
+OSA Voice Agent - Groq Whisper STT + Fish Audio TTS Version
+Uses Groq Whisper for STT, Go Backend for LLM, Fish Audio for TTS
+Requires: GROQ_API_KEY + FISH_API_KEY + Backend running
 
 Run with: python agent_groq.py dev
 """
@@ -21,7 +21,7 @@ from livekit.agents import (
     llm,
 )
 from livekit.agents.voice import Agent
-from livekit.plugins import groq, elevenlabs, silero
+from livekit.plugins import groq, fishaudio, silero
 
 # Load environment variables from parent directory
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -29,12 +29,12 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 # Configuration
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "KoVIHoyLDrQyd4pGalbs")
+FISH_API_KEY = os.getenv("FISH_API_KEY")
+FISH_REFERENCE_ID = os.getenv("FISH_REFERENCE_ID", "d7a4e2b62c7f4c818f7a88b55d8c1a45")  # Default voice
 
 print(f"BACKEND_URL: {BACKEND_URL}")
 print(f"GROQ_API_KEY set: {bool(GROQ_API_KEY)}")
-print(f"ELEVENLABS_API_KEY set: {bool(ELEVENLABS_API_KEY)}")
+print(f"FISH_API_KEY set: {bool(FISH_API_KEY)}")
 
 # Global callback for sending agent transcripts
 _agent_transcript_callback = None
@@ -203,12 +203,18 @@ SPEAKING STYLE:
 Remember: You're having a real conversation, not just answering questions. Be present, be engaged, be OSA.""",
     )
 
-    # Create a session with Groq Whisper STT + Custom LLM (via Go backend)
+    # Create a session with Groq Whisper STT + Fish Audio TTS + Custom LLM
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=groq.STT(api_key=GROQ_API_KEY),  # Groq Whisper for STT
         llm=GoBackendLLM(),  # Custom LLM that sends transcripts
-        tts=elevenlabs.TTS(api_key=ELEVENLABS_API_KEY, voice_id=ELEVENLABS_VOICE_ID),
+        tts=fishaudio.TTS(
+            api_key=FISH_API_KEY,
+            reference_id=FISH_REFERENCE_ID,  # Voice model ID
+            model="s1",  # Latest Fish Audio model
+            sample_rate=24000,
+            latency_mode="balanced"  # Faster responses
+        ),
     )
 
     # Helper to send transcript to frontend
@@ -254,10 +260,10 @@ Remember: You're having a real conversation, not just answering questions. Be pr
 
     # Start the session with the agent
     print("=" * 60)
-    print("[GROQ-WHISPER MODE] Starting agent session...")
+    print("[FISH AUDIO MODE] Starting agent session...")
     print("  STT: Groq Whisper")
     print("  LLM: Go Backend -> Groq")
-    print("  TTS: ElevenLabs")
+    print("  TTS: Fish Audio (s1 model)")
     print("=" * 60)
     await session.start(agent, room=ctx.room)
 

@@ -66,7 +66,7 @@ func (h *Handlers) callGroqAPIWithTools(ctx context.Context, messages []VoiceCha
 
 	// Build request
 	reqBody := map[string]interface{}{
-		"model":       "llama-3.3-70b-versatile", // Updated: mixtral-8x7b-32768 was decommissioned
+		"model":       "llama-3.3-70b-versatile", // Groq recommended model for tool use (Jan 2026)
 		"messages":    groqMessages,
 		"tools":       toolDefinitions,
 		"tool_choice": "auto",
