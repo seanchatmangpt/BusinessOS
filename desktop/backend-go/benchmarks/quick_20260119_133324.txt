@@ -1,0 +1,21 @@
+2026/01/19 13:33:26 INFO [PureGoVoiceAgent] 🛑 Shutdown complete
+2026/01/19 13:33:26 INFO [PureGoVoiceAgent] 🛑 Shutdown complete
+goos: darwin
+goarch: arm64
+pkg: github.com/rhl/businessos-backend/internal/livekit
+cpu: Apple M3 Ultra
+BenchmarkVADDetection/20ms_frame-28         	 4521380	       261.5 ns/op	     76476 realtime_factor	       0 B/op	       0 allocs/op
+BenchmarkVADDetection/100ms_buffer-28       	  979092	      1286 ns/op	     77775 realtime_factor	       0 B/op	       0 allocs/op
+BenchmarkVADDetection/1sec_buffer-28        	   94988	     12826 ns/op	     77969 realtime_factor	       0 B/op	       0 allocs/op
+BenchmarkVADDetection/high_threshold-28     	  912483	      1282 ns/op	     78001 realtime_factor	       0 B/op	       0 allocs/op
+BenchmarkVADDetection/low_threshold-28      	  983401	      1272 ns/op	     78592 realtime_factor	       0 B/op	       0 allocs/op
+BenchmarkVADDetection_Concurrent/1_concurrent-28         	  554116	      2135 ns/op	      48 B/op	       1 allocs/op
+BenchmarkVADDetection_Concurrent/10_concurrent-28        	  111031	     11073 ns/op	     481 B/op	      10 allocs/op
+BenchmarkVADDetection_Concurrent/50_concurrent-28        	   33919	     35582 ns/op	    2401 B/op	      50 allocs/op
+BenchmarkVADDetection_Concurrent/100_concurrent-28       	   20912	     57204 ns/op	    4801 B/op	     100 allocs/op
+BenchmarkVADDetection_Concurrent/200_concurrent-28       	   12895	     91803 ns/op	    9602 B/op	     200 allocs/op
+BenchmarkAudioBuffering_Append/small_frame_20ms-28       	50482297	        22.84 ns/op	84049.65 MB/s	       0 B/op	       0 allocs/op
+BenchmarkAudioBuffering_Append/medium_frame_100ms-28     	 8115432	       145.5 ns/op	65990.34 MB/s	       0 B/op	       0 allocs/op
+BenchmarkAudioBuffering_Append/large_frame_1sec-28       	 1262942	       953.6 ns/op	100668.86 MB/s	       0 B/op	       0 allocs/op
+BenchmarkAudioBuffering_Copy/960_samples-28              	53622196	        22.07 ns/op	86979.97 MB/s	       0 B/op	       0 allocs/op
+BenchmarkAudioBuffering_Copy/4800_samples-28             	

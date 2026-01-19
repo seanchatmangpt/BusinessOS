@@ -1338,16 +1338,17 @@ Use this context to inform your responses.`;
 		capabilities?: ModelCapability[];
 	}
 
-	// Capability badge colors and labels
-	const capabilityInfo: Record<ModelCapability, { label: string; color: string; icon: string }> = {
-		vision: { label: 'Vision', color: 'bg-purple-100 text-purple-700', icon: 'ðŸ‘ï¸' },
-		tools: { label: 'Tools', color: 'bg-blue-100 text-blue-700', icon: 'ðŸ”§' },
-		coding: { label: 'Code', color: 'bg-green-100 text-green-700', icon: 'ðŸ’»' },
-		reasoning: { label: 'Reasoning', color: 'bg-orange-100 text-orange-700', icon: 'ðŸ§ ' },
-		rag: { label: 'RAG', color: 'bg-cyan-100 text-cyan-700', icon: 'ðŸ“š' },
-		multilingual: { label: 'Multi-lang', color: 'bg-pink-100 text-pink-700', icon: 'ðŸŒ' },
-		fast: { label: 'Fast', color: 'bg-yellow-100 text-yellow-700', icon: 'âš¡' },
+	// Capability badge - clean minimal design
+	const capabilityInfo: Record<ModelCapability, { label: string }> = {
+		vision: { label: 'Vision' },
+		tools: { label: 'Tools' },
+		coding: { label: 'Code' },
+		reasoning: { label: 'Reason' },
+		rag: { label: 'RAG' },
+		multilingual: { label: 'Multi' },
+		fast: { label: 'Fast' }
 	};
+
 
 	// Dynamic model state
 	let installedModels = $state<ModelOption[]>([]);
@@ -3440,7 +3441,7 @@ Use this context to inform your responses.`;
 	<!-- Main Chat Area - fills remaining space (or 50% when artifact is focused) -->
 	<div class="{artifactsPanelOpen && isArtifactFocused ? 'w-1/2' : 'flex-1'} flex flex-col min-w-0 h-full bg-gray-50">
 		<!-- Toggle button - fixed header -->
-		<div class="h-12 flex items-center justify-between px-4 flex-shrink-0 border-b border-gray-100 min-w-0">
+		<div class="h-12 flex items-center justify-between px-4 flex-shrink-0 min-w-0">
 			<!-- Left group: Hamburger + Model Selector + Agent Selector -->
 			<div class="flex items-center gap-1 flex-shrink-0">
 				<button
@@ -3528,9 +3529,8 @@ Use this context to inform your responses.`;
 												{#if caps.length > 0}
 													<div class="flex flex-wrap gap-1 mt-1">
 														{#each caps.slice(0, 4) as cap}
-															<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium rounded {capabilityInfo[cap].color}">
-																<span>{capabilityInfo[cap].icon}</span>
-																<span>{capabilityInfo[cap].label}</span>
+															<span class="inline-flex items-center px-1.5 py-0.5 text-[9px] font-medium rounded bg-white/5 border border-white/10 text-white/60 uppercase tracking-wide">
+																{capabilityInfo[cap].label}
 															</span>
 														{/each}
 													</div>
@@ -3722,14 +3722,9 @@ Use this context to inform your responses.`;
 				<!-- COT is always enabled - no toggle needed -->
 			</div>
 
-			<!-- Center: Role Context Badge -->
-			<div class="flex items-center justify-center flex-1 min-w-0">
-				<RoleContextBadge size="sm" showLabel={true} showTooltip={true} />
-			</div>
-
 			<!-- Right group: Project, Node, Panel -->
-			<div class="flex items-center gap-2 min-w-0">
-				<!-- Project Selector (required for chat) -->
+			<div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
+				<!-- Project Selector (icon-only) -->
 				<div class="relative flex-shrink-0">
 					<button
 						onclick={() => {
@@ -3739,24 +3734,17 @@ Use this context to inform your responses.`;
 							showNodeDropdown = false;
 						}}
 						onkeydown={handleProjectDropdownKeydown}
-						class="btn-pill btn-pill-sm {selectedProject ? 'btn-pill-secondary' : 'btn-pill-warning'}"
-						title={selectedProject ? selectedProject.name : 'Select Project'}
+						class="btn-pill btn-pill-icon {selectedProject ? 'btn-pill-secondary' : 'btn-pill-warning'}"
+						title={selectedProject ? selectedProject.name : 'Select Project (Required)'}
 					>
 						<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-						</svg>
-						<span>{selectedProject ? selectedProject.name : 'Select Project'}</span>
-						{#if !selectedProject}
-							<span class="text-[10px] flex-shrink-0">!</span>
-						{/if}
-						<svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 						</svg>
 					</button>
 
 					{#if showProjectDropdown}
 						<div
-							class="absolute left-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20 max-h-80 overflow-y-auto"
+							class="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-20 max-h-80 overflow-y-auto"
 							transition:fly={{ y: -10, duration: 200 }}
 							onkeydown={handleProjectDropdownKeydown}
 							tabindex="-1"
@@ -3784,9 +3772,9 @@ Use this context to inform your responses.`;
 											showProjectDropdown = false;
 											if (inputValue.trim()) setTimeout(() => handleSendMessage(), 50);
 										}}
-										class="w-full px-4 py-2 text-left transition-colors flex items-center gap-3 {isSelected ? 'bg-purple-50' : ''} {isFocused ? 'bg-blue-50 ring-2 ring-blue-400 ring-inset' : 'hover:bg-gray-50'}"
+										class="w-full px-4 py-2 text-left transition-colors flex items-center gap-3 {isSelected ? 'bg-purple-50' : isFocused ? 'bg-gray-100' : 'hover:bg-gray-50'}"
 									>
-										<div class="w-8 h-8 rounded-lg {isSelected ? 'bg-purple-500 text-white' : isFocused ? 'bg-blue-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
+										<div class="w-8 h-8 rounded-lg {isSelected ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-600'} flex items-center justify-center flex-shrink-0">
 											{#if isSelected}
 												<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -3798,7 +3786,7 @@ Use this context to inform your responses.`;
 											{/if}
 										</div>
 										<div class="flex-1 min-w-0">
-											<div class="text-sm font-medium {isSelected ? 'text-purple-600' : isFocused ? 'text-blue-600' : 'text-gray-700'} truncate">{project.name}</div>
+											<div class="text-sm font-medium {isSelected ? 'text-purple-600' : 'text-gray-700'} truncate">{project.name}</div>
 											{#if project.description}
 												<div class="text-xs text-gray-500 truncate">{project.description}</div>
 											{/if}
@@ -3827,19 +3815,16 @@ Use this context to inform your responses.`;
 					{/if}
 				</div>
 
-				<!-- Active Node Indicator -->
+				<!-- Active Node Indicator (icon-only) -->
 				{#if activeNode}
 					<div class="relative flex-shrink-0">
 						<button
 							onclick={() => showNodeDropdown = !showNodeDropdown}
-							class="btn-pill btn-pill-secondary btn-pill-sm"
+							class="btn-pill btn-pill-icon btn-pill-secondary"
+							title={activeNode.name}
 						>
 							<svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
 								<path d="M13 10V3L4 14h7v7l9-11h-7z" />
-							</svg>
-							<span>{activeNode.name}</span>
-							<svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 							</svg>
 						</button>
 

@@ -32,7 +32,7 @@
 </script>
 
 <button
-	class="btn-pill {isSelected ? 'btn-pill-primary' : 'btn-pill-secondary'}"
+	class="btn-pill btn-pill-sm {isSelected ? 'btn-pill-primary' : 'btn-pill-secondary'}"
 	onclick={handleClick}
 	type="button"
 >

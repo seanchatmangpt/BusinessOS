@@ -20,6 +20,7 @@ const (
 	AgentTypeV2Task         AgentTypeV2 = "task"
 	AgentTypeV2Client       AgentTypeV2 = "client"
 	AgentTypeV2Analyst      AgentTypeV2 = "analyst"
+	AgentTypeV2Research     AgentTypeV2 = "research"
 )
 
 // AgentV2 defines the interface for the new agent architecture
@@ -159,6 +160,8 @@ func (r *AgentRegistryV2) GetAgent(
 		return NewClientAgentV2(ctx)
 	case AgentTypeV2Analyst:
 		return NewAnalystAgentV2(ctx)
+	case AgentTypeV2Research:
+		return NewResearchAgentV2(ctx)
 	default:
 		return NewOrchestratorV2(ctx)
 	}
@@ -169,8 +172,10 @@ func GetAgentForFocusModeV2(focusMode string) AgentTypeV2 {
 	switch focusMode {
 	case "write":
 		return AgentTypeV2Document
-	case "analyze", "research":
+	case "analyze":
 		return AgentTypeV2Analyst
+	case "research":
+		return AgentTypeV2Research
 	case "plan", "build":
 		return AgentTypeV2Project
 	default:
@@ -193,6 +198,8 @@ func AgentTypeV2FromString(s string) AgentTypeV2 {
 		return AgentTypeV2Client
 	case "analyst", "analysis":
 		return AgentTypeV2Analyst
+	case "research":
+		return AgentTypeV2Research
 	default:
 		return AgentTypeV2Orchestrator
 	}

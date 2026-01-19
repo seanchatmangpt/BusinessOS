@@ -9,14 +9,14 @@
 
 	let { showLabel = true, size = 'sm', showTooltip = true }: Props = $props();
 
-	// Role configuration with colors and labels
-	const roleConfig: Record<string, { color: string; bg: string; icon: string }> = {
-		owner: { color: 'bg-purple-500', bg: 'bg-purple-50 text-purple-700', icon: '👑' },
-		admin: { color: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', icon: '⚡' },
-		editor: { color: 'bg-green-500', bg: 'bg-green-50 text-green-700', icon: '✏️' },
-		member: { color: 'bg-yellow-500', bg: 'bg-yellow-50 text-yellow-700', icon: '👤' },
-		viewer: { color: 'bg-gray-500', bg: 'bg-gray-100 text-gray-600', icon: '👁️' },
-		guest: { color: 'bg-gray-400', bg: 'bg-gray-50 text-gray-500', icon: '🔒' }
+	// Role configuration - dark glassmorphic theme
+	const roleConfig: Record<string, { dotColor: string }> = {
+		owner: { dotColor: '#a855f7' },
+		admin: { dotColor: '#3b82f6' },
+		editor: { dotColor: '#10b981' },
+		member: { dotColor: '#eab308' },
+		viewer: { dotColor: '#6b7280' },
+		guest: { dotColor: '#9ca3af' }
 	};
 
 	// Derive current role configuration
@@ -49,12 +49,13 @@
 				onmouseenter={() => showTooltip && (showTooltipPopup = true)}
 				onmouseleave={() => showTooltipPopup = false}
 				onclick={() => showTooltipPopup = !showTooltipPopup}
-				class="btn-pill btn-pill-soft {sizeClasses} {config.bg} gap-1.5"
+				class="role-badge {sizeClasses}"
+				style="--dot-color: {config.dotColor}"
 			>
-				<span class="w-1.5 h-1.5 rounded-full {config.color}"></span>
-				<span class="font-medium">{$currentUserRoleContext.role_display_name}</span>
+				<span class="role-dot"></span>
+				<span class="role-name">{$currentUserRoleContext.role_display_name}</span>
 				{#if $currentWorkspace}
-					<span class="text-[10px] opacity-50 font-normal ml-0.5">in {$currentWorkspace.name}</span>
+					<span class="workspace-name">in {$currentWorkspace.name}</span>
 				{/if}
 			</button>
 
@@ -104,8 +105,51 @@
 		</div>
 	{:else}
 		<span
-			class="w-2.5 h-2.5 rounded-full {config.color}"
+			class="w-2.5 h-2.5 rounded-full"
+			style="background-color: {config.dotColor}"
 			title={tooltipText()}
 		></span>
 	{/if}
 {/if}
+
+<style>
+	.role-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.375rem 0.75rem;
+		background: rgba(28, 28, 30, 0.95);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 0.75rem;
+		backdrop-filter: blur(20px);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.role-badge:hover {
+		background: rgba(28, 28, 30, 1);
+		border-color: rgba(255, 255, 255, 0.2);
+	}
+
+	.role-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background-color: var(--dot-color);
+		flex-shrink: 0;
+	}
+
+	.role-name {
+		font-weight: 500;
+		font-size: 0.813rem;
+		color: rgba(255, 255, 255, 0.9);
+		white-space: nowrap;
+	}
+
+	.workspace-name {
+		font-size: 0.688rem;
+		color: rgba(255, 255, 255, 0.5);
+		font-weight: 400;
+		white-space: nowrap;
+	}
+</style>

@@ -51,7 +51,7 @@
 	}
 </script>
 
-<div class="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
+<div class="bg-white dark:bg-[#1c1c1e] rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm hover:shadow-md transition-shadow duration-300">
 	<div class="flex items-center justify-between mb-4">
 		<div class="flex items-center gap-2">
 			<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center shadow-sm">
@@ -59,12 +59,12 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 				</svg>
 			</div>
-			<h2 class="text-base font-semibold text-gray-900">Today's Focus</h2>
+			<h2 class="text-base font-semibold text-gray-900 dark:text-white/90">Today's Focus</h2>
 		</div>
 		{#if items.length > 0}
 			<button
 				onclick={() => onEdit?.()}
-				class="text-xs text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-100"
+				class="btn-pill-ghost btn-pill-xs"
 			>
 				Edit
 			</button>
@@ -73,15 +73,15 @@
 
 	{#if items.length === 0 && !isAdding}
 		<div class="text-center py-8">
-			<div class="w-14 h-14 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm">
-				<svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<div class="w-14 h-14 bg-gradient-to-br from-gray-100 to-gray-50 dark:from-white/10 dark:to-white/5 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-sm">
+				<svg class="w-7 h-7 text-gray-400 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
 				</svg>
 			</div>
-			<p class="text-sm text-gray-500 mb-3">No focus items for today</p>
+			<p class="text-sm text-gray-500 dark:text-white/50 mb-3">No focus items for today</p>
 			<button
 				onclick={() => (isAdding = true)}
-				class="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+				class="btn-pill-ghost btn-pill-sm inline-flex items-center gap-1.5"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -93,17 +93,17 @@
 		<div class="space-y-3">
 			{#each items as item, index (item.id)}
 				<div
-					class="group flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors {item.completed
-						? 'bg-gray-50'
-						: 'bg-white'}"
+					class="group flex items-start gap-3 p-3 rounded-lg border transition-colors {item.completed
+						? 'bg-gray-50 dark:bg-white/5 border-gray-100 dark:border-white/10'
+						: 'bg-white dark:bg-white/5 border-gray-100 dark:border-white/10 hover:border-gray-200 dark:hover:border-white/20'}"
 					animate:flip={{ duration: 200 }}
 					in:fly={{ y: 10, duration: 300, delay: index * 50 }}
 				>
 					<button
 						onclick={() => handleToggle(item.id)}
 						class="flex-shrink-0 mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors {item.completed
-							? 'bg-gray-900 border-gray-900'
-							: 'border-gray-300 hover:border-gray-400'}"
+							? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+							: 'border-gray-300 dark:border-white/30 hover:border-gray-400 dark:hover:border-white/50'}"
 					>
 						{#if item.completed}
 							<svg
@@ -124,17 +124,17 @@
 					</button>
 					<div class="flex-1 min-w-0">
 						<div class="flex items-center gap-2">
-							<span class="text-sm text-gray-400 font-medium">{index + 1}.</span>
+							<span class="text-sm text-gray-400 dark:text-white/40 font-medium">{index + 1}.</span>
 							<p
 								class="text-sm font-medium {item.completed
-									? 'text-gray-400 line-through'
-									: 'text-gray-900'}"
+									? 'text-gray-400 dark:text-white/40 line-through'
+									: 'text-gray-900 dark:text-white/90'}"
 							>
 								{item.title || item.text}
 							</p>
 						</div>
 						{#if item.description}
-							<p class="text-xs text-gray-500 mt-1 ml-5">{item.description}</p>
+							<p class="text-xs text-gray-500 dark:text-white/50 mt-1 ml-5">{item.description}</p>
 						{/if}
 					</div>
 				</div>
@@ -142,13 +142,13 @@
 		</div>
 
 		{#if isAdding}
-			<div class="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50" in:fly={{ y: 10, duration: 200 }}>
+			<div class="mt-3 p-3 rounded-lg border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5" in:fly={{ y: 10, duration: 200 }}>
 				<input
 					type="text"
 					bind:value={newTitle}
 					onkeydown={handleKeydown}
 					placeholder="What's your focus?"
-					class="w-full text-sm bg-transparent border-none outline-none placeholder-gray-400"
+					class="w-full text-sm bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-white/40 text-gray-900 dark:text-white/90"
 					autofocus
 				/>
 				<input
@@ -156,7 +156,7 @@
 					bind:value={newDescription}
 					onkeydown={handleKeydown}
 					placeholder="Add context (optional)"
-					class="w-full text-xs text-gray-500 bg-transparent border-none outline-none placeholder-gray-400 mt-1"
+					class="w-full text-xs text-gray-500 dark:text-white/60 bg-transparent border-none outline-none placeholder-gray-400 dark:placeholder-white/40 mt-1"
 				/>
 				<div class="flex items-center gap-2 mt-2">
 					<button
@@ -181,7 +181,7 @@
 		{:else if items.length < 5}
 			<button
 				onclick={() => (isAdding = true)}
-				class="mt-3 flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+				class="btn-pill-link btn-pill-xs mt-3 flex items-center gap-2"
 			>
 				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

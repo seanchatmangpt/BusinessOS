@@ -250,9 +250,13 @@ function createCRMStore() {
 		async loadPipelineStages(pipelineId: string) {
 			try {
 				const response = await crmApi.getPipelineStages(pipelineId);
-				update((s) => ({ ...s, stages: response.stages.sort((a, b) => a.position - b.position) }));
+				// Ensure stages is always an array (never null)
+				const stages = Array.isArray(response.stages) ? response.stages : [];
+				update((s) => ({ ...s, stages: stages.sort((a, b) => a.position - b.position) }));
 			} catch (error) {
 				console.error('Failed to load stages:', error);
+				// On error, keep stages as empty array
+				update((s) => ({ ...s, stages: [] }));
 			}
 		},
 

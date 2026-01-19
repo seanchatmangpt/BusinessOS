@@ -111,9 +111,19 @@ export default defineConfig({
 				target: 'http://localhost:8001',
 				changeOrigin: true,
 			},
+			// Voice WebSocket - streaming voice chat
 			'/api/voice': {
 				target: 'http://localhost:8001',
-				changeOrigin: true,
+				changeOrigin: false, // Preserve origin for CORS
+				ws: true, // Enable WebSocket proxy
+				configure: (proxy, _options) => {
+					proxy.on('error', (err, _req, _res) => {
+						console.log('[Vite Proxy] Voice Error:', err);
+					});
+					proxy.on('proxyReqWs', (proxyReq, req, socket, options, head) => {
+						console.log('[Vite Proxy] Voice WebSocket upgrade:', req.url);
+					});
+				},
 			},
 			// Voice UI commands - SSE streaming for voice agent integration
 			'/api/ui': {

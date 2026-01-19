@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: livekit-test
+    ports:
+      - "7880:7880"   # WebSocket
+      - "7881:7881"   # HTTP
+      - "7882:7882"   # TURN/UDP
+    environment:
+      - "LIVEKIT_KEYS=testkey: testsecret"
+      - LIVEKIT_LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7880/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # Optional: Redis for testing session management
+  redis-test:
+    image: redis:7-alpine
+    container_name: redis-test
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional: PostgreSQL for testing database operations
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: postgres-test
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+      - POSTGRES_DB=businessos_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+networks:
+  default:
+    name: businessos-integration-test

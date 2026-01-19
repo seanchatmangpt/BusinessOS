@@ -3,6 +3,8 @@
 	import { desktopSettings } from '$lib/stores/desktopStore';
 	import { userAppsStore } from '$lib/stores/userAppsStore';
 	import { api, apiClient } from '$lib/api';
+	import ModelSelector from '$lib/components/ai/ModelSelector.svelte';
+	import { notificationStore } from '$lib/stores/notifications';
 
 	const iconStyle = $derived($desktopSettings.iconStyle);
 	const iconLibrary = $derived($desktopSettings.iconLibrary);
@@ -62,24 +64,13 @@
 	let loadingProjects = $state(false);
 
 	// Model selection
-	let selectedModel = $state<{ id: string; name: string; isLocal: boolean } | null>(null);
-	let showModelSelector = $state(false);
-	let localModels = $state<{ id: string; name: string }[]>([]);
-	let cloudModels = $state<{ id: string; name: string }[]>([]);
-	let loadingModels = $state(false);
-	let activeProvider = $state<string>('');
-	let defaultModelId = $state<string>('');
-	let ollamaAvailable = $state<boolean | null>(null); // null = unknown, true = available, false = not available
-
-	// Model pull state
-	let isPulling = $state(false);
-	let pullingModel = $state('');
-	let pullProgress = $state<{ status: string; percent?: number } | null>(null);
-	let recommendedModels = $state<{ id: string; name: string; size: string }[]>([]);
+	let selectedModelId = $state<string>('');
 
 	// Voice recording state
 	let isRecording = $state(false);
+	let isStartingRecording = $state(false); // Mutex to prevent double starts
 	let mediaRecorder: MediaRecorder | null = null;
+	let mediaStream: MediaStream | null = null; // Track the stream for cleanup
 	let audioChunks: Blob[] = [];
 	let recordingDuration = $state(0);
 	let recordingInterval: number | null = null;
@@ -87,9 +78,13 @@
 	// Audio visualization
 	let audioContext: AudioContext | null = null;
 	let analyser: AnalyserNode | null = null;
+	let audioSource: MediaStreamAudioSourceNode | null = null; // Track source node for cleanup
 	let audioDataArray: Uint8Array | null = null;
 	let waveformBars = $state<number[]>(Array(20).fill(2));
 	let animationFrameId: number | null = null;
+
+	// Fetch abort controller for transcription timeout
+	let transcriptionAbortController: AbortController | null = null;
 
 	// File upload state
 	let isDraggingFile = $state(false);
@@ -124,7 +119,6 @@
 		if (browser) {
 			// Load in background - don't block UI
 			loadProjects();
-			loadModels();
 			// Add global keyboard listener for dictation shortcut
 			window.addEventListener('keydown', handleGlobalKeydown);
 		}
@@ -134,7 +128,70 @@
 		if (browser) {
 			window.removeEventListener('keydown', handleGlobalKeydown);
 		}
+
+		// Comprehensive audio resource cleanup
+		cleanupAudioResources();
 	});
+
+	// Cleanup function for all audio resources
+	function cleanupAudioResources() {
+		// Cancel any ongoing animation frame
+		if (animationFrameId) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
+
+		// Clear recording interval
+		if (recordingInterval) {
+			clearInterval(recordingInterval);
+			recordingInterval = null;
+		}
+
+		// Stop MediaRecorder
+		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+			mediaRecorder.stop();
+			mediaRecorder = null;
+		}
+
+		// Stop all media stream tracks
+		if (mediaStream) {
+			mediaStream.getTracks().forEach(track => track.stop());
+			mediaStream = null;
+		}
+
+		// Disconnect and cleanup audio nodes
+		if (audioSource) {
+			audioSource.disconnect();
+			audioSource = null;
+		}
+
+		if (analyser) {
+			analyser.disconnect();
+			analyser = null;
+		}
+
+		// Close AudioContext (critical for memory cleanup)
+		if (audioContext && audioContext.state !== 'closed') {
+			audioContext.close().catch(err => {
+				console.warn('Error closing AudioContext:', err);
+			});
+			audioContext = null;
+		}
+
+		// Abort any ongoing transcription fetch
+		if (transcriptionAbortController) {
+			transcriptionAbortController.abort();
+			transcriptionAbortController = null;
+		}
+
+		// Reset state
+		isRecording = false;
+		isStartingRecording = false;
+		recordingDuration = 0;
+		audioChunks = [];
+		audioDataArray = null;
+		waveformBars = Array(20).fill(2);
+	}
 
 	async function loadProjects() {
 		loadingProjects = true;
@@ -148,174 +205,6 @@
 		}
 	}
 
-	async function loadModels() {
-		loadingModels = true;
-		try {
-			// 1. Load providers config to get active provider and default model from settings
-			const providersRes = await apiClient.get('/ai/providers');
-			if (providersRes.ok) {
-				const data = await providersRes.json();
-				activeProvider = data.active_provider || 'ollama_local';
-				defaultModelId = data.default_model || '';
-			}
-
-			// 2. Load all models (cloud models from configured providers)
-			const allModelsRes = await apiClient.get('/ai/models');
-			if (allModelsRes.ok) {
-				const data = await allModelsRes.json();
-				const allModels = data.models || [];
-				// Cloud models are non-local (anthropic, openai, etc.)
-				cloudModels = allModels
-					.filter((m: any) => m.provider !== 'ollama_local' && m.provider !== 'ollama')
-					.map((m: any) => ({
-						id: m.id || m.name,
-						name: m.name || m.id
-					}));
-				// Use default_model from response if not from providers
-				if (!defaultModelId && data.default_model) {
-					defaultModelId = data.default_model;
-				}
-			}
-
-			// 3. Load local models from Ollama API
-			const localRes = await apiClient.get('/ai/models/local');
-			if (localRes.ok) {
-				const data = await localRes.json();
-				// 200 OK means Ollama is running and available
-				ollamaAvailable = true;
-
-				localModels = (data.models || [])
-					.filter((m: any) => {
-						// Filter out tiny cloud reference stubs
-						const nameOrId = (m.id || '') + (m.name || '');
-						const isCloudRef = nameOrId.toLowerCase().includes('cloud') &&
-							(m.size === '< 1 KB' || m.size === '0 B' || !m.size);
-						return !isCloudRef;
-					})
-					.map((m: any) => ({
-						id: m.id || m.name,
-						name: m.name || m.id
-					}));
-			} else {
-				// 503 or other error means Ollama not available (not installed or not running)
-				ollamaAvailable = false;
-				localModels = [];
-			}
-
-			// 4. Load system info for recommended models (for Ollama pulls)
-			const systemRes = await apiClient.get('/ai/system');
-			if (systemRes.ok) {
-				const systemInfo = await systemRes.json();
-				if (systemInfo.recommended_models && systemInfo.recommended_models.length > 0) {
-					recommendedModels = systemInfo.recommended_models.map((m: any) => ({
-						id: m.name || m.id,
-						name: m.name || m.id,
-						size: m.ram_required || '~4GB'
-					}));
-				}
-			}
-			// Fallback to sensible defaults if no recommended models from API
-			if (recommendedModels.length === 0) {
-				recommendedModels = [
-					{ id: 'llama3.2:3b', name: 'Llama 3.2 3B', size: '~2GB' },
-					{ id: 'llama3.2:latest', name: 'Llama 3.2 7B', size: '~4GB' },
-					{ id: 'mistral:7b', name: 'Mistral 7B', size: '~4GB' },
-					{ id: 'qwen2.5:7b', name: 'Qwen 2.5 7B', size: '~4GB' }
-				];
-			}
-
-			// 5. Set selected model based on default from settings
-			if (!selectedModel) {
-				// Try to find the default model in local or cloud models
-				const defaultInLocal = localModels.find(m => m.id === defaultModelId || m.name === defaultModelId);
-				const defaultInCloud = cloudModels.find(m => m.id === defaultModelId || m.name === defaultModelId);
-
-				if (defaultInLocal) {
-					selectedModel = { ...defaultInLocal, isLocal: true };
-				} else if (defaultInCloud) {
-					selectedModel = { ...defaultInCloud, isLocal: false };
-				} else if (localModels.length > 0) {
-					// Fallback to first local model
-					selectedModel = { ...localModels[0], isLocal: true };
-				} else if (cloudModels.length > 0) {
-					// Fallback to first cloud model
-					selectedModel = { ...cloudModels[0], isLocal: false };
-				}
-			}
-		} catch (error) {
-			console.error('Failed to load models:', error);
-			// Default to first available model
-			if (!selectedModel) {
-				if (localModels.length > 0) {
-					selectedModel = { ...localModels[0], isLocal: true };
-				} else if (cloudModels.length > 0) {
-					selectedModel = { ...cloudModels[0], isLocal: false };
-				}
-			}
-		} finally {
-			loadingModels = false;
-		}
-	}
-
-	async function pullModel(modelId: string) {
-		if (isPulling) return;
-
-		isPulling = true;
-		pullingModel = modelId;
-		pullProgress = { status: 'Starting...' };
-
-		try {
-			const response = await fetch('/api/ai/models/pull', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ model: modelId }),
-				credentials: 'include'
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to pull model');
-			}
-
-			const reader = response.body?.getReader();
-			if (!reader) throw new Error('No response body');
-
-			const decoder = new TextDecoder();
-			let buffer = '';
-
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done) break;
-
-				buffer += decoder.decode(value, { stream: true });
-				const lines = buffer.split('\n');
-				buffer = lines.pop() || '';
-
-				for (const line of lines) {
-					if (!line.trim()) continue;
-					try {
-						const data = JSON.parse(line);
-						if (data.status) {
-							pullProgress = {
-								status: data.status,
-								percent: data.completed && data.total ? Math.round((data.completed / data.total) * 100) : undefined
-							};
-						}
-					} catch {}
-				}
-			}
-
-			// Refresh models after pull
-			await loadModels();
-			pullProgress = null;
-		} catch (error) {
-			console.error('Failed to pull model:', error);
-			pullProgress = { status: 'Failed to pull model' };
-			setTimeout(() => { pullProgress = null; }, 3000);
-		} finally {
-			isPulling = false;
-			pullingModel = '';
-		}
-	}
 
 	interface DockItem {
 		id: string;
@@ -613,14 +502,22 @@
 
 	// Voice recording handlers
 	async function startRecording() {
+		// Mutex to prevent double starts
+		if (isStartingRecording || isRecording) {
+			return;
+		}
+
+		isStartingRecording = true;
+
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaStream = stream; // Track for cleanup
 
 			// Set up audio context for visualization
 			audioContext = new AudioContext();
 			analyser = audioContext.createAnalyser();
-			const source = audioContext.createMediaStreamSource(stream);
-			source.connect(analyser);
+			audioSource = audioContext.createMediaStreamSource(stream);
+			audioSource.connect(analyser);
 			analyser.fftSize = 64;
 			audioDataArray = new Uint8Array(analyser.frequencyBinCount);
 
@@ -634,7 +531,11 @@
 			mediaRecorder.onstop = async () => {
 				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
 				await transcribeAudio(audioBlob);
-				stream.getTracks().forEach(track => track.stop());
+				// Cleanup stream after transcription starts
+				if (mediaStream) {
+					mediaStream.getTracks().forEach(track => track.stop());
+					mediaStream = null;
+				}
 			};
 
 			mediaRecorder.start();
@@ -649,15 +550,39 @@
 			updateWaveform();
 		} catch (error) {
 			console.error('Failed to start recording:', error);
+
+			// Show user-friendly error notification
+			if (browser) {
+				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				window.dispatchEvent(
+					new CustomEvent('businessos:notification', {
+						detail: {
+							id: `recording-error-${Date.now()}`,
+							type: 'error',
+							title: 'Recording Failed',
+							body: `Could not start recording: ${errorMessage}. Please check microphone permissions.`,
+							priority: 'high',
+							created_at: new Date().toISOString()
+						}
+					})
+				);
+			}
+
+			// Cleanup on error
+			cleanupAudioResources();
+		} finally {
+			isStartingRecording = false;
 		}
 	}
 
 	function stopRecording() {
+		// Stop MediaRecorder first to trigger onstop callback
 		if (mediaRecorder && mediaRecorder.state !== 'inactive') {
 			mediaRecorder.stop();
 		}
 		isRecording = false;
 
+		// Clear intervals and animation frames
 		if (recordingInterval) {
 			clearInterval(recordingInterval);
 			recordingInterval = null;
@@ -667,6 +592,10 @@
 			cancelAnimationFrame(animationFrameId);
 			animationFrameId = null;
 		}
+
+		// Note: We don't cleanup AudioContext/stream here because
+		// they're needed for the onstop callback to process the audio.
+		// They'll be cleaned up in onstop or by cleanupAudioResources.
 
 		waveformBars = Array(20).fill(2);
 	}
@@ -695,19 +624,45 @@
 		isLoading = true;
 		showResponse = false;
 
+		// Create AbortController for 30-second timeout
+		transcriptionAbortController = new AbortController();
+		const timeoutId = setTimeout(() => {
+			transcriptionAbortController?.abort();
+		}, 30000); // 30 seconds
+
 		try {
 			const formData = new FormData();
 			formData.append('audio', audioBlob, 'recording.webm');
 
 			const response = await fetch('/api/transcribe', {
 				method: 'POST',
-				body: formData
+				body: formData,
+				signal: transcriptionAbortController.signal
 			});
 
 			if (response.ok) {
 				const data = await response.json();
 				if (data.text) {
 					chatInput = data.text;
+				}
+			} else {
+				// HTTP error
+				const errorText = await response.text().catch(() => 'Unknown error');
+				console.error('Transcription HTTP error:', response.status, errorText);
+
+				if (browser) {
+					window.dispatchEvent(
+						new CustomEvent('businessos:notification', {
+							detail: {
+								id: `transcription-error-${Date.now()}`,
+								type: 'error',
+								title: 'Transcription Failed',
+								body: `Server returned error: ${response.status}. Please try again.`,
+								priority: 'high',
+								created_at: new Date().toISOString()
+							}
+						})
+					);
 				}
 			}
 
@@ -717,7 +672,32 @@
 			// });
 		} catch (error) {
 			console.error('Transcription error:', error);
+
+			// Show user-friendly error notification
+			if (browser) {
+				const isAborted = error instanceof Error && error.name === 'AbortError';
+				const errorMessage = isAborted
+					? 'Transcription timed out after 30 seconds. Please try again with a shorter recording.'
+					: error instanceof Error
+					? error.message
+					: 'Unknown error';
+
+				window.dispatchEvent(
+					new CustomEvent('businessos:notification', {
+						detail: {
+							id: `transcription-error-${Date.now()}`,
+							type: 'error',
+							title: isAborted ? 'Transcription Timeout' : 'Transcription Failed',
+							body: errorMessage,
+							priority: 'high',
+							created_at: new Date().toISOString()
+						}
+					})
+				);
+			}
 		} finally {
+			clearTimeout(timeoutId);
+			transcriptionAbortController = null;
 			isLoading = false;
 		}
 	}
@@ -763,8 +743,7 @@
 				message,
 				projectId: selectedProject.id,
 				projectName: selectedProject.name,
-				model: selectedModel?.name,
-				isLocalModel: selectedModel?.isLocal,
+				model: selectedModelId,
 				files: fileData,
 				timestamp: Date.now(),
 				isNewConversation: true
@@ -863,14 +842,22 @@
 
 	// Start recording for collapsed bubble mode (doesn't expand)
 	async function startRecordingCollapsed() {
+		// Mutex to prevent double starts
+		if (isStartingRecording || isRecording) {
+			return;
+		}
+
+		isStartingRecording = true;
+
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			mediaStream = stream; // Track for cleanup
 
 			// Set up audio context for visualization
 			audioContext = new AudioContext();
 			analyser = audioContext.createAnalyser();
-			const source = audioContext.createMediaStreamSource(stream);
-			source.connect(analyser);
+			audioSource = audioContext.createMediaStreamSource(stream);
+			audioSource.connect(analyser);
 			analyser.fftSize = 64;
 			audioDataArray = new Uint8Array(analyser.frequencyBinCount);
 
@@ -884,7 +871,11 @@
 			mediaRecorder.onstop = async () => {
 				const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
 				await transcribeAudio(audioBlob);
-				stream.getTracks().forEach(track => track.stop());
+				// Cleanup stream after transcription starts
+				if (mediaStream) {
+					mediaStream.getTracks().forEach(track => track.stop());
+					mediaStream = null;
+				}
 			};
 
 			mediaRecorder.start();
@@ -900,6 +891,28 @@
 		} catch (error) {
 			console.error('Failed to start recording:', error);
 			collapsedVoiceActive = false;
+
+			// Show user-friendly error notification
+			if (browser) {
+				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				window.dispatchEvent(
+					new CustomEvent('businessos:notification', {
+						detail: {
+							id: `recording-error-${Date.now()}`,
+							type: 'error',
+							title: 'Recording Failed',
+							body: `Could not start recording: ${errorMessage}. Please check microphone permissions.`,
+							priority: 'high',
+							created_at: new Date().toISOString()
+						}
+					})
+				);
+			}
+
+			// Cleanup on error
+			cleanupAudioResources();
+		} finally {
+			isStartingRecording = false;
 		}
 	}
 
@@ -908,27 +921,49 @@
 		// Store current chatInput to check for changes
 		const previousInput = chatInput;
 
+		// Create a promise that resolves when transcription updates chatInput
+		const transcriptionPromise = new Promise<void>((resolve) => {
+			// Set up a one-time effect to watch for chatInput changes
+			let timeoutId: ReturnType<typeof setTimeout>;
+			let checkCount = 0;
+			const maxChecks = 300; // 30 seconds max (100ms intervals)
+
+			const checkForChange = () => {
+				checkCount++;
+
+				// Check if chatInput has changed
+				if (chatInput !== previousInput) {
+					resolve();
+					return;
+				}
+
+				// Timeout after max attempts
+				if (checkCount >= maxChecks) {
+					console.warn('Transcription timeout - no response after 30 seconds');
+					resolve(); // Resolve anyway to unblock UI
+					return;
+				}
+
+				// Check again after 100ms
+				timeoutId = setTimeout(checkForChange, 100);
+			};
+
+			// Start checking after a small delay
+			timeoutId = setTimeout(checkForChange, 100);
+
+			// Cleanup function (in case component unmounts)
+			return () => {
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+				}
+			};
+		});
+
 		// Stop recording (triggers transcription via onstop)
 		stopRecording();
 
-		// Wait for transcription to complete by polling for chatInput changes
-		// Transcription typically takes 1-3 seconds
-		let attempts = 0;
-		const maxAttempts = 30; // 3 seconds max wait
-
-		const waitForTranscription = () => {
-			return new Promise<void>((resolve) => {
-				const checkInterval = setInterval(() => {
-					attempts++;
-					if (chatInput !== previousInput || attempts >= maxAttempts) {
-						clearInterval(checkInterval);
-						resolve();
-					}
-				}, 100);
-			});
-		};
-
-		await waitForTranscription();
+		// Wait for transcription to complete
+		await transcriptionPromise;
 
 		collapsedVoiceActive = false;
 		isHoveringCollapsed = false;
@@ -1279,7 +1314,8 @@
 				<!-- Project selector (required) -->
 				<div class="context-selector">
 					<button
-						class="btn-pill btn-pill-sm {selectedProject ? 'btn-pill-secondary' : 'btn-pill-ghost'}"
+						class="btn-pill btn-pill-ghost btn-pill-sm context-selector-btn"
+						class:selected={selectedProject}
 						class:required={!selectedProject}
 						onclick={() => { showProjectSelector = !showProjectSelector; highlightedProjectIndex = showProjectSelector ? 0 : -1; }}
 						title="Select project (required)"
@@ -1290,7 +1326,7 @@
 							</svg>
 							<span class="context-name">{selectedProject.name}</span>
 						{:else}
-							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<svg class="project-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
 							</svg>
 							<span class="placeholder-text">Project</span>
@@ -1339,133 +1375,11 @@
 				</div>
 
 				<!-- Model selector -->
-				<div class="context-selector">
-					<button
-						class="btn-pill btn-pill-sm {selectedModel ? 'btn-pill-secondary' : 'btn-pill-ghost'}"
-						onclick={() => showModelSelector = !showModelSelector}
-						title="Select AI model"
-					>
-						{#if selectedModel?.isLocal}
-							<svg class="model-icon local" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<rect x="2" y="3" width="20" height="14" rx="2"/>
-								<path d="M8 21h8M12 17v4"/>
-							</svg>
-						{:else}
-							<svg class="model-icon cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-							</svg>
-						{/if}
-						<span class="model-name">{selectedModel?.name?.split(':')[0] || 'Model'}</span>
-						<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M6 9l6 6 6-6"/>
-						</svg>
-					</button>
-
-					{#if showModelSelector}
-						<div class="context-dropdown model-dropdown">
-							<div class="dropdown-header">LOCAL MODELS</div>
-							{#if loadingModels}
-								<div class="context-option empty">Loading...</div>
-							{:else if ollamaAvailable === false}
-								<div class="context-option empty">
-									<svg class="option-model-icon text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-										<line x1="12" y1="9" x2="12" y2="13"/>
-										<line x1="12" y1="17" x2="12.01" y2="17"/>
-									</svg>
-									Ollama not installed or not running
-								</div>
-							{:else if localModels.length === 0}
-								<div class="context-option empty">No local models installed</div>
-							{:else}
-								{#each localModels as model}
-									<button
-										class="context-option"
-										class:selected={selectedModel?.id === model.id}
-										onclick={() => { selectedModel = { ...model, isLocal: true }; showModelSelector = false; }}
-									>
-										<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-											<rect x="2" y="3" width="20" height="14" rx="2"/>
-											<path d="M8 21h8M12 17v4"/>
-										</svg>
-										<span>{model.name}</span>
-										<span class="model-status ready">Ready</span>
-									</button>
-								{/each}
-							{/if}
-
-							<!-- Recommended models to pull - only show if Ollama is available -->
-							{#if ollamaAvailable !== false}
-								<div class="dropdown-divider"></div>
-								<div class="dropdown-header">AVAILABLE TO PULL</div>
-								{#if isPulling && pullProgress}
-									<div class="context-option pull-progress">
-										<span class="pull-model">{pullingModel}</span>
-										<span class="pull-status">
-											{pullProgress.status}
-											{#if pullProgress.percent !== undefined}
-												({pullProgress.percent}%)
-											{/if}
-										</span>
-									</div>
-								{/if}
-								{#each recommendedModels as model}
-									{@const isInstalled = localModels.some(m => m.id === model.id || m.id.startsWith(model.id.split(':')[0]))}
-									{#if !isInstalled}
-										<button
-											class="context-option"
-											disabled={isPulling}
-											onclick={() => pullModel(model.id)}
-										>
-											<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-												<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-												<polyline points="7 10 12 15 17 10"/>
-												<line x1="12" y1="15" x2="12" y2="3"/>
-											</svg>
-											<span>{model.name}</span>
-											<span class="model-size">{model.size}</span>
-											<span class="model-status pull">Pull</span>
-										</button>
-									{/if}
-								{/each}
-							{/if}
-
-							<div class="dropdown-divider"></div>
-							<div class="dropdown-header">CLOUD MODELS</div>
-							{#if cloudModels.length === 0}
-								<div class="context-option empty">
-									<svg class="option-model-icon text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-									</svg>
-									No API keys configured
-								</div>
-							{:else}
-								{#each cloudModels as model}
-									<button
-										class="context-option"
-										class:selected={selectedModel?.id === model.id}
-										onclick={() => { selectedModel = { ...model, isLocal: false }; showModelSelector = false; }}
-									>
-										<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-											<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-										</svg>
-										<span>{model.name}</span>
-										<span class="model-status ready">Ready</span>
-									</button>
-								{/each}
-							{/if}
-
-							<div class="dropdown-divider"></div>
-							<a href="/settings/ai" class="context-option settings-link" onclick={() => showModelSelector = false}>
-								<svg class="option-model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<circle cx="12" cy="12" r="3"/>
-									<path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-								</svg>
-								<span>AI Settings</span>
-							</a>
-						</div>
-					{/if}
-				</div>
+				<ModelSelector
+					bind:selectedModelId={selectedModelId}
+					onModelSelect={(modelId) => { selectedModelId = modelId; }}
+					variant="icon-only"
+				/>
 
 				<!-- Quick hints in toolbar -->
 				{#if isExpanded && !isRecording}
@@ -1633,14 +1547,17 @@
 	.quick-chat {
 		display: flex;
 		flex-direction: column;
-		background: var(--quick-chat-bg, rgba(255, 255, 255, 0.95));
-		backdrop-filter: blur(24px);
-		-webkit-backdrop-filter: blur(24px);
-		border: 1px solid var(--quick-chat-border, rgba(0, 0, 0, 0.08));
-		border-radius: 16px;
-		box-shadow: var(--quick-chat-shadow, 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 8px 32px rgba(0, 0, 0, 0.12));
+		background: rgba(255, 255, 255, 0.5);
+		backdrop-filter: blur(60px) saturate(200%);
+		-webkit-backdrop-filter: blur(60px) saturate(200%);
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		border-radius: 20px;
+		box-shadow:
+			0 0 0 0.5px rgba(0, 0, 0, 0.03),
+			0 8px 32px rgba(0, 0, 0, 0.06),
+			inset 0 1px 0 rgba(255, 255, 255, 1);
 		overflow: visible;
-		transition: min-width 0.2s ease, box-shadow 0.2s ease;
+		transition: all 0.2s ease;
 		width: auto;
 		min-width: 420px;
 		max-width: 700px;
@@ -1871,9 +1788,11 @@
 	/* Focus state - no scale to avoid blur */
 	.quick-chat:focus-within {
 		box-shadow:
-			0 0 0 0.5px rgba(0, 0, 0, 0.1),
-			0 0 0 3px rgba(59, 130, 246, 0.15),
-			0 12px 40px rgba(0, 0, 0, 0.12);
+			0 0 0 0.5px rgba(0, 0, 0, 0.08),
+			0 0 0 3px rgba(59, 130, 246, 0.2),
+			0 12px 40px rgba(0, 0, 0, 0.1),
+			inset 0 1px 0 rgba(255, 255, 255, 0.9);
+		border-color: rgba(255, 255, 255, 0.6);
 	}
 
 	/* Textarea wrapper (top section) */
@@ -1928,7 +1847,11 @@
 	}
 
 	.quick-chat textarea::placeholder {
-		color: var(--quick-chat-placeholder, #999);
+		color: #6B7280;
+	}
+
+	:global(.dark) .quick-chat textarea::placeholder {
+		color: #9CA3AF;
 	}
 
 	/* Bottom toolbar (fixed at bottom) - no border */
@@ -1957,25 +1880,29 @@
 		align-items: center;
 		gap: 4px;
 		font-size: 11px;
-		color: #999;
+		color: #666;
 		margin-left: 8px;
 	}
 
 	.toolbar-hints .hint {
-		background: rgba(0, 0, 0, 0.05);
-		padding: 2px 5px;
-		border-radius: 3px;
+		background: rgba(0, 0, 0, 0.08);
+		padding: 2px 6px;
+		border-radius: 4px;
 		font-family: ui-monospace, monospace;
 		font-size: 10px;
+		font-weight: 500;
+		color: #444;
+		border: 1px solid rgba(0, 0, 0, 0.08);
 	}
 
 	.toolbar-hints .hint-text {
-		color: #aaa;
+		color: #666;
+		font-weight: 500;
 	}
 
 	.toolbar-hints .hint-divider {
-		color: #ddd;
-		margin: 0 2px;
+		color: #999;
+		margin: 0 4px;
 	}
 
 	/* Voice button - minimal, no background */
@@ -1989,13 +1916,21 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: #888;
+		color: #4B5563;
 		transition: all 0.2s;
 		flex-shrink: 0;
 	}
 
 	.quick-chat .voice-btn:hover {
-		color: #333;
+		color: #1F2937;
+	}
+
+	:global(.dark) .quick-chat .voice-btn {
+		color: #888;
+	}
+
+	:global(.dark) .quick-chat .voice-btn:hover {
+		color: #fff;
 	}
 
 	.quick-chat .voice-btn.recording {
@@ -2059,6 +1994,63 @@
 		z-index: 10000;
 	}
 
+	.context-selector button {
+		min-width: 110px;
+		max-width: 160px;
+		padding: 8px 16px !important;
+		height: 36px !important;
+		font-size: 13px !important;
+		gap: 8px !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		box-sizing: border-box !important;
+		background: rgba(255, 255, 255, 0.6) !important;
+		border: 1px solid rgba(0, 0, 0, 0.08) !important;
+	}
+
+	.context-selector button:hover {
+		background: rgba(255, 255, 255, 0.75) !important;
+		border-color: rgba(0, 0, 0, 0.12) !important;
+	}
+
+	.context-selector-btn.selected {
+		background: rgba(139, 92, 246, 0.15) !important;
+		border-color: rgba(139, 92, 246, 0.3) !important;
+	}
+
+	.context-selector-btn.selected:hover {
+		background: rgba(139, 92, 246, 0.2) !important;
+		border-color: rgba(139, 92, 246, 0.4) !important;
+	}
+
+	:global(.dark) .context-selector button {
+		background: rgba(255, 255, 255, 0.08) !important;
+		border-color: rgba(255, 255, 255, 0.1) !important;
+	}
+
+	:global(.dark) .context-selector button:hover {
+		background: rgba(255, 255, 255, 0.12) !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
+	}
+
+	:global(.dark) .context-selector-btn.selected {
+		background: rgba(139, 92, 246, 0.2) !important;
+		border-color: rgba(139, 92, 246, 0.4) !important;
+	}
+
+	:global(.dark) .context-selector-btn.selected:hover {
+		background: rgba(139, 92, 246, 0.25) !important;
+		border-color: rgba(139, 92, 246, 0.5) !important;
+	}
+
+	/* Model selector container */
+	.model-selector-container {
+		position: relative;
+		z-index: 10000;
+		min-width: 180px;
+	}
+
 	.required {
 		animation: pulse-required 2s infinite;
 	}
@@ -2069,11 +2061,50 @@
 	}
 
 	.project-icon {
+		width: 16px !important;
+		height: 16px !important;
+		flex-shrink: 0;
+		color: #6B7280;
+	}
+
+	.context-selector-btn.selected .project-icon {
 		color: #8B5CF6;
 	}
 
 	.placeholder-text {
-		color: #9CA3AF;
+		color: #6B7280;
+		font-size: 13px;
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+
+	.context-name {
+		color: #374151;
+		max-width: 85px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-weight: 500;
+		font-size: 13px;
+		line-height: 1.2;
+		flex: 1;
+		min-width: 0;
+	}
+
+	:global(.dark) .project-icon {
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	:global(.dark) .context-selector-btn.selected .project-icon {
+		color: #A78BFA;
+	}
+
+	:global(.dark) .placeholder-text {
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	:global(.dark) .context-name {
+		color: rgba(255, 255, 255, 0.9);
 	}
 
 	.model-icon {
@@ -2090,30 +2121,33 @@
 	}
 
 	.model-name {
-		max-width: 80px;
+		max-width: 120px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 
 	.chevron {
-		width: 12px;
-		height: 12px;
+		width: 12px !important;
+		height: 12px !important;
 		opacity: 0.5;
+		flex-shrink: 0;
+		margin-left: -2px;
 	}
 
 	/* Dropdown enhancements */
 	.dropdown-header {
-		padding: 8px 12px 4px;
-		font-size: 10px;
+		padding: 6px 10px 4px;
+		font-size: 9px;
 		font-weight: 600;
 		text-transform: uppercase;
-		letter-spacing: 0.5px;
-		color: #9CA3AF;
+		letter-spacing: 0.8px;
+		color: rgba(255, 255, 255, 0.3);
+		margin-bottom: 2px;
 	}
 
 	.dropdown-divider {
 		height: 1px;
-		background: #E5E7EB;
+		background: rgba(255, 255, 255, 0.06);
 		margin: 4px 0;
 	}
 
@@ -2179,39 +2213,53 @@
 		background: #F3F4F6;
 	}
 
-
-	.context-name {
-		max-width: 80px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		font-weight: 500;
-	}
-
 	.context-dropdown {
 		position: absolute;
 		bottom: 100%;
-		left: 0;
+		left: 50%;
+		transform: translateX(-50%);
 		margin-bottom: 8px;
-		background: white;
-		border: 1px solid #E5E7EB;
-		border-radius: 12px;
-		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-		min-width: 220px;
-		max-height: 280px;
+		background: rgba(28, 28, 30, 0.98);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.12);
+		border-radius: 10px;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+		width: 220px;
+		max-height: 300px;
 		overflow-y: auto;
 		z-index: 10002;
 		animation: dropdownSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 		transform-origin: bottom center;
+		padding: 6px;
+	}
+
+	/* Dark scrollbar for dropdown */
+	.context-dropdown::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.context-dropdown::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.context-dropdown::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.2);
+		border-radius: 3px;
+	}
+
+	.context-dropdown::-webkit-scrollbar-thumb:hover {
+		background: rgba(255, 255, 255, 0.3);
 	}
 
 	@keyframes dropdownSlideUp {
 		from {
 			opacity: 0;
-			transform: translateY(8px) scale(0.96);
+			transform: translateX(-50%) translateY(8px) scale(0.96);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0) scale(1);
+			transform: translateX(-50%) translateY(0) scale(1);
 		}
 	}
 
@@ -2221,17 +2269,64 @@
 		flex-shrink: 0;
 	}
 
-	.selected {
-		background: #EEF2FF;
-		color: #4F46E5;
+	.context-dropdown .option-icon {
+		color: rgba(255, 255, 255, 0.4);
 	}
 
-	.highlighted {
-		background: #E5E7EB;
+	.context-dropdown button:hover .option-icon {
+		color: rgba(255, 255, 255, 0.7);
 	}
 
-	.highlighted.selected {
-		background: #DDD6FE;
+	.context-option.empty {
+		padding: 12px 16px;
+		text-align: center;
+		color: rgba(255, 255, 255, 0.5);
+		font-size: 13px;
+	}
+
+	.context-dropdown .selected {
+		background: rgba(139, 92, 246, 0.15) !important;
+		color: white !important;
+	}
+
+	.context-dropdown .selected .option-icon {
+		color: #C4B5FD !important;
+	}
+
+	.context-dropdown .highlighted {
+		background: rgba(255, 255, 255, 0.06) !important;
+	}
+
+	.context-dropdown .highlighted.selected {
+		background: rgba(139, 92, 246, 0.2) !important;
+	}
+
+	.context-dropdown button {
+		color: rgba(255, 255, 255, 0.85);
+		padding: 7px 10px !important;
+		font-size: 12px !important;
+		height: 30px !important;
+		gap: 8px !important;
+		border-radius: 6px !important;
+		width: 100%;
+		text-align: left;
+		display: flex !important;
+		align-items: center !important;
+	}
+
+	.context-dropdown button:hover {
+		color: white;
+		background: rgba(255, 255, 255, 0.1) !important;
+	}
+
+	.context-dropdown button span {
+		font-size: 12px;
+		font-weight: 400;
+		line-height: 1;
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.justify-start {
@@ -2382,14 +2477,15 @@
 		align-items: flex-end;
 		gap: 4px;
 		padding: 6px 10px 8px;
-		background: rgba(255, 255, 255, 0.75);
-		backdrop-filter: blur(20px);
-		-webkit-backdrop-filter: blur(20px);
-		border: 1px solid rgba(255, 255, 255, 0.6);
-		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.45);
+		backdrop-filter: blur(60px) saturate(200%);
+		-webkit-backdrop-filter: blur(60px) saturate(200%);
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		border-radius: 18px;
 		box-shadow:
-			0 0 0 0.5px rgba(0, 0, 0, 0.1),
-			0 8px 32px rgba(0, 0, 0, 0.12);
+			0 0 0 0.5px rgba(0, 0, 0, 0.03),
+			0 8px 32px rgba(0, 0, 0, 0.08),
+			inset 0 1px 0 rgba(255, 255, 255, 1);
 		transition: all 0.2s ease;
 		position: relative;
 		z-index: 10;
@@ -2447,8 +2543,8 @@
 	.dock-icon-image {
 		width: 100%;
 		height: 100%;
-		object-fit: contain;
-		padding: 4px;
+		object-fit: cover;
+		border-radius: inherit;
 	}
 
 	.dock-icon.user-app {
@@ -2782,6 +2878,240 @@
 			0 16px 32px rgba(0, 0, 0, 0.08);
 	}
 
+	/* Neumorphism - soft 3D embossed effect */
+	.dock-item.style-neumorphism .dock-icon {
+		background: #e0e0e0 !important;
+		box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
+		border: none;
+		border-radius: 16px;
+	}
+
+	.dock-item.style-neumorphism:hover .dock-icon {
+		box-shadow: 4px 4px 8px #bebebe, -4px -4px 8px #ffffff;
+	}
+
+	/* Material - Google Material Design elevation */
+	.dock-item.style-material .dock-icon {
+		background: #fff !important;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.08);
+		border: none;
+		border-radius: 8px;
+	}
+
+	.dock-item.style-material:hover .dock-icon {
+		box-shadow: 0 8px 16px rgba(0, 0, 0, 0.16), 0 4px 8px rgba(0, 0, 0, 0.12);
+		transform: translateY(-2px);
+	}
+
+	/* Fluent - Microsoft Fluent Design acrylic */
+	.dock-item.style-fluent .dock-icon {
+		background: rgba(255, 255, 255, 0.7) !important;
+		backdrop-filter: blur(30px);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		border-radius: 8px;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+	}
+
+	.dock-item.style-fluent:hover .dock-icon {
+		background: rgba(255, 255, 255, 0.8) !important;
+		box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+	}
+
+	/* Aero - Windows Vista/7 glass effect */
+	.dock-item.style-aero .dock-icon {
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1)) !important;
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+		border-radius: 8px;
+	}
+
+	.dock-item.style-aero:hover .dock-icon {
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2)) !important;
+	}
+
+	/* iOS - iOS app icon rounded square */
+	.dock-item.style-ios .dock-icon {
+		border-radius: 22%;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		border: none;
+	}
+
+	.dock-item.style-ios:hover .dock-icon {
+		box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+	}
+
+	/* Android - Material You rounded square */
+	.dock-item.style-android .dock-icon {
+		border-radius: 28%;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		border: none;
+	}
+
+	.dock-item.style-android:hover .dock-icon {
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Windows 11 - Modern Windows 11 rounded */
+	.dock-item.style-windows11 .dock-icon {
+		border-radius: 12px;
+		background: linear-gradient(135deg, #0078d4, #005a9e) !important;
+		box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+		border: none;
+	}
+
+	.dock-item.style-windows11:hover .dock-icon {
+		box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
+	}
+
+	/* Amiga - Amiga Workbench retro style */
+	.dock-item.style-amiga .dock-icon {
+		background: linear-gradient(135deg, #0055aa, #ffffff) !important;
+		border: 2px solid #000;
+		border-radius: 4px;
+		box-shadow: 3px 3px 0 #000;
+	}
+
+	.dock-item.style-amiga:hover .dock-icon {
+		box-shadow: 5px 5px 0 #000;
+	}
+
+	/* Aurora - animated gradient shimmer */
+	.dock-item.style-aurora .dock-icon {
+		background: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #4facfe) !important;
+		background-size: 400% 400%;
+		animation: aurora 8s ease infinite;
+		border: none;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	@keyframes aurora {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+
+	/* Crystal - gem-like faceted appearance */
+	.dock-item.style-crystal .dock-icon {
+		background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(200, 200, 255, 0.8)) !important;
+		border: 1px solid rgba(255, 255, 255, 0.5);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), inset 2px 2px 4px rgba(255, 255, 255, 0.5), inset -2px -2px 4px rgba(0, 0, 0, 0.1);
+		clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+	}
+
+	/* Holographic - rainbow shifting iridescent */
+	.dock-item.style-holographic .dock-icon {
+		background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #9370db, #ff0080) !important;
+		background-size: 400% 400%;
+		animation: holographic 6s linear infinite;
+		border: 1px solid rgba(255, 255, 255, 0.5);
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(255, 0, 128, 0.4);
+	}
+
+	@keyframes holographic {
+		0% { background-position: 0% 50%; filter: hue-rotate(0deg); }
+		100% { background-position: 400% 50%; filter: hue-rotate(360deg); }
+	}
+
+	/* Vaporwave - 80s/90s pink and cyan aesthetic */
+	.dock-item.style-vaporwave .dock-icon {
+		background: linear-gradient(135deg, #ff71ce, #01cdfe, #05ffa1) !important;
+		border: 2px solid #b967ff;
+		border-radius: 8px;
+		box-shadow: 0 0 20px rgba(255, 113, 206, 0.5), 0 0 40px rgba(1, 205, 254, 0.3);
+	}
+
+	/* Cyberpunk - neon with scan lines */
+	.dock-item.style-cyberpunk .dock-icon {
+		background: #0a0a0a !important;
+		border: 3px solid #00ff41;
+		border-radius: 8px;
+		box-shadow: 0 0 15px #00ff41, inset 0 0 15px rgba(0, 255, 65, 0.3);
+		position: relative;
+	}
+
+	/* Synthwave - retro futuristic purple/pink */
+	.dock-item.style-synthwave .dock-icon {
+		background: linear-gradient(135deg, #f857a6, #ff5858, #7b2cbf) !important;
+		border: 2px solid #ff6ec7;
+		border-radius: 8px;
+		box-shadow: 0 0 20px rgba(248, 87, 166, 0.6), 0 8px 16px rgba(123, 44, 191, 0.4);
+	}
+
+	/* Matrix - green code rain style */
+	.dock-item.style-matrix .dock-icon {
+		background: #0d0d0d !important;
+		border: 2px solid #00ff00;
+		border-radius: 4px;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.5), inset 0 0 10px rgba(0, 255, 0, 0.2);
+		color: #00ff00 !important;
+	}
+
+	/* Glitch - digital glitch distortion effect */
+	.dock-item.style-glitch .dock-icon {
+		background: linear-gradient(135deg, #ff00ff, #00ffff) !important;
+		border-radius: 8px;
+		animation: glitch 3s infinite;
+		position: relative;
+	}
+
+	@keyframes glitch {
+		0%, 100% { transform: translate(0); }
+		20% { transform: translate(-2px, 2px); }
+		40% { transform: translate(-2px, -2px); }
+		60% { transform: translate(2px, 2px); }
+		80% { transform: translate(2px, -2px); }
+	}
+
+	/* Chrome - metallic reflective surface */
+	.dock-item.style-chrome .dock-icon {
+		background: linear-gradient(135deg, #c0c0c0, #e8e8e8, #a8a8a8, #ffffff) !important;
+		border: 1px solid #888;
+		border-radius: 12px;
+		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+	}
+
+	/* Rainbow - animated rainbow spectrum */
+	.dock-item.style-rainbow .dock-icon {
+		background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) !important;
+		background-size: 400% 400%;
+		animation: rainbow 4s linear infinite;
+		border: none;
+		border-radius: 12px;
+	}
+
+	@keyframes rainbow {
+		0% { background-position: 0% 50%; }
+		100% { background-position: 400% 50%; }
+	}
+
+	/* Sketch - hand-drawn outline style */
+	.dock-item.style-sketch .dock-icon {
+		background: #fff !important;
+		border: 2px solid #333;
+		border-radius: 8px;
+		box-shadow: 2px 2px 0 #333;
+		filter: contrast(1.1);
+	}
+
+	/* Comic - comic book thick black borders */
+	.dock-item.style-comic .dock-icon {
+		background: #fff !important;
+		border: 4px solid #000;
+		border-radius: 8px;
+		box-shadow: 4px 4px 0 #000;
+	}
+
+	/* Watercolor - soft blurred watercolor paint */
+	.dock-item.style-watercolor .dock-icon {
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6)) !important;
+		border: 1px solid rgba(102, 126, 234, 0.3);
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+		filter: blur(0.5px);
+	}
+
 	/* ===== DARK MODE - MODERN APPLE STYLE ===== */
 	:global(.dark) .dock {
 		background: rgba(44, 44, 46, 0.85);
@@ -2814,19 +3144,23 @@
 	}
 
 	:global(.dark) .quick-chat {
-		background: rgba(28, 28, 30, 0.95) !important;
-		border-color: rgba(255, 255, 255, 0.12) !important;
+		background: rgba(28, 28, 30, 0.6) !important;
+		backdrop-filter: blur(40px) saturate(180%) !important;
+		-webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+		border-color: rgba(255, 255, 255, 0.15) !important;
 		box-shadow:
-			0 0 0 0.5px rgba(255, 255, 255, 0.08),
-			0 8px 32px rgba(0, 0, 0, 0.4) !important;
+			0 0 0 0.5px rgba(255, 255, 255, 0.1),
+			0 8px 32px rgba(0, 0, 0, 0.5),
+			inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
 	}
 
 	:global(.dark) .quick-chat:focus-within {
 		box-shadow:
-			0 0 0 0.5px rgba(255, 255, 255, 0.15),
-			0 12px 40px rgba(0, 0, 0, 0.4) !important;
+			0 0 0 0.5px rgba(255, 255, 255, 0.2),
+			0 12px 40px rgba(0, 0, 0, 0.6),
+			inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 		outline: none !important;
-		border-color: rgba(255, 255, 255, 0.2) !important;
+		border-color: rgba(255, 255, 255, 0.25) !important;
 	}
 
 	:global(.dark) .quick-chat.dragging-file {
@@ -2881,16 +3215,17 @@
 
 
 	:global(.dark) .toolbar-hints .hint {
-		background: rgba(255, 255, 255, 0.1);
-		color: #a1a1a6;
+		background: rgba(255, 255, 255, 0.12);
+		color: #d1d1d6;
+		border: 1px solid rgba(255, 255, 255, 0.15);
 	}
 
 	:global(.dark) .toolbar-hints .hint-text {
-		color: #6e6e73;
+		color: #a1a1a6;
 	}
 
 	:global(.dark) .toolbar-hints .hint-divider {
-		color: #48484a;
+		color: #636366;
 	}
 
 	:global(.dark) .recording-waveform-bar {

@@ -83,6 +83,9 @@ frontend/
 - [Onboarding README](./features/onboarding/README_ONBOARDING.md) - Overview of onboarding system
 - [Button System](./features/buttons/BUTTON_SYSTEM.md) - Unified btn-pill component system (100+ files migrated)
 - [App Store System](./features/app-store/APP_STORE_SYSTEM.md) - Starter apps with social features
+- [Icon Styles System](./ICON_STYLES.md) - 41 customizable desktop icon styles (Modern, Classic, Creative)
+- [Icon Styles Quick Reference](./ICON_STYLES_QUICK_REFERENCE.md) - Quick reference for icon styles
+- [Icon Styles Changelog](./CHANGELOG_ICON_STYLES.md) - Recent updates to icon styles (21 new styles added)
 - [Notifications](./features/FRONTEND_NOTIFICATIONS_GUIDE.md) - Real-time notifications system
 - [Workspace](./features/workspace/) - Workspace frontend integration and memory UI
 
@@ -93,6 +96,7 @@ frontend/
 | Google OAuth Onboarding | ✅ Complete | [Onboarding System](./features/onboarding/ONBOARDING_SYSTEM.md) |
 | Button Standardization (btn-pill) | ✅ Complete | [Button System](./features/buttons/BUTTON_SYSTEM.md) |
 | App Store with Starter Apps | ✅ Complete | [App Store](./features/app-store/APP_STORE_SYSTEM.md) |
+| Icon Styles System (41 styles) | ✅ Complete | [Icon Styles](./ICON_STYLES.md) |
 | 3D Desktop Environment | 🚧 In Progress | [3D Desktop](./architecture/3D_DESKTOP_ARCHITECTURE.md) |
 | Gesture System | 📋 Planned | (archived in main docs) |
 | Voice Integration | 📋 Planned | (archived in main docs) |
@@ -505,7 +509,8 @@ See [team-review/RECENT_FRONTEND_CHANGES.md](./team-review/RECENT_FRONTEND_CHANG
 1. ✅ Google OAuth onboarding flow (complete)
 2. ✅ Button standardization (btn-pill system, 100+ files)
 3. ✅ App Store with starter apps (complete)
-4. 🚧 3D Desktop environment (in progress)
+4. ✅ Icon Styles System expansion (41 total styles, 21 new styles added)
+5. 🚧 3D Desktop environment (in progress)
 
 ### Quick Links
 
@@ -514,6 +519,7 @@ See [team-review/RECENT_FRONTEND_CHANGES.md](./team-review/RECENT_FRONTEND_CHANG
 - [Onboarding System](./features/onboarding/ONBOARDING_SYSTEM.md)
 - [Button System](./features/buttons/BUTTON_SYSTEM.md)
 - [App Store](./features/app-store/APP_STORE_SYSTEM.md)
+- [Icon Styles System](./ICON_STYLES.md)
 - [Form Components](./components/FORM_COMPONENTS_USAGE_GUIDE.md)
 
 **Architecture:**

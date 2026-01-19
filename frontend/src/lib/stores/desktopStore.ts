@@ -526,7 +526,7 @@ export const desktopBackgrounds: DesktopBackground[] = [
 	},
 ];
 
-export type IconStyle = 'default' | 'minimal' | 'rounded' | 'square' | 'macos' | 'macos-classic' | 'outlined' | 'retro' | 'win95' | 'glassmorphism' | 'neon' | 'flat' | 'gradient' | 'paper' | 'pixel' | 'frosted' | 'terminal' | 'glow' | 'brutalist' | 'depth';
+export type IconStyle = 'default' | 'minimal' | 'rounded' | 'square' | 'macos' | 'macos-classic' | 'outlined' | 'retro' | 'win95' | 'glassmorphism' | 'neon' | 'flat' | 'gradient' | 'paper' | 'pixel' | 'frosted' | 'terminal' | 'glow' | 'brutalist' | 'depth' | 'neumorphism' | 'material' | 'fluent' | 'aero' | 'aurora' | 'crystal' | 'holographic' | 'vaporwave' | 'cyberpunk' | 'synthwave' | 'matrix' | 'glitch' | 'chrome' | 'rainbow' | 'sketch' | 'comic' | 'watercolor' | 'ios' | 'android' | 'windows11' | 'amiga';
 
 export type IconLibrary = 'lucide' | 'phosphor' | 'tabler' | 'heroicons';
 
@@ -540,26 +540,52 @@ export const iconLibraries: { id: IconLibrary; name: string; description: string
 ];
 
 export const iconStyles: { id: IconStyle; name: string; description: string }[] = [
+	// Modern Styles
 	{ id: 'default', name: 'Default', description: 'Rounded corners with colored backgrounds' },
 	{ id: 'minimal', name: 'Minimal', description: 'Simple icons without backgrounds' },
 	{ id: 'rounded', name: 'Rounded', description: 'Circular icon backgrounds' },
 	{ id: 'square', name: 'Square', description: 'Square icons with sharp corners' },
 	{ id: 'macos', name: 'macOS', description: 'macOS-style squircle icons' },
+	{ id: 'glassmorphism', name: 'Glass', description: 'Frosted glass effect' },
+	{ id: 'frosted', name: 'Frosted', description: 'Clean frosted glass with blur' },
+	{ id: 'flat', name: 'Flat', description: 'Flat design with no shadows' },
+	{ id: 'paper', name: 'Paper', description: 'Paper card style with soft shadows' },
+	{ id: 'depth', name: 'Depth', description: 'Layered 3D depth shadows' },
+	{ id: 'neumorphism', name: 'Neumorphism', description: 'Soft 3D with inset/outset shadows' },
+	{ id: 'material', name: 'Material', description: 'Google Material Design elevation' },
+	{ id: 'fluent', name: 'Fluent', description: 'Microsoft Fluent Design acrylic' },
+	{ id: 'aero', name: 'Aero', description: 'Windows Vista/7 glass effect' },
+
+	// Classic Styles
 	{ id: 'macos-classic', name: 'Mac Classic', description: 'Classic Mac OS 9 platinum style' },
-	{ id: 'outlined', name: 'Outlined', description: 'Icons with border outlines' },
 	{ id: 'retro', name: 'Retro', description: 'Classic retro computer style' },
 	{ id: 'win95', name: 'Win95', description: 'Windows 95 style with 3D borders' },
-	{ id: 'glassmorphism', name: 'Glass', description: 'Frosted glass effect' },
-	{ id: 'neon', name: 'Neon', description: 'Glowing neon style' },
-	{ id: 'flat', name: 'Flat', description: 'Flat design with no shadows' },
-	{ id: 'gradient', name: 'Gradient', description: 'Gradient background style' },
-	{ id: 'paper', name: 'Paper', description: 'Paper card style with soft shadows' },
 	{ id: 'pixel', name: 'Pixel', description: '8-bit pixel art style' },
-	{ id: 'frosted', name: 'Frosted', description: 'Clean frosted glass with blur' },
-	{ id: 'terminal', name: 'Terminal', description: 'Green on black hacker aesthetic' },
+	{ id: 'ios', name: 'iOS', description: 'iOS app icon rounded square' },
+	{ id: 'android', name: 'Android', description: 'Material You rounded square' },
+	{ id: 'windows11', name: 'Windows 11', description: 'Modern Windows 11 rounded' },
+	{ id: 'amiga', name: 'Amiga', description: 'Amiga Workbench retro style' },
+
+	// Creative Styles
+	{ id: 'outlined', name: 'Outlined', description: 'Icons with border outlines' },
+	{ id: 'neon', name: 'Neon', description: 'Glowing neon style' },
+	{ id: 'gradient', name: 'Gradient', description: 'Gradient background style' },
 	{ id: 'glow', name: 'Glow', description: 'Soft colored glow aura effect' },
+	{ id: 'terminal', name: 'Terminal', description: 'Green on black hacker aesthetic' },
 	{ id: 'brutalist', name: 'Brutalist', description: 'Bold raw design with thick borders' },
-	{ id: 'depth', name: 'Depth', description: 'Layered 3D depth shadows' },
+	{ id: 'aurora', name: 'Aurora', description: 'Animated gradient shimmer effect' },
+	{ id: 'crystal', name: 'Crystal', description: 'Gem-like faceted appearance' },
+	{ id: 'holographic', name: 'Holographic', description: 'Rainbow shifting iridescent' },
+	{ id: 'vaporwave', name: 'Vaporwave', description: '80s/90s pink and cyan aesthetic' },
+	{ id: 'cyberpunk', name: 'Cyberpunk', description: 'Neon with scan lines' },
+	{ id: 'synthwave', name: 'Synthwave', description: 'Retro futuristic purple/pink' },
+	{ id: 'matrix', name: 'Matrix', description: 'Green code rain style' },
+	{ id: 'glitch', name: 'Glitch', description: 'Digital glitch distortion effect' },
+	{ id: 'chrome', name: 'Chrome', description: 'Metallic reflective surface' },
+	{ id: 'rainbow', name: 'Rainbow', description: 'Animated rainbow spectrum' },
+	{ id: 'sketch', name: 'Sketch', description: 'Hand-drawn outline style' },
+	{ id: 'comic', name: 'Comic', description: 'Comic book thick black borders' },
+	{ id: 'watercolor', name: 'Watercolor', description: 'Soft blurred watercolor paint' },
 ];
 
 export type BackgroundFit = 'cover' | 'contain' | 'fill' | 'center';
@@ -662,6 +688,11 @@ interface DesktopSettings {
 	showIconLabels: boolean;
 	gridSnap: boolean;
 	companyName: string; // Dynamic company name for loading screen
+	// Icon customization
+	iconSpacing: number; // 8-32, default 16
+	iconShadow: boolean;
+	iconBorder: boolean;
+	iconHoverEffect: boolean;
 	// New customization settings
 	animatedBackground: AnimatedBackgroundSettings;
 	bootScreen: BootScreenSettings;
@@ -682,6 +713,11 @@ const defaultSettings: DesktopSettings = {
 	showIconLabels: true,
 	gridSnap: true,
 	companyName: 'BUSINESS',
+	// Icon customization defaults
+	iconSpacing: 16,
+	iconShadow: true,
+	iconBorder: false,
+	iconHoverEffect: true,
 	// New customization defaults
 	animatedBackground: {
 		effect: 'none',
@@ -823,6 +859,47 @@ function createDesktopStore() {
 		toggleGridSnap: () => {
 			update(state => {
 				const newState = { ...state, gridSnap: !state.gridSnap };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		setIconSpacing: (iconSpacing: number) => {
+			const clampedSpacing = Math.max(8, Math.min(32, iconSpacing));
+			update(state => {
+				const newState = { ...state, iconSpacing: clampedSpacing };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		setIconShadow: (iconShadow: boolean) => {
+			update(state => {
+				const newState = { ...state, iconShadow };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		setIconBorder: (iconBorder: boolean) => {
+			update(state => {
+				const newState = { ...state, iconBorder };
+				if (browser) {
+					localStorage.setItem('desktop-settings', JSON.stringify(newState));
+				}
+				return newState;
+			});
+		},
+
+		setIconHoverEffect: (iconHoverEffect: boolean) => {
+			update(state => {
+				const newState = { ...state, iconHoverEffect };
 				if (browser) {
 					localStorage.setItem('desktop-settings', JSON.stringify(newState));
 				}

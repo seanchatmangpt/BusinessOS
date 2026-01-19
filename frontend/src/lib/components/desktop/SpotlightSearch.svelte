@@ -3,6 +3,7 @@
 	import { fade, scale, fly } from 'svelte/transition';
 	import { apiClient } from '$lib/api';
 	import { ImageSearchModal } from '$lib/components/search';
+	import ModelSelector from '$lib/components/ai/ModelSelector.svelte';
 
 	interface Props {
 		open: boolean;
@@ -69,8 +70,6 @@
 	// Model state
 	let selectedModel = $state('');
 	let showModelDropdown = $state(false);
-	let availableModels = $state<{ id: string; name: string; provider: string; size?: string }[]>([]);
-	let activeProvider = $state('ollama_local');
 
 	// Image search state
 	let showImageSearch = $state(false);
@@ -105,12 +104,6 @@
 		selectedProjectId ? projectsList.find(p => p.id === selectedProjectId) : null
 	);
 
-	let currentModelName = $derived(() => {
-		if (!selectedModel) return 'Select Model';
-		const model = availableModels.find(m => m.id === selectedModel);
-		return model ? model.name : selectedModel.split(':')[0];
-	});
-
 	// Filter items based on input
 	const filteredItems = $derived(() => {
 		if (mode === 'chat') return [];
@@ -134,11 +127,10 @@
 	// Conversation ID for persisting to chat
 	let conversationId = $state<string | null>(null);
 
-	// Load projects and models on open
+	// Load projects on open
 	$effect(() => {
 		if (open) {
 			loadProjects();
-			loadModels();
 			setTimeout(() => inputElement?.focus(), 50);
 		}
 		if (!open) {
@@ -173,32 +165,6 @@
 			}
 		} catch (e) {
 			console.error('Failed to load projects:', e);
-		}
-	}
-
-	async function loadModels() {
-		try {
-			// Get provider info
-			const providersRes = await apiClient.get('/ai/providers');
-			if (providersRes.ok) {
-				const data = await providersRes.json();
-				activeProvider = data.active_provider || 'ollama_local';
-				if (data.default_model && !selectedModel) {
-					selectedModel = data.default_model;
-				}
-			}
-
-			// Get available models
-			const response = await apiClient.get('/ai/models');
-			if (response.ok) {
-				const data = await response.json();
-				availableModels = data.models || [];
-				if (!selectedModel && availableModels.length > 0) {
-					selectedModel = availableModels[0].id;
-				}
-			}
-		} catch (e) {
-			console.error('Failed to load models:', e);
 		}
 	}
 
@@ -875,43 +841,13 @@
 							{/if}
 						</div>
 
-						<!-- Model Selector (icon only) -->
-						<div class="dropdown-wrapper">
-							<button
-								class="icon-btn"
-								onclick={() => { showModelDropdown = !showModelDropdown; showProjectDropdown = false; }}
-								title={currentModelName()}
-							>
-								<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<rect x="4" y="4" width="16" height="16" rx="2"/>
-									<circle cx="9" cy="9" r="1.5" fill="currentColor"/>
-									<circle cx="15" cy="9" r="1.5" fill="currentColor"/>
-									<path d="M9 15h6"/>
-								</svg>
-							</button>
-							{#if showModelDropdown}
-								<div class="dropdown-menu model-menu" transition:fly={{ y: 5, duration: 150 }}>
-									<div class="dropdown-header">
-										Provider: {activeProvider === 'ollama_local' ? 'Local' : activeProvider}
-									</div>
-									{#if availableModels.length === 0}
-										<div class="dropdown-empty">No models available</div>
-									{:else}
-										{#each availableModels as model}
-											<button
-												class="dropdown-item"
-												class:active={selectedModel === model.id}
-												onclick={() => { selectedModel = model.id; showModelDropdown = false; }}
-											>
-												<span class="model-name">{model.name}</span>
-												{#if model.size}
-													<span class="model-size">{model.size}</span>
-												{/if}
-											</button>
-										{/each}
-									{/if}
-								</div>
-							{/if}
+						<!-- Model Selector -->
+						<div class="model-selector-wrapper">
+							<ModelSelector
+								bind:selectedModelId={selectedModel}
+								onModelSelect={(modelId) => { selectedModel = modelId; showProjectDropdown = false; }}
+								variant="compact"
+							/>
 						</div>
 					</div>
 
@@ -1486,6 +1422,11 @@
 		position: relative;
 	}
 
+	.model-selector-wrapper {
+		position: relative;
+		min-width: 140px;
+	}
+
 	.selector-btn {
 		display: flex;
 		align-items: center;
@@ -1547,10 +1488,6 @@
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 		overflow: hidden;
 		z-index: 100;
-	}
-
-	.dropdown-menu.model-menu {
-		min-width: 220px;
 	}
 
 	.dropdown-header {

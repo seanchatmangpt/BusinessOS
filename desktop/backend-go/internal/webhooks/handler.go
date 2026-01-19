@@ -14,7 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/api/calendar/v3"
 
+	"github.com/rhl/businessos-backend/internal/integrations/google"
 	"github.com/rhl/businessos-backend/internal/services"
 )
 
@@ -128,9 +130,71 @@ func (h *Handler) syncGoogleCalendarEvents(ctx context.Context, userIDStr, resou
 		slog.String("sync_token", syncToken),
 	)
 
-	// TODO: Implement actual Google Calendar API call to fetch events
-	// This would use the Google Calendar API client with the user's OAuth token
-	// For now, we log the intent and acknowledge the webhook
+	// Fetch events from Google Calendar API
+	// We'll sync the next 30 days of events
+	timeMin := time.Now()
+	timeMax := time.Now().AddDate(0, 0, 30)
+
+	// Import Google Calendar client
+	googleProvider := h.getGoogleProvider()
+	if googleProvider == nil {
+		h.logger.Error("Google provider not available")
+		return
+	}
+
+	calendarSrv, err := googleProvider.GetCalendarAPI(ctx, userID.String())
+	if err != nil {
+		h.logger.Error("Failed to get Google Calendar API", slog.Any("error", err))
+		return
+	}
+
+	// Fetch events using syncToken if available, otherwise full sync
+	call := calendarSrv.Events.List("primary").
+		TimeMin(timeMin.Format(time.RFC3339)).
+		TimeMax(timeMax.Format(time.RFC3339)).
+		SingleEvents(true).
+		OrderBy("startTime").
+		MaxResults(250)
+
+	if syncToken != "" {
+		call = call.SyncToken(syncToken)
+	}
+
+	events, err := call.Do()
+	if err != nil {
+		h.logger.Error("Failed to fetch Google Calendar events", slog.Any("error", err))
+		return
+	}
+
+	h.logger.Info("Fetched Google Calendar events",
+		slog.Int("count", len(events.Items)),
+		slog.String("next_sync_token", events.NextSyncToken),
+	)
+
+	// Sync each event to database
+	syncedCount := 0
+	for _, event := range events.Items {
+		if err := h.syncGoogleCalendarEvent(ctx, userID, event); err != nil {
+			h.logger.Error("Failed to sync event",
+				slog.String("event_id", event.Id),
+				slog.Any("error", err),
+			)
+		} else {
+			syncedCount++
+		}
+	}
+
+	// Save the new sync token for incremental sync
+	if events.NextSyncToken != "" {
+		if err := h.syncService.SaveSyncToken(ctx, userID, "google", "calendar", events.NextSyncToken); err != nil {
+			h.logger.Error("Failed to save sync token", slog.Any("error", err))
+		}
+	}
+
+	h.logger.Info("Google Calendar sync complete",
+		slog.Int("synced", syncedCount),
+		slog.Int("total", len(events.Items)),
+	)
 }
 
 // =============================================================================
@@ -503,9 +567,21 @@ func (h *Handler) handleLinearIssueEvent(ctx context.Context, event LinearWebhoo
 
 func (h *Handler) handleLinearProjectEvent(ctx context.Context, event LinearWebhookEvent) {
 	var project struct {
-		ID    string `json:"id"`
-		Name  string `json:"name"`
-		State string `json:"state"`
+		ID          string `json:"id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		State       string `json:"state"`
+		StartDate   string `json:"startDate"`
+		TargetDate  string `json:"targetDate"`
+		Lead        *struct {
+			ID    string `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		} `json:"lead"`
+		Team struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"team"`
 	}
 	if err := json.Unmarshal(event.Data, &project); err != nil {
 		h.logger.Error("Failed to parse Linear project", slog.Any("error", err))
@@ -518,13 +594,95 @@ func (h *Handler) handleLinearProjectEvent(ctx context.Context, event LinearWebh
 		slog.String("state", project.State),
 	)
 
-	// TODO: Sync project to local database
+	// Look up user by Linear organization
+	userID, err := h.syncService.GetUserIDByProviderTeam(ctx, "linear", event.OrganizationID)
+	if err != nil {
+		h.logger.Error("Failed to find user for Linear organization",
+			slog.String("organization_id", event.OrganizationID),
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	// For Linear projects, we'll store them as special tasks with a "project" indicator
+	// This allows them to show up in the synced_tasks table alongside issues
+	task := services.SyncedTask{
+		UserID:      userID,
+		Provider:    "linear",
+		ExternalID:  project.ID,
+		Identifier:  project.Name, // Use name as identifier for projects
+		Title:       project.Name,
+		Description: project.Description,
+		Status:      project.State,
+		StatusType:  mapLinearProjectState(project.State),
+		TeamID:      project.Team.ID,
+		TeamName:    project.Team.Name,
+		RawData: map[string]interface{}{
+			"organization_id": event.OrganizationID,
+			"type":            "project",
+			"start_date":      project.StartDate,
+			"target_date":     project.TargetDate,
+		},
+	}
+
+	if project.Lead != nil {
+		task.AssigneeID = project.Lead.ID
+		task.AssigneeName = project.Lead.Name
+		task.AssigneeEmail = project.Lead.Email
+	}
+
+	// Parse dates
+	if project.StartDate != "" {
+		if t, err := time.Parse("2006-01-02", project.StartDate); err == nil {
+			task.StartedAt = &t
+		}
+	}
+	if project.TargetDate != "" {
+		if t, err := time.Parse("2006-01-02", project.TargetDate); err == nil {
+			task.DueDate = &t
+		}
+	}
+
+	_, err = h.syncService.UpsertTask(ctx, task)
+	if err != nil {
+		h.logger.Error("Failed to sync Linear project",
+			slog.String("project_id", project.ID),
+			slog.Any("error", err),
+		)
+	}
+}
+
+// mapLinearProjectState maps Linear project states to standard status types.
+func mapLinearProjectState(state string) string {
+	switch strings.ToLower(state) {
+	case "planned", "backlog":
+		return "backlog"
+	case "started", "in progress":
+		return "in_progress"
+	case "completed", "done":
+		return "done"
+	case "canceled", "cancelled":
+		return "canceled"
+	default:
+		return "todo"
+	}
 }
 
 func (h *Handler) handleLinearCommentEvent(ctx context.Context, event LinearWebhookEvent) {
 	var comment struct {
-		ID   string `json:"id"`
-		Body string `json:"body"`
+		ID        string    `json:"id"`
+		Body      string    `json:"body"`
+		CreatedAt time.Time `json:"createdAt"`
+		User      *struct {
+			ID    string `json:"id"`
+			Name  string `json:"name"`
+			Email string `json:"email"`
+		} `json:"user"`
+		Issue *struct {
+			ID         string `json:"id"`
+			Identifier string `json:"identifier"`
+			Title      string `json:"title"`
+		} `json:"issue"`
 	}
 	if err := json.Unmarshal(event.Data, &comment); err != nil {
 		h.logger.Error("Failed to parse Linear comment", slog.Any("error", err))
@@ -536,7 +694,54 @@ func (h *Handler) handleLinearCommentEvent(ctx context.Context, event LinearWebh
 		slog.String("body", truncateString(comment.Body, 50)),
 	)
 
-	// TODO: Sync comment to local database
+	// Look up user by Linear organization
+	userID, err := h.syncService.GetUserIDByProviderTeam(ctx, "linear", event.OrganizationID)
+	if err != nil {
+		h.logger.Error("Failed to find user for Linear organization",
+			slog.String("organization_id", event.OrganizationID),
+			slog.Any("error", err),
+		)
+		return
+	}
+
+	// Store comments as messages in the synced_messages table
+	// The "channel" is the issue identifier
+	var channelID, channelName string
+	if comment.Issue != nil {
+		channelID = comment.Issue.ID
+		channelName = fmt.Sprintf("%s: %s", comment.Issue.Identifier, comment.Issue.Title)
+	}
+
+	var senderID, senderName string
+	if comment.User != nil {
+		senderID = comment.User.ID
+		senderName = comment.User.Name
+	}
+
+	message := services.SyncedMessage{
+		UserID:      userID,
+		Provider:    "linear",
+		ExternalID:  comment.ID,
+		ChannelID:   channelID,
+		ChannelName: channelName,
+		ChannelType: "issue",
+		SenderID:    senderID,
+		SenderName:  senderName,
+		Content:     comment.Body,
+		SentAt:      &comment.CreatedAt,
+		RawData: map[string]interface{}{
+			"organization_id": event.OrganizationID,
+			"type":            "comment",
+		},
+	}
+
+	_, err = h.syncService.UpsertMessage(ctx, message)
+	if err != nil {
+		h.logger.Error("Failed to sync Linear comment",
+			slog.String("comment_id", comment.ID),
+			slog.Any("error", err),
+		)
+	}
 }
 
 // =============================================================================
@@ -946,6 +1151,94 @@ func (h *Handler) MicrosoftWebhook(c *gin.Context) {
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
+
+// getGoogleProvider returns the Google integration provider.
+func (h *Handler) getGoogleProvider() *google.CalendarService {
+	// This assumes the Google provider is initialized and available
+	// In production, this would be injected via the handler constructor
+	googleProvider := google.NewProvider(h.pool, []string{"calendar"})
+	return google.NewCalendarService(googleProvider)
+}
+
+// syncGoogleCalendarEvent transforms and syncs a Google Calendar event to the database.
+func (h *Handler) syncGoogleCalendarEvent(ctx context.Context, userID uuid.UUID, event *calendar.Event) error {
+	// Skip cancelled events
+	if event.Status == "cancelled" {
+		return nil
+	}
+
+	// Parse start and end times
+	var startTime, endTime time.Time
+	var allDay bool
+
+	if event.Start.DateTime != "" {
+		startTime, _ = time.Parse(time.RFC3339, event.Start.DateTime)
+		endTime, _ = time.Parse(time.RFC3339, event.End.DateTime)
+	} else {
+		// All-day event
+		startTime, _ = time.Parse("2006-01-02", event.Start.Date)
+		endTime, _ = time.Parse("2006-01-02", event.End.Date)
+		allDay = true
+	}
+
+	// Extract meeting link
+	meetingLink := ""
+	if event.ConferenceData != nil && len(event.ConferenceData.EntryPoints) > 0 {
+		for _, ep := range event.ConferenceData.EntryPoints {
+			if ep.EntryPointType == "video" {
+				meetingLink = ep.Uri
+				break
+			}
+		}
+	} else if event.HangoutLink != "" {
+		meetingLink = event.HangoutLink
+	}
+
+	// Parse attendees
+	var attendees []services.CalendarAttendee
+	if event.Attendees != nil {
+		for _, a := range event.Attendees {
+			attendees = append(attendees, services.CalendarAttendee{
+				Email:          a.Email,
+				Name:           a.DisplayName,
+				ResponseStatus: a.ResponseStatus,
+			})
+		}
+	}
+
+	// Extract organizer email
+	organizerEmail := ""
+	if event.Organizer != nil {
+		organizerEmail = event.Organizer.Email
+	}
+
+	// Create synced calendar event
+	syncedEvent := services.SyncedCalendarEvent{
+		UserID:           userID,
+		Provider:         "google",
+		ExternalID:       event.Id,
+		Title:            event.Summary,
+		Description:      event.Description,
+		StartTime:        startTime,
+		EndTime:          endTime,
+		AllDay:           allDay,
+		Location:         event.Location,
+		Attendees:        attendees,
+		OrganizerEmail:   organizerEmail,
+		MeetingLink:      meetingLink,
+		RecurringEventID: event.RecurringEventId,
+		RawData: map[string]interface{}{
+			"status":       event.Status,
+			"htmlLink":     event.HtmlLink,
+			"colorId":      event.ColorId,
+			"visibility":   event.Visibility,
+			"transparency": event.Transparency,
+		},
+	}
+
+	_, err := h.syncService.UpsertCalendarEvent(ctx, syncedEvent)
+	return err
+}
 
 func truncateString(s string, maxLen int) string {
 	s = strings.TrimSpace(s)

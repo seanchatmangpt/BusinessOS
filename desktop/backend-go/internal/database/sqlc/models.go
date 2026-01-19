@@ -3424,6 +3424,94 @@ type ReasoningTemplate struct {
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
+// Sub-questions generated during planning phase
+type ResearchQuery struct {
+	ID       pgtype.UUID `json:"id"`
+	TaskID   pgtype.UUID `json:"task_id"`
+	Question string      `json:"question"`
+	// Search strategy: web (external), rag (internal docs), memory (workspace), hybrid (all)
+	SearchType string         `json:"search_type"`
+	Weight     pgtype.Numeric `json:"weight"`
+	OrderNum   int32          `json:"order_num"`
+	// Array of query IDs that must complete before this one (for sequential dependencies)
+	DependsOn    []pgtype.UUID      `json:"depends_on"`
+	ResultsCount *int32             `json:"results_count"`
+	Completed    *bool              `json:"completed"`
+	DurationMs   *int32             `json:"duration_ms"`
+	ErrorMessage *string            `json:"error_message"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CompletedAt  pgtype.Timestamptz `json:"completed_at"`
+}
+
+// Final research reports with citations
+type ResearchReport struct {
+	ID      pgtype.UUID `json:"id"`
+	TaskID  pgtype.UUID `json:"task_id"`
+	Content string      `json:"content"`
+	Format  string      `json:"format"`
+	// JSONB array of citations with format: [{source_id, citation_text, inline_refs}]
+	Citations []byte `json:"citations"`
+	// JSONB array of report sections: [{title, content, source_ids}]
+	Sections      []byte             `json:"sections"`
+	WordCount     *int32             `json:"word_count"`
+	CitationCount *int32             `json:"citation_count"`
+	SectionCount  *int32             `json:"section_count"`
+	QualityScore  pgtype.Numeric     `json:"quality_score"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+// Individual sources found during execution phase
+type ResearchSource struct {
+	ID      pgtype.UUID `json:"id"`
+	TaskID  pgtype.UUID `json:"task_id"`
+	QueryID pgtype.UUID `json:"query_id"`
+	// Origin of source: web (search API), rag (document search), memory (workspace knowledge)
+	SourceType     string         `json:"source_type"`
+	Url            *string        `json:"url"`
+	Domain         *string        `json:"domain"`
+	Title          string         `json:"title"`
+	Content        *string        `json:"content"`
+	Snippet        *string        `json:"snippet"`
+	RelevanceScore pgtype.Numeric `json:"relevance_score"`
+	FinalRank      *int32         `json:"final_rank"`
+	Cited          *bool          `json:"cited"`
+	// Vector embedding for similarity-based deduplication (cosine distance)
+	Embedding   *pgvector.Vector   `json:"embedding"`
+	ContentHash *string            `json:"content_hash"`
+	Author      *string            `json:"author"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+	FetchedAt   pgtype.Timestamptz `json:"fetched_at"`
+}
+
+// Top-level tracking for research agent tasks
+type ResearchTask struct {
+	ID             pgtype.UUID `json:"id"`
+	UserID         string      `json:"user_id"`
+	WorkspaceID    pgtype.UUID `json:"workspace_id"`
+	ConversationID pgtype.UUID `json:"conversation_id"`
+	Query          string      `json:"query"`
+	// Workflow status: pending, planning, searching, aggregating, writing, completed, failed
+	Status         string         `json:"status"`
+	TotalSources   *int32         `json:"total_sources"`
+	CitedSources   *int32         `json:"cited_sources"`
+	WordCount      *int32         `json:"word_count"`
+	ReportContent  *string        `json:"report_content"`
+	ReportFormat   *string        `json:"report_format"`
+	DurationMs     *int32         `json:"duration_ms"`
+	LlmTokensUsed  *int32         `json:"llm_tokens_used"`
+	SearchApiCalls *int32         `json:"search_api_calls"`
+	SearchCostUsd  pgtype.Numeric `json:"search_cost_usd"`
+	// Overall quality score (0.00-1.00) based on source diversity, recency, relevance
+	QualityScore         pgtype.Numeric     `json:"quality_score"`
+	SourceDiversityScore *int32             `json:"source_diversity_score"`
+	ErrorMessage         *string            `json:"error_message"`
+	ErrorPhase           *string            `json:"error_phase"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	StartedAt            pgtype.Timestamptz `json:"started_at"`
+	CompletedAt          pgtype.Timestamptz `json:"completed_at"`
+}
+
 type SkillExecution struct {
 	ID          pgtype.UUID        `json:"id"`
 	SkillID     string             `json:"skill_id"`
@@ -3918,6 +4006,31 @@ type VoiceNote struct {
 	ConversationID  pgtype.UUID        `json:"conversation_id"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
+type VoiceSession struct {
+	ID                   pgtype.UUID        `json:"id"`
+	SessionID            string             `json:"session_id"`
+	UserID               string             `json:"user_id"`
+	WorkspaceID          pgtype.UUID        `json:"workspace_id"`
+	AgentRole            *string            `json:"agent_role"`
+	State                *string            `json:"state"`
+	LastActivityAt       pgtype.Timestamptz `json:"last_activity_at"`
+	TotalMessages        *int32             `json:"total_messages"`
+	TotalDurationSeconds *int32             `json:"total_duration_seconds"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	EndedAt              pgtype.Timestamptz `json:"ended_at"`
+}
+
+type VoiceSessionEvent struct {
+	ID           pgtype.UUID        `json:"id"`
+	SessionID    pgtype.UUID        `json:"session_id"`
+	EventType    string             `json:"event_type"`
+	EventData    []byte             `json:"event_data"`
+	DurationMs   *int32             `json:"duration_ms"`
+	ErrorMessage *string            `json:"error_message"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type WidgetDataCache struct {

@@ -20,17 +20,16 @@ import (
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/database"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
-	grpcserver "github.com/rhl/businessos-backend/internal/grpc"
 	"github.com/rhl/businessos-backend/internal/handlers"
 	"github.com/rhl/businessos-backend/internal/integrations"
 	"github.com/rhl/businessos-backend/internal/integrations/google"
 	"github.com/rhl/businessos-backend/internal/integrations/osa"
-	"github.com/rhl/businessos-backend/internal/livekit"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
 	"github.com/rhl/businessos-backend/internal/services"
 	"github.com/rhl/businessos-backend/internal/terminal"
+	"github.com/rhl/businessos-backend/internal/webhooks"
 	"github.com/rhl/businessos-backend/internal/workers"
 )
 
@@ -701,24 +700,14 @@ func main() {
 		log.Printf("Multi-modal services registered (image embeddings, text+image search)")
 	}
 
-	// Initialize Voice services (3D Desktop - Whisper + ElevenLabs)
+	// Initialize Voice services (Whisper for voice notes)
 	whisperService := services.NewWhisperService()
-	elevenLabsService := services.NewElevenLabsService()
-	h.SetVoiceServices(whisperService, elevenLabsService)
+	h.SetVoiceServices(whisperService)
 	if whisperService.IsAvailable() {
-		log.Printf("Whisper service initialized (local speech-to-text)")
+		log.Printf("Whisper service initialized (local speech-to-text for voice notes)")
 	} else {
 		log.Printf("Whisper service not fully configured (model/binary not found)")
 	}
-	if elevenLabsService.IsConfigured() {
-		log.Printf("ElevenLabs service initialized (OSA voice enabled)")
-	} else {
-		log.Printf("ElevenLabs service not configured (API key/voice ID not set)")
-	}
-
-	// NOTE: Voice processing moved to Python LiveKit agents (see python-voice-agent/)
-	// LiveKit token generation handled by handlers.HandleLiveKitToken
-	// User context provided by handlers.HandleVoiceUserContext
 	log.Printf("Voice system: Python LiveKit agents (tokens via /api/livekit/token, context via /api/voice/user-context)")
 
 	// Set Workspace service (Feature 1 - Team/Collaboration)
@@ -936,6 +925,47 @@ func main() {
 	// Register routes
 	h.RegisterRoutes(api)
 
+	// ============================================================
+	// Webhook Handler Registration (Integration System)
+	// ============================================================
+	// Initialize SyncService for webhook processing
+	var syncService *services.SyncService
+	if osaBuildEventBus != nil {
+		syncService = services.NewSyncService(pool, slog.Default(), osaBuildEventBus)
+	} else {
+		// Create a new event bus if OSA is not enabled
+		eventBus := services.NewBuildEventBus(slog.Default())
+		syncService = services.NewSyncService(pool, slog.Default(), eventBus)
+	}
+
+	// Build webhook secrets map from environment variables
+	webhookSecrets := map[string]string{
+		"slack":     os.Getenv("SLACK_WEBHOOK_SECRET"),
+		"linear":    os.Getenv("LINEAR_WEBHOOK_SECRET"),
+		"hubspot":   os.Getenv("HUBSPOT_WEBHOOK_SECRET"),
+		"notion":    os.Getenv("NOTION_WEBHOOK_SECRET"),
+		"airtable":  os.Getenv("AIRTABLE_WEBHOOK_SECRET"),
+		"fathom":    os.Getenv("FATHOM_WEBHOOK_SECRET"),
+		"clickup":   os.Getenv("CLICKUP_WEBHOOK_SECRET"),
+		"google":    os.Getenv("GOOGLE_CHANNEL_TOKEN"),
+		"microsoft": os.Getenv("MICROSOFT_CLIENT_STATE"),
+	}
+
+	// Use test secrets in development if not configured
+	if !cfg.IsProduction() {
+		for provider, secret := range webhookSecrets {
+			if secret == "" {
+				webhookSecrets[provider] = fmt.Sprintf("test-%s-secret", provider)
+				log.Printf("Using test webhook secret for %s (development mode)", provider)
+			}
+		}
+	}
+
+	// Initialize and register webhook handler
+	webhookHandler := webhooks.NewHandler(pool, syncService, webhookSecrets, slog.Default())
+	webhookHandler.RegisterRoutes(api)
+	log.Printf("Webhook handler registered (11 endpoints: Google, Slack, Linear, HubSpot, Notion, Airtable, Fathom, Microsoft, ClickUp)")
+
 	// Register skills routes (if handler available)
 	if skillsHandler != nil {
 		skillsHandler.RegisterRoutes(api)
@@ -979,15 +1009,6 @@ func main() {
 	// NOTE: System Apps Detection routes (macOS native app scanning) moved to feature/native-app-capture branch
 	// For now, we only support web apps via iframe embedding
 
-	// ============================================================
-	// Voice Agent Routes (LiveKit Python Agent Integration)
-	// ============================================================
-
-	// Voice agent minimal context endpoint
-	log.Printf("✅ Voice agent minimal routes registered")
-	log.Printf("   - User Context: GET /api/voice/user-context/:user_id (already registered)")
-	log.Printf("   - LiveKit Token: POST /api/livekit/token (already registered)")
-
 	// Public OSA health endpoint (no auth required)
 	if osaClient != nil {
 		router.GET("/api/osa/health", h.HandleOSAHealth)
@@ -1003,60 +1024,18 @@ func main() {
 	}()
 
 	// ============================================================
-	// Start gRPC Voice Server (Go Voice Controller)
+	// Voice Agent System - REMOVED
 	// ============================================================
-	var voiceServer *grpcserver.VoiceServer
-	grpcPort := 50051 // Default gRPC port for voice service
-	if envPort := os.Getenv("GRPC_VOICE_PORT"); envPort != "" {
-		if port, err := fmt.Sscanf(envPort, "%d", &grpcPort); err == nil && port == 1 {
-			// Successfully parsed custom port
-		}
-	}
-
-	voiceServer = grpcserver.NewVoiceServer(grpcPort, pool, cfg)
-	go func() {
-		log.Printf("🎤 gRPC Voice Server starting on port %d", grpcPort)
-		if err := voiceServer.Start(ctx); err != nil {
-			log.Printf("gRPC Voice Server error: %v", err)
-		}
-	}()
-	log.Printf("✅ gRPC Voice Server initialized (Hybrid Go-First Architecture)")
-
-	// ============================================================
-	// Start Pure Go LiveKit Voice Agent (Direct WebRTC, no Python)
-	// ============================================================
-	pureGoVoiceAgent := livekit.NewPureGoVoiceAgent(
-		pool,
-		cfg,
-		voiceServer.GetVoiceController(),
-	)
-
-	// Start the Pure Go agent
-	go func() {
-		log.Printf("🎙️ Pure Go LiveKit Voice Agent starting")
-		log.Printf("   LiveKit URL: %s", os.Getenv("LIVEKIT_URL"))
-		log.Printf("   Architecture: Direct WebRTC (no Python/gRPC)")
-
-		// The agent runs continuously, listening for LiveKit room events
-		if err := pureGoVoiceAgent.Start(ctx); err != nil {
-			log.Printf("Pure Go Voice Agent error: %v", err)
-		}
-	}()
-	log.Printf("✅ Pure Go Voice Agent initialized")
-	log.Printf("   Benefits: <7ms latency, 40MB/session, 200+ concurrent sessions")
+	// Voice agent system has been removed. Keeping only voice-notes feature.
+	// For future voice implementation, start fresh without LiveKit/gRPC dependencies.
+	slog.Info("Voice agent system removed - voice-notes feature still available")
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
-
-	// Stop gRPC Voice Server
-	if voiceServer != nil {
-		log.Println("Shutting down gRPC Voice Server...")
-		voiceServer.Shutdown()
-	}
+	slog.Info("Shutting down server...")
 
 	// Stop batch worker
 	log.Println("Stopping notification batch worker...")

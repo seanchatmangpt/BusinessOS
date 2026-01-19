@@ -128,10 +128,10 @@
 		{#if activities.length > 0}
 			<button
 				onclick={() => onViewAll?.()}
-				class="btn-pill-sm text-xs"
+				class="btn-pill-ghost btn-pill-xs flex items-center gap-1.5"
 			>
 				View All
-				<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 				</svg>
 			</button>
@@ -158,7 +158,7 @@
 			{#each activities.slice(0, 10) as activity, index (activity.id)}
 				<button
 					onclick={() => handleActivityClick(activity)}
-					class="btn-pill w-full flex items-start gap-3 text-left"
+					class="btn-pill-soft w-full flex items-start gap-3 text-left"
 					in:fly={{ x: -10, duration: 300, delay: index * 30 }}
 				>
 					<!-- Avatar or Icon -->

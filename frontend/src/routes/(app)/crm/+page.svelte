@@ -229,7 +229,7 @@
 	{/if}
 
 	<!-- Loading State -->
-	{#if loading && stages.length === 0}
+	{#if loading && (stages?.length === 0 || !stages)}
 		<div class="flex-1 flex items-center justify-center">
 			<div class="flex flex-col items-center gap-3 text-gray-500">
 				<svg class="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">

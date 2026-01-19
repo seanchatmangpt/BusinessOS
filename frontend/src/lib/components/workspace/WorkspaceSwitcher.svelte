@@ -11,6 +11,8 @@
   } from '$lib/stores/workspaces';
   import { ChevronDown, Building2, Loader2, AlertCircle } from 'lucide-svelte';
 
+  export let variant: 'default' | 'icon-only' = 'default';
+
   let isOpen = false;
   let dropdownRef: HTMLDivElement;
 
@@ -52,32 +54,44 @@
   <!-- Trigger Button -->
   <button
     class="workspace-trigger"
+    class:icon-only-trigger={variant === 'icon-only'}
     class:loading={$workspaceLoading.switching}
     on:click={toggleDropdown}
     disabled={$workspaceLoading.switching}
-    aria-label="Switch workspace"
+    aria-label="{variant === 'icon-only' ? ($currentWorkspace?.name || 'Select Workspace') : 'Switch workspace'}"
     aria-expanded={isOpen}
+    title={variant === 'icon-only' ? ($currentWorkspace?.name || 'Select Workspace') : undefined}
   >
-    {#if $workspaceLoading.switching}
-      <Loader2 class="w-4 h-4 animate-spin text-gray-400" />
-    {:else}
-      <Building2 class="w-4 h-4 text-gray-400" />
-    {/if}
-
-    <div class="workspace-info">
-      {#if $currentWorkspace}
-        <span class="workspace-name">{$currentWorkspace.name}</span>
-        {#if $currentUserRole}
-          <span class="workspace-role">{$currentUserRole}</span>
-        {/if}
+    {#if variant === 'icon-only'}
+      <!-- Icon Only Mode -->
+      {#if $workspaceLoading.switching}
+        <Loader2 class="w-[18px] h-[18px] animate-spin text-gray-400" />
       {:else}
-        <span class="workspace-name text-gray-400">Select Workspace</span>
+        <Building2 class="w-[18px] h-[18px] text-gray-400" />
       {/if}
-    </div>
+    {:else}
+      <!-- Default Mode -->
+      {#if $workspaceLoading.switching}
+        <Loader2 class="w-4 h-4 animate-spin text-gray-400" />
+      {:else}
+        <Building2 class="w-4 h-4 text-gray-400" />
+      {/if}
 
-    <div class="transition-transform" class:rotate-180={isOpen}>
-      <ChevronDown class="w-4 h-4 text-gray-400" />
-    </div>
+      <div class="workspace-info">
+        {#if $currentWorkspace}
+          <span class="workspace-name">{$currentWorkspace.name}</span>
+          {#if $currentUserRole}
+            <span class="workspace-role">{$currentUserRole}</span>
+          {/if}
+        {:else}
+          <span class="workspace-name text-gray-400">Select Workspace</span>
+        {/if}
+      </div>
+
+      <div class="transition-transform" class:rotate-180={isOpen}>
+        <ChevronDown class="w-4 h-4 text-gray-400" />
+      </div>
+    {/if}
   </button>
 
   <!-- Dropdown Menu -->
@@ -153,17 +167,37 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 1rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    background: rgba(28, 28, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
     min-width: 200px;
+    backdrop-filter: blur(20px);
+  }
+
+  .workspace-trigger.icon-only-trigger {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .workspace-trigger.icon-only-trigger:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .workspace-trigger:hover:not(:disabled) {
-    background: #f9fafb;
-    border-color: #d1d5db;
+    background: rgba(28, 28, 30, 1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .workspace-trigger:disabled {
@@ -182,13 +216,13 @@
   .workspace-name {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #111827;
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1.25;
   }
 
   .workspace-role {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.5);
     line-height: 1;
   }
 
@@ -199,10 +233,11 @@
     width: 320px;
     max-height: 400px;
     overflow-y: auto;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    background: rgba(28, 28, 30, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 10px 10px -5px rgb(0 0 0 / 0.2);
+    backdrop-filter: blur(20px);
     z-index: 50;
   }
 
@@ -250,11 +285,11 @@
   }
 
   .workspace-item:hover {
-    background: #f3f4f6;
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .workspace-item.active {
-    background: #eff6ff;
+    background: rgba(59, 130, 246, 0.15);
   }
 
   .workspace-item-icon {
@@ -285,7 +320,7 @@
   .workspace-item-name {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #111827;
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
@@ -294,13 +329,13 @@
 
   .workspace-item-slug {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.5);
     line-height: 1;
   }
 
   .workspace-item-check {
     flex-shrink: 0;
-    color: #2563eb;
+    color: #3b82f6;
   }
 
   :global(.dark) .workspace-trigger {

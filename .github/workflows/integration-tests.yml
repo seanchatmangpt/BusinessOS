@@ -1,0 +1,145 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+      - feature/ios-desktop-flow-migration
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch: # Allow manual trigger
+
+# Only run integration tests if PR has 'integration' label or on main branch
+jobs:
+  check:
+    name: Check if integration tests should run
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || \
+             [[ "${{ github.event_name }}" == "workflow_dispatch" ]] || \
+             [[ "${{ contains(github.event.pull_request.labels.*.name, 'integration') }}" == "true" ]]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  integration-tests:
+    name: Run Integration Tests
+    needs: check
+    if: needs.check.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      livekit:
+        image: livekit/livekit-server:latest
+        ports:
+          - 7880:7880
+          - 7881:7881
+        env:
+          LIVEKIT_KEYS: test-key:test-secret
+          LIVEKIT_LOG_LEVEL: info
+        options: >-
+          --health-cmd "wget --spider -q http://localhost:7881/"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+          --health-start-period 10s
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: desktop/backend-go
+        run: go mod download
+
+      - name: Wait for LiveKit to be ready
+        run: |
+          echo "Waiting for LiveKit server..."
+          for i in {1..30}; do
+            if curl -f http://localhost:7881/ > /dev/null 2>&1; then
+              echo "LiveKit is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "LiveKit failed to start"
+              exit 1
+            fi
+            echo "Attempt $i/30..."
+            sleep 2
+          done
+
+      - name: Run integration tests
+        working-directory: desktop/backend-go
+        env:
+          INTEGRATION_TEST: true
+          LIVEKIT_URL: ws://localhost:7880
+          LIVEKIT_API_KEY: test-key
+          LIVEKIT_API_SECRET: test-secret
+        run: |
+          go test -tags=integration -v -timeout=10m ./internal/livekit/... | tee integration-test-results.log
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: desktop/backend-go/integration-test-results.log
+          retention-days: 7
+
+      - name: Generate test report
+        if: always()
+        run: |
+          cd desktop/backend-go
+          echo "## Integration Test Results" > integration-test-summary.md
+          echo "" >> integration-test-summary.md
+
+          if grep -q "PASS" integration-test-results.log; then
+            echo "✅ **All integration tests passed**" >> integration-test-summary.md
+          else
+            echo "❌ **Some integration tests failed**" >> integration-test-summary.md
+          fi
+
+          echo "" >> integration-test-summary.md
+          echo "### Test Output Summary" >> integration-test-summary.md
+          echo '```' >> integration-test-summary.md
+          tail -50 integration-test-results.log >> integration-test-summary.md
+          echo '```' >> integration-test-summary.md
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('desktop/backend-go/integration-test-summary.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  integration-tests-skipped:
+    name: Integration Tests Skipped
+    needs: check
+    if: needs.check.outputs.should_run == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip message
+        run: |
+          echo "Integration tests skipped - not on main branch and PR doesn't have 'integration' label"
+          echo "To run integration tests on a PR, add the 'integration' label"

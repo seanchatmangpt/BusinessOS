@@ -387,7 +387,7 @@
 		style="
 			width: {imageSize}px;
 			height: {imageSize}px;
-			border-radius: {Math.max(8, imageSize * 0.2)}px;
+			border-radius: {iconStyle === 'rounded' ? '50%' : iconStyle === 'square' ? '4px' : iconStyle === 'macos' ? '22%' : `${Math.max(8, imageSize * 0.2)}px`};
 			background-color: {iconStyle === 'minimal' ? 'transparent' : (customIcon?.backgroundColor || effectiveIconData().bgColor)};
 			{iconStyle === 'outlined' ? `border: 2px solid ${customIcon?.foregroundColor || effectiveIconData().color}; background-color: transparent;` : ''}
 			{iconStyle === 'neon' ? `color: ${customIcon?.foregroundColor || effectiveIconData().color};` : ''}
@@ -1057,6 +1057,242 @@
 			0 4px 8px rgba(0, 102, 255, 0.15),
 			0 8px 16px rgba(0, 102, 255, 0.1),
 			0 16px 32px rgba(0, 102, 255, 0.08);
+	}
+
+	/* NEW STYLES - Modern */
+
+	/* Neumorphism - soft 3D embossed effect */
+	.desktop-icon.style-neumorphism .icon-image {
+		background: #e0e0e0 !important;
+		box-shadow: 8px 8px 16px #bebebe, -8px -8px 16px #ffffff;
+		border: none;
+	}
+
+	.desktop-icon.style-neumorphism:hover .icon-image {
+		box-shadow: 10px 10px 20px #bebebe, -10px -10px 20px #ffffff;
+	}
+
+	/* Material - Google Material Design */
+	.desktop-icon.style-material .icon-image {
+		box-shadow:
+			0 1px 3px rgba(0,0,0,0.12),
+			0 1px 2px rgba(0,0,0,0.24),
+			0 2px 4px rgba(0,0,0,0.08);
+	}
+
+	.desktop-icon.style-material:hover .icon-image {
+		box-shadow:
+			0 3px 6px rgba(0,0,0,0.16),
+			0 3px 6px rgba(0,0,0,0.23);
+		transform: translateY(-2px);
+	}
+
+	/* Fluent - Microsoft Fluent Design */
+	.desktop-icon.style-fluent .icon-image {
+		background: rgba(255, 255, 255, 0.7) !important;
+		backdrop-filter: blur(30px) saturate(120%);
+		border: 1px solid rgba(255, 255, 255, 0.5);
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+	}
+
+	.desktop-icon.style-fluent:hover .icon-image {
+		background: rgba(255, 255, 255, 0.8) !important;
+		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Aero - Windows Vista/7 glass */
+	.desktop-icon.style-aero .icon-image {
+		background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%) !important;
+		backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.8);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+	}
+
+	/* NEW STYLES - Classic OS */
+
+	/* iOS - iOS app icon style */
+	.desktop-icon.style-ios .icon-image {
+		border-radius: 22%;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Android - Material You */
+	.desktop-icon.style-android .icon-image {
+		border-radius: 28%;
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+	}
+
+	/* Windows 11 - Modern Windows */
+	.desktop-icon.style-windows11 .icon-image {
+		border-radius: 8px;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	/* Amiga - Amiga Workbench retro */
+	.desktop-icon.style-amiga .icon-image {
+		border-radius: 0;
+		border: 3px solid #000;
+		box-shadow: 3px 3px 0 #000;
+		image-rendering: pixelated;
+	}
+
+	.desktop-icon.style-amiga .icon-label {
+		font-family: 'Topaz', 'Courier New', monospace;
+		font-weight: 900;
+	}
+
+	/* NEW STYLES - Creative */
+
+	/* Aurora - animated gradient shimmer */
+	.desktop-icon.style-aurora .icon-image {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) !important;
+		background-size: 200% 200%;
+		animation: aurora-shimmer 3s ease-in-out infinite;
+	}
+
+	@keyframes aurora-shimmer {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+
+	/* Crystal - gem-like faceted */
+	.desktop-icon.style-crystal .icon-image {
+		background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%) !important;
+		box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.8), 0 0 20px rgba(168, 237, 234, 0.6);
+		clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+		border: 2px solid rgba(255, 255, 255, 0.8);
+	}
+
+	/* Holographic - rainbow iridescent */
+	.desktop-icon.style-holographic .icon-image {
+		background: linear-gradient(135deg, #ff0080, #ff8c00, #40e0d0, #ff0080) !important;
+		background-size: 400% 400%;
+		animation: holographic 2s ease infinite;
+		border: none;
+	}
+
+	@keyframes holographic {
+		0%, 100% { background-position: 0% 50%; }
+		50% { background-position: 100% 50%; }
+	}
+
+	/* Vaporwave - 80s/90s aesthetic */
+	.desktop-icon.style-vaporwave .icon-image {
+		background: linear-gradient(135deg, #ff71ce 0%, #01cdfe 100%) !important;
+		box-shadow: 0 0 25px #ff71ce, inset 0 0 15px rgba(255, 113, 206, 0.4);
+		border: 3px solid #b967ff;
+	}
+
+	/* Cyberpunk - neon with scan lines */
+	.desktop-icon.style-cyberpunk .icon-image {
+		background: #0a0a0a !important;
+		border: 3px solid #00ff41;
+		box-shadow: 0 0 15px #00ff41, inset 0 0 15px rgba(0, 255, 65, 0.3);
+	}
+
+	.desktop-icon.style-cyberpunk .icon-svg {
+		color: #00ff41 !important;
+		filter: drop-shadow(0 0 5px #00ff41);
+	}
+
+	.desktop-icon.style-cyberpunk .icon-label {
+		color: #00ff41;
+		text-shadow: 0 0 10px #00ff41;
+	}
+
+	/* Synthwave - retro futuristic */
+	.desktop-icon.style-synthwave .icon-image {
+		background: linear-gradient(135deg, #ff006e 0%, #8338ec 50%, #3a86ff 100%) !important;
+		box-shadow: 0 0 25px #ff006e, 0 4px 20px rgba(255, 0, 110, 0.5);
+		border: 3px solid #ff006e;
+	}
+
+	/* Matrix - green code rain */
+	.desktop-icon.style-matrix .icon-image {
+		background: #000 !important;
+		border: 3px solid #00ff00;
+		box-shadow: 0 0 15px rgba(0, 255, 0, 0.7), inset 0 0 25px rgba(0, 255, 0, 0.2);
+	}
+
+	.desktop-icon.style-matrix .icon-svg {
+		color: #00ff00 !important;
+		filter: drop-shadow(0 0 5px #00ff00);
+	}
+
+	.desktop-icon.style-matrix .icon-label {
+		font-family: 'Courier New', monospace;
+		color: #00ff00;
+		text-shadow: 0 0 10px #00ff00;
+	}
+
+	/* Glitch - digital glitch distortion */
+	.desktop-icon.style-glitch .icon-image {
+		background: #ff00ff !important;
+		border: 2px solid #00ffff;
+		animation: glitch 1s infinite;
+		box-shadow: 3px 3px 0 #00ffff, -3px -3px 0 #ff00ff;
+	}
+
+	@keyframes glitch {
+		0%, 100% { transform: translate(0); }
+		20% { transform: translate(-2px, 2px); }
+		40% { transform: translate(-2px, -2px); }
+		60% { transform: translate(2px, 2px); }
+		80% { transform: translate(2px, -2px); }
+	}
+
+	/* Chrome - metallic reflective */
+	.desktop-icon.style-chrome .icon-image {
+		background: linear-gradient(135deg, #f5f5f5 0%, #b0b0b0 50%, #f5f5f5 100%) !important;
+		box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -2px 4px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.2);
+		border: 2px solid #888;
+	}
+
+	/* Rainbow - animated rainbow spectrum */
+	.desktop-icon.style-rainbow .icon-image {
+		background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) !important;
+		background-size: 400% 400%;
+		animation: rainbow 4s linear infinite;
+		border: none;
+	}
+
+	@keyframes rainbow {
+		0% { background-position: 0% 50%; }
+		100% { background-position: 400% 50%; }
+	}
+
+	/* Sketch - hand-drawn outline */
+	.desktop-icon.style-sketch .icon-image {
+		background: #fff !important;
+		border: 3px dashed #333;
+		box-shadow: 3px 3px 0 #333, -1px -1px 0 #ddd;
+	}
+
+	/* Comic - comic book style */
+	.desktop-icon.style-comic .icon-image {
+		background: #ffeb3b !important;
+		border: 5px solid #000;
+		box-shadow: 6px 6px 0 #000;
+		border-radius: 0;
+	}
+
+	.desktop-icon.style-comic .icon-svg {
+		color: #000 !important;
+	}
+
+	.desktop-icon.style-comic .icon-label {
+		font-weight: 900;
+		text-transform: uppercase;
+		color: #000;
+	}
+
+	/* Watercolor - soft blurred paint */
+	.desktop-icon.style-watercolor .icon-image {
+		background: radial-gradient(circle, rgba(255, 182, 193, 0.8) 0%, rgba(173, 216, 230, 0.6) 100%) !important;
+		backdrop-filter: blur(8px);
+		border: none;
+		box-shadow: 0 0 40px rgba(255, 182, 193, 0.6), inset 0 0 30px rgba(173, 216, 230, 0.4);
+		filter: blur(1px);
 	}
 
 	/* Dark background mode - light text */

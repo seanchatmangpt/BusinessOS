@@ -50,6 +50,9 @@
 	// Check if we're in embed mode (used by desktop windows)
 	const isEmbedMode = $derived($page.url.searchParams.get('embed') === 'true');
 
+	// Check if we're inside an iframe (window desktop)
+	const isInIframe = $derived(browser && window.self !== window.top);
+
 	// No loading screen for app routes - instant load
 	let bootComplete = $state(true);
 
@@ -193,13 +196,13 @@
 			{/if}
 
 			<!-- Header with toggle button -->
-			<div class="px-4 pb-2 flex items-center {isCollapsed ? 'justify-center' : 'justify-between'}">
+			<div class="pb-2 flex items-center {isCollapsed ? 'justify-center px-2' : 'justify-between px-4'}">
 				{#if !isCollapsed}
 					<h1 class="text-lg font-semibold text-gray-900 dark:text-white">Business OS</h1>
 				{/if}
 				<button
 					onclick={toggleSidebar}
-					class="btn-pill btn-pill-icon btn-pill-ghost btn-pill-sm no-drag"
+					class="btn-pill btn-pill-icon btn-pill-ghost btn-pill-sm no-drag flex-shrink-0"
 					style="-webkit-app-region: no-drag;"
 					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
 				>
@@ -214,33 +217,28 @@
 				</button>
 			</div>
 
-			<!-- Workspace Switcher -->
-			{#if !isCollapsed}
+			<!-- Window Desktop Button - only show if NOT already in window mode or inside iframe -->
+			{#if !$page.url.pathname.startsWith('/window') && !isInIframe}
 				<div class="px-2 pb-2">
-					<WorkspaceSwitcher />
+					<a
+						href="/window"
+						class="flex items-center gap-3 px-3 py-2.5 rounded-full text-sm transition-all duration-200
+							bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100
+							dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-600 dark:hover:to-gray-700
+							border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white
+							{isCollapsed ? 'justify-center' : ''}"
+						title={isCollapsed ? 'Window Desktop' : ''}
+					>
+						<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+						</svg>
+						{#if !isCollapsed}
+							<span class="font-medium">Window</span>
+							<span class="ml-auto text-xs text-gray-400 dark:text-gray-500">Desktop</span>
+						{/if}
+					</a>
 				</div>
 			{/if}
-
-			<!-- Window Desktop Button -->
-			<div class="px-2 pb-2">
-				<a
-					href="/window"
-					class="flex items-center gap-3 px-3 py-2.5 rounded-full text-sm transition-all duration-200
-						bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100
-						dark:from-gray-700 dark:to-gray-800 dark:hover:from-gray-600 dark:hover:to-gray-700
-						border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white
-						{isCollapsed ? 'justify-center' : ''}"
-					title={isCollapsed ? 'Window Desktop' : ''}
-				>
-					<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-					</svg>
-					{#if !isCollapsed}
-						<span class="font-medium">Window</span>
-						<span class="ml-auto text-xs text-gray-400 dark:text-gray-500">Desktop</span>
-					{/if}
-				</a>
-			</div>
 
 			<Separator.Root class="h-px bg-gray-200 dark:bg-gray-700" />
 
@@ -318,10 +316,10 @@
 			<Separator.Root class="h-px bg-gray-200 dark:bg-gray-700" />
 
 			<!-- User Section - Links to Profile -->
-			<div class="p-3">
+			<div class="{isCollapsed ? 'px-2 py-3' : 'p-3'}">
 				<a
 					href="/profile"
-					class="flex items-center gap-3 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors {$page.url.pathname === '/profile' ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+					class="flex items-center {isCollapsed ? 'justify-center p-2' : 'gap-3 p-2'} rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors {$page.url.pathname === '/profile' ? 'bg-gray-100 dark:bg-gray-700' : ''}"
 					title={isCollapsed ? 'Profile' : ''}
 				>
 					{#if $session.data.user?.image}
