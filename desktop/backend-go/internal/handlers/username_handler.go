@@ -225,12 +225,66 @@ func (h *UsernameHandler) CompleteOnboarding(c *gin.Context) {
 		return
 	}
 
+	// Parse user ID as UUID - handle parse error gracefully
+	userID, err := uuid.Parse(user.ID)
+	if err != nil {
+		slog.Error("Invalid user ID format", "error", err, "user_id", user.ID)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
 	// Mark onboarding as complete
-	err := h.userService.CompleteOnboarding(c.Request.Context(), uuid.MustParse(user.ID))
+	err = h.userService.CompleteOnboarding(c.Request.Context(), userID)
 	if err != nil {
 		slog.Error("Failed to complete onboarding", "error", err, "user_id", user.ID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete onboarding"})
 		return
+	}
+
+	// Check if user has a workspace, create one if not
+	ctx := c.Request.Context()
+	var workspaceCount int
+	err = h.pool.QueryRow(ctx, `SELECT COUNT(*) FROM workspaces WHERE owner_id = $1`, user.ID).Scan(&workspaceCount)
+	if err != nil {
+		slog.Warn("Failed to check workspace count", "error", err, "user_id", user.ID)
+	} else if workspaceCount == 0 {
+		// Create a default workspace for the user
+		slog.Info("Creating default workspace for user", "user_id", user.ID)
+
+		var workspaceID uuid.UUID
+		err = h.pool.QueryRow(ctx, `
+			INSERT INTO workspaces (name, slug, owner_id, created_at, updated_at)
+			VALUES ($1, $2, $3, NOW(), NOW())
+			RETURNING id
+		`, "My Workspace", "workspace-"+user.ID[:8], user.ID).Scan(&workspaceID)
+
+		if err != nil {
+			slog.Error("Failed to create workspace", "error", err, "user_id", user.ID)
+		} else {
+			// Create default roles
+			_, err = h.pool.Exec(ctx, `
+				INSERT INTO workspace_roles (workspace_id, name, display_name, is_system, hierarchy_level, permissions, is_default)
+				VALUES
+					($1, 'owner', 'Owner', true, 0, '{"workspace": {"manage": true}}'::jsonb, false),
+					($1, 'member', 'Member', true, 30, '{}'::jsonb, true)
+			`, workspaceID)
+
+			if err != nil {
+				slog.Warn("Failed to create workspace roles", "error", err)
+			}
+
+			// Add user as owner
+			_, err = h.pool.Exec(ctx, `
+				INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
+				VALUES ($1, $2, 'owner', 'active', NOW())
+			`, workspaceID, user.ID)
+
+			if err != nil {
+				slog.Error("Failed to add user as workspace member", "error", err)
+			} else {
+				slog.Info("Default workspace created successfully", "workspace_id", workspaceID, "user_id", user.ID)
+			}
+		}
 	}
 
 	slog.Info("User completed onboarding", "user_id", user.ID)
