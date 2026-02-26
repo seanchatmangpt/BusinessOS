@@ -1,0 +1,25 @@
+node_modules/
+.vite/
+out/
+dist/
+*.log
+
+# Backend binaries (compiled)
+resources/bin/
+
+# macOS
+.DS_Store
+*.dmg
+
+# Windows
+*.exe
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp

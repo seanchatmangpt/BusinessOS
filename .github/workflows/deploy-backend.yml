@@ -1,0 +1,200 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main  # Production deployments only from main branch
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:  # Allow manual deployment
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: businessos-backend
+  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/businessos-backend
+
+jobs:
+  deploy:
+    name: Build and Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    # Only deploy from main branch
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache-dependency-path: backend/go.sum
+
+      - name: Run tests before deployment
+        working-directory: backend
+        run: |
+          echo "Running tests to ensure code quality before deployment..."
+          go test -v ./... || exit 1
+          echo "All tests passed. Proceeding with deployment."
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: |
+          gcloud auth configure-docker
+
+      - name: Build Docker image
+        working-directory: backend
+        run: |
+          echo "Building Docker image: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+                       -t ${{ env.IMAGE_NAME }}:latest \
+                       -f Dockerfile .
+
+      - name: Push Docker image to GCR
+        run: |
+          echo "Pushing image to Google Container Registry..."
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          echo "Deploying to Cloud Run..."
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --min-instances 1 \
+            --max-instances 10 \
+            --memory 1Gi \
+            --cpu 1 \
+            --timeout 300 \
+            --set-env-vars "ENVIRONMENT=production" \
+            --set-env-vars "SERVER_PORT=8080" \
+            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            --set-env-vars "REDIS_URL=${{ secrets.REDIS_URL }}" \
+            --set-env-vars "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" \
+            --set-env-vars "REDIS_KEY_HMAC_SECRET=${{ secrets.REDIS_KEY_HMAC_SECRET }}" \
+            --set-env-vars "SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+            --set-env-vars "TOKEN_ENCRYPTION_KEY=${{ secrets.TOKEN_ENCRYPTION_KEY }}" \
+            --set-env-vars "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --set-env-vars "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" \
+            --set-env-vars "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
+            --set-env-vars "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            --set-env-vars "ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}" \
+            --set-env-vars "SMTP_PROVIDER=${{ secrets.SMTP_PROVIDER }}" \
+            --set-env-vars "SMTP_API_KEY=${{ secrets.SMTP_API_KEY }}" \
+            --set-env-vars "SMTP_FROM_EMAIL=${{ secrets.SMTP_FROM_EMAIL }}" \
+            --set-env-vars "WEBHOOK_SIGNING_SECRET=${{ secrets.WEBHOOK_SIGNING_SECRET }}" \
+            --set-env-vars "ENABLE_LOCAL_MODELS=false"
+
+      - name: Get Cloud Run URL
+        id: deploy-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against deployed service..."
+          DEPLOY_URL="${{ steps.deploy-url.outputs.url }}"
+
+          # Test 1: Health check
+          echo "Test 1: Health check endpoint"
+          HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/health")
+          if [ "$HEALTH_RESPONSE" != "200" ]; then
+            echo "Health check failed with status: $HEALTH_RESPONSE"
+            exit 1
+          fi
+          echo "Health check passed."
+
+          # Test 2: Ready check
+          echo "Test 2: Ready check endpoint"
+          READY_RESPONSE=$(curl -s "$DEPLOY_URL/ready")
+          echo "Ready response: $READY_RESPONSE"
+          if ! echo "$READY_RESPONSE" | grep -q '"status":"ready"'; then
+            echo "Ready check failed"
+            exit 1
+          fi
+          echo "Ready check passed."
+
+          # Test 3: API status
+          echo "Test 3: API status endpoint"
+          STATUS_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/status")
+          if [ "$STATUS_RESPONSE" != "200" ]; then
+            echo "API status check failed with status: $STATUS_RESPONSE"
+            exit 1
+          fi
+          echo "API status check passed."
+
+          echo "All smoke tests passed."
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed. Rolling back to previous version..."
+          PREVIOUS_REVISION=$(gcloud run revisions list \
+            --service ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --format 'value(name)' \
+            --sort-by '~metadata.creationTimestamp' \
+            --limit 2 | tail -n 1)
+
+          if [ -n "$PREVIOUS_REVISION" ]; then
+            gcloud run services update-traffic ${{ env.SERVICE_NAME }} \
+              --region ${{ env.REGION }} \
+              --to-revisions $PREVIOUS_REVISION=100
+            echo "Rolled back to revision: $PREVIOUS_REVISION"
+          else
+            echo "No previous revision found for rollback"
+          fi
+
+      - name: Send deployment notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          DEPLOY_URL="${{ steps.deploy-url.outputs.url }}"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          echo "Deployment Status: $STATUS"
+          echo "Deploy URL: $DEPLOY_URL"
+          echo "Commit: $COMMIT_SHA"
+          echo "Commit Message: $COMMIT_MSG"
+
+          # Add Slack/Discord notification here if needed
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data "{\"text\":\"Backend Deployment: $STATUS\"}" \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create deployment summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** ${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.deploy-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Commit Message" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git log -1 --pretty=%B >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

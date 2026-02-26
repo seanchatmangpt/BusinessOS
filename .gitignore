@@ -1,0 +1,13 @@
+backend/server
+backend/businessos-server
+backend/bin/
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+.env
+.env.local
+*.log
+backend/.env
+frontend/.env
+.env
+*.env.local

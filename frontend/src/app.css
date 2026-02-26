@@ -1,0 +1,1098 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+	--color-bg: #ffffff;
+	--color-bg-secondary: #f9fafb;
+	--color-bg-tertiary: #f3f4f6;
+	--color-border: #e5e7eb;
+	--color-border-hover: #d1d5db;
+	--color-text: #111827;
+	--color-text-secondary: #4b5563;
+	--color-text-muted: #9ca3af;
+	--color-primary: #111827;
+	--color-primary-hover: #374151;
+	--color-accent: #111827;
+	--color-success: #059669;
+	--color-warning: #d97706;
+	--color-error: #dc2626;
+	--radius: 0.625rem;
+	--background: oklch(1 0 0);
+	--foreground: oklch(0.145 0 0);
+	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.145 0 0);
+	--popover: oklch(1 0 0);
+	--popover-foreground: oklch(0.145 0 0);
+	--primary: oklch(0.205 0 0);
+	--primary-foreground: oklch(0.985 0 0);
+	--secondary: oklch(0.97 0 0);
+	--secondary-foreground: oklch(0.205 0 0);
+	--muted: oklch(0.97 0 0);
+	--muted-foreground: oklch(0.556 0 0);
+	--accent: oklch(0.97 0 0);
+	--accent-foreground: oklch(0.205 0 0);
+	--destructive: oklch(0.577 0.245 27.325);
+	--border: oklch(0.922 0 0);
+	--input: oklch(0.922 0 0);
+	--ring: oklch(0.708 0 0);
+	--chart-1: oklch(0.646 0.222 41.116);
+	--chart-2: oklch(0.6 0.118 184.704);
+	--chart-3: oklch(0.398 0.07 227.392);
+	--chart-4: oklch(0.828 0.189 84.429);
+	--chart-5: oklch(0.769 0.188 70.08);
+	--sidebar: oklch(0.985 0 0);
+	--sidebar-foreground: oklch(0.145 0 0);
+	--sidebar-primary: oklch(0.205 0 0);
+	--sidebar-primary-foreground: oklch(0.985 0 0);
+	--sidebar-accent: oklch(0.97 0 0);
+	--sidebar-accent-foreground: oklch(0.205 0 0);
+	--sidebar-border: oklch(0.922 0 0);
+	--sidebar-ring: oklch(0.708 0 0);
+
+	/* Purple Orb Colors - Onboarding */
+	--orb-gradient-1: #e0e7ff;
+	--orb-gradient-2: #a5b4fc;
+	--orb-gradient-3: #818cf8;
+	--orb-gradient-4: #6366f1;
+	--orb-gradient-5: #4f46e5;
+	--orb-glow: rgba(99, 102, 241, 0.4);
+	--orb-inner-glow: rgba(255, 255, 255, 0.3);
+}
+
+/* Dark Mode Overrides */
+.dark {
+	--orb-gradient-1: #312e81;
+	--orb-gradient-2: #3730a3;
+	--orb-gradient-3: #4338ca;
+	--orb-gradient-4: #4f46e5;
+	--orb-gradient-5: #6366f1;
+	--orb-glow: rgba(99, 102, 241, 0.6);
+}
+
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	font-family:
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		'Helvetica Neue',
+		Arial,
+		sans-serif;
+}
+
+/* Base button styles - pill shaped */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.625rem 1.25rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	border-radius: 9999px;
+	transition: all 0.2s ease;
+	cursor: pointer;
+	border: none;
+}
+
+.btn-primary {
+	background-color: var(--color-primary);
+	color: white;
+}
+
+.btn-primary:hover {
+	background-color: var(--color-primary-hover);
+}
+
+.dark .btn-primary {
+	background-color: #0A84FF;
+	color: white;
+}
+
+.dark .btn-primary:hover {
+	background-color: #0070E0;
+}
+
+.btn-secondary {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+	background-color: var(--color-bg-secondary);
+	border-color: var(--color-border-hover);
+}
+
+.btn-ghost {
+	background-color: transparent;
+	color: var(--color-text-secondary);
+}
+
+.btn-ghost:hover {
+	background-color: var(--color-bg-secondary);
+	color: var(--color-text);
+}
+
+/* Pill button styles - iOS/Onboarding style */
+.btn-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	font-weight: 600;
+	border-radius: 9999px;
+	transition: all 0.2s ease;
+	cursor: pointer;
+	border: none;
+	font-family: inherit;
+	/* Default size (md) */
+	padding: 0.875rem 2rem;
+	font-size: 1rem;
+}
+
+.btn-pill:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Primary - Dark CTA button */
+.btn-pill-primary {
+	background-color: #1A1A1A;
+	color: white;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.btn-pill-primary:hover:not(:disabled) {
+	background-color: #333333;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+	transform: translateY(-1px);
+}
+
+.btn-pill-primary:active:not(:disabled) {
+	transform: translateY(0);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Secondary - Outlined */
+.btn-pill-secondary {
+	background-color: white;
+	color: #1A1A1A;
+	border: 2px solid #D1D5DB;
+}
+
+.btn-pill-secondary:hover:not(:disabled) {
+	border-color: #1A1A1A;
+	background-color: #F9FAFB;
+}
+
+/* Ghost - Minimal */
+.btn-pill-ghost {
+	background-color: transparent;
+	color: #666666;
+}
+
+.btn-pill-ghost:hover:not(:disabled) {
+	background-color: rgba(0, 0, 0, 0.05);
+	color: #1A1A1A;
+}
+
+/* Size variants */
+.btn-pill-sm {
+	padding: 0.5rem 1.25rem;
+	font-size: 0.875rem;
+}
+
+.btn-pill-lg {
+	padding: 1rem 2.5rem;
+	font-size: 1.125rem;
+	min-width: 200px;
+}
+
+/* Dark mode support */
+.dark .btn-pill-primary {
+	background-color: #FFFFFF;
+	color: #1A1A1A;
+}
+
+.dark .btn-pill-primary:hover:not(:disabled) {
+	background-color: #F0F0F0;
+}
+
+.dark .btn-pill-secondary {
+	background-color: transparent;
+	color: white;
+	border-color: #4B5563;
+}
+
+.dark .btn-pill-secondary:hover:not(:disabled) {
+	border-color: white;
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .btn-pill-ghost {
+	color: #9CA3AF;
+}
+
+.dark .btn-pill-ghost:hover:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: white;
+}
+
+/* Input styles - rounded/pill */
+.input {
+	width: 100%;
+	padding: 0.75rem 1rem;
+	font-size: 0.9375rem;
+	border: 1px solid var(--color-border);
+	border-radius: 1.5rem;
+	background-color: var(--color-bg-secondary);
+	color: var(--color-text);
+	transition: all 0.2s ease;
+}
+
+.input:focus {
+	outline: none;
+	border-color: var(--color-border-hover);
+	background-color: var(--color-bg);
+	box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.input::placeholder {
+	color: var(--color-text-muted);
+}
+
+/* Square input variant */
+.input-square {
+	border-radius: 0.75rem;
+}
+
+/* Rounded input with glassmorphism - iOS style */
+.input-rounded,
+input.input-rounded,
+select.input-rounded {
+	width: 100% !important;
+	padding: 0.875rem 1rem !important;
+	font-size: 1rem !important;
+	color: #1A1A1A !important;
+	background: rgba(255, 255, 255, 0.7) !important;
+	backdrop-filter: blur(12px) !important;
+	-webkit-backdrop-filter: blur(12px) !important;
+	border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+	border-radius: 0.75rem !important;
+	font-family: inherit;
+	transition: all 0.2s ease;
+	/* Soft shadow for depth */
+	box-shadow:
+		0 2px 8px rgba(0, 0, 0, 0.06),
+		0 1px 3px rgba(0, 0, 0, 0.04),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+.input-rounded:focus,
+input.input-rounded:focus,
+select.input-rounded:focus {
+	outline: none !important;
+	background: rgba(255, 255, 255, 0.85) !important;
+	border-color: rgba(26, 26, 26, 0.3) !important;
+	box-shadow:
+		0 4px 12px rgba(0, 0, 0, 0.1),
+		0 2px 4px rgba(0, 0, 0, 0.06),
+		0 0 0 3px rgba(26, 26, 26, 0.08) !important;
+}
+
+.input-rounded::placeholder {
+	color: #9CA3AF !important;
+}
+
+.input-rounded:disabled {
+	opacity: 0.5 !important;
+	cursor: not-allowed !important;
+	background-color: #F5F5F5 !important;
+}
+
+/* Only apply dark styles when .dark class is on parent */
+.dark .input-rounded,
+.dark input.input-rounded,
+.dark select.input-rounded {
+	background-color: #1F2937 !important;
+	border-color: #4B5563 !important;
+	color: #F9FAFB !important;
+}
+
+.dark .input-rounded:focus {
+	border-color: #F9FAFB !important;
+	box-shadow:
+		inset 0 3px 8px 0 rgba(0, 0, 0, 0.3),
+		inset 0 1px 3px 0 rgba(0, 0, 0, 0.2),
+		0 0 0 3px rgba(249, 250, 251, 0.1) !important;
+}
+
+/* Card styles - modern rounded */
+.card {
+	background-color: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: 1rem;
+	padding: 1.5rem;
+}
+
+.dark .card {
+	background-color: #2c2c2e;
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Message bubbles - ChatGPT/Apple style */
+.message-bubble {
+	padding: 0.875rem 1.125rem;
+	border-radius: 1.25rem;
+	max-width: 80%;
+}
+
+.message-bubble-user {
+	background-color: var(--color-primary);
+	color: white;
+	border-bottom-right-radius: 0.25rem;
+}
+
+.message-bubble-assistant {
+	background-color: var(--color-bg-secondary);
+	color: var(--color-text);
+	border-bottom-left-radius: 0.25rem;
+}
+
+/* Sidebar */
+.sidebar {
+	background-color: var(--color-bg-secondary);
+	border-right: 1px solid var(--color-border);
+}
+
+.dark .sidebar {
+	background-color: #1c1c1e;
+	border-right-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Status badges */
+.badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.125rem 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	border-radius: 9999px;
+}
+
+.badge-active {
+	background-color: #dcfce7;
+	color: #166534;
+}
+
+.badge-paused {
+	background-color: #fef3c7;
+	color: #92400e;
+}
+
+.badge-completed {
+	background-color: #e0e7ff;
+	color: #3730a3;
+}
+
+.badge-archived {
+	background-color: #f3f4f6;
+	color: #4b5563;
+}
+
+/* Priority badges */
+.priority-critical {
+	color: #dc2626;
+}
+
+.priority-high {
+	color: #ea580c;
+}
+
+.priority-medium {
+	color: #ca8a04;
+}
+
+.priority-low {
+	color: #16a34a;
+}
+
+@theme inline {
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+}
+
+.dark {
+	/* Modern Apple-style dark mode - sleek charcoal grays */
+	--background: oklch(0.13 0 0); /* Dark gray, not black */
+	--foreground: oklch(0.95 0 0);
+	--card: oklch(0.17 0 0); /* Slightly elevated surface */
+	--card-foreground: oklch(0.95 0 0);
+	--popover: oklch(0.15 0 0);
+	--popover-foreground: oklch(0.95 0 0);
+	--primary: oklch(0.95 0 0);
+	--primary-foreground: oklch(0.13 0 0);
+	--secondary: oklch(0.20 0 0); /* Subtle elevation */
+	--secondary-foreground: oklch(0.95 0 0);
+	--muted: oklch(0.22 0 0);
+	--muted-foreground: oklch(0.6 0 0);
+	--accent: oklch(0.20 0 0);
+	--accent-foreground: oklch(0.95 0 0);
+	--destructive: oklch(0.704 0.191 22.216);
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 12%);
+	--ring: oklch(0.5 0 0);
+	--chart-1: oklch(0.488 0.243 264.376);
+	--chart-2: oklch(0.696 0.17 162.48);
+	--chart-3: oklch(0.769 0.188 70.08);
+	--chart-4: oklch(0.627 0.265 303.9);
+	--chart-5: oklch(0.645 0.246 16.439);
+	--sidebar: oklch(0.11 0 0); /* Slightly darker sidebar */
+	--sidebar-foreground: oklch(0.95 0 0);
+	--sidebar-primary: oklch(0.95 0 0);
+	--sidebar-primary-foreground: oklch(0.13 0 0);
+	--sidebar-accent: oklch(0.18 0 0);
+	--sidebar-accent-foreground: oklch(0.95 0 0);
+	--sidebar-border: oklch(1 0 0 / 10%);
+	--sidebar-ring: oklch(0.5 0 0);
+
+	/* Modern dark gray colors - like Apple's dark mode */
+	--color-bg: #1c1c1e;
+	--color-bg-secondary: #2c2c2e;
+	--color-bg-tertiary: #3a3a3c;
+	--color-border: rgba(255, 255, 255, 0.12);
+	--color-border-hover: rgba(255, 255, 255, 0.2);
+	--color-text: #f5f5f7;
+	--color-text-secondary: #a1a1a6;
+	--color-text-muted: #6e6e73;
+	--color-primary: #ffffff;
+	--color-primary-hover: #e5e5ea;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+	}
+  body {
+    @apply bg-background text-foreground;
+	}
+}
+
+/* ===== COMPREHENSIVE DARK MODE OVERRIDES ===== */
+/* Override hardcoded Tailwind classes for dark mode */
+
+/* Background overrides */
+.dark .bg-white { background-color: #1c1c1e !important; }
+.dark .bg-gray-50 { background-color: #2c2c2e !important; }
+.dark .bg-gray-100 { background-color: #3a3a3c !important; }
+.dark .bg-gray-200 { background-color: #48484a !important; }
+.dark .bg-gray-900 { background-color: #0d0d0f !important; }
+
+/* Semi-transparent background overrides (opacity modifiers) */
+.dark .bg-gray-50\/50 { background-color: rgba(44, 44, 46, 0.5) !important; }
+.dark .bg-gray-50\/30 { background-color: rgba(44, 44, 46, 0.3) !important; }
+.dark .bg-gray-100\/50 { background-color: rgba(58, 58, 60, 0.5) !important; }
+.dark .bg-white\/50 { background-color: rgba(28, 28, 30, 0.5) !important; }
+.dark .bg-white\/80 { background-color: rgba(28, 28, 30, 0.8) !important; }
+.dark .bg-white\/90 { background-color: rgba(28, 28, 30, 0.9) !important; }
+
+/* Colored badge/status backgrounds for dark mode */
+.dark .bg-emerald-50 { background-color: #1a332b !important; }
+.dark .bg-emerald-100 { background-color: #1a4034 !important; }
+.dark .bg-teal-50 { background-color: #1a332e !important; }
+.dark .bg-teal-100 { background-color: #1a403a !important; }
+.dark .bg-amber-50 { background-color: #3d3520 !important; }
+.dark .bg-amber-100 { background-color: #4d421a !important; }
+.dark .bg-blue-100 { background-color: #1e3a5f !important; }
+.dark .bg-purple-100 { background-color: #2d1f4e !important; }
+.dark .bg-red-100 { background-color: #4d1f1f !important; }
+.dark .bg-green-100 { background-color: #1a3329 !important; }
+.dark .bg-gray-100\/80 { background-color: rgba(58, 58, 60, 0.8) !important; }
+
+/* Text overrides */
+.dark .text-gray-900 { color: #f5f5f7 !important; }
+.dark .text-gray-800 { color: #e5e5ea !important; }
+.dark .text-gray-700 { color: #d1d1d6 !important; }
+.dark .text-gray-600 { color: #a1a1a6 !important; }
+.dark .text-gray-500 { color: #8e8e93 !important; }
+.dark .text-gray-400 { color: #6e6e73 !important; }
+.dark .text-gray-300 { color: #636366 !important; }
+
+/* Code blocks in dark mode */
+.dark pre code {
+	color: #f5f5f7 !important;
+}
+
+.dark code.bg-gray-100 {
+	background-color: #3a3a3c !important;
+	color: #f5f5f7 !important;
+}
+
+/* Border overrides */
+.dark .border-gray-200 { border-color: rgba(255, 255, 255, 0.12) !important; }
+.dark .border-gray-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+.dark .border-gray-100 { border-color: rgba(255, 255, 255, 0.08) !important; }
+
+/* Divide overrides */
+.dark .divide-gray-200 > * + * { border-color: rgba(255, 255, 255, 0.12) !important; }
+
+/* Hover state overrides */
+.dark .hover\:bg-gray-50:hover { background-color: #3a3a3c !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #48484a !important; }
+.dark .hover\:bg-gray-200:hover { background-color: #58585a !important; }
+.dark .hover\:bg-white:hover { background-color: #2c2c2e !important; }
+
+/* Hover gradient overrides */
+.dark .hover\:from-gray-100:hover { --tw-gradient-from: #3a3a3c !important; }
+.dark .hover\:from-gray-200:hover { --tw-gradient-from: #48484a !important; }
+.dark .hover\:to-gray-50:hover { --tw-gradient-to: #2c2c2e !important; }
+.dark .hover\:to-gray-100:hover { --tw-gradient-to: #3a3a3c !important; }
+
+/* Hover border overrides */
+.dark .hover\:border-gray-200:hover { border-color: rgba(255, 255, 255, 0.15) !important; }
+.dark .hover\:border-gray-300:hover { border-color: rgba(255, 255, 255, 0.2) !important; }
+.dark .hover\:border-blue-300:hover { border-color: rgba(59, 130, 246, 0.4) !important; }
+
+/* ===== GRADIENT OVERRIDES FOR DARK MODE ===== */
+/* These override Tailwind's gradient utility classes */
+
+/* From colors (gradient start) */
+.dark .from-gray-50 { --tw-gradient-from: #2c2c2e !important; --tw-gradient-to: rgb(44 44 46 / 0) !important; }
+.dark .from-gray-100 { --tw-gradient-from: #3a3a3c !important; --tw-gradient-to: rgb(58 58 60 / 0) !important; }
+.dark .from-gray-200 { --tw-gradient-from: #48484a !important; --tw-gradient-to: rgb(72 72 74 / 0) !important; }
+.dark .from-white { --tw-gradient-from: #1c1c1e !important; --tw-gradient-to: rgb(28 28 30 / 0) !important; }
+
+/* Via colors (gradient middle) */
+.dark .via-gray-50 { --tw-gradient-to: rgb(44 44 46 / 0) !important; --tw-gradient-stops: var(--tw-gradient-from), #2c2c2e, var(--tw-gradient-to) !important; }
+.dark .via-gray-100 { --tw-gradient-to: rgb(58 58 60 / 0) !important; --tw-gradient-stops: var(--tw-gradient-from), #3a3a3c, var(--tw-gradient-to) !important; }
+.dark .via-white { --tw-gradient-to: rgb(28 28 30 / 0) !important; --tw-gradient-stops: var(--tw-gradient-from), #1c1c1e, var(--tw-gradient-to) !important; }
+
+/* To colors (gradient end) */
+.dark .to-gray-50 { --tw-gradient-to: #2c2c2e !important; }
+.dark .to-gray-100 { --tw-gradient-to: #3a3a3c !important; }
+.dark .to-gray-100\/50 { --tw-gradient-to: rgb(58 58 60 / 0.5) !important; }
+.dark .to-gray-200 { --tw-gradient-to: #48484a !important; }
+.dark .to-white { --tw-gradient-to: #1c1c1e !important; }
+
+/* Decorative blur backgrounds - make them subtle in dark mode */
+.dark .bg-blue-100\/20 { background-color: rgba(59, 130, 246, 0.08) !important; }
+.dark .bg-purple-100\/20 { background-color: rgba(139, 92, 246, 0.08) !important; }
+.dark .bg-blue-50\/40 { background-color: rgba(30, 58, 95, 0.4) !important; }
+.dark .bg-blue-50\/30 { background-color: rgba(30, 58, 95, 0.3) !important; }
+.dark .bg-blue-50\/20 { background-color: rgba(30, 58, 95, 0.2) !important; }
+.dark .bg-purple-50\/40 { background-color: rgba(45, 31, 78, 0.4) !important; }
+.dark .bg-purple-50\/30 { background-color: rgba(45, 31, 78, 0.3) !important; }
+.dark .bg-blue-50 { background-color: #1e3a5f !important; }
+.dark .bg-purple-50 { background-color: #2d1f4e !important; }
+.dark .bg-green-50 { background-color: #1a3329 !important; }
+.dark .bg-red-50 { background-color: #3d1f1f !important; }
+.dark .bg-yellow-50 { background-color: #3d3520 !important; }
+.dark .bg-orange-50 { background-color: #3d2a1a !important; }
+
+/* Opacity-modified gradient from colors */
+.dark .from-blue-50\/40 { --tw-gradient-from: rgba(30, 58, 95, 0.4) !important; }
+.dark .from-blue-50\/30 { --tw-gradient-from: rgba(30, 58, 95, 0.3) !important; }
+.dark .from-gray-50\/50 { --tw-gradient-from: rgba(44, 44, 46, 0.5) !important; }
+.dark .to-gray-50\/50 { --tw-gradient-to: rgba(44, 44, 46, 0.5) !important; }
+
+/* Ring colors for dark mode */
+.dark .ring-gray-200 { --tw-ring-color: rgba(255, 255, 255, 0.12) !important; }
+.dark .ring-gray-100 { --tw-ring-color: rgba(255, 255, 255, 0.08) !important; }
+
+/* ===== COLORED GRADIENT OVERRIDES FOR DARK MODE ===== */
+/* Blue gradients - dark mode */
+.dark .from-blue-50 { --tw-gradient-from: #1e3a5f !important; }
+.dark .from-blue-100 { --tw-gradient-from: #1e40af33 !important; }
+.dark .to-blue-50 { --tw-gradient-to: #1e3a5f !important; }
+.dark .to-blue-100 { --tw-gradient-to: #1e40af33 !important; }
+.dark .via-blue-50 { --tw-gradient-stops: var(--tw-gradient-from), #1e3a5f, var(--tw-gradient-to) !important; }
+
+/* Purple gradients - dark mode */
+.dark .from-purple-50 { --tw-gradient-from: #2d1f4e !important; }
+.dark .from-purple-100 { --tw-gradient-from: #4c1d9533 !important; }
+.dark .to-purple-50 { --tw-gradient-to: #2d1f4e !important; }
+.dark .to-purple-100 { --tw-gradient-to: #4c1d9533 !important; }
+.dark .via-purple-50 { --tw-gradient-stops: var(--tw-gradient-from), #2d1f4e, var(--tw-gradient-to) !important; }
+
+/* Green gradients - dark mode */
+.dark .from-green-50 { --tw-gradient-from: #1a3329 !important; }
+.dark .from-green-100 { --tw-gradient-from: #16653333 !important; }
+.dark .to-green-50 { --tw-gradient-to: #1a3329 !important; }
+.dark .to-green-100 { --tw-gradient-to: #16653333 !important; }
+.dark .to-emerald-50 { --tw-gradient-to: #1a3329 !important; }
+.dark .via-green-50 { --tw-gradient-stops: var(--tw-gradient-from), #1a3329, var(--tw-gradient-to) !important; }
+
+/* Red/Orange gradients - dark mode */
+.dark .from-red-50 { --tw-gradient-from: #3d1f1f !important; }
+.dark .from-red-100 { --tw-gradient-from: #7f1d1d33 !important; }
+.dark .to-red-50 { --tw-gradient-to: #3d1f1f !important; }
+.dark .from-orange-50 { --tw-gradient-from: #3d2a1a !important; }
+.dark .to-orange-50 { --tw-gradient-to: #3d2a1a !important; }
+
+/* Yellow/Amber gradients - dark mode */
+.dark .from-yellow-50 { --tw-gradient-from: #3d3520 !important; }
+.dark .to-yellow-50 { --tw-gradient-to: #3d3520 !important; }
+.dark .from-amber-50 { --tw-gradient-from: #3d3520 !important; }
+.dark .to-amber-50 { --tw-gradient-to: #3d3520 !important; }
+
+/* Indigo gradients - dark mode */
+.dark .from-indigo-50 { --tw-gradient-from: #1e1b4b !important; }
+.dark .to-indigo-50 { --tw-gradient-to: #1e1b4b !important; }
+
+/* Slate gradients - dark mode */
+.dark .from-slate-50 { --tw-gradient-from: #1e293b !important; }
+.dark .to-slate-50 { --tw-gradient-to: #1e293b !important; }
+.dark .to-slate-100 { --tw-gradient-to: #334155 !important; }
+
+/* Cyan gradients - keep as is since they're usually accent colors */
+
+/* ===== COLORED BORDER OVERRIDES FOR DARK MODE ===== */
+.dark .border-blue-100 { border-color: rgba(59, 130, 246, 0.2) !important; }
+.dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.3) !important; }
+.dark .border-purple-100 { border-color: rgba(139, 92, 246, 0.2) !important; }
+.dark .border-purple-200 { border-color: rgba(139, 92, 246, 0.3) !important; }
+.dark .border-green-100 { border-color: rgba(34, 197, 94, 0.2) !important; }
+.dark .border-green-200 { border-color: rgba(34, 197, 94, 0.3) !important; }
+.dark .border-red-100 { border-color: rgba(239, 68, 68, 0.2) !important; }
+.dark .border-red-200 { border-color: rgba(239, 68, 68, 0.3) !important; }
+.dark .border-yellow-100 { border-color: rgba(234, 179, 8, 0.2) !important; }
+.dark .border-yellow-200 { border-color: rgba(234, 179, 8, 0.3) !important; }
+.dark .border-orange-100 { border-color: rgba(249, 115, 22, 0.2) !important; }
+.dark .border-orange-200 { border-color: rgba(249, 115, 22, 0.3) !important; }
+.dark .border-indigo-100 { border-color: rgba(99, 102, 241, 0.2) !important; }
+.dark .border-indigo-200 { border-color: rgba(99, 102, 241, 0.3) !important; }
+.dark .border-amber-100 { border-color: rgba(245, 158, 11, 0.2) !important; }
+.dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.3) !important; }
+
+/* ===== COLORED TEXT OVERRIDES FOR DARK MODE ===== */
+/* Make light colored text darker colors lighter in dark mode for better contrast */
+.dark .text-blue-600 { color: #60a5fa !important; }
+.dark .text-blue-700 { color: #93c5fd !important; }
+.dark .text-green-600 { color: #4ade80 !important; }
+.dark .text-green-700 { color: #86efac !important; }
+.dark .text-purple-600 { color: #a78bfa !important; }
+.dark .text-purple-700 { color: #c4b5fd !important; }
+.dark .text-red-600 { color: #f87171 !important; }
+.dark .text-red-700 { color: #fca5a5 !important; }
+.dark .text-orange-600 { color: #fb923c !important; }
+.dark .text-yellow-600 { color: #facc15 !important; }
+
+/* Colored badge text for dark mode */
+.dark .text-emerald-700 { color: #6ee7b7 !important; }
+.dark .text-emerald-600 { color: #34d399 !important; }
+.dark .text-teal-700 { color: #5eead4 !important; }
+.dark .text-teal-600 { color: #2dd4bf !important; }
+.dark .text-amber-700 { color: #fcd34d !important; }
+.dark .text-amber-600 { color: #fbbf24 !important; }
+.dark .text-blue-700 { color: #93c5fd !important; }
+.dark .text-indigo-700 { color: #a5b4fc !important; }
+.dark .text-indigo-600 { color: #818cf8 !important; }
+
+/* Focus state overrides */
+.dark .focus\:ring-gray-200:focus { --tw-ring-color: rgba(255, 255, 255, 0.2) !important; }
+.dark .focus\:border-gray-300:focus { border-color: rgba(255, 255, 255, 0.25) !important; }
+
+/* Shadow overrides - soften in dark mode */
+.dark .shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3) !important; }
+.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }
+.dark .shadow-md { box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important; }
+.dark .shadow-lg { box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4) !important; }
+.dark .shadow-xl { box-shadow: 0 20px 25px rgba(0, 0, 0, 0.5) !important; }
+.dark .shadow-2xl { box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6) !important; }
+
+/* Placeholder text in dark mode */
+.dark ::placeholder { color: #6e6e73 !important; }
+.dark .placeholder-gray-400::placeholder { color: #6e6e73 !important; }
+.dark .placeholder-gray-500::placeholder { color: #8e8e93 !important; }
+
+/* Additional background colors for consistency */
+.dark .bg-slate-50 { background-color: #1e293b !important; }
+.dark .bg-slate-100 { background-color: #334155 !important; }
+.dark .bg-zinc-50 { background-color: #27272a !important; }
+.dark .bg-zinc-100 { background-color: #3f3f46 !important; }
+.dark .bg-neutral-50 { background-color: #262626 !important; }
+.dark .bg-neutral-100 { background-color: #404040 !important; }
+
+/* Group hover states */
+.dark .group-hover\:bg-gray-50:hover { background-color: #3a3a3c !important; }
+.dark .group-hover\:bg-gray-100:hover { background-color: #48484a !important; }
+
+/* Active states */
+.dark .active\:bg-gray-100:active { background-color: #3a3a3c !important; }
+.dark .active\:bg-gray-200:active { background-color: #48484a !important; }
+
+/* Disabled states */
+.dark .disabled\:bg-gray-100:disabled { background-color: #2c2c2e !important; }
+.dark .disabled\:text-gray-400:disabled { color: #6e6e73 !important; }
+
+/* Input/Form overrides */
+.dark input,
+.dark textarea,
+.dark select {
+	background-color: #2c2c2e;
+	border-color: rgba(255, 255, 255, 0.12);
+	color: #f5f5f7;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+	color: #6e6e73;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+	border-color: rgba(255, 255, 255, 0.2) !important;
+	box-shadow: none !important;
+	outline: none !important;
+	--tw-ring-color: transparent !important;
+	--tw-ring-shadow: none !important;
+}
+
+/* Override Tailwind focus ring classes in dark mode */
+.dark .focus\:ring-2:focus,
+.dark .focus\:ring-1:focus,
+.dark .focus\:ring:focus {
+	--tw-ring-color: transparent !important;
+	--tw-ring-shadow: 0 0 0 0 transparent !important;
+	box-shadow: none !important;
+}
+
+.dark .focus\:ring-gray-900:focus,
+.dark .focus\:ring-blue-500:focus {
+	--tw-ring-color: transparent !important;
+}
+
+/* Light mode scrollbar */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.15);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Firefox */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* Scrollbar styling for dark mode */
+.dark ::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+	background-color: rgba(255, 255, 255, 0.2);
+	border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* HR/Divider in dark mode */
+.dark hr {
+	border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ===== CONTEXTS PAGE DOCUMENT EDITOR DARK MODE ===== */
+/* Document editor panel */
+.dark .bg-white.border-l {
+	background-color: #1c1c1e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Document editor header */
+.dark .bg-gray-50\/50 {
+	background-color: #2c2c2e !important;
+}
+
+/* Profile header */
+.dark .sticky.bg-white {
+	background-color: #1c1c1e !important;
+}
+
+/* Context information box */
+.dark .bg-white.rounded-xl.border {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Data hub tabs */
+.dark .bg-gray-100.p-1.rounded-lg {
+	background-color: #2c2c2e !important;
+}
+
+/* Data hub active tab */
+.dark .bg-white.text-gray-900.shadow-sm {
+	background-color: #3a3a3c !important;
+	color: #f5f5f7 !important;
+}
+
+/* Document cards */
+.dark .bg-white.rounded-xl.border.hover\:shadow-md {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Modal overlays */
+.dark .bg-black\/30 {
+	background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Modal content */
+.dark .bg-white.rounded-2xl.shadow-2xl {
+	background-color: #2c2c2e !important;
+}
+
+/* Left panel / sidebar */
+.dark .bg-gray-50.flex-col {
+	background-color: #1c1c1e !important;
+}
+
+/* Resize handle */
+.dark .bg-gray-200.hover\:bg-gray-400 {
+	background-color: #3a3a3c !important;
+}
+
+.dark .bg-gray-200.hover\:bg-gray-400:hover {
+	background-color: #48484a !important;
+}
+
+/* Filter tabs */
+.dark .bg-gray-100.rounded-lg {
+	background-color: #2c2c2e !important;
+}
+
+/* Section headers */
+.dark .text-gray-400.uppercase {
+	color: #6e6e73 !important;
+}
+
+/* Empty state dashed border */
+.dark .border-dashed {
+	border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Icon pickers */
+.dark .bg-white.rounded-xl.shadow-xl {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Dialog overlays */
+.dark [data-bits-dialog-overlay] {
+	background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.dark [data-bits-dialog-content] {
+	background-color: #2c2c2e !important;
+	border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ===== PROSE TYPOGRAPHY DARK MODE FIX ===== */
+/* Fix amber/tan heading colors in dark mode */
+
+/* Force all prose text to light colors in dark mode */
+.dark .prose,
+.dark .prose * {
+	color: #f5f5f7 !important;
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose h5,
+.dark .prose h6,
+.dark .prose strong,
+.dark .prose b {
+	color: #ffffff !important;
+}
+
+/* Override prose-invert specifically */
+.dark .prose.dark\:prose-invert,
+.dark .prose.dark\:prose-invert * {
+	color: #f5f5f7 !important;
+}
+
+.dark .prose.dark\:prose-invert h1,
+.dark .prose.dark\:prose-invert h2,
+.dark .prose.dark\:prose-invert h3,
+.dark .prose.dark\:prose-invert h4,
+.dark .prose.dark\:prose-invert h5,
+.dark .prose.dark\:prose-invert h6,
+.dark .prose.dark\:prose-invert strong,
+.dark .prose.dark\:prose-invert b {
+	color: #ffffff !important;
+}
+
+/* Set all Tailwind Typography CSS variables for dark mode */
+.dark [class*="prose"] {
+	--tw-prose-body: #f5f5f7 !important;
+	--tw-prose-headings: #ffffff !important;
+	--tw-prose-lead: #e5e5e7 !important;
+	--tw-prose-links: #60a5fa !important;
+	--tw-prose-bold: #ffffff !important;
+	--tw-prose-counters: #9ca3af !important;
+	--tw-prose-bullets: #9ca3af !important;
+	--tw-prose-hr: rgba(255, 255, 255, 0.12) !important;
+	--tw-prose-quotes: #d1d5db !important;
+	--tw-prose-quote-borders: #4b5563 !important;
+	--tw-prose-captions: #9ca3af !important;
+	--tw-prose-code: #e879f9 !important;
+	--tw-prose-pre-code: #f5f5f7 !important;
+	--tw-prose-pre-bg: #1c1c1e !important;
+	--tw-prose-th-borders: rgba(255, 255, 255, 0.12) !important;
+	--tw-prose-td-borders: rgba(255, 255, 255, 0.08) !important;
+	--tw-prose-invert-body: #f5f5f7 !important;
+	--tw-prose-invert-headings: #ffffff !important;
+	--tw-prose-invert-lead: #e5e5e7 !important;
+	--tw-prose-invert-links: #60a5fa !important;
+	--tw-prose-invert-bold: #ffffff !important;
+	--tw-prose-invert-counters: #9ca3af !important;
+	--tw-prose-invert-bullets: #9ca3af !important;
+	--tw-prose-invert-hr: rgba(255, 255, 255, 0.12) !important;
+	--tw-prose-invert-quotes: #d1d5db !important;
+	--tw-prose-invert-quote-borders: #4b5563 !important;
+	--tw-prose-invert-captions: #9ca3af !important;
+	--tw-prose-invert-code: #e879f9 !important;
+	--tw-prose-invert-pre-code: #f5f5f7 !important;
+	--tw-prose-invert-pre-bg: #0d0d0f !important;
+	--tw-prose-invert-th-borders: rgba(255, 255, 255, 0.12) !important;
+	--tw-prose-invert-td-borders: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ===== DARK MODE TEXT SELECTION ===== */
+/* Global selection colors for dark mode */
+.dark ::selection {
+	background-color: rgba(59, 130, 246, 0.4);
+	color: #ffffff;
+}
+
+.dark ::-moz-selection {
+	background-color: rgba(59, 130, 246, 0.4);
+	color: #ffffff;
+}
+
+/* Contenteditable selection in dark mode */
+.dark [contenteditable]::selection {
+	background-color: rgba(59, 130, 246, 0.4);
+	color: #ffffff;
+}
+
+.dark [contenteditable]::-moz-selection {
+	background-color: rgba(59, 130, 246, 0.4);
+	color: #ffffff;
+}
+
+/* Input selection in dark mode */
+.dark input::selection,
+.dark textarea::selection {
+	background-color: rgba(59, 130, 246, 0.4);
+	color: #ffffff;
+}
+
+/* Remove any autofill background colors in dark mode */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark textarea:-webkit-autofill:hover,
+.dark textarea:-webkit-autofill:focus {
+	-webkit-text-fill-color: #f5f5f7 !important;
+	-webkit-box-shadow: 0 0 0 1000px #2c2c2e inset !important;
+	box-shadow: 0 0 0 1000px #2c2c2e inset !important;
+	background-color: #2c2c2e !important;
+}
+
+/* Ensure transparent background for inputs that should be transparent */
+.dark input.bg-transparent,
+.dark input[class*="bg-transparent"] {
+	background-color: transparent !important;
+}
+
+.dark input.bg-transparent:focus,
+.dark input[class*="bg-transparent"]:focus {
+	background-color: transparent !important;
+	box-shadow: none !important;
+}
+
+/* Fix caret color in dark mode */
+.dark input,
+.dark textarea,
+.dark [contenteditable] {
+	caret-color: #f5f5f7;
+}
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}

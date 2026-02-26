@@ -1,0 +1,510 @@
+// Package services - Example integration code for SandboxIntegrationService
+// This file is disabled (.disabled extension) and serves as a reference implementation
+// Copy and adapt this code to your actual handler/service files
+
+package services
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rhl/businessos-backend/internal/database/sqlc"
+)
+
+// ============================================================================
+// EXAMPLE 1: OSA Webhook Handler
+// ============================================================================
+
+// OSAWebhookEvent represents an incoming webhook from OSA
+type OSAWebhookEvent struct {
+	Type          string                 `json:"type"`
+	AppID         uuid.UUID              `json:"app_id"`
+	WorkspaceID   uuid.UUID              `json:"workspace_id"`
+	WorkspacePath string                 `json:"workspace_path"`
+	Status        string                 `json:"status"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	Timestamp     time.Time              `json:"timestamp"`
+}
+
+// HandleOSAWebhook processes webhooks from OSA
+func HandleOSAWebhook(
+	integrationService *SandboxIntegrationService,
+	logger *slog.Logger,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Parse webhook payload
+		var event OSAWebhookEvent
+		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+			logger.Error("invalid webhook payload", "error", err)
+			http.Error(w, "Invalid payload", http.StatusBadRequest)
+			return
+		}
+
+		logger.Info("received OSA webhook",
+			"type", event.Type,
+			"app_id", event.AppID,
+			"workspace_id", event.WorkspaceID)
+
+		// Handle app generation completion
+		if event.Type == "app.generation.complete" && event.Status == "success" {
+			// Extract app config from metadata
+			appConfig, err := extractAppConfigFromMetadata(event.Metadata)
+			if err != nil {
+				logger.Error("failed to extract app config", "error", err)
+				http.Error(w, "Invalid app config", http.StatusBadRequest)
+				return
+			}
+
+			// Trigger sandbox deployment (async to not block webhook)
+			go func() {
+				ctx := context.Background()
+				err := integrationService.OnAppGenerationComplete(
+					ctx,
+					event.AppID,
+					event.WorkspacePath,
+					appConfig,
+				)
+				if err != nil {
+					logger.Error("deployment failed",
+						"app_id", event.AppID,
+						"error", err)
+					// Could implement retry logic here
+				}
+			}()
+		}
+
+		// Acknowledge webhook
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "accepted",
+			"message": "Webhook processed",
+		})
+	}
+}
+
+// extractAppConfigFromMetadata extracts AppConfig from webhook metadata
+func extractAppConfigFromMetadata(metadata map[string]interface{}) (*AppConfig, error) {
+	// Convert metadata map to JSON, then parse as AppConfig
+	jsonData, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseAppConfig(jsonData)
+}
+
+// ============================================================================
+// EXAMPLE 2: Build Event Listener (Polling)
+// ============================================================================
+
+// BuildEventListener polls for completed builds and triggers deployment
+type BuildEventListener struct {
+	integrationService *SandboxIntegrationService
+	queries            *sqlc.Queries
+	logger             *slog.Logger
+	pollInterval       time.Duration
+}
+
+// NewBuildEventListener creates a new build event listener
+func NewBuildEventListener(
+	integrationService *SandboxIntegrationService,
+	pool *pgxpool.Pool,
+	logger *slog.Logger,
+) *BuildEventListener {
+	return &BuildEventListener{
+		integrationService: integrationService,
+		queries:            sqlc.New(pool),
+		logger:             logger.With("component", "build_event_listener"),
+		pollInterval:       10 * time.Second,
+	}
+}
+
+// Start begins listening for build events
+func (l *BuildEventListener) Start(ctx context.Context) {
+	ticker := time.NewTicker(l.pollInterval)
+	defer ticker.Stop()
+
+	l.logger.Info("build event listener started", "interval", l.pollInterval)
+
+	for {
+		select {
+		case <-ctx.Done():
+			l.logger.Info("build event listener stopped")
+			return
+		case <-ticker.C:
+			if err := l.checkRecentBuilds(ctx); err != nil {
+				l.logger.Error("failed to check recent builds", "error", err)
+			}
+		}
+	}
+}
+
+// checkRecentBuilds queries recent build events and triggers deployments
+func (l *BuildEventListener) checkRecentBuilds(ctx context.Context) error {
+	// Get recent build events with status "complete"
+	// Note: You need to implement this query in your SQL
+	events, err := l.queries.GetRecentBuildEvents(ctx, sqlc.GetRecentBuildEventsParams{
+		EventType: "build_complete",
+		Since:     time.Now().Add(-1 * time.Minute),
+		Limit:     10,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, event := range events {
+		// Get app details
+		app, err := l.queries.GetOSAGeneratedApp(ctx, event.AppID)
+		if err != nil {
+			l.logger.Warn("app not found for build event",
+				"app_id", event.AppID,
+				"error", err)
+			continue
+		}
+
+		// Skip if already deployed
+		if app.Status != nil && (*app.Status == "deployed" || *app.Status == "deploying") {
+			continue
+		}
+
+		// Parse metadata
+		appConfig, err := ParseAppConfig(app.Metadata)
+		if err != nil {
+			l.logger.Error("failed to parse app config",
+				"app_id", app.ID,
+				"error", err)
+			continue
+		}
+
+		// Extract workspace path from event data
+		workspacePath := extractWorkspacePathFromEventData(event.EventData)
+		if workspacePath == "" {
+			l.logger.Warn("no workspace path in event data", "app_id", app.ID)
+			continue
+		}
+
+		// Trigger deployment
+		err = l.integrationService.OnAppGenerationComplete(
+			ctx,
+			uuid.UUID(app.ID.Bytes),
+			workspacePath,
+			appConfig,
+		)
+		if err != nil {
+			l.logger.Error("deployment failed",
+				"app_id", app.ID,
+				"error", err)
+		}
+	}
+
+	return nil
+}
+
+// extractWorkspacePathFromEventData extracts workspace path from event JSONB
+func extractWorkspacePathFromEventData(eventData []byte) string {
+	var data map[string]interface{}
+	if err := json.Unmarshal(eventData, &data); err != nil {
+		return ""
+	}
+
+	if path, ok := data["workspace_path"].(string); ok {
+		return path
+	}
+	return ""
+}
+
+// ============================================================================
+// EXAMPLE 3: REST API Handlers
+// ============================================================================
+
+// SandboxAPIHandlers provides HTTP handlers for sandbox operations
+type SandboxAPIHandlers struct {
+	integrationService *SandboxIntegrationService
+	queries            *sqlc.Queries
+	logger             *slog.Logger
+}
+
+// NewSandboxAPIHandlers creates new API handlers
+func NewSandboxAPIHandlers(
+	integrationService *SandboxIntegrationService,
+	pool *pgxpool.Pool,
+	logger *slog.Logger,
+) *SandboxAPIHandlers {
+	return &SandboxAPIHandlers{
+		integrationService: integrationService,
+		queries:            sqlc.New(pool),
+		logger:             logger,
+	}
+}
+
+// RegisterRoutes registers all sandbox API routes
+func (h *SandboxAPIHandlers) RegisterRoutes(r chi.Router) {
+	r.Route("/apps/{appID}/sandbox", func(r chi.Router) {
+		r.Post("/deploy", h.HandleDeploy)
+		r.Post("/stop", h.HandleStop)
+		r.Post("/restart", h.HandleRestart)
+		r.Delete("/", h.HandleRemove)
+		r.Get("/", h.HandleGetInfo)
+		r.Get("/logs", h.HandleGetLogs)
+	})
+
+	r.Get("/workspaces/{workspaceID}/sandboxes", h.HandleListWorkspaceSandboxes)
+}
+
+// HandleDeploy deploys an app to a sandbox
+func (h *SandboxAPIHandlers) HandleDeploy(w http.ResponseWriter, r *http.Request) {
+	appIDStr := chi.URLParam(r, "appID")
+	appID, err := uuid.Parse(appIDStr)
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get app details
+	pgAppID := pgtype.UUID{Bytes: appID, Valid: true}
+	app, err := h.queries.GetOSAGeneratedApp(r.Context(), pgAppID)
+	if err != nil {
+		http.Error(w, "App not found", http.StatusNotFound)
+		return
+	}
+
+	// Parse config
+	appConfig, err := ParseAppConfig(app.Metadata)
+	if err != nil {
+		h.logger.Error("invalid app config", "app_id", appID, "error", err)
+		http.Error(w, "Invalid app configuration", http.StatusBadRequest)
+		return
+	}
+
+	// Get workspace path
+	// NOTE: You need to implement this based on your workspace storage
+	workspacePath := h.getWorkspacePathForApp(r.Context(), appID)
+	if workspacePath == "" {
+		http.Error(w, "Workspace path not found", http.StatusNotFound)
+		return
+	}
+
+	// Deploy
+	err = h.integrationService.OnAppGenerationComplete(
+		r.Context(),
+		appID,
+		workspacePath,
+		appConfig,
+	)
+	if err != nil {
+		h.logger.Error("deployment failed", "app_id", appID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "deploying",
+		"app_id":  appID.String(),
+		"message": "Deployment started",
+	})
+}
+
+// HandleStop stops a running sandbox
+func (h *SandboxAPIHandlers) HandleStop(w http.ResponseWriter, r *http.Request) {
+	appID, err := uuid.Parse(chi.URLParam(r, "appID"))
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.integrationService.StopAppSandbox(r.Context(), appID)
+	if err != nil {
+		h.logger.Error("stop failed", "app_id", appID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "stopped",
+		"app_id": appID.String(),
+	})
+}
+
+// HandleRestart restarts a sandbox
+func (h *SandboxAPIHandlers) HandleRestart(w http.ResponseWriter, r *http.Request) {
+	appID, err := uuid.Parse(chi.URLParam(r, "appID"))
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	info, err := h.integrationService.RestartAppSandbox(r.Context(), appID)
+	if err != nil {
+		h.logger.Error("restart failed", "app_id", appID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(info)
+}
+
+// HandleRemove removes a sandbox
+func (h *SandboxAPIHandlers) HandleRemove(w http.ResponseWriter, r *http.Request) {
+	appID, err := uuid.Parse(chi.URLParam(r, "appID"))
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.integrationService.RemoveAppSandbox(r.Context(), appID)
+	if err != nil {
+		h.logger.Error("remove failed", "app_id", appID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "removed",
+		"app_id": appID.String(),
+	})
+}
+
+// HandleGetInfo gets sandbox information
+func (h *SandboxAPIHandlers) HandleGetInfo(w http.ResponseWriter, r *http.Request) {
+	appID, err := uuid.Parse(chi.URLParam(r, "appID"))
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	info, err := h.integrationService.GetAppSandboxInfo(r.Context(), appID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(info)
+}
+
+// HandleGetLogs gets sandbox container logs
+func (h *SandboxAPIHandlers) HandleGetLogs(w http.ResponseWriter, r *http.Request) {
+	appID, err := uuid.Parse(chi.URLParam(r, "appID"))
+	if err != nil {
+		http.Error(w, "Invalid app ID", http.StatusBadRequest)
+		return
+	}
+
+	// Get query parameters
+	tail := r.URL.Query().Get("tail")
+	if tail == "" {
+		tail = "100" // Default to last 100 lines
+	}
+	since := r.URL.Query().Get("since") // e.g., "5m", "1h"
+
+	// Get sandbox info first
+	info, err := h.integrationService.GetAppSandboxInfo(r.Context(), appID)
+	if err != nil {
+		http.Error(w, "Sandbox not found", http.StatusNotFound)
+		return
+	}
+
+	// Get logs from sandbox service
+	// NOTE: You need to expose GetSandboxLogs through integration service
+	logs := "Logs feature not yet implemented"
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(logs))
+
+	_ = info // Use info if needed for additional context
+}
+
+// HandleListWorkspaceSandboxes lists all sandboxes for a workspace
+func (h *SandboxAPIHandlers) HandleListWorkspaceSandboxes(w http.ResponseWriter, r *http.Request) {
+	workspaceID, err := uuid.Parse(chi.URLParam(r, "workspaceID"))
+	if err != nil {
+		http.Error(w, "Invalid workspace ID", http.StatusBadRequest)
+		return
+	}
+
+	sandboxes, err := h.integrationService.ListWorkspaceAppSandboxes(r.Context(), workspaceID)
+	if err != nil {
+		h.logger.Error("list failed", "workspace_id", workspaceID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(sandboxes)
+}
+
+// getWorkspacePathForApp retrieves the workspace path for an app
+// NOTE: This is a placeholder - implement based on your storage strategy
+func (h *SandboxAPIHandlers) getWorkspacePathForApp(ctx context.Context, appID uuid.UUID) string {
+	// Option 1: Query from database
+	pgAppID := pgtype.UUID{Bytes: appID, Valid: true}
+	app, err := h.queries.GetOSAGeneratedApp(ctx, pgAppID)
+	if err != nil {
+		return ""
+	}
+
+	// Extract from metadata or construct from workspace ID
+	var metadata map[string]interface{}
+	if err := json.Unmarshal(app.Metadata, &metadata); err == nil {
+		if path, ok := metadata["workspace_path"].(string); ok {
+			return path
+		}
+	}
+
+	// Option 2: Construct from workspace ID
+	// return fmt.Sprintf("/path/to/workspaces/%s/%s", app.WorkspaceID, app.Name)
+
+	return ""
+}
+
+// ============================================================================
+// EXAMPLE 4: Server Initialization
+// ============================================================================
+
+// InitializeSandboxIntegration sets up the sandbox integration in your server
+func InitializeSandboxIntegration(
+	pool *pgxpool.Pool,
+	sandboxService *SandboxDeploymentService,
+	logger *slog.Logger,
+) (*SandboxIntegrationService, *SandboxAPIHandlers, *BuildEventListener) {
+	// Create integration service
+	integrationService := NewSandboxIntegrationService(
+		sandboxService,
+		pool,
+		nil, // config
+		logger,
+	)
+
+	// Configure
+	integrationService.SetWorkspaceBasePath("/path/to/osa_workspaces")
+	integrationService.SetAutoDeployEnabled(true)
+
+	// Create API handlers
+	apiHandlers := NewSandboxAPIHandlers(integrationService, pool, logger)
+
+	// Create build event listener (optional)
+	buildListener := NewBuildEventListener(integrationService, pool, logger)
+
+	return integrationService, apiHandlers, buildListener
+}
+
+// ============================================================================
+// NOTES:
+// ============================================================================
+//
+// 1. This file is DISABLED (extension: .go.disabled) and serves as reference only
+// 2. Copy relevant parts to your actual handler/service files
+// 3. Implement missing pieces like GetRecentBuildEvents SQL query
+// 4. Adapt workspace path logic to your storage strategy
+// 5. Add proper authentication/authorization to API handlers
+// 6. Consider rate limiting and quota enforcement
+// 7. Add metrics and monitoring
+// ============================================================================

@@ -1,0 +1,1261 @@
+package handlers
+
+import (
+	"log/slog"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rhl/businessos-backend/internal/cache"
+	"github.com/rhl/businessos-backend/internal/config"
+	"github.com/rhl/businessos-backend/internal/container"
+	"github.com/rhl/businessos-backend/internal/middleware"
+	"github.com/rhl/businessos-backend/internal/services"
+	"github.com/rhl/businessos-backend/internal/terminal"
+)
+
+// Handlers contains all HTTP handlers
+type Handlers struct {
+	pool                 *pgxpool.Pool
+	cfg                  *config.Config
+	containerMgr         *container.ContainerManager
+	sessionCache         *middleware.SessionCache       // Redis session cache for horizontal scaling
+	terminalPubSub       *terminal.TerminalPubSub       // Redis pub/sub for terminal scaling
+	embeddingService     *services.EmbeddingService     // Vector embedding service for RAG
+	contextBuilder       *services.ContextBuilder       // Hierarchical context builder for AI
+	tieredContextService *services.TieredContextService // Tiered context builder for scoped AI queries
+	notificationService  *services.NotificationService  // Notification service for real-time alerts
+	notificationTriggers *services.NotificationTriggers // Notification triggers for events
+	webPushService       *services.WebPushService       // Web Push notification service
+	emailService         *services.EmailService         // Email service via Resend
+	commentService       *services.CommentService       // Comment service with mentions
+	// AI services
+	documentProcessor        *services.DocumentProcessor               // Document processing with chunking
+	learningService          *services.LearningService                 // Learning and personalization
+	autoLearningTriggers     *services.AutoLearningTriggers            // Automatic learning from conversations
+	promptPersonalizer       *services.PromptPersonalizer              // Prompt personalization with user data
+	appProfilerService       *services.AppProfilerService              // Application profiling
+	conversationIntelligence *services.ConversationIntelligenceService // Conversation analysis
+	memoryExtractor          *services.MemoryExtractorService          // Memory extraction
+	blockMapper              *services.BlockMapperService              // Markdown to structured blocks
+	// Day 2 RAG services
+	hybridSearchService *services.HybridSearchService // Hybrid search (semantic + keyword)
+	rerankerService     *services.ReRankerService     // Re-ranking with multi-signal scoring
+	agenticRAGService   *services.AgenticRAGService   // Intelligent adaptive retrieval
+	memoryService       *services.MemoryService       // Memory persistence
+	// Feature 7: Multi-modal Search services
+	multiModalHandler *MultiModalSearchHandler // Multi-modal search handler (text + image)
+	// Feature 1: Workspace & Team Collaboration
+	workspaceService        *services.WorkspaceService        // Workspace management
+	workspaceVersionService *services.WorkspaceVersionService // Workspace versioning and snapshots
+	roleContextService      *services.RoleContextService      // Role-based access control
+	memoryHierarchyService  *services.MemoryHierarchyService  // Workspace memory hierarchy (Q1)
+	inviteService           *services.WorkspaceInviteService  // Workspace invitation management
+	auditService            *services.WorkspaceAuditService   // Workspace audit logging
+	projectAccessService    *services.ProjectAccessService    // Project-level access control
+	// Voice services (3D Desktop)
+	whisperService    *services.WhisperService    // Local speech-to-text
+	elevenLabsService *services.ElevenLabsService // Text-to-speech (OSA voice)
+	// Agent Skills System
+	skillsLoader *services.SkillsLoader // Skills loader for agent prompts
+	// Caching services
+	queryCache *cache.QueryCache // Query result caching service for Redis
+}
+
+// NewHandlers creates a new Handlers instance
+func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container.ContainerManager, sessionCache *middleware.SessionCache, terminalPubSub *terminal.TerminalPubSub, embeddingService *services.EmbeddingService, contextBuilder *services.ContextBuilder, tieredContextService *services.TieredContextService, notificationService *services.NotificationService) *Handlers {
+	var notifTriggers *services.NotificationTriggers
+	if notificationService != nil {
+		notifTriggers = services.NewNotificationTriggers(notificationService)
+	}
+
+	return &Handlers{
+		pool:                 pool,
+		cfg:                  cfg,
+		containerMgr:         containerMgr,
+		sessionCache:         sessionCache,
+		terminalPubSub:       terminalPubSub,
+		embeddingService:     embeddingService,
+		contextBuilder:       contextBuilder,
+		tieredContextService: tieredContextService,
+		notificationService:  notificationService,
+		notificationTriggers: notifTriggers,
+	}
+}
+
+// SetWebPushService sets the Web Push service (optional)
+func (h *Handlers) SetWebPushService(svc *services.WebPushService) {
+	h.webPushService = svc
+	// Also set on dispatcher if available
+	if h.notificationService != nil && svc != nil {
+		h.notificationService.Dispatcher().SetWebPushService(svc)
+	}
+}
+
+// SetEmailService sets the Email service (optional)
+func (h *Handlers) SetEmailService(svc *services.EmailService) {
+	h.emailService = svc
+	// Also set on dispatcher if available
+	if h.notificationService != nil && svc != nil {
+		h.notificationService.Dispatcher().SetEmailService(svc)
+	}
+}
+
+// SetCommentService sets the Comment service (optional)
+func (h *Handlers) SetCommentService(svc *services.CommentService) {
+	h.commentService = svc
+}
+
+// SetVoiceServices sets the voice services (3D Desktop - Whisper + ElevenLabs)
+func (h *Handlers) SetVoiceServices(whisper *services.WhisperService, elevenLabs *services.ElevenLabsService) {
+	h.whisperService = whisper
+	h.elevenLabsService = elevenLabs
+}
+
+// SetAIServices sets the AI-related services (optional, to avoid breaking existing code)
+func (h *Handlers) SetAIServices(
+	documentProcessor *services.DocumentProcessor,
+	learningService *services.LearningService,
+	autoLearningTriggers *services.AutoLearningTriggers,
+	promptPersonalizer *services.PromptPersonalizer,
+	appProfilerService *services.AppProfilerService,
+	conversationIntelligence *services.ConversationIntelligenceService,
+	memoryExtractor *services.MemoryExtractorService,
+	blockMapper *services.BlockMapperService,
+) {
+	h.documentProcessor = documentProcessor
+	h.learningService = learningService
+	h.autoLearningTriggers = autoLearningTriggers
+	h.promptPersonalizer = promptPersonalizer
+	h.appProfilerService = appProfilerService
+	h.conversationIntelligence = conversationIntelligence
+	h.memoryExtractor = memoryExtractor
+	h.blockMapper = blockMapper
+}
+
+// SetRAGServices sets the RAG services (Day 2)
+func (h *Handlers) SetRAGServices(
+	hybridSearch *services.HybridSearchService,
+	reranker *services.ReRankerService,
+	agenticRAG *services.AgenticRAGService,
+	memory *services.MemoryService,
+) {
+	h.hybridSearchService = hybridSearch
+	h.rerankerService = reranker
+	h.agenticRAGService = agenticRAG
+	h.memoryService = memory
+}
+
+// SetMultiModalServices sets the multi-modal search services (Feature 7)
+func (h *Handlers) SetMultiModalServices(
+	multiModalSearch *services.MultiModalSearchService,
+	imageEmbedding *services.ImageEmbeddingService,
+) {
+	// Create multimodal handler
+	h.multiModalHandler = NewMultiModalSearchHandler(multiModalSearch, imageEmbedding)
+}
+
+// SetWorkspaceService sets the workspace service (Feature 1)
+func (h *Handlers) SetWorkspaceService(workspaceService *services.WorkspaceService) {
+	h.workspaceService = workspaceService
+}
+
+// SetWorkspaceVersionService sets the workspace version service (Feature 1 - Versioning)
+func (h *Handlers) SetWorkspaceVersionService(workspaceVersionService *services.WorkspaceVersionService) {
+	h.workspaceVersionService = workspaceVersionService
+}
+
+// SetRoleContextService sets the role context service (Feature 1 - Permissions)
+func (h *Handlers) SetRoleContextService(roleContextService *services.RoleContextService) {
+	h.roleContextService = roleContextService
+}
+
+// SetMemoryHierarchyService sets the memory hierarchy service (Q1 - Memory Hierarchy)
+func (h *Handlers) SetMemoryHierarchyService(memoryHierarchyService *services.MemoryHierarchyService) {
+	h.memoryHierarchyService = memoryHierarchyService
+}
+
+// SetInviteService sets the workspace invite service (Feature 1 - Email Invites)
+func (h *Handlers) SetInviteService(inviteService *services.WorkspaceInviteService) {
+	h.inviteService = inviteService
+}
+
+// SetAuditService sets the workspace audit service (Feature 1 - Audit Logging)
+func (h *Handlers) SetAuditService(auditService *services.WorkspaceAuditService) {
+	h.auditService = auditService
+}
+
+// SetProjectAccessService sets the project access service (Feature 1 - Project Access Control)
+func (h *Handlers) SetProjectAccessService(projectAccessService *services.ProjectAccessService) {
+	h.projectAccessService = projectAccessService
+}
+
+// SetSkillsLoader sets the skills loader (Agent Skills System)
+func (h *Handlers) SetSkillsLoader(skillsLoader *services.SkillsLoader) {
+	h.skillsLoader = skillsLoader
+}
+
+// SetQueryCache sets the query cache service (optional, for Redis-based caching)
+func (h *Handlers) SetQueryCache(queryCache *cache.QueryCache) {
+	h.queryCache = queryCache
+}
+
+// RegisterRoutes registers all API routes
+func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
+	// Auth middleware for protected routes - uses Redis cache if available
+	var auth gin.HandlerFunc
+	if h.sessionCache != nil {
+		// Use Redis-cached auth for horizontal scaling
+		auth = middleware.CachedAuthMiddleware(h.pool, h.sessionCache)
+	} else {
+		// Fallback to direct DB auth (single instance mode)
+		auth = middleware.AuthMiddleware(h.pool)
+	}
+	optionalAuth := middleware.OptionalAuthMiddleware(h.pool) // For dev-friendly routes
+
+	// Chat routes - /api/chat
+	chat := api.Group("/chat")
+	chat.Use(auth, middleware.RequireAuth())
+	chat.Use(middleware.AuditSensitiveAccess("conversation"))
+	{
+		chat.GET("/conversations", h.ListConversations)
+		chat.POST("/conversations", h.CreateConversation)
+		chat.GET("/conversations/:id", h.GetConversation)
+		chat.PUT("/conversations/:id", h.UpdateConversation)
+		chat.DELETE("/conversations/:id", h.DeleteConversation)
+		chat.POST("/message", h.SendMessageV2)    // V1 redirected to V2
+		chat.POST("/v2/message", h.SendMessageV2) // V2 with COT and SSE events
+		chat.GET("/search", h.SearchConversations)
+		// AI-powered endpoints
+		chat.POST("/ai/document", h.DocumentAI)
+		chat.POST("/ai/analyze", h.AnalyzeContent)
+		chat.POST("/ai/extract-tasks", h.ExtractTasks)
+		chat.POST("/ai/plan", h.CreatePlan)
+	}
+
+	// Artifacts routes - /api/artifacts
+	artifacts := api.Group("/artifacts")
+	artifacts.Use(auth, middleware.RequireAuth())
+	{
+		artifacts.GET("", h.ListArtifacts)
+		artifacts.POST("", h.CreateArtifact)
+		artifacts.GET("/:id", h.GetArtifact)
+		artifacts.PATCH("/:id", h.UpdateArtifact)
+		artifacts.PATCH("/:id/link", h.LinkArtifact)
+		artifacts.DELETE("/:id", h.DeleteArtifact)
+		artifacts.GET("/:id/versions", h.GetArtifactVersions)
+		artifacts.POST("/:id/restore", h.RestoreArtifactVersion)
+	}
+
+	// Contexts routes - /api/contexts
+	contexts := api.Group("/contexts")
+	{
+		// Public route (no auth)
+		contexts.GET("/public/:shareId", h.GetPublicContext)
+
+		// Protected routes
+		protected := contexts.Group("")
+		protected.Use(auth, middleware.RequireAuth())
+		{
+			protected.GET("", h.ListContexts)
+			protected.POST("", h.CreateContext)
+			protected.GET("/:id", h.GetContext)
+			protected.PUT("/:id", h.UpdateContext)
+			protected.PATCH("/:id/blocks", h.UpdateContextBlocks)
+			protected.POST("/:id/share", h.ShareContext)
+			protected.DELETE("/:id/share", h.UnshareContext)
+			protected.POST("/:id/duplicate", h.DuplicateContext)
+			protected.PATCH("/:id/archive", h.ArchiveContext)
+			protected.PATCH("/:id/unarchive", h.UnarchiveContext)
+			protected.DELETE("/:id", h.DeleteContext)
+			protected.POST("/aggregate", h.AggregateContext)
+		}
+	}
+
+	// Projects routes - /api/projects
+	projects := api.Group("/projects")
+	projects.Use(auth, middleware.RequireAuth())
+	{
+		projects.GET("", h.ListProjects)
+		projects.POST("", h.CreateProject)
+		projects.GET("/stats", h.GetProjectStats)
+		projects.GET("/overdue", h.GetOverdueProjects)
+		projects.GET("/upcoming", h.GetUpcomingProjects)
+		projects.GET("/:id", h.GetProject)
+		projects.PUT("/:id", h.UpdateProject)
+		projects.DELETE("/:id", h.DeleteProject)
+		projects.POST("/:id/notes", h.AddProjectNote)
+		// Project members (team assignment with role-based access)
+		projects.GET("/:id/members", h.ListProjectMembers)
+		projects.POST("/:id/members", h.AddProjectMember)
+		projects.PUT("/:id/members/:memberId/role", h.UpdateProjectMemberRole)
+		projects.DELETE("/:id/members/:memberId", h.RemoveProjectMember)
+		projects.GET("/:id/access/:userId", h.CheckProjectAccess)
+	}
+
+	// Clients routes - /api/clients
+	clients := api.Group("/clients")
+	clients.Use(auth, middleware.RequireAuth())
+	{
+		clients.GET("", h.ListClients)
+		clients.POST("", h.CreateClient)
+		clients.GET("/:id", h.GetClient)
+		clients.PUT("/:id", h.UpdateClient)
+		clients.PATCH("/:id/status", h.UpdateClientStatus)
+		clients.DELETE("/:id", h.DeleteClient)
+		// Contacts
+		clients.GET("/:id/contacts", h.ListClientContacts)
+		clients.POST("/:id/contacts", h.CreateClientContact)
+		clients.PUT("/:id/contacts/:contactId", h.UpdateClientContact)
+		clients.DELETE("/:id/contacts/:contactId", h.DeleteClientContact)
+		// Interactions
+		clients.GET("/:id/interactions", h.ListClientInteractions)
+		clients.POST("/:id/interactions", h.CreateClientInteraction)
+		// Deals
+		clients.GET("/:id/deals", h.ListClientDeals)
+		clients.POST("/:id/deals", h.CreateClientDeal)
+		clients.PUT("/:id/deals/:dealId", h.UpdateClientDeal)
+	}
+
+	// Deals routes - /api/deals (legacy simple deals)
+	deals := api.Group("/deals")
+	deals.Use(auth, middleware.RequireAuth())
+	{
+		deals.GET("", h.ListDeals)
+		deals.PATCH("/:id/stage", h.UpdateDealStage)
+	}
+
+	// CRM routes - /api/crm (full CRM pipeline system)
+	crm := api.Group("/crm")
+	crm.Use(auth, middleware.RequireAuth())
+	{
+		// Companies
+		crm.GET("/companies", h.ListCompanies)
+		crm.POST("/companies", h.CreateCompany)
+		crm.GET("/companies/search", h.SearchCompanies)
+		crm.GET("/companies/:id", h.GetCompany)
+		crm.PUT("/companies/:id", h.UpdateCompany)
+		crm.DELETE("/companies/:id", h.DeleteCompany)
+		// Company contacts (linking to clients)
+		crm.GET("/companies/:id/contacts", h.ListCompanyContacts)
+		crm.POST("/companies/:id/contacts", h.LinkContactToCompany)
+		crm.DELETE("/companies/:id/contacts/:relationId", h.UnlinkContactFromCompany)
+
+		// Pipelines
+		crm.GET("/pipelines", h.ListPipelines)
+		crm.POST("/pipelines", h.CreatePipeline)
+		crm.GET("/pipelines/:id", h.GetPipeline)
+		crm.PUT("/pipelines/:id", h.UpdatePipeline)
+		crm.DELETE("/pipelines/:id", h.DeletePipeline)
+		// Pipeline stages
+		crm.GET("/pipelines/:id/stages", h.ListPipelineStages)
+		crm.POST("/pipelines/:id/stages", h.CreatePipelineStage)
+		crm.PUT("/pipelines/:id/stages/:stageId", h.UpdatePipelineStage)
+		crm.DELETE("/pipelines/:id/stages/:stageId", h.DeletePipelineStage)
+		crm.POST("/pipelines/:id/stages/reorder", h.ReorderPipelineStages)
+
+		// Deals (CRM pipeline deals)
+		crm.GET("/deals", h.ListCRMDeals)
+		crm.POST("/deals", h.CreateCRMDeal)
+		crm.GET("/deals/stats", h.GetCRMDealStats)
+		crm.GET("/deals/:id", h.GetCRMDeal)
+		crm.PUT("/deals/:id", h.UpdateCRMDeal)
+		crm.PATCH("/deals/:id/stage", h.MoveCRMDealStage)
+		crm.PATCH("/deals/:id/status", h.UpdateCRMDealStatus)
+		crm.DELETE("/deals/:id", h.DeleteCRMDeal)
+		// Deal activities
+		crm.GET("/deals/:id/activities", h.ListDealActivities)
+
+		// Activities
+		crm.GET("/activities", h.ListCRMActivities)
+		crm.POST("/activities", h.CreateCRMActivity)
+		crm.POST("/activities/:id/complete", h.CompleteCRMActivity)
+		crm.DELETE("/activities/:id", h.DeleteCRMActivity)
+	}
+
+	// Dashboard routes - /api/dashboard
+	dashboard := api.Group("/dashboard")
+	dashboard.Use(auth, middleware.RequireAuth())
+	{
+		dashboard.GET("/summary", h.GetDashboardSummary)
+		// Focus items
+		dashboard.GET("/focus", h.ListFocusItems)
+		dashboard.POST("/focus", h.CreateFocusItem)
+		dashboard.PUT("/focus/:id", h.UpdateFocusItem)
+		dashboard.DELETE("/focus/:id", h.DeleteFocusItem)
+		// Tasks
+		dashboard.GET("/tasks", h.ListTasks)
+		dashboard.POST("/tasks", h.CreateTask)
+		dashboard.PUT("/tasks/:id", h.UpdateTask)
+		dashboard.POST("/tasks/:id/toggle", h.ToggleTask)
+		dashboard.DELETE("/tasks/:id", h.DeleteTask)
+	}
+
+	// Team routes - /api/team
+	team := api.Group("/team")
+	team.Use(auth, middleware.RequireAuth())
+	{
+		team.GET("", h.ListTeamMembers)
+		team.POST("", h.CreateTeamMember)
+		team.GET("/:id", h.GetTeamMember)
+		team.PUT("/:id", h.UpdateTeamMember)
+		team.PATCH("/:id/status", h.UpdateTeamMemberStatus)
+		team.PATCH("/:id/capacity", h.UpdateTeamMemberCapacity)
+		team.POST("/:id/activity", h.AddTeamMemberActivity)
+		team.DELETE("/:id", h.DeleteTeamMember)
+	}
+
+	// Workspaces routes - /api/workspaces (Feature 1: Team/Collaboration)
+	workspaces := api.Group("/workspaces")
+	workspaces.Use(auth, middleware.RequireAuth())
+	{
+		// Workspace CRUD - no role context needed for create/list
+		workspaces.POST("", h.CreateWorkspace)
+		workspaces.GET("", h.ListWorkspaces)
+
+		// Workspace-scoped routes - inject role context
+		workspaceScoped := workspaces.Group("/:id")
+		workspaceScoped.Use(middleware.InjectRoleContext(h.pool, h.roleContextService))
+		{
+			// Read operations - any member
+			workspaceScoped.GET("", h.GetWorkspace)
+			workspaceScoped.GET("/members", h.ListWorkspaceMembers)
+			workspaceScoped.GET("/roles", h.ListWorkspaceRoles)
+			workspaceScoped.GET("/profile", h.GetWorkspaceProfile)     // User's profile in workspace
+			workspaceScoped.GET("/role-context", h.GetUserRoleContext) // User's role & permissions
+
+			// Update user profile
+			workspaceScoped.PUT("/profile", h.UpdateWorkspaceProfile)
+
+			// Update workspace - requires admin or owner
+			workspaceScoped.PUT("", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspace)
+
+			// Delete workspace - requires owner only
+			workspaceScoped.DELETE("", middleware.RequireWorkspaceOwner(h.pool), h.DeleteWorkspace)
+
+			// Invite members - requires manager, admin, or owner
+			workspaceScoped.POST("/members/invite", middleware.RequireWorkspaceManager(), h.AddWorkspaceMember)
+
+			// Update/remove members - requires admin or owner
+			workspaceScoped.PUT("/members/:userId", middleware.RequireWorkspaceAdmin(), h.UpdateWorkspaceMemberRole)
+			workspaceScoped.DELETE("/members/:userId", middleware.RequireWorkspaceAdmin(), h.RemoveWorkspaceMember)
+
+			// Workspace invitations - manager+ can invite
+			workspaceScoped.POST("/invites", middleware.RequireWorkspaceManager(), h.CreateWorkspaceInvite)
+			workspaceScoped.GET("/invites", middleware.RequireWorkspaceAdmin(), h.ListWorkspaceInvites)
+			workspaceScoped.DELETE("/invites/:inviteId", middleware.RequireWorkspaceAdmin(), h.RevokeWorkspaceInvite)
+
+			// Audit logs - admin+ can view
+			workspaceScoped.GET("/audit-logs", middleware.RequireWorkspaceAdmin(), h.ListAuditLogs)
+			workspaceScoped.GET("/audit-logs/:logId", middleware.RequireWorkspaceAdmin(), h.GetAuditLog)
+			workspaceScoped.GET("/audit-logs/user/:userId", middleware.RequireWorkspaceAdmin(), h.GetUserActivity)
+			workspaceScoped.GET("/audit-logs/resource/:resourceType/:resourceId", middleware.RequireWorkspaceAdmin(), h.GetResourceHistory)
+			workspaceScoped.GET("/audit-logs/stats/actions", middleware.RequireWorkspaceAdmin(), h.GetActionStats)
+			workspaceScoped.GET("/audit-logs/stats/active-users", middleware.RequireWorkspaceAdmin(), h.GetMostActiveUsers)
+
+			// Workspace memory routes - CUS-25
+			memoryHandler := NewWorkspaceMemoryHandlers(h.pool)
+			RegisterWorkspaceMemoryRoutes(workspaceScoped, memoryHandler)
+
+			// Workspace version routes - snapshots and restore
+			workspaceScoped.GET("/versions", h.ListWorkspaceVersions)
+			workspaceScoped.POST("/versions", middleware.RequireWorkspaceAdmin(), h.CreateWorkspaceVersion)
+			workspaceScoped.GET("/versions/:version", h.GetWorkspaceVersion)
+			workspaceScoped.GET("/versions/compare/:v1/:v2", h.CompareWorkspaceVersions)
+			workspaceScoped.POST("/restore/:version", middleware.RequireWorkspaceAdmin(), h.RestoreWorkspaceVersion)
+
+			// User generated apps routes - post-onboarding app generation
+			workspaceScoped.GET("/apps", h.ListUserApps)
+			workspaceScoped.POST("/apps", h.CreateUserAppFromTemplate)
+			workspaceScoped.GET("/apps/:appId", h.GetUserApp)
+			workspaceScoped.PATCH("/apps/:appId", h.UpdateUserApp)
+			workspaceScoped.DELETE("/apps/:appId", h.DeleteUserApp)
+			workspaceScoped.POST("/apps/:appId/access", h.IncrementAppAccessCount)
+
+			// App versioning routes (per-app version management)
+			workspaceScoped.GET("/apps/:appId/versions", h.ListAppVersions)
+			workspaceScoped.GET("/apps/:appId/versions/latest", h.GetLatestAppVersion)
+			workspaceScoped.GET("/apps/:appId/versions/stats", h.GetAppVersionStats)
+			workspaceScoped.GET("/apps/:appId/versions/:versionNumber", h.GetAppVersion)
+			workspaceScoped.POST("/apps/:appId/versions", h.CreateAppSnapshot)
+			workspaceScoped.POST("/apps/:appId/restore/:versionNumber", h.RestoreAppVersion)
+			workspaceScoped.DELETE("/apps/:appId/versions/cleanup", h.DeleteOldAppVersions)
+
+			// Template recommendations (workspace-scoped)
+			workspaceScoped.GET("/template-recommendations", h.GetTemplateRecommendations)
+		}
+
+		// Public invite endpoints (no workspace context needed)
+		workspaces.POST("/invites/validate", h.ValidateWorkspaceInvite)
+		workspaces.POST("/invites/accept", h.AcceptWorkspaceInvite)
+	}
+
+	// App Templates routes - /api/app-templates
+	appTemplates := api.Group("/app-templates")
+	appTemplates.Use(auth, middleware.RequireAuth())
+	{
+		appTemplates.GET("", h.ListAppTemplates)
+		appTemplates.GET("/builtin", h.GetBuiltInTemplates)
+		appTemplates.GET("/:id", h.GetAppTemplate)
+		appTemplates.POST("/:id/generate", h.GenerateFromTemplate)
+	}
+
+	// Nodes routes - /api/nodes
+	nodes := api.Group("/nodes")
+	nodes.Use(auth, middleware.RequireAuth())
+	{
+		nodes.GET("", h.ListNodes)
+		nodes.GET("/tree", h.GetNodeTree)
+		nodes.GET("/active", h.GetActiveNode)
+		nodes.POST("", h.CreateNode)
+		nodes.GET("/:id", h.GetNode)
+		nodes.PATCH("/:id", h.UpdateNode)
+		nodes.POST("/:id/activate", h.ActivateNode)
+		nodes.POST("/:id/deactivate", h.DeactivateNode)
+		nodes.DELETE("/:id", h.DeleteNode)
+		nodes.GET("/:id/children", h.GetNodeChildren)
+		nodes.POST("/:id/reorder", h.ReorderNodes)
+		nodes.POST("/:id/archive", h.ArchiveNode)
+		nodes.POST("/:id/unarchive", h.UnarchiveNode)
+		// Node linking
+		nodes.GET("/:id/links", h.GetNodeLinks)
+		nodes.GET("/:id/links/counts", h.GetNodeLinkCounts)
+		nodes.POST("/:id/links/projects", h.LinkNodeProject)
+		nodes.DELETE("/:id/links/projects/:projectId", h.UnlinkNodeProject)
+		nodes.POST("/:id/links/contexts", h.LinkNodeContext)
+		nodes.DELETE("/:id/links/contexts/:contextId", h.UnlinkNodeContext)
+		nodes.POST("/:id/links/conversations", h.LinkNodeConversation)
+		nodes.DELETE("/:id/links/conversations/:conversationId", h.UnlinkNodeConversation)
+	}
+
+	// Daily logs routes - /api/daily
+	daily := api.Group("/daily")
+	daily.Use(auth, middleware.RequireAuth())
+	{
+		daily.GET("/logs", h.ListDailyLogs)
+		daily.GET("/logs/today", h.GetTodayLog)
+		daily.GET("/logs/:date", h.GetDailyLogByDate)
+		daily.POST("/logs", h.CreateOrUpdateDailyLog)
+		daily.PUT("/logs/:id", h.UpdateDailyLog)
+		daily.DELETE("/logs/:id", h.DeleteDailyLog)
+	}
+
+	// Settings routes - /api/settings
+	settings := api.Group("/settings")
+	settings.Use(auth, middleware.RequireAuth())
+	{
+		settings.GET("", h.GetSettings)
+		settings.PUT("", h.UpdateSettings)
+		settings.GET("/system", h.GetSystemSettings)
+		settings.GET("/full-state", h.GetFullState) // Complete state for UI sync
+	}
+
+	// Thinking/COT routes - /api/thinking
+	thinking := api.Group("/thinking")
+	thinking.Use(auth, middleware.RequireAuth())
+	{
+		// Thinking traces
+		thinking.GET("/traces/:conversationId", h.ListThinkingTraces)
+		thinking.GET("/trace/:messageId", h.GetThinkingTraceByMessage)
+		thinking.DELETE("/traces/:conversationId", h.DeleteThinkingTraces)
+		// Thinking settings
+		thinking.GET("/settings", h.GetThinkingSettings)
+		thinking.PUT("/settings", h.UpdateThinkingSettings)
+	}
+
+	// Reasoning templates routes - /api/reasoning
+	reasoning := api.Group("/reasoning")
+	reasoning.Use(auth, middleware.RequireAuth())
+	{
+		reasoning.GET("/templates", h.ListReasoningTemplates)
+		reasoning.POST("/templates", h.CreateReasoningTemplate)
+		reasoning.GET("/templates/:id", h.GetReasoningTemplate)
+		reasoning.PUT("/templates/:id", h.UpdateReasoningTemplate)
+		reasoning.DELETE("/templates/:id", h.DeleteReasoningTemplate)
+		reasoning.POST("/templates/:id/default", h.SetDefaultReasoningTemplate)
+	}
+
+	// Focus Mode routes - /api/focus
+	focus := api.Group("/focus")
+	focus.Use(auth, middleware.RequireAuth())
+	{
+		focus.GET("/templates", h.GetFocusModeTemplates)
+		focus.GET("/settings", h.GetEffectiveFocusSettings)
+		focus.POST("/preflight", h.BuildPreflightContext)
+	}
+
+	// Web Search routes - /api/search
+	search := api.Group("/search")
+	search.Use(auth, middleware.RequireAuth())
+	{
+		search.GET("/web", h.WebSearch)                           // Basic web search
+		search.GET("/context", h.WebSearchWithContext)            // Search with formatted context
+		search.GET("/history", h.ListSearchHistory)               // List user's search history
+		search.GET("/history/:id", h.GetSearchHistoryEntry)       // Get specific search details
+		search.DELETE("/history/:id", h.DeleteSearchHistoryEntry) // Delete specific search
+		search.DELETE("/history", h.ClearSearchHistory)           // Clear all search history
+
+		// Enhanced RAG search endpoints
+		if h.hybridSearchService != nil {
+			search.POST("/hybrid", h.HybridSearch) // Hybrid semantic + keyword search
+			search.POST("/rerank", h.HybridSearch) // Re-rank search results (uses hybrid search)
+		}
+		if h.multiModalHandler != nil {
+			search.POST("/multimodal", h.multiModalHandler.SearchWithImage) // Multi-modal search
+		}
+		if h.hybridSearchService != nil {
+			search.GET("/explain", h.HybridSearchExplain) // Explain search results
+		}
+	}
+
+	// AI configuration routes - /api/ai
+	ai := api.Group("/ai")
+	ai.Use(auth, middleware.RequireAuth())
+	{
+		ai.GET("/providers", h.GetLLMProviders)
+		ai.GET("/models", h.GetAllModels)
+		ai.GET("/models/local", h.GetLocalModels)
+		ai.POST("/models/pull", h.PullModel)
+		ai.POST("/models/warmup", h.WarmupModel)
+		ai.GET("/system", h.GetSystemInfo)
+		ai.POST("/api-key", h.SaveAPIKey)
+		ai.PUT("/provider", h.UpdateAIProvider)
+		// Output styles & preferences
+		ai.GET("/output-styles", h.ListOutputStyles)
+		ai.GET("/output-preferences", h.GetUserOutputPreference)
+		ai.PUT("/output-preferences", h.UpsertUserOutputPreference)
+		// Agent presets (templates for custom agents) - must be before /agents/:id
+		ai.GET("/agents/presets", h.ListAgentPresets)
+		ai.GET("/agents/presets/:id", h.GetAgentPreset)
+		// Agent prompts (built-in)
+		ai.GET("/agents", h.GetAgentPrompts)
+		ai.GET("/agents/:id", h.GetAgentPrompt)
+		// Custom user agents - specific routes before parameterized ones
+		ai.GET("/custom-agents", h.ListCustomAgents)
+		ai.POST("/custom-agents", h.CreateCustomAgent)
+		ai.POST("/custom-agents/sandbox", h.TestCustomAgent) // Test arbitrary prompt
+		ai.GET("/custom-agents/category/:category", h.ListCustomAgentsByCategory)
+		ai.POST("/custom-agents/from-preset/:presetId", h.CreateAgentFromPreset)
+		ai.GET("/custom-agents/:id", h.GetCustomAgent)
+		ai.PUT("/custom-agents/:id", h.UpdateCustomAgent)
+		ai.DELETE("/custom-agents/:id", h.DeleteCustomAgent)
+		ai.POST("/custom-agents/:id/test", h.TestCustomAgent) // Test existing agent
+		// Slash commands (built-in + custom)
+		ai.GET("/commands", h.ListCommands)
+		// Custom user commands CRUD
+		ai.POST("/commands", h.CreateUserCommand)
+		ai.GET("/commands/:id", h.GetUserCommand)
+		ai.PUT("/commands/:id", h.UpdateUserCommand)
+		ai.DELETE("/commands/:id", h.DeleteUserCommand)
+		// Intent classification / routing
+		routerHandler := NewRouterHandler(h.pool)
+		routerHandler.RegisterRoutes(ai)
+		// Workflow routes
+		ai.GET("/workflows", h.ListWorkflows)
+		ai.POST("/workflows", h.CreateWorkflow)
+		ai.GET("/workflows/:id", h.GetWorkflow)
+		ai.DELETE("/workflows/:id", h.DeleteWorkflow)
+		ai.POST("/workflows/:id/execute", h.ExecuteWorkflow)
+		ai.POST("/workflows/trigger/:trigger", h.ExecuteWorkflowByTrigger)
+		ai.GET("/workflows/executions", h.ListWorkflowExecutions)
+		ai.GET("/workflows/executions/:id", h.GetWorkflowExecution)
+	}
+
+	// Usage analytics routes - /api/usage
+	usage := api.Group("/usage")
+	usage.Use(auth, middleware.RequireAuth())
+	{
+		usage.GET("/summary", h.GetUsageSummary)
+		usage.GET("/providers", h.GetUsageByProvider)
+		usage.GET("/models", h.GetUsageByModel)
+		usage.GET("/agents", h.GetUsageByAgent)
+		usage.GET("/trend", h.GetUsageTrend)
+		usage.GET("/recent", h.GetRecentAIUsage)
+		usage.GET("/mcp", h.GetMCPUsage)
+	}
+
+	// Notification routes - /api/notifications
+	if h.notificationService != nil {
+		notifHandler := NewNotificationHandler(h.notificationService)
+		notifications := api.Group("/notifications")
+		notifications.Use(auth, middleware.RequireAuth())
+		{
+			notifications.GET("", notifHandler.ListNotifications)
+			notifications.GET("/unread-count", notifHandler.GetUnreadCount)
+			notifications.GET("/stream", notifHandler.Stream)
+			notifications.GET("/preferences", notifHandler.GetPreferences)
+			notifications.PUT("/preferences", notifHandler.UpdatePreferences)
+			notifications.POST("/:id/read", notifHandler.MarkAsRead)
+			notifications.POST("/read", notifHandler.MarkMultipleAsRead)
+			notifications.POST("/read-all", notifHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notifHandler.DeleteNotification)
+
+			// Web Push routes
+			if h.webPushService != nil {
+				pushHandler := NewWebPushHandler(h.webPushService)
+				notifications.GET("/push/vapid-public-key", pushHandler.GetVAPIDPublicKey)
+				notifications.POST("/push/subscribe", pushHandler.Subscribe)
+				notifications.POST("/push/unsubscribe", pushHandler.Unsubscribe)
+				notifications.POST("/push/test", pushHandler.TestPush)
+			}
+		}
+
+		// DEV ONLY: Notification seeding routes - /api/dev/notifications
+		if IsDevMode() {
+			seedHandler := NewNotificationSeedHandler(h.pool, h.notificationService)
+			devNotifications := api.Group("/dev/notifications")
+			devNotifications.Use(auth, middleware.RequireAuth())
+			{
+				devNotifications.POST("/seed", seedHandler.SeedNotifications)
+				devNotifications.POST("/seed-full", seedHandler.SeedNotificationsWithTimestamps)
+				devNotifications.DELETE("/seed", seedHandler.ClearSeedNotifications)
+			}
+		}
+	}
+
+	// Email routes - /api/email
+	emailHandler := NewEmailHandler()
+	email := api.Group("/email")
+	email.Use(auth, middleware.RequireAuth())
+	{
+		email.GET("/status", emailHandler.GetEmailStatus)
+		email.POST("/test", emailHandler.HandleTestEmail)
+		email.POST("/send/verification", emailHandler.HandleSendVerificationEmail)
+		email.POST("/send/password-reset", emailHandler.HandleSendPasswordResetEmail)
+		email.POST("/send/welcome", emailHandler.HandleSendWelcomeEmail)
+	}
+
+	// Custom Dashboards routes - /api/user-dashboards
+	userDashboards := api.Group("/user-dashboards")
+	userDashboards.Use(auth, middleware.RequireAuth())
+	{
+		userDashboards.GET("", h.ListUserDashboards)
+		userDashboards.POST("", h.CreateUserDashboard)
+		userDashboards.GET("/:id", h.GetUserDashboard)
+		userDashboards.PUT("/:id", h.UpdateUserDashboard)
+		userDashboards.DELETE("/:id", h.DeleteUserDashboard)
+		userDashboards.POST("/:id/duplicate", h.DuplicateUserDashboard)
+		userDashboards.PUT("/:id/layout", h.UpdateDashboardLayout)
+		userDashboards.POST("/:id/default", h.SetDefaultUserDashboard)
+		userDashboards.POST("/:id/share", h.ShareUserDashboard)
+	}
+	// Public shared dashboard access (no auth)
+	api.GET("/user-dashboards/shared/:token", h.GetSharedDashboard)
+
+	// Dashboard Widgets routes - /api/widgets
+	widgets := api.Group("/widgets")
+	widgets.Use(auth, middleware.RequireAuth())
+	{
+		widgets.GET("", h.ListWidgetTypes)
+		widgets.GET("/:type/schema", h.GetWidgetSchema)
+	}
+
+	// Dashboard Templates routes - /api/dashboard-templates
+	dashboardTemplates := api.Group("/dashboard-templates")
+	dashboardTemplates.Use(auth, middleware.RequireAuth())
+	{
+		dashboardTemplates.GET("", h.ListDashboardTemplates)
+		dashboardTemplates.POST("/create-from/:id", h.CreateDashboardFromTemplate)
+	}
+
+	// Analytics routes - /api/analytics
+	analytics := api.Group("/analytics")
+	analytics.Use(auth, middleware.RequireAuth())
+	{
+		analytics.GET("/summary", h.GetAnalyticsSummary)
+		analytics.GET("/task-burndown", h.GetTaskBurndown)
+		analytics.GET("/workload", h.GetWorkloadHeatmap)
+		analytics.GET("/upcoming-deadlines", h.GetUpcomingDeadlines)
+	}
+
+	// Comments routes - /api/comments
+	if h.commentService != nil {
+		comments := api.Group("/comments")
+		comments.Use(auth, middleware.RequireAuth())
+		{
+			comments.GET("", h.GetComments)
+			comments.POST("", h.CreateComment)
+			comments.GET("/:id", h.GetComment)
+			comments.PUT("/:id", h.UpdateComment)
+			comments.DELETE("/:id", h.DeleteComment)
+			comments.POST("/:id/reactions", h.AddCommentReaction)
+			comments.DELETE("/:id/reactions/:emoji", h.RemoveCommentReaction)
+		}
+
+		// Task comments - /api/tasks/:id/comments
+		api.GET("/tasks/:id/comments", auth, middleware.RequireAuth(), h.GetTaskComments)
+		api.POST("/tasks/:id/comments", auth, middleware.RequireAuth(), h.CreateTaskComment)
+
+		// Project comments - /api/projects/:id/comments
+		api.GET("/projects/:id/comments", auth, middleware.RequireAuth(), h.GetProjectComments)
+		api.POST("/projects/:id/comments", auth, middleware.RequireAuth(), h.CreateProjectComment)
+	}
+
+	// Embeddings routes - /api/embeddings (for RAG and semantic search)
+	if h.embeddingService != nil && h.contextBuilder != nil {
+		embeddingHandler := NewEmbeddingHandler(h.embeddingService, h.contextBuilder)
+		embeddings := api.Group("/embeddings")
+		embeddings.Use(auth, middleware.RequireAuth())
+		{
+			embeddings.POST("/index/:id", embeddingHandler.IndexDocument)
+			embeddings.POST("/search", embeddingHandler.SemanticSearch)
+			embeddings.POST("/context", embeddingHandler.BuildAIContext)
+			embeddings.GET("/context/:id", embeddingHandler.GetDocumentContext)
+			embeddings.GET("/stats", embeddingHandler.GetStats)
+			embeddings.GET("/health", embeddingHandler.HealthCheck)
+		}
+	}
+
+	// RAG routes - /api/rag (Day 2: Advanced retrieval with hybrid search + agentic RAG)
+	if h.hybridSearchService != nil || h.agenticRAGService != nil || h.memoryService != nil || h.rerankerService != nil || h.multiModalHandler != nil {
+		rag := api.Group("/rag")
+		rag.Use(auth, middleware.RequireAuth())
+		{
+			// Hybrid search endpoints
+			if h.hybridSearchService != nil {
+				rag.POST("/search/hybrid", h.HybridSearch)
+				rag.POST("/search/hybrid/explain", h.HybridSearchExplain)
+			}
+
+			// Re-ranking endpoints
+			if h.rerankerService != nil {
+				rag.POST("/search/rerank", h.ReRankResults)
+				rag.POST("/search/rerank/explain", h.ReRankExplain)
+			}
+
+			// Search explanation endpoint (hybrid search only, multimodal is registered separately)
+			if h.hybridSearchService != nil {
+				rag.GET("/search/explain", h.SearchExplain)
+			}
+
+			// Agentic RAG endpoint
+			if h.agenticRAGService != nil {
+				rag.POST("/retrieve", h.AgenticRAGRetrieve)
+			}
+
+			// Memory endpoints
+			if h.memoryService != nil {
+				rag.GET("/memories", h.MemoryList)
+				rag.GET("/memories/:id", h.MemoryGet)
+				rag.POST("/memories", h.MemoryCreate)
+			}
+		}
+	}
+
+	// Multi-modal Search routes - /api/images, /api/search (Feature 7: Multi-modal Embeddings)
+	if h.multiModalHandler != nil {
+		h.RegisterMultiModalRoutes(api, h.multiModalHandler)
+	}
+
+	// Memory routes - /api/memories (episodic memory system)
+	memoryHandler := NewMemoryHandler(h.pool, h.embeddingService)
+	memories := api.Group("/memories")
+	memories.Use(auth, middleware.RequireAuth())
+	memories.Use(middleware.AuditSensitiveAccess("memory"))
+	{
+		memories.GET("", memoryHandler.ListMemories)
+		memories.POST("", memoryHandler.CreateMemory)
+		memories.GET("/stats", memoryHandler.GetMemoryStats)
+		memories.POST("/search", memoryHandler.SearchMemories)
+		memories.POST("/relevant", memoryHandler.GetRelevantMemories)
+		memories.GET("/project/:projectId", memoryHandler.GetProjectMemories)
+		memories.GET("/node/:nodeId", memoryHandler.GetNodeMemories)
+		memories.GET("/:id", memoryHandler.GetMemory)
+		memories.PUT("/:id", memoryHandler.UpdateMemory)
+		memories.DELETE("/:id", memoryHandler.DeleteMemory)
+		memories.POST("/:id/pin", memoryHandler.PinMemory)
+	}
+
+	// User Facts routes - /api/user-facts
+	userFacts := api.Group("/user-facts")
+	userFacts.Use(auth, middleware.RequireAuth())
+	{
+		userFacts.GET("", memoryHandler.ListUserFacts)
+		userFacts.PUT("/:key", memoryHandler.UpdateUserFact)
+		userFacts.POST("/:key/confirm", memoryHandler.ConfirmUserFact)
+		userFacts.POST("/:key/reject", memoryHandler.RejectUserFact)
+		userFacts.DELETE("/:key", memoryHandler.DeleteUserFact)
+	}
+
+	// Context Tree routes - /api/context-tree (hierarchical context for agents)
+	contextTreeHandler := NewContextTreeHandler(h.pool, h.embeddingService)
+	contextTree := api.Group("/context-tree")
+	contextTree.Use(auth, middleware.RequireAuth())
+	{
+		// Tree retrieval
+		contextTree.GET("/:entityType/:entityId", contextTreeHandler.GetContextTree)
+		contextTree.POST("/search", contextTreeHandler.SearchContextTree)
+		contextTree.POST("/load", contextTreeHandler.LoadContextItem)
+		contextTree.GET("/stats", contextTreeHandler.GetContextStats)
+		// Loading rules
+		contextTree.GET("/rules/:entityType/:entityId", contextTreeHandler.GetLoadingRules)
+		// Context sessions
+		contextTree.POST("/session", contextTreeHandler.CreateContextSession)
+		contextTree.GET("/session/:sessionId", contextTreeHandler.GetContextSession)
+		contextTree.PUT("/session/:sessionId", contextTreeHandler.UpdateContextSession)
+		contextTree.DELETE("/session/:sessionId", contextTreeHandler.EndContextSession)
+	}
+
+	// Transcription routes - /api/transcribe
+	transcriptionHandler := NewTranscriptionHandler(h.pool)
+	transcribe := api.Group("/transcribe")
+	transcribe.Use(auth, middleware.RequireAuth())
+	{
+		transcribe.POST("", transcriptionHandler.TranscribeAudio)
+		transcribe.GET("/status", transcriptionHandler.GetTranscriptionStatus)
+		transcribe.POST("/realtime", h.HandleRealtimeTranscription) // Real-time voice transcription for active listening
+	}
+	slog.Info("Transcription routes registered (including real-time)")
+
+	// Voice notes routes - /api/voice-notes
+	voiceNotesHandler := NewVoiceNotesHandler(h.pool, h.embeddingService)
+	voiceNotes := api.Group("/voice-notes")
+	voiceNotes.Use(auth, middleware.RequireAuth())
+	{
+		voiceNotes.GET("", voiceNotesHandler.ListVoiceNotes)
+		voiceNotes.POST("", voiceNotesHandler.UploadVoiceNote)
+		voiceNotes.GET("/stats", voiceNotesHandler.GetVoiceNoteStats)
+		voiceNotes.GET("/:id", voiceNotesHandler.GetVoiceNote)
+		voiceNotes.DELETE("/:id", voiceNotesHandler.DeleteVoiceNote)
+		voiceNotes.POST("/:id/retranscribe", voiceNotesHandler.RetranscribeVoiceNote)
+	}
+
+	// Profile routes - /api/profile
+	profile := api.Group("/profile")
+	profile.Use(auth, middleware.RequireAuth())
+	{
+		profile.PUT("", h.UpdateProfile)
+		profile.POST("/photo", h.UploadProfilePhoto)
+		profile.DELETE("/photo", h.DeleteProfilePhoto)
+		profile.POST("/background", h.UploadBackground)
+		profile.GET("/background/:filename", h.GetBackground)
+		profile.DELETE("/background", h.DeleteBackground)
+	}
+
+	// Account management routes - /api/account (GDPR compliance)
+	account := api.Group("/account")
+	account.Use(auth, middleware.RequireAuth())
+	{
+		// DELETE /api/account — soft-delete account (GDPR Article 17, Right to Erasure)
+		account.DELETE("", h.DeleteAccount)
+		// GET /api/account/export — export all user data (GDPR Article 20, Right to Data Portability)
+		account.GET("/export", middleware.StrictRateLimitMiddleware(), middleware.AuditSensitiveAccess("account_export"), h.ExportAccountData)
+	}
+
+	// Username routes - /api/users
+	usernameHandler := NewUsernameHandler(h.pool)
+	users := api.Group("/users")
+	{
+		// Public route - check username availability (no auth required for UX)
+		users.GET("/check-username/:username", usernameHandler.CheckUsernameAvailability)
+
+		// Protected routes
+		users.GET("/me", auth, usernameHandler.GetCurrentUser)
+		users.PATCH("/me/username", auth, usernameHandler.SetUsername)
+		users.POST("/me/complete-onboarding", auth, usernameHandler.CompleteOnboarding)
+	}
+
+	// MCP routes - /api/mcp
+	mcp := api.Group("/mcp")
+	mcp.Use(auth, middleware.RequireAuth())
+	{
+		mcp.GET("/tools", h.ListMCPTools)
+		mcp.POST("/execute", h.ExecuteMCPTool)
+		mcp.GET("/health", h.MCPHealth)
+	}
+
+	// Tables routes - /api/tables (NocoDB-inspired flexible tables)
+	tables := api.Group("/tables")
+	tables.Use(auth, middleware.RequireAuth())
+	{
+		// Tables CRUD
+		tables.GET("", h.ListTables)
+		tables.POST("", h.CreateTable)
+		tables.GET("/:id", h.GetTable)
+		tables.PUT("/:id", h.UpdateTable)
+		tables.DELETE("/:id", h.DeleteTable)
+		// Columns (Fields) CRUD - matches frontend API naming
+		tables.GET("/:id/columns", h.ListFields)
+		tables.POST("/:id/columns", h.CreateField)
+		tables.PUT("/:id/columns/:columnId", h.UpdateField)
+		tables.DELETE("/:id/columns/:columnId", h.DeleteField)
+		tables.POST("/:id/columns/reorder", h.ReorderFields)
+		// Rows (Records) CRUD - matches frontend API naming
+		tables.GET("/:id/rows", h.ListRecords)
+		tables.POST("/:id/rows", h.CreateRecord)
+		tables.GET("/:id/rows/:rowId", h.GetRecord)
+		tables.PUT("/:id/rows/:rowId", h.UpdateRecord)
+		tables.DELETE("/:id/rows/:rowId", h.DeleteRecord)
+		tables.POST("/:id/rows/bulk-delete", h.BulkDeleteRecords)
+		// Views CRUD
+		tables.GET("/:id/views", h.ListViews)
+		tables.POST("/:id/views", h.CreateView)
+		tables.PUT("/:id/views/:viewId", h.UpdateView)
+		tables.DELETE("/:id/views/:viewId", h.DeleteView)
+	}
+
+	// ============================================================================
+	// NEW Integration Architecture - Provider-based handlers
+	// ============================================================================
+	// Initialize the new IntegrationRouter which manages all integration providers
+	// (Google, Slack, Notion) with their OAuth flows, data sync, and API handlers.
+	integrationRouter := NewIntegrationRouter(h.pool)
+
+	// Register new integration routes - /api/integrations/{provider}/*
+	// This provides: OAuth flows, calendar, gmail, slack channels/messages, notion databases/pages
+	integrationsGroup := api.Group("/integrations")
+	integrationRouter.RegisterRoutes(integrationsGroup, auth)
+
+	// Terminal routes - /api/terminal
+	terminalHandler := NewTerminalHandler(h.containerMgr, h.terminalPubSub)
+	terminalRoutes := api.Group("/terminal")
+	terminalRoutes.Use(auth, middleware.RequireAuth())
+	{
+		terminalRoutes.GET("/ws", terminalHandler.HandleWebSocket)
+		terminalRoutes.GET("/sessions", terminalHandler.ListSessions)
+		terminalRoutes.DELETE("/sessions/:id", terminalHandler.CloseSession)
+	}
+
+	// Filesystem routes - /api/filesystem (require auth — filesystem access is sensitive)
+	filesystem := api.Group("/filesystem")
+	filesystem.Use(auth, middleware.RequireAuth())
+	{
+		filesystem.GET("/list", h.ListDirectory)
+		filesystem.GET("/read", h.ReadFile)
+		filesystem.GET("/download", h.DownloadFile)
+		filesystem.GET("/info", h.GetFileInfo)
+		filesystem.GET("/quick-access", h.GetQuickAccessPaths)
+		filesystem.POST("/mkdir", h.CreateDirectory)
+		filesystem.POST("/upload", h.UploadFile)
+		filesystem.DELETE("/delete", h.DeleteFileOrDir)
+	}
+
+	// Sync routes - /api/sync
+	syncRoutes := api.Group("/sync")
+	syncRoutes.Use(auth, middleware.RequireAuth())
+	{
+		syncRoutes.GET("/status", h.GetSyncStatus)
+		syncRoutes.GET("/full", h.FullSync)
+		syncRoutes.GET("/:table", h.GetSyncChanges)
+	}
+
+	// Also add sync endpoints on individual tables for the sync engine
+	// These return changes since a given timestamp
+	api.GET("/contexts/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("contexts"))
+	api.GET("/conversations/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("conversations"))
+	api.GET("/projects/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("projects"))
+	api.GET("/tasks/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("tasks"))
+	api.GET("/nodes/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("nodes"))
+	api.GET("/clients/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("clients"))
+	api.GET("/calendar_events/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("calendar_events"))
+	api.GET("/daily_logs/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("daily_logs"))
+	api.GET("/team_members/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("team_members"))
+	api.GET("/artifacts/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("artifacts"))
+	api.GET("/focus_items/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("focus_items"))
+	api.GET("/user_settings/sync", auth, middleware.RequireAuth(), h.createTableSyncHandler("user_settings"))
+
+	// =============================================================================
+	// MOBILE API - /api/mobile/v1
+	// =============================================================================
+	// Optimized endpoints for mobile clients (PWA, native apps):
+	// - Lean payloads (~100 bytes vs ~2KB per item)
+	// - Cursor-based pagination
+	// - Field selection support (?fields=id,title,status)
+	// - Unix timestamps instead of ISO strings
+	// - Standardized error responses
+	// =============================================================================
+	mobileHandler := NewMobileHandler(h.pool, h.notificationService)
+	mobile := api.Group("/mobile/v1")
+	mobile.Use(auth, middleware.RequireAuth())
+	mobile.Use(middleware.DeviceIDMiddleware()) // Extract X-Device-ID header
+	{
+		// User profile
+		mobile.GET("/me", mobileHandler.GetMe)
+
+		// Tasks (Phase 1)
+		mobile.GET("/tasks", mobileHandler.ListTasks)
+		mobile.GET("/tasks/:id", mobileHandler.GetTask)
+		mobile.POST("/tasks/quick", mobileHandler.QuickCreateTask)
+		mobile.PUT("/tasks/:id/status", mobileHandler.UpdateTaskStatus)
+		mobile.PUT("/tasks/:id/toggle", mobileHandler.ToggleTask)
+
+		// Notifications (Phase 2)
+		mobile.GET("/notifications", mobileHandler.ListNotifications)
+		mobile.GET("/notifications/count", mobileHandler.GetNotificationCount)
+		mobile.POST("/notifications/mark-read", mobileHandler.MarkNotificationsRead)
+
+		// Daily Log (Phase 3)
+		mobile.GET("/dailylog/today", mobileHandler.GetTodayLog)
+		mobile.GET("/dailylog/history", mobileHandler.GetLogHistory)
+
+		// Sync (Phase 3)
+		mobile.GET("/sync", mobileHandler.DeltaSync)
+
+		// Chat (Phase 4)
+		mobile.GET("/chat/threads", mobileHandler.ListChatThreads)
+		mobile.GET("/chat/history/:id", mobileHandler.GetChatHistory)
+		mobile.POST("/chat/message", mobileHandler.SendChatMessage)
+
+		// Capture (Phase 4 - pending team discussion)
+		// mobile.POST("/capture", mobileHandler.SmartCapture)
+
+		// Push Registration (Phase 5)
+		mobile.POST("/push/register", mobileHandler.RegisterPushDevice)
+		mobile.DELETE("/push/unregister", mobileHandler.UnregisterPushDevice)
+	}
+
+	// Calendar routes - /api/calendar (aggregate from calendar_events table)
+	calendar := api.Group("/calendar")
+	{
+		calendar.GET("/stats", auth, h.GetCalendarStats)
+		calendar.GET("/upcoming", auth, h.GetUpcomingCalendarEvents)
+		calendar.GET("/today", auth, h.GetTodayCalendarEvents)
+	}
+
+	// Authentication routes - /api/auth
+	// Apply strict rate limiting to prevent brute force attacks
+	strictRateLimit := middleware.StrictRateLimitMiddleware()
+	_ = middleware.CredentialRateLimitMiddleware() // defined for future use
+
+	googleAuthHandler := NewGoogleAuthHandler(h.pool, h.cfg, h.sessionCache)
+	logger := slog.Default()
+	emailAuthHandler := NewEmailAuthHandler(h.pool, h.cfg, h.notificationTriggers, logger)
+	authRoutes := api.Group("/auth")
+	{
+		// Email/Password auth (public) - strict rate limiting
+		authRoutes.POST("/sign-up/email", strictRateLimit, emailAuthHandler.SignUp)
+		authRoutes.POST("/sign-in/email", strictRateLimit, emailAuthHandler.SignIn)
+
+		// Google OAuth (public) - rate limited to prevent abuse
+		authRoutes.GET("/google", strictRateLimit, googleAuthHandler.InitiateGoogleLogin)
+		authRoutes.GET("/google/callback/login", strictRateLimit, googleAuthHandler.HandleGoogleLoginCallback)
+
+		// Third-party OAuth integrations (Slack, Notion, Outlook, Linear)
+		// Apply strict rate limiting to prevent OAuth abuse/brute-force
+		oauthHandler := NewOAuthIntegrationHandler(h.pool, h.cfg)
+		authRoutes.GET("/slack", strictRateLimit, oauthHandler.InitiateSlackOAuth)
+		authRoutes.GET("/slack/callback", strictRateLimit, oauthHandler.HandleSlackCallback)
+		authRoutes.GET("/notion", strictRateLimit, oauthHandler.InitiateNotionOAuth)
+		authRoutes.GET("/notion/callback", strictRateLimit, oauthHandler.HandleNotionCallback)
+		authRoutes.GET("/microsoft", strictRateLimit, oauthHandler.InitiateMicrosoftOAuth)
+		authRoutes.GET("/microsoft/callback", strictRateLimit, oauthHandler.HandleMicrosoftCallback)
+		authRoutes.GET("/linear", strictRateLimit, oauthHandler.InitiateLinearOAuth)
+		authRoutes.GET("/linear/callback", strictRateLimit, oauthHandler.HandleLinearCallback)
+
+		// Session management (public)
+		authRoutes.GET("/session", googleAuthHandler.GetCurrentSession)
+		authRoutes.GET("/get-session", googleAuthHandler.GetCurrentSession) // Alias for better-auth compatibility
+		authRoutes.POST("/logout", googleAuthHandler.Logout)
+		authRoutes.POST("/sign-out", googleAuthHandler.Logout) // Alias for better-auth compatibility
+
+		// CSRF token endpoint (public) - clients retrieve CSRF token before state-changing requests
+		authRoutes.GET("/csrf", middleware.CSRFTokenEndpoint())
+
+		// Protected: Force logout all sessions (requires authentication)
+		protectedAuth := authRoutes.Group("")
+		protectedAuth.Use(auth, middleware.RequireAuth())
+		{
+			protectedAuth.POST("/logout-all", googleAuthHandler.LogoutAllSessions)
+		}
+	}
+
+	// Document Processing routes - /api/documents
+	if h.documentProcessor != nil {
+		documentHandler := NewDocumentHandler(h.documentProcessor)
+		protectedDocs := api.Group("")
+		protectedDocs.Use(auth, middleware.RequireAuth())
+		RegisterDocumentRoutes(protectedDocs, documentHandler)
+	}
+
+	// App Profiler routes - /api/app-profiles
+	if h.appProfilerService != nil {
+		appProfilerHandler := NewAppProfilerHandler(h.appProfilerService)
+		protectedProfiler := api.Group("")
+		protectedProfiler.Use(auth, middleware.RequireAuth())
+		RegisterAppProfilerRoutes(protectedProfiler, appProfilerHandler)
+	}
+
+	// Integrations Module - /api/integrations (for user integration management)
+	// Uses new IntegrationRouter for provider catalog and sync operations
+	integrationsHandler := NewIntegrationsHandler(h.pool, integrationRouter)
+	integrationsModule := api.Group("/integrations")
+
+	// Public endpoints - provider catalog (no auth required)
+	// These just list what integrations are available, not user-specific data
+	integrationsModule.GET("/providers", integrationsHandler.GetProviders)
+	integrationsModule.GET("/providers/:id", integrationsHandler.GetProvider)
+
+	// Protected endpoints - user-specific data (auth required)
+	integrationsProtected := integrationsModule.Group("")
+	integrationsProtected.Use(auth, middleware.RequireAuth())
+	{
+		// Aggregated status (must be before :id to avoid matching)
+		integrationsProtected.GET("/status", integrationsHandler.GetAllIntegrationsStatus)
+		// User's connected integrations
+		integrationsProtected.GET("/connected", integrationsHandler.GetConnectedIntegrations)
+		integrationsProtected.GET("/:id", integrationsHandler.GetIntegration)
+		integrationsProtected.PATCH("/:id/settings", integrationsHandler.UpdateIntegrationSettings)
+		integrationsProtected.DELETE("/:id", integrationsHandler.DisconnectIntegration)
+		integrationsProtected.POST("/:id/sync", integrationsHandler.TriggerSync)
+		// AI Model preferences
+		integrationsProtected.GET("/ai/preferences", integrationsHandler.GetModelPreferences)
+		integrationsProtected.PUT("/ai/preferences", integrationsHandler.UpdateModelPreferences)
+	}
+
+	// Module-specific integration endpoints - /api/modules/:id/integrations
+	modules := api.Group("/modules")
+	modules.Use(optionalAuth) // Optional auth for browsing available integrations
+	{
+		modules.GET("/:id/integrations", integrationsHandler.GetModuleIntegrations)
+	}
+
+	// Desktop 3D Layout routes - /api/desktop3d
+	// Custom 3D Desktop layout persistence
+	desktop3d := api.Group("/desktop3d")
+	desktop3d.Use(auth, middleware.RequireAuth())
+	{
+		desktop3d.GET("/layouts", h.ListDesktop3DLayouts)
+		desktop3d.POST("/layouts", h.CreateDesktop3DLayout)
+		desktop3d.GET("/layouts/active", h.GetActiveDesktop3DLayout)
+		desktop3d.POST("/layouts/:id/activate", h.ActivateDesktop3DLayout)
+		desktop3d.DELETE("/layouts/:id", h.DeleteDesktop3DLayout)
+	}
+	slog.Info("Desktop 3D layout routes registered")
+
+	// Onboarding routes - /api/onboarding
+	// Conversational AI onboarding with workspace setup
+	onboardingAIService := services.NewOnboardingAIService()
+	gmailService := integrationRouter.GetGoogleGmailService()
+	onboardingService := services.NewOnboardingService(h.pool, onboardingAIService, gmailService, nil)
+	onboardingHandler := NewOnboardingHandler(onboardingService)
+	onboardingHandler.RegisterOnboardingRoutes(api, auth)
+	slog.Info("Onboarding routes registered", "ai_provider", onboardingAIService.GetProvider())
+
+	// Custom Modules routes - /api/modules (Feature: Custom Module System)
+	customModulesHandler := NewCustomModulesHandler(h.pool, slog.Default())
+	customModules := api.Group("/modules")
+	customModules.Use(auth, middleware.RequireAuth())
+	{
+		// Module CRUD
+		customModules.POST("", customModulesHandler.CreateModule)
+		customModules.GET("", customModulesHandler.ListModules)
+		customModules.GET("/:id", customModulesHandler.GetModule)
+		customModules.PUT("/:id", customModulesHandler.UpdateModule)
+		customModules.DELETE("/:id", customModulesHandler.DeleteModule)
+
+		// Module operations
+		customModules.POST("/:id/publish", customModulesHandler.PublishModule)
+		customModules.POST("/:id/install", customModulesHandler.InstallModule)
+		customModules.POST("/:id/share", customModulesHandler.ShareModule)
+
+		// Module data
+		customModules.GET("/installed", customModulesHandler.ListInstalledModules)
+		customModules.GET("/stats", customModulesHandler.GetModuleStats)
+		customModules.GET("/popular", customModulesHandler.GetPopularModules)
+
+		// Module import/export
+		customModules.GET("/export/:id", customModulesHandler.ExportModule)
+		customModules.POST("/import", customModulesHandler.ImportModule)
+	}
+	slog.Info("Custom modules routes registered at /api/modules/*")
+
+}
