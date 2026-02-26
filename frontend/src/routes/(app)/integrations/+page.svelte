@@ -240,8 +240,6 @@
 		}
 	}
 
-	}
-
 	function getStatusBadgeClass(status: string) {
 		switch (status) {
 			case 'connected':
@@ -255,8 +253,6 @@
 			default:
 				return 'bg-gray-100 text-gray-800';
 		}
-	}
-
 	}
 </script>
 
@@ -303,7 +299,6 @@
 				>
 					AI Models
 				</button>
-				<button
 			</div>
 		</div>
 	</div>
