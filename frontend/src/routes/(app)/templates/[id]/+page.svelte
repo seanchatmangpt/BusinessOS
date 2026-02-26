@@ -89,8 +89,7 @@
 
 	function handleGenerationComplete() {
 		templateStore.clearGenerationResult();
-		// Navigate to the generated apps list on completion
-		goto('/generated-apps');
+		goto('/apps');
 	}
 
 	function handleGenerationError(errorMsg: string) {
@@ -99,7 +98,7 @@
 
 	function handleViewApp() {
 		if (generationResult) {
-			goto(`/generated-apps/${generationResult.app_id}`);
+			goto('/apps');
 		}
 	}
 </script>
@@ -210,14 +209,13 @@
 					</div>
 				</div>
 
-				<!-- SSE Progress Panel (async queue-based generation) -->
+				<!-- Generation Progress -->
 				{#if queueItemId && generating}
-					<div class="mb-8">
-						<AgentProgressPanel
-							queueItemId={queueItemId}
-							onComplete={handleGenerationComplete}
-							onError={handleGenerationError}
-						/>
+					<div class="mb-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
+						<div class="flex items-center gap-3">
+							<Loader2 class="w-5 h-5 animate-spin text-blue-600" />
+							<span class="text-sm font-medium text-blue-800">Generating app from template...</span>
+						</div>
 					</div>
 				{/if}
 
