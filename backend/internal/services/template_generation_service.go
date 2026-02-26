@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -16,7 +15,6 @@ import (
 type TemplateGenerationService struct {
 	pool            *pgxpool.Pool
 	logger          *slog.Logger
-	templateService *AppTemplateService
 	userAppsService *UserAppsService
 }
 
@@ -37,16 +35,16 @@ type GeneratedFile struct {
 
 // GenerationResult represents the result of generating an app from a template
 type GenerationResult struct {
-	AppID          uuid.UUID       `json:"app_id"`
-	AppName        string          `json:"app_name"`
-	TemplateID     uuid.UUID       `json:"template_id"`
-	TemplateName   string          `json:"template_name"`
-	WorkspaceID    uuid.UUID       `json:"workspace_id"`
-	Files          []GeneratedFile `json:"files"`
-	TotalFiles     int             `json:"total_files"`
-	Status         string          `json:"status"`
-	VersionNumber  string          `json:"version_number"`
-	GeneratedAt    time.Time       `json:"generated_at"`
+	AppID         uuid.UUID       `json:"app_id"`
+	AppName       string          `json:"app_name"`
+	TemplateID    uuid.UUID       `json:"template_id"`
+	TemplateName  string          `json:"template_name"`
+	WorkspaceID   uuid.UUID       `json:"workspace_id"`
+	Files         []GeneratedFile `json:"files"`
+	TotalFiles    int             `json:"total_files"`
+	Status        string          `json:"status"`
+	VersionNumber string          `json:"version_number"`
+	GeneratedAt   time.Time       `json:"generated_at"`
 }
 
 // NewTemplateGenerationService creates a new template generation service
@@ -54,84 +52,14 @@ func NewTemplateGenerationService(pool *pgxpool.Pool, logger *slog.Logger) *Temp
 	return &TemplateGenerationService{
 		pool:            pool,
 		logger:          logger,
-		templateService: NewAppTemplateService(pool, logger),
 		userAppsService: NewUserAppsService(pool, logger),
 	}
 }
 
-// GenerateFromTemplate generates an app from a template with user configuration
+// GenerateFromTemplate generates an app from a template with user configuration.
+// TODO: template service not available — restore app_template_service.go to enable full generation.
 func (s *TemplateGenerationService) GenerateFromTemplate(ctx context.Context, userID uuid.UUID, req GenerateFromTemplateRequest) (*GenerationResult, error) {
-	s.logger.Info("generating app from template",
-		"template_id", req.TemplateID,
-		"workspace_id", req.WorkspaceID,
-		"app_name", req.AppName,
-		"user_id", userID,
-	)
-
-	// 1. Get the template
-	template, err := s.templateService.GetTemplate(ctx, req.TemplateID)
-	if err != nil {
-		return nil, fmt.Errorf("get template: %w", err)
-	}
-
-	// 2. Get the built-in template definition
-	builtinTemplate, exists := GetBuiltInTemplate(template.TemplateName)
-	if !exists {
-		return nil, fmt.Errorf("built-in template not found: %s", template.TemplateName)
-	}
-
-	// 3. Generate files from template
-	config := mergeConfig(req.Config, template.TemplateConfig)
-	config["app_name"] = req.AppName
-	config["workspace_id"] = req.WorkspaceID.String()
-	config["generated_at"] = time.Now().Format(time.RFC3339)
-
-	files := generateFiles(builtinTemplate, config)
-
-	// 4. Create user app in database
-	app, err := s.userAppsService.CreateUserApp(ctx, req.WorkspaceID, req.TemplateID, req.AppName, config)
-	if err != nil {
-		return nil, fmt.Errorf("create user app: %w", err)
-	}
-
-	// 5. Create initial version snapshot
-	snapshotData := map[string]interface{}{
-		"files":     files,
-		"config":    config,
-		"template":  template.TemplateName,
-		"generated": true,
-	}
-	snapshotJSON, err := json.Marshal(snapshotData)
-	if err != nil {
-		s.logger.Error("failed to marshal snapshot data", "error", err)
-	} else {
-		_, err = s.pool.Exec(ctx, `
-			INSERT INTO app_versions (app_id, version_number, snapshot_data, snapshot_metadata, change_summary, created_by)
-			VALUES ($1, '1.0.0', $2, '{"source": "template_generation"}'::jsonb, $3, $4)
-		`, app.ID, snapshotJSON, fmt.Sprintf("Initial generation from template: %s", template.DisplayName), userID)
-		if err != nil {
-			s.logger.Error("failed to create initial version", "app_id", app.ID, "error", err)
-		}
-	}
-
-	s.logger.Info("app generated successfully",
-		"app_id", app.ID,
-		"template", template.DisplayName,
-		"files_count", len(files),
-	)
-
-	return &GenerationResult{
-		AppID:         app.ID,
-		AppName:       req.AppName,
-		TemplateID:    req.TemplateID,
-		TemplateName:  template.DisplayName,
-		WorkspaceID:   req.WorkspaceID,
-		Files:         files,
-		TotalFiles:    len(files),
-		Status:        "completed",
-		VersionNumber: "1.0.0",
-		GeneratedAt:   time.Now(),
-	}, nil
+	return nil, fmt.Errorf("template service not available")
 }
 
 // generateFiles generates files from a built-in template with config substitution

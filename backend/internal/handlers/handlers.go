@@ -33,10 +33,8 @@ type Handlers struct {
 	learningService          *services.LearningService                 // Learning and personalization
 	autoLearningTriggers     *services.AutoLearningTriggers            // Automatic learning from conversations
 	promptPersonalizer       *services.PromptPersonalizer              // Prompt personalization with user data
-	appProfilerService       *services.AppProfilerService              // Application profiling
 	conversationIntelligence *services.ConversationIntelligenceService // Conversation analysis
 	memoryExtractor          *services.MemoryExtractorService          // Memory extraction
-	blockMapper              *services.BlockMapperService              // Markdown to structured blocks
 	// Day 2 RAG services
 	hybridSearchService *services.HybridSearchService // Hybrid search (semantic + keyword)
 	rerankerService     *services.ReRankerService     // Re-ranking with multi-signal scoring
@@ -117,19 +115,15 @@ func (h *Handlers) SetAIServices(
 	learningService *services.LearningService,
 	autoLearningTriggers *services.AutoLearningTriggers,
 	promptPersonalizer *services.PromptPersonalizer,
-	appProfilerService *services.AppProfilerService,
 	conversationIntelligence *services.ConversationIntelligenceService,
 	memoryExtractor *services.MemoryExtractorService,
-	blockMapper *services.BlockMapperService,
 ) {
 	h.documentProcessor = documentProcessor
 	h.learningService = learningService
 	h.autoLearningTriggers = autoLearningTriggers
 	h.promptPersonalizer = promptPersonalizer
-	h.appProfilerService = appProfilerService
 	h.conversationIntelligence = conversationIntelligence
 	h.memoryExtractor = memoryExtractor
-	h.blockMapper = blockMapper
 }
 
 // SetRAGServices sets the RAG services (Day 2)
@@ -471,14 +465,8 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 			workspaceScoped.DELETE("/apps/:appId", h.DeleteUserApp)
 			workspaceScoped.POST("/apps/:appId/access", h.IncrementAppAccessCount)
 
-			// App versioning routes (per-app version management)
-			workspaceScoped.GET("/apps/:appId/versions", h.ListAppVersions)
-			workspaceScoped.GET("/apps/:appId/versions/latest", h.GetLatestAppVersion)
-			workspaceScoped.GET("/apps/:appId/versions/stats", h.GetAppVersionStats)
-			workspaceScoped.GET("/apps/:appId/versions/:versionNumber", h.GetAppVersion)
-			workspaceScoped.POST("/apps/:appId/versions", h.CreateAppSnapshot)
-			workspaceScoped.POST("/apps/:appId/restore/:versionNumber", h.RestoreAppVersion)
-			workspaceScoped.DELETE("/apps/:appId/versions/cleanup", h.DeleteOldAppVersions)
+			// App versioning routes — disabled (app_versions_handler.go deleted)
+			// TODO: Restore app_versions_handler.go to re-enable version management endpoints
 
 			// Template recommendations (workspace-scoped)
 			workspaceScoped.GET("/template-recommendations", h.GetTemplateRecommendations)
@@ -1164,14 +1152,6 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		protectedDocs := api.Group("")
 		protectedDocs.Use(auth, middleware.RequireAuth())
 		RegisterDocumentRoutes(protectedDocs, documentHandler)
-	}
-
-	// App Profiler routes - /api/app-profiles
-	if h.appProfilerService != nil {
-		appProfilerHandler := NewAppProfilerHandler(h.appProfilerService)
-		protectedProfiler := api.Group("")
-		protectedProfiler.Use(auth, middleware.RequireAuth())
-		RegisterAppProfilerRoutes(protectedProfiler, appProfilerHandler)
 	}
 
 	// Integrations Module - /api/integrations (for user integration management)

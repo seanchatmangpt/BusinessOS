@@ -4,18 +4,15 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { get } from 'svelte/store';
 	import { PillButton } from '$lib/components/osa';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
+	import { get } from 'svelte/store';
 	import { cloudServerUrl } from '$lib/auth-client';
-
-	const store = $derived($onboardingStore);
-	const appCount = $derived(store.userData.starterApps?.length || 0);
 
 	async function handleEnterOS() {
 		try {
 			// Call backend to mark onboarding complete (use relative URL)
-			await fetch('${get(cloudServerUrl)}/api/users/me/complete-onboarding', {
+			await fetch('http://localhost:8001/api/users/me/complete-onboarding', {
 				method: 'POST',
 				credentials: 'include',
 			});
@@ -43,7 +40,7 @@
 			</h1>
 
 			<p class="subtitle">
-				{appCount} personalized {appCount === 1 ? 'app is' : 'apps are'} waiting for you.
+				4 personalized apps are waiting for you.
 			</p>
 
 			<!-- CTA Button -->

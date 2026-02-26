@@ -1,6 +1,6 @@
 <!--
 	Onboarding Screen 3: Sign In
-	Simplified authentication step
+	Simplified authentication step matching Wabi design
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -18,29 +18,21 @@
 			// Call backend OAuth directly with FULL frontend URL redirect
 			// This requests full Gmail scopes for AI analysis
 			const backendUrl = 'http://localhost:8001';
-			const frontendUrl = window.location.origin;
-			const redirectAfter = `${frontendUrl}/onboarding/analyzing`;
+			const frontendUrl = window.location.origin; // http://localhost:5174
+			const redirectAfter = `${frontendUrl}/onboarding/username`;
 
-			// Mark Gmail as connected before redirect
-			onboardingStore.setUserData({ gmailConnected: true });
-
+			console.log('[Signin] Redirecting to Google OAuth with redirect:', redirectAfter);
 			window.location.href = `${backendUrl}/api/auth/google?redirect=${encodeURIComponent(redirectAfter)}`;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to sign in';
+			console.error('Sign in error:', err);
 			isLoading = false;
 		}
 	}
 
 	function handleBack() {
 		onboardingStore.prevStep();
-		goto('/onboarding/username');
-	}
-
-	function handleSkip() {
-		// Skip Google sign-in and go to analyzing page
-		onboardingStore.setUserData({ gmailConnected: false });
-		onboardingStore.nextStep();
-		goto('/onboarding/analyzing');
+		goto('/onboarding/meet-osa');
 	}
 </script>
 
@@ -59,7 +51,7 @@
 		<div class="content">
 			<!-- Gmail Icon -->
 			<div class="icon-wrapper">
-				<svg class="gmail-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-label="Gmail icon">
+				<svg class="gmail-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
 					<path fill="#4285f4" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"/>
 					<path fill="#34a853" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"/>
 					<polygon fill="#fbbc04" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"/>
@@ -97,14 +89,9 @@
 					Your data stays private and is only used to personalize your apps.
 				</p>
 
-				<div class="secondary-actions">
-					<button class="skip-button" onclick={handleSkip}>
-						Skip for now
-					</button>
-					<button class="back-button" onclick={handleBack}>
-						Back
-					</button>
-				</div>
+				<button class="back-button" onclick={handleBack}>
+					Back
+				</button>
 			</div>
 		</div>
 	</div>
@@ -282,13 +269,6 @@
 		line-height: 1.5;
 	}
 
-	.secondary-actions {
-		display: flex;
-		gap: 2rem;
-		align-items: center;
-	}
-
-	.skip-button,
 	.back-button {
 		background: transparent;
 		border: none;
@@ -301,11 +281,6 @@
 		transition: color 0.2s ease;
 	}
 
-	.skip-button {
-		text-decoration: underline;
-	}
-
-	.skip-button:hover,
 	.back-button:hover {
 		color: #1A1A1A;
 	}

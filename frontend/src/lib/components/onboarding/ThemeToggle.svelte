@@ -4,7 +4,6 @@
 -->
 <script lang="ts">
 	import { SunIcon, MoonIcon } from './icons';
-	import { themeStore } from '$lib/stores/themeStore';
 
 	interface Props {
 		isDark?: boolean;
@@ -14,16 +13,14 @@
 
 	let { isDark = $bindable(false), onToggle, class: className = '' }: Props = $props();
 
-	// Sync with themeStore
-	const unsubscribe = themeStore.subscribe(state => {
-		isDark = state.resolvedTheme === 'dark';
-	});
-
 	function handleToggle() {
-		const newTheme = isDark ? 'light' : 'dark';
-		themeStore.setTheme(newTheme);
-		isDark = newTheme === 'dark';
+		isDark = !isDark;
 		onToggle?.(isDark);
+
+		// Toggle dark class on document
+		if (typeof document !== 'undefined') {
+			document.documentElement.classList.toggle('dark', isDark);
+		}
 	}
 </script>
 

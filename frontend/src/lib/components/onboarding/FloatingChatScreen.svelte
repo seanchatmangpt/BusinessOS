@@ -1,11 +1,11 @@
 <!--
   FloatingChatScreen.svelte
   Layout container for conversational onboarding
-  Features: SilverOrb header, scrollable message area
+  Features: PurpleOrb header, scrollable message area
 -->
 <script lang="ts">
 	import { type Snippet } from 'svelte';
-	import SilverOrb from './SilverOrb.svelte';
+	import PurpleOrb from './PurpleOrb.svelte';
 
 	interface Props {
 		title?: string;
@@ -37,7 +37,7 @@
 			{#if header}
 				{@render header()}
 			{:else}
-				<SilverOrb size="sm" />
+				<PurpleOrb size="sm" />
 			{/if}
 		</div>
 

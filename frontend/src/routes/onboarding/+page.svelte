@@ -9,7 +9,7 @@
 
 	function handleGetStarted() {
 		onboardingStore.nextStep();
-		goto('/onboarding/quick-info');
+		goto('/onboarding/meet-osa');
 	}
 </script>
 
@@ -29,11 +29,6 @@
 			<h1 class="title">
 				A new era of<br />business software<br />is here.
 			</h1>
-
-			<!-- OSA Introduction -->
-			<p class="osa-intro">
-				Meet OSA, your AI assistant that builds personalized apps based on how you work.
-			</p>
 
 			<!-- CTA Button -->
 			<div class="cta">
@@ -103,15 +98,6 @@
 		letter-spacing: -0.02em;
 		margin: 0;
 		animation: fadeIn 0.8s ease-out 0.2s both;
-	}
-
-	.osa-intro {
-		font-size: 1.125rem;
-		color: #666666;
-		line-height: 1.6;
-		max-width: 400px;
-		margin: -2rem 0 0;
-		animation: fadeIn 0.8s ease-out 0.3s both;
 	}
 
 	.cta {

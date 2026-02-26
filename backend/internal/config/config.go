@@ -172,10 +172,6 @@ type Config struct {
 	BehaviorPatternsJobIntervalMinutes int  `mapstructure:"BEHAVIOR_PATTERNS_JOB_INTERVAL_MINUTES"`
 	BehaviorPatternsJobUserBatchSize   int  `mapstructure:"BEHAVIOR_PATTERNS_JOB_USER_BATCH_SIZE"`
 
-	AppProfilerSyncJobEnabled         bool `mapstructure:"APP_PROFILER_SYNC_JOB_ENABLED"`
-	AppProfilerSyncJobIntervalMinutes int  `mapstructure:"APP_PROFILER_SYNC_JOB_INTERVAL_MINUTES"`
-	AppProfilerSyncJobBatchSize       int  `mapstructure:"APP_PROFILER_SYNC_JOB_BATCH_SIZE"`
-
 	// Webhooks
 	WebhookSigningSecret string `mapstructure:"WEBHOOK_SIGNING_SECRET"`
 	OSAWebhookTimeout    int    `mapstructure:"OSA_WEBHOOK_TIMEOUT_SECONDS"` // Default: 30 seconds
@@ -303,10 +299,6 @@ func Load() (*Config, error) {
 	viper.SetDefault("CONVERSATION_SUMMARY_JOB_INTERVAL_MINUTES", 30)
 	viper.SetDefault("CONVERSATION_SUMMARY_JOB_BATCH_SIZE", 25)
 	viper.SetDefault("CONVERSATION_SUMMARY_JOB_MAX_MESSAGES", 200)
-
-	viper.SetDefault("APP_PROFILER_SYNC_JOB_ENABLED", false)
-	viper.SetDefault("APP_PROFILER_SYNC_JOB_INTERVAL_MINUTES", 10)
-	viper.SetDefault("APP_PROFILER_SYNC_JOB_BATCH_SIZE", 5)
 
 	viper.SetDefault("BEHAVIOR_PATTERNS_JOB_ENABLED", false)
 	viper.SetDefault("BEHAVIOR_PATTERNS_JOB_INTERVAL_MINUTES", 60)

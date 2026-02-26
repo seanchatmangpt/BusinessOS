@@ -1,15 +1,12 @@
 <!--
-	Onboarding Screen 6: Starter Apps Showcase
-	Simplified carousel showing personalized apps
+	Onboarding Screens 9-12: Starter Apps Showcase
+	Simplified carousel showing 4 personalized apps matching Wabi design
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { PillButton } from '$lib/components/osa';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
-	import { onboardingAnalysis } from '$lib/stores/onboardingAnalysis';
-	import { generateStarterApps } from '$lib/api/osa-onboarding';
-	import { getSession } from '$lib/auth-client';
 	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import { fly } from 'svelte/transition';
 
@@ -17,8 +14,7 @@
 	let starterApps = $derived(store.userData.starterApps || []);
 
 	let currentAppIndex = $state(0);
-	let isLoading = $state(true);
-	let loadError = $state<string | null>(null);
+	let isLoading = $state(false);
 
 	const currentApp = $derived(starterApps[currentAppIndex]);
 	const isFirstApp = $derived(currentAppIndex === 0);
@@ -58,83 +54,44 @@
 		}
 	}
 
-	// Fallback mock apps if API fails
-	function useFallbackApps() {
-		onboardingStore.setStarterApps([
-			{
-				id: '1',
-				title: 'Task Manager',
-				description: 'Organize and track your daily tasks',
-				reason: 'Essential for productivity'
-			},
-			{
-				id: '2',
-				title: 'Client CRM',
-				description: 'Manage client relationships and communications',
-				reason: 'Based on your business type'
-			},
-			{
-				id: '3',
-				title: 'Project Tracker',
-				description: 'Track project progress and milestones',
-				reason: 'For managing your team'
-			},
-			{
-				id: '4',
-				title: 'Daily Journal',
-				description: 'Log daily activities and reflections',
-				reason: 'Build better habits'
-			}
-		]);
-	}
-
 	async function loadApps() {
-		// If apps already loaded, skip
 		if (starterApps.length > 0) {
-			isLoading = false;
 			return;
 		}
 
 		isLoading = true;
-		loadError = null;
 
 		try {
-			// Get user session
-			const session = await getSession();
-			const userId = session.data?.user?.id;
-
-			if (!userId) {
-				useFallbackApps();
-				return;
-			}
-
-			// Get analysis state
-			let analysisId = $onboardingAnalysis.analysisId;
-			const workspaceId = store.userData.quickInfo?.workspaceName || 'default';
-
-			const response = await generateStarterApps(
-				userId,
-				workspaceId,
-				analysisId || ''
-			);
-
-			if (response.apps && response.apps.length > 0) {
-				// Map API response to store format
-				const mappedApps = response.apps.map(app => ({
-					id: app.id,
-					title: app.title,
-					description: app.description,
-					iconUrl: undefined,
-					reason: app.reasoning
-				}));
-
-				onboardingStore.setStarterApps(mappedApps);
-			} else {
-				useFallbackApps();
+			if (starterApps.length === 0) {
+				onboardingStore.setStarterApps([
+					{
+						id: '1',
+						title: 'No-Code Book Finds',
+						description: 'Discover books about no-code tools and platforms',
+						reason: 'Because you follow Bubble, Framer, and Synthflow'
+					},
+					{
+						id: '2',
+						title: 'Motion Design Muse',
+						description: 'Inspiration for motion graphics and animations',
+						reason: 'Based on your design tool usage'
+					},
+					{
+						id: '3',
+						title: 'Feature Feedback Hub',
+						description: 'Collect and prioritize user feedback',
+						reason: 'For building with your community'
+					},
+					{
+						id: '4',
+						title: 'SF Founder Weekend',
+						description: 'Connect with founders at weekend events',
+						reason: 'Based on your location and interests'
+					}
+				]);
 			}
 		} catch (err) {
-			loadError = err instanceof Error ? err.message : 'Failed to load apps';
-			useFallbackApps();
+			console.error('Error loading starter apps:', err);
 		} finally {
 			isLoading = false;
 		}
@@ -208,7 +165,7 @@
 								in:fly={{ x: 300, duration: 500, opacity: 0 }}
 								out:fly={{ x: -300, duration: 500, opacity: 0 }}
 							>
-								<div class="app-icon" aria-hidden="true">
+								<div class="app-icon">
 									{currentApp.title.charAt(0)}
 								</div>
 
@@ -352,7 +309,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		overflow: hidden;
+		overflow: hidden; /* Prevent horizontal scrollbar during slide */
 	}
 
 	.app-card {

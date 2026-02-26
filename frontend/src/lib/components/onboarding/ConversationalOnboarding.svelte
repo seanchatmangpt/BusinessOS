@@ -11,7 +11,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { fly } from 'svelte/transition';
-	import SilverOrb from './SilverOrb.svelte';
+	import PurpleOrb from './PurpleOrb.svelte';
 	import SequentialTypewriter from './SequentialTypewriter.svelte';
 	import IntegrationCard from './IntegrationCard.svelte';
 	import { onboardingApi, type ExtractedOnboardingData } from '$lib/api/onboarding';
@@ -824,7 +824,7 @@
 		<!-- Loading state -->
 		<div class="centered-layout">
 			<div class="orb-section">
-				<SilverOrb size="lg" isThinking={true} />
+				<PurpleOrb size="lg" isThinking={true} />
 			</div>
 			<div class="text-section">
 				<p class="agent-text">Setting things up...</p>
@@ -841,7 +841,7 @@
 		<!-- Centered layout for intro and conversation -->
 		<div class="centered-layout">
 			<div class="orb-section">
-				<SilverOrb size="lg" isThinking={isAgentTyping} />
+				<PurpleOrb size="lg" isThinking={isAgentTyping} />
 			</div>
 
 			<div class="text-section">

@@ -2,18 +2,12 @@
 	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
-	import { currentWorkspaceId } from '$lib/stores/workspaces';
 	import type { App, AppStatus } from '$lib/types/apps';
-	import { APP_TEMPLATES } from '$lib/types/apps';
 	import { AppCard, AppEmptyState, AppFilterDropdown, AppCommandPalette, AppContextMenu } from '$lib/components/apps';
-	import { CreateAppModal as OSACreateAppModal } from '$lib/components/osa';
 	import { LayoutGrid, List, Users, CheckSquare, Wallet, Kanban, Search, Command, AlertCircle, X, BookOpen, BarChart3, Clock, FileText } from 'lucide-svelte';
 
 	// Command palette state
 	let isCommandPaletteOpen = $state(false);
-
-	// Create app modal state (pure AI generation)
-	let isCreateModalOpen = $state(false);
 
 	// Context menu state
 	let contextMenu = $state<{ app: App; x: number; y: number } | null>(null);
@@ -148,34 +142,11 @@
 	}
 
 	function handleCreateApp() {
-		// Check if valid workspace exists
-		if (!$currentWorkspaceId) {
-			showError(
-				'No workspace selected',
-				'Please select a workspace before creating an app.'
-			);
-			return;
-		}
-		// Open pure AI generation modal (no template needed)
-		isCreateModalOpen = true;
+		goto('/modules');
 	}
 
 	function handleSelectTemplate(templateId: string) {
-		// Check if valid workspace exists
-		if (!$currentWorkspaceId) {
-			showError(
-				'No workspace selected',
-				'Please select a workspace before creating an app.'
-			);
-			return;
-		}
-		// For now, all creation goes through AI generation modal
-		// Templates can be used as inspiration/context in the description
-		isCreateModalOpen = true;
-	}
-
-	function handleCloseCreateModal() {
-		isCreateModalOpen = false;
+		goto('/modules');
 	}
 
 	// Context menu handlers
@@ -406,39 +377,21 @@
 					</div>
 				</section>
 
-				<!-- Quick Templates Section -->
+				<!-- Browse Modules -->
 				{#if allApps.length < 6 && statusFilter === 'all'}
 					<section class="pt-4 border-t border-gray-200 dark:border-gray-800">
-						<h2 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
-							Create from Template
-						</h2>
-						<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-							{#each APP_TEMPLATES as template}
-								<button
-									onclick={() => handleSelectTemplate(template.id)}
-									class="flex flex-col items-center p-4 border-2 border-dashed border-gray-200 dark:border-gray-700
-										rounded-xl transition-all duration-150 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 group"
-								>
-									<div class="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-2.5
-										text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-										{#if template.icon === 'Users'}
-											<Users class="w-5 h-5" strokeWidth={1.75} />
-										{:else if template.icon === 'CheckSquare'}
-											<CheckSquare class="w-5 h-5" strokeWidth={1.75} />
-										{:else if template.icon === 'Receipt' || template.icon === 'Wallet'}
-											<Wallet class="w-5 h-5" strokeWidth={1.75} />
-										{:else}
-											<Kanban class="w-5 h-5" strokeWidth={1.75} />
-										{/if}
-									</div>
-									<span class="text-sm font-medium text-gray-900 dark:text-white mb-0.5">
-										{template.name}
-									</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400 text-center">
-										{template.description}
-									</span>
-								</button>
-							{/each}
+						<div class="flex flex-col items-center py-6">
+							<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+								Browse and install modules to add more functionality.
+							</p>
+							<button
+								onclick={() => goto('/modules')}
+								class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300
+									border border-gray-300 dark:border-gray-600 rounded-lg
+									hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+							>
+								Browse Module Store
+							</button>
 						</div>
 					</section>
 				{/if}
@@ -471,12 +424,6 @@
 		onDelete={handleDeleteApp}
 	/>
 {/if}
-
-<!-- Create App Modal - Pure AI Generation (like Lovable/v0.dev/Bolt.new) -->
-<OSACreateAppModal
-	workspaceId={$currentWorkspaceId ?? ''}
-	bind:open={isCreateModalOpen}
-/>
 
 <!-- Error Toast -->
 {#if errorToast}

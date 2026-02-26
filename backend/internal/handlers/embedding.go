@@ -39,7 +39,7 @@ func (h *EmbeddingHandler) IndexDocument(c *gin.Context) {
 	}
 
 	var req struct {
-		Blocks []services.Block `json:"blocks" binding:"required"`
+		Blocks []services.EmbeddingBlock `json:"blocks" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

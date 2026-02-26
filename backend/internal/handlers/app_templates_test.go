@@ -102,7 +102,7 @@ func setupTestRouter(h *Handlers) *gin.Engine {
 		workspaces.DELETE("/apps/:appId", h.DeleteUserApp)
 		workspaces.POST("/apps/:appId/access", h.IncrementAppAccessCount)
 		workspaces.GET("/template-recommendations", h.GetTemplateRecommendations)
-		workspaces.GET("/apps/:appId/versions", h.ListAppVersions)
+		// workspaces.GET("/apps/:appId/versions", h.ListAppVersions) // TODO: restore app_versions_handler.go
 	}
 
 	return router
@@ -581,27 +581,27 @@ func TestConfigSubstitution(t *testing.T) {
 		expected string
 	}{
 		{
-			name:    "simple substitution",
-			content: "App name: {{app_name}}",
-			config:  map[string]interface{}{"app_name": "My App"},
+			name:     "simple substitution",
+			content:  "App name: {{app_name}}",
+			config:   map[string]interface{}{"app_name": "My App"},
 			expected: "App name: My App",
 		},
 		{
-			name:    "multiple placeholders",
-			content: "{{app_name}} runs on port {{port}}",
-			config:  map[string]interface{}{"app_name": "Server", "port": "8080"},
+			name:     "multiple placeholders",
+			content:  "{{app_name}} runs on port {{port}}",
+			config:   map[string]interface{}{"app_name": "Server", "port": "8080"},
 			expected: "Server runs on port 8080",
 		},
 		{
-			name:    "no placeholders",
-			content: "Static content",
-			config:  map[string]interface{}{"unused": "value"},
+			name:     "no placeholders",
+			content:  "Static content",
+			config:   map[string]interface{}{"unused": "value"},
 			expected: "Static content",
 		},
 		{
-			name:    "missing placeholder",
-			content: "{{app_name}} and {{missing}}",
-			config:  map[string]interface{}{"app_name": "Test"},
+			name:     "missing placeholder",
+			content:  "{{app_name}} and {{missing}}",
+			config:   map[string]interface{}{"app_name": "Test"},
 			expected: "Test and {{missing}}",
 		},
 	}

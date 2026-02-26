@@ -441,10 +441,8 @@ func main() {
 	var learningService *services.LearningService
 	var memoryService *services.MemoryService
 	var autoLearningTriggers *services.AutoLearningTriggers
-	var appProfilerService *services.AppProfilerService
 	var conversationIntelligence *services.ConversationIntelligenceService
 	var memoryExtractor *services.MemoryExtractorService
-	var blockMapper *services.BlockMapperService
 
 	// Document Processor - requires embedding service for semantic search
 	if embeddingService != nil {
@@ -608,10 +606,6 @@ func main() {
 
 	// ============================================================
 
-	// App Profiler Service - always available
-	appProfilerService = services.NewAppProfilerService(pool)
-	log.Printf("App profiler service initialized (codebase analysis)")
-
 	// Conversation Intelligence - requires embedding service
 	if embeddingService != nil {
 		conversationIntelligence = services.NewConversationIntelligenceService(pool, embeddingService)
@@ -634,12 +628,6 @@ func main() {
 		} else {
 			log.Printf("Memory extractor initialized (regex-only, no Groq API key)")
 		}
-	}
-
-	// Block Mapper - requires sqlDB wrapper
-	if sqlDB != nil {
-		blockMapper = services.NewBlockMapperService(sqlDB, slog.Default())
-		log.Printf("Block mapper initialized (markdown to structured blocks)")
 	}
 
 	// Initialize handlers with container manager, session cache, terminal pub/sub, embedding services, and notification service
@@ -666,8 +654,8 @@ func main() {
 	log.Printf("Comment service initialized (mentions & notifications enabled)")
 
 	// Set AI services
-	h.SetAIServices(documentProcessor, learningService, autoLearningTriggers, promptPersonalizer, appProfilerService, conversationIntelligence, memoryExtractor, blockMapper)
-	log.Printf("AI services registered (documents, learning, personalizer, profiles, intelligence, blocks)")
+	h.SetAIServices(documentProcessor, learningService, autoLearningTriggers, promptPersonalizer, conversationIntelligence, memoryExtractor)
+	log.Printf("AI services registered (documents, learning, personalizer, intelligence, memory)")
 
 	// Set RAG services
 	h.SetRAGServices(hybridSearchService, rerankerService, agenticRAGService, memoryService)
@@ -801,39 +789,6 @@ func main() {
 					if usersProcessed > 0 || factsUpserted > 0 {
 						log.Printf("Behavior patterns job processed %d users, upserted %d pattern facts", usersProcessed, factsUpserted)
 					}
-				}
-			}
-		}()
-	}
-
-	// Optional background job: auto-sync application profiles based on git HEAD or filesystem changes.
-	if appProfilerService != nil && cfg.AppProfilerSyncJobEnabled {
-		interval := time.Duration(cfg.AppProfilerSyncJobIntervalMinutes) * time.Minute
-		if interval <= 0 {
-			interval = 10 * time.Minute
-		}
-		batchSize := cfg.AppProfilerSyncJobBatchSize
-		if batchSize <= 0 {
-			batchSize = 5
-		}
-
-		go func() {
-			t := time.NewTicker(interval)
-			defer t.Stop()
-			log.Printf("App profiler auto-sync job enabled (interval=%s batch=%d)", interval, batchSize)
-			for {
-				select {
-				case <-t.C:
-					checked, refreshed, err := appProfilerService.SyncAutoProfiles(ctx, batchSize)
-					if err != nil {
-						log.Printf("App profiler auto-sync job error: %v", err)
-						continue
-					}
-					if checked > 0 || refreshed > 0 {
-						log.Printf("App profiler auto-sync checked %d profiles, refreshed %d", checked, refreshed)
-					}
-				case <-ctx.Done():
-					return
 				}
 			}
 		}()

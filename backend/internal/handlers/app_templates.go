@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -46,23 +45,8 @@ func (h *Handlers) ListAppTemplates(c *gin.Context) {
 		filters.TeamSize = &teamSize
 	}
 
-	// Get app template service
-	templateService := services.NewAppTemplateService(h.pool, slog.Default())
-
-	// List templates
-	templates, err := templateService.ListTemplates(c.Request.Context(), filters)
-	if err != nil {
-		slog.Error("failed to list app templates", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list templates"})
-		return
-	}
-
-	// Return empty array instead of null if no templates
-	if templates == nil {
-		templates = []services.AppTemplate{}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"templates": templates})
+	// TODO: template service not available — restore app_template_service.go to enable listing
+	c.JSON(http.StatusServiceUnavailable, gin.H{"error": "template service not available"})
 }
 
 // GetAppTemplate gets a single app template by ID
@@ -74,24 +58,13 @@ func (h *Handlers) GetAppTemplate(c *gin.Context) {
 		return
 	}
 
-	templateID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
+	if _, err := uuid.Parse(c.Param("id")); err != nil {
 		utils.RespondInvalidID(c, slog.Default(), "template_id")
 		return
 	}
 
-	// Get app template service
-	templateService := services.NewAppTemplateService(h.pool, slog.Default())
-
-	// Get template
-	template, err := templateService.GetTemplate(c.Request.Context(), templateID)
-	if err != nil {
-		slog.Error("failed to get app template", "template_id", templateID, "error", err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Template not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, template)
+	// TODO: template service not available — restore app_template_service.go to enable retrieval
+	c.JSON(http.StatusServiceUnavailable, gin.H{"error": "template service not available"})
 }
 
 // GetTemplateRecommendations gets personalized template recommendations for a workspace
@@ -116,39 +89,8 @@ func (h *Handlers) GetTemplateRecommendations(c *gin.Context) {
 		return
 	}
 
-	// Parse user ID to UUID
-	userID, err := uuid.Parse(user.ID)
-	if err != nil {
-		slog.Error("invalid user id format", "user_id", user.ID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID format"})
-		return
-	}
-
-	// Parse optional limit parameter
-	limit := 5
-	if limitStr := c.Query("limit"); limitStr != "" {
-		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
-			limit = parsedLimit
-		}
-	}
-
-	// Get app template service
-	templateService := services.NewAppTemplateService(h.pool, slog.Default())
-
-	// Get recommendations
-	recommendations, err := templateService.GetRecommendedTemplates(c.Request.Context(), userID, workspaceID, limit)
-	if err != nil {
-		slog.Error("failed to get template recommendations", "workspace_id", workspaceID, "user_id", userID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get recommendations"})
-		return
-	}
-
-	// Return empty array instead of null if no recommendations
-	if recommendations == nil {
-		recommendations = []services.MatchedTemplate{}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"recommendations": recommendations})
+	// TODO: template service not available — restore app_template_service.go to enable recommendations
+	c.JSON(http.StatusServiceUnavailable, gin.H{"error": "template service not available"})
 }
 
 // CreateUserAppFromTemplate creates a new user app from a template
@@ -260,40 +202,14 @@ func (h *Handlers) CreateUserAppFromTemplate(c *gin.Context) {
 		return
 	}
 
-	// TEMPLATE MODE: template_id provided - use existing template-based flow
-	templateID, err := uuid.Parse(*req.TemplateID)
-	if err != nil {
+	// TEMPLATE MODE: template_id provided - validate format then stub out
+	if _, err := uuid.Parse(*req.TemplateID); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid template_id format"})
 		return
 	}
 
-	// Validate template exists
-	templateService := services.NewAppTemplateService(h.pool, slog.Default())
-	template, err := templateService.GetTemplate(c.Request.Context(), templateID)
-	if err != nil {
-		slog.Error("template not found", "template_id", templateID, "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Template not found"})
-		return
-	}
-
-	slog.Info("creating user app from template", "workspace_id", workspaceID, "template_id", templateID, "app_name", req.AppName)
-
-	// Create user app
-	userAppsService := services.NewUserAppsService(h.pool, slog.Default())
-	app, err := userAppsService.CreateUserApp(c.Request.Context(), workspaceID, templateID, req.AppName, req.Config)
-	if err != nil {
-		slog.Error("failed to create user app", "workspace_id", workspaceID, "template_id", templateID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create app"})
-		return
-	}
-
-	slog.Info("user app created successfully", "app_id", app.ID, "workspace_id", workspaceID, "template", template.DisplayName)
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "App created successfully",
-		"app":     app,
-		"mode":    "template",
-	})
+	// TODO: template service not available — restore app_template_service.go to enable template-based creation
+	c.JSON(http.StatusServiceUnavailable, gin.H{"error": "template service not available"})
 }
 
 // DeleteUserApp deletes a user-generated app

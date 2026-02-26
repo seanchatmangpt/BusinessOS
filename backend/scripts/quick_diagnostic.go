@@ -128,7 +128,6 @@ func main() {
 		description string
 	}{
 		{"internal/services/onboarding_service.go", "transformAIAnalysisToWorkspaceProfile", "AI → Profile"},
-		{"internal/services/app_generation_worker.go", "enrichGenerationContext", "Profile → OSA"},
 		{"internal/services/workspace_version_service.go", "CreateSnapshot", "Version snapshots"},
 		{"internal/services/post_onboarding_service.go", "QueueAppsForWorkspace", "Template matching"},
 	}
@@ -180,7 +179,7 @@ func main() {
 			}
 		} else {
 			if env.name == "SECRET_KEY" || env.name == "GROQ_API_KEY" ||
-			   env.name == "GOOGLE_CLIENT_SECRET" || env.name == "OSA_API_KEY" {
+				env.name == "GOOGLE_CLIENT_SECRET" || env.name == "OSA_API_KEY" {
 				fmt.Printf("✅ %s: ****** (hidden) - %s\n", env.name, env.description)
 			} else {
 				fmt.Printf("✅ %s: %s - %s\n", env.name, truncate(value, 40), env.description)

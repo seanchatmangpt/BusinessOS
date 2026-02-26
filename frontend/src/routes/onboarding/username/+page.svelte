@@ -103,7 +103,7 @@
 			if (response.success) {
 				onboardingStore.setUserData({ username });
 				onboardingStore.nextStep();
-				goto('/onboarding/connect');
+				goto('/onboarding/analyzing');
 			} else {
 				error = 'Failed to set username. Please try again.';
 				isChecking = false;
@@ -117,14 +117,7 @@
 
 	function handleBack() {
 		onboardingStore.prevStep();
-		goto('/onboarding/quick-info');
-	}
-
-	function handleSkip() {
-		// Skip username selection and go to connect
-		onboardingStore.setUserData({ username: 'guest_user' });
-		onboardingStore.nextStep();
-		goto('/onboarding/connect');
+		goto('/onboarding/gmail');
 	}
 </script>
 
@@ -187,14 +180,9 @@
 					{/if}
 				</PillButton>
 
-				<div class="secondary-actions">
-					<button class="skip-button" onclick={handleSkip}>
-						Skip for now
-					</button>
-					<button class="back-button" onclick={handleBack}>
-						Back
-					</button>
-				</div>
+				<button class="back-button" onclick={handleBack}>
+					Back
+				</button>
 			</div>
 		</div>
 	</div>
@@ -330,13 +318,6 @@
 		animation: fadeIn 0.8s ease-out 0.4s both;
 	}
 
-	.secondary-actions {
-		display: flex;
-		gap: 2rem;
-		align-items: center;
-	}
-
-	.skip-button,
 	.back-button {
 		background: transparent;
 		border: none;
@@ -349,11 +330,6 @@
 		transition: color 0.2s ease;
 	}
 
-	.skip-button {
-		text-decoration: underline;
-	}
-
-	.skip-button:hover,
 	.back-button:hover {
 		color: #1A1A1A;
 	}

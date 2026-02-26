@@ -5,7 +5,6 @@
 	import { ArrowLeft, Sparkles, Star, Check, Loader2, FileCode, Package } from 'lucide-svelte';
 	import { templateStore, categoryLabels, categoryColors } from '$lib/stores/templateStore';
 	import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
-	import AgentProgressPanel from '$lib/components/osa/AgentProgressPanel.svelte';
 	import type { AppTemplate, BuiltInTemplateInfo, GenerationResult } from '$lib/api/templates';
 
 	const templateId = $derived($page.params.id);

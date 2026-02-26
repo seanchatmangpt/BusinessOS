@@ -706,19 +706,7 @@ Example ending:
 					}
 				}
 
-				// Send output as blocks if requested
-				if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
-					// Clean response from thinking tags for better block parsing
-					cleanResponse := stripThinkingTags(fullResponse)
-					doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
-					if err == nil {
-						writeSSEEvent(w, streaming.StreamEvent{
-							Type: streaming.EventTypeBlocks,
-							Data: doc,
-						})
-						slog.Debug("ChatV2: Structured blocks sent", "totalBlocks", len(doc.Blocks))
-					}
-				}
+				// TODO: structured block output not available — restore block_mapper.go to enable StructuredOutput
 
 				// Send usage and done
 				sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)
@@ -899,19 +887,7 @@ Example ending:
 					}
 				}
 
-				// Send output as blocks if requested
-				if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
-					// Clean response from thinking tags for better block parsing
-					cleanResponse := stripThinkingTags(fullResponse)
-					doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
-					if err == nil {
-						writeSSEEvent(w, streaming.StreamEvent{
-							Type: streaming.EventTypeBlocks,
-							Data: doc,
-						})
-						slog.Debug("ChatV2: Structured blocks sent on Done", "totalBlocks", len(doc.Blocks))
-					}
-				}
+				// TODO: structured block output not available — restore block_mapper.go to enable StructuredOutput
 
 				sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)
 				return false
@@ -944,19 +920,7 @@ Example ending:
 					}
 				}
 
-				// Send output as blocks if requested
-				if req.StructuredOutput != nil && *req.StructuredOutput && h.blockMapper != nil {
-					// Clean response from thinking tags for better block parsing
-					cleanResponse := stripThinkingTags(fullResponse)
-					doc, err := h.blockMapper.ParseMarkdown(ctx, cleanResponse, nil)
-					if err == nil {
-						writeSSEEvent(w, streaming.StreamEvent{
-							Type: streaming.EventTypeBlocks,
-							Data: doc,
-						})
-						slog.Debug("ChatV2: Structured blocks sent on channel close", "totalBlocks", len(doc.Blocks))
-					}
-				}
+				// TODO: structured block output not available — restore block_mapper.go to enable StructuredOutput
 
 				// Send usage event
 				sendUsageEvent(w, startTime, req.Message, messages, fullResponse, provider, model, len(thinkingContent)/4)

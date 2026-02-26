@@ -20,13 +20,13 @@ import (
 
 // EmbeddingService handles vector embeddings for semantic search
 type EmbeddingService struct {
-	pool              *pgxpool.Pool
-	ollamaURL         string
-	model             string
-	httpClient        *http.Client
-	dimensions        int
-	cache             *RAGCacheService            // Optional cache for embeddings (legacy)
-	embeddingCache    *EmbeddingCacheAdapter      // New embedding cache with Redis backend
+	pool           *pgxpool.Pool
+	ollamaURL      string
+	model          string
+	httpClient     *http.Client
+	dimensions     int
+	cache          *RAGCacheService       // Optional cache for embeddings (legacy)
+	embeddingCache *EmbeddingCacheAdapter // New embedding cache with Redis backend
 }
 
 // EmbeddingBlock represents a document block for embedding
@@ -168,7 +168,7 @@ func (s *EmbeddingService) GenerateEmbedding(ctx context.Context, text string) (
 }
 
 // IndexDocument indexes all blocks of a document
-func (s *EmbeddingService) IndexDocument(ctx context.Context, contextID uuid.UUID, blocks []Block) error {
+func (s *EmbeddingService) IndexDocument(ctx context.Context, contextID uuid.UUID, blocks []EmbeddingBlock) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)

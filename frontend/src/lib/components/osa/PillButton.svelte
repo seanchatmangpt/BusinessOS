@@ -22,7 +22,6 @@
 		onclick?: (e: MouseEvent) => void;
 		children?: Snippet;
 		class?: string;
-		'aria-label'?: string;
 	}
 
 	let {
@@ -33,8 +32,7 @@
 		type = 'button',
 		onclick,
 		children,
-		class: className = '',
-		'aria-label': ariaLabel
+		class: className = ''
 	}: Props = $props();
 
 	const variantClass = `btn-pill-${variant}`;
@@ -47,8 +45,6 @@
 	class={classes}
 	disabled={disabled || loading}
 	{onclick}
-	aria-label={ariaLabel}
-	aria-busy={loading}
 >
 	{#if loading}
 		<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">

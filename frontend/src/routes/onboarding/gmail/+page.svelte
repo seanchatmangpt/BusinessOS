@@ -3,53 +3,16 @@
 	Simplified Gmail connection matching Wabi design
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { GradientBackground, PillButton } from '$lib/components/osa';
+	import { PillButton } from '$lib/components/osa';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
-	import { browser } from '$app/environment';
-
-	let isLoading = $state(false);
-	let errorMessage = $state<string | null>(null);
-
-	onMount(() => {
-		if (!browser) return;
-
-		// Check for OAuth callback success/error in URL params
-		const urlParams = new URLSearchParams(window.location.search);
-		const success = urlParams.get('success');
-		const error = urlParams.get('error');
-
-		if (success === 'true') {
-			// Gmail connected successfully
-			onboardingStore.setUserData({ gmailConnected: true });
-			onboardingStore.nextStep();
-			goto('/onboarding/username');
-		} else if (error) {
-			// OAuth failed
-			errorMessage = decodeURIComponent(error);
-			isLoading = false;
-		}
-	});
 
 	function handleConnect() {
-		if (isLoading) return;
-
-		isLoading = true;
-		errorMessage = null;
-
-		// Store return URL in sessionStorage for after OAuth completes
-		if (browser) {
-			sessionStorage.setItem('oauth_return', '/onboarding/gmail?success=true');
-		}
-
-		// Redirect to backend Google OAuth endpoint
-		// Backend will handle the OAuth flow and redirect back
-		const backendURL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
-		const redirectURL = `/onboarding/gmail`;
-
-		// Redirect to Google OAuth
-		window.location.href = `${backendURL}/api/auth/google?redirect=${encodeURIComponent(redirectURL)}`;
+		// Initiate Google OAuth flow
+		// After OAuth completes, backend will redirect to /onboarding/username
+		const backendUrl = 'http://localhost:8001';
+		const redirectAfter = '/onboarding/username';
+		window.location.href = `${backendUrl}/api/auth/google?redirect=${encodeURIComponent(redirectAfter)}`;
 	}
 
 	function handleSkip() {
@@ -68,7 +31,7 @@
 	<title>Connect Gmail - OSA Build</title>
 </svelte:head>
 
-<GradientBackground>
+<div class="onboarding-background">
 	<div class="gmail-screen">
 		<div class="content">
 			<!-- Main Message -->
@@ -80,42 +43,35 @@
 				OSA analyzes your email to build apps tailored to your needs.
 			</p>
 
-			<!-- Error Message -->
-			{#if errorMessage}
-				<div class="error-message">
-					<p>{errorMessage}</p>
-				</div>
-			{/if}
-
 			<!-- CTA Buttons -->
 			<div class="cta">
-				<PillButton
-					variant="primary"
-					size="lg"
-					onclick={handleConnect}
-					disabled={isLoading}
-				>
-					{#if isLoading}
-						Connecting...
-					{:else}
-						Connect Gmail
-					{/if}
+				<PillButton variant="primary" size="lg" onclick={handleConnect}>
+					Connect Gmail
 				</PillButton>
 
 				<div class="secondary-actions">
-					<button class="skip-button" onclick={handleSkip} disabled={isLoading}>
+					<button class="skip-button" onclick={handleSkip}>
 						Skip for now
 					</button>
-					<button class="back-button" onclick={handleBack} disabled={isLoading}>
+					<button class="back-button" onclick={handleBack}>
 						Back
 					</button>
 				</div>
 			</div>
 		</div>
 	</div>
-</GradientBackground>
+</div>
 
 <style>
+	.onboarding-background {
+		min-height: 100vh;
+		width: 100%;
+		background-image: url('/logos/integrations/MIOSABRANDBackround.png');
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+	}
+
 	.gmail-screen {
 		min-height: 100vh;
 		display: flex;
@@ -152,22 +108,6 @@
 		animation: fadeIn 0.8s ease-out 0.3s both;
 	}
 
-	.error-message {
-		background: #fee;
-		border: 1px solid #fcc;
-		border-radius: 8px;
-		padding: 1rem;
-		max-width: 500px;
-		animation: fadeIn 0.3s ease-out;
-	}
-
-	.error-message p {
-		color: #c33;
-		font-size: 0.875rem;
-		margin: 0;
-		text-align: center;
-	}
-
 	.cta {
 		display: flex;
 		flex-direction: column;
@@ -202,12 +142,6 @@
 	.skip-button:hover,
 	.back-button:hover {
 		color: #1A1A1A;
-	}
-
-	.skip-button:disabled,
-	.back-button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
 	}
 
 	@keyframes fadeIn {

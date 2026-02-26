@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
 	import { Button } from '$lib/ui';
-	import SilverOrb from './SilverOrb.svelte';
+	import PurpleOrb from './PurpleOrb.svelte';
 
 	interface Props {
 		workspaceName?: string;
@@ -25,7 +25,7 @@
 
 <div class="member-welcome {className}">
 	<div class="orb-container">
-		<SilverOrb size="lg" />
+		<PurpleOrb size="lg" />
 	</div>
 
 	<div class="content">

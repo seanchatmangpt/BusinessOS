@@ -5,7 +5,7 @@
 <script lang="ts">
 	import { Button } from '$lib/ui';
 	import { CheckIcon } from './icons';
-	import SilverOrb from './SilverOrb.svelte';
+	import PurpleOrb from './PurpleOrb.svelte';
 
 	interface CompletionItem {
 		label: string;
@@ -37,7 +37,7 @@
 
 <div class="completion-screen {className}">
 	<div class="orb-container">
-		<SilverOrb size="lg" isPulsing={false} />
+		<PurpleOrb size="lg" isPulsing={false} />
 	</div>
 
 	<div class="content">

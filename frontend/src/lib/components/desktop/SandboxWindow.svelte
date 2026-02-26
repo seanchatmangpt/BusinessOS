@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { Loader2, Play, RefreshCw, AlertCircle, ExternalLink, Square } from 'lucide-svelte';
-	import { generatedAppsStore, type GeneratedApp } from '$lib/stores/generatedAppsStore';
-	import { getSandboxInfo, type SandboxInfo } from '$lib/api/sandbox';
+	import { getSandboxInfo, deploySandbox, restartSandbox, stopSandbox, type SandboxInfo } from '$lib/api/sandbox';
 	import SandboxStatusBadge from '$lib/components/osa/SandboxStatusBadge.svelte';
 	import SandboxPreview from './sandbox/SandboxPreview.svelte';
 	import type { SandboxStatus } from '$lib/types/sandbox';
@@ -16,7 +15,7 @@
 
 	let showReviewPanel = $state(!!sandboxEditId);
 
-	let app: GeneratedApp | null = $state(null);
+	let appName = $state<string | null>(null);
 	let sandboxInfo: SandboxInfo | null = $state(null);
 	let isLoading = $state(true);
 	let actionLoading = $state(false);
@@ -26,9 +25,9 @@
 
 	// Derive sandbox status
 	let sandboxStatus = $derived<SandboxStatus>(
-		sandboxInfo?.status ?? app?.sandbox?.status ?? 'pending'
+		sandboxInfo?.status ?? 'pending'
 	);
-	let sandboxUrl = $derived(sandboxInfo?.url ?? app?.sandbox?.url);
+	let sandboxUrl = $derived(sandboxInfo?.url);
 	let isRunning = $derived(sandboxStatus === 'running');
 	let isBuilding = $derived(sandboxStatus === 'building');
 	let isStopped = $derived(sandboxStatus === 'stopped');
@@ -52,12 +51,8 @@
 		isLoading = true;
 		error = null;
 		try {
-			app = await generatedAppsStore.getAppById(appId);
-			if (!app) {
-				error = 'App not found';
-				return;
-			}
 			await refreshStatus();
+			appName = sandboxInfo?.app_name ?? appId;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to load app';
 		} finally {
@@ -78,7 +73,7 @@
 		actionLoading = true;
 		error = null;
 		try {
-			await generatedAppsStore.deployApp(appId);
+			await deploySandbox(appId);
 			await refreshStatus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to deploy';
@@ -91,7 +86,7 @@
 		actionLoading = true;
 		error = null;
 		try {
-			await generatedAppsStore.startSandbox(appId);
+			await restartSandbox(appId);
 			await refreshStatus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to start sandbox';
@@ -104,7 +99,7 @@
 		actionLoading = true;
 		error = null;
 		try {
-			await generatedAppsStore.stopSandbox(appId);
+			await stopSandbox(appId);
 			await refreshStatus();
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to stop sandbox';
@@ -131,7 +126,7 @@
 	<div class="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
 		<div class="flex items-center gap-3">
 			<span class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">
-				{app?.app_name ?? 'Loading...'}
+				{appName ?? 'Loading...'}
 			</span>
 			<SandboxStatusBadge status={sandboxStatus} size="sm" />
 		</div>
@@ -217,7 +212,7 @@
 				</div>
 			</div>
 
-		{:else if !sandboxInfo && !app?.sandbox}
+		{:else if !sandboxInfo}
 			<!-- Not Deployed State -->
 			<div class="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
 				<div class="text-center max-w-sm px-4">
@@ -309,7 +304,7 @@
 			<iframe
 				bind:this={iframeRef}
 				src={sandboxUrl}
-				title="{app?.app_name ?? 'Sandbox'} Preview"
+				title="{appName ?? 'Sandbox'} Preview"
 				class="w-full h-full border-0"
 				sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
 			></iframe>

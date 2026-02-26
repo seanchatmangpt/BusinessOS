@@ -11,11 +11,10 @@ export { default as PillSelect } from "./PillSelect.svelte";
 export { default as AppCard } from "./AppCard.svelte";
 export { default as ProgressDots } from "./ProgressDots.svelte";
 
-// Multi-Agent App Generation
-export { default as AgentProgressPanel } from "./AgentProgressPanel.svelte";
-export { default as CreateAppModal } from "./CreateAppModal.svelte";
-export { default as AgentStatusCard } from "./AgentStatusCard.svelte";
-export { default as GenerationLogs } from "./GenerationLogs.svelte";
+// Build Components
+export { default as GlassCard } from "./GlassCard.svelte";
+export { default as FilePreview } from "./FilePreview.svelte";
+export { default as InstallButton } from "./InstallButton.svelte";
 
 // Sandbox Components
 export { default as SandboxStatusBadge } from "./SandboxStatusBadge.svelte";

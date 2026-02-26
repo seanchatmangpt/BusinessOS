@@ -93,7 +93,6 @@ func main() {
 		file string
 	}{
 		{"transformAIAnalysisToWorkspaceProfile", "internal/services/onboarding_service.go"},
-		{"enrichGenerationContext", "internal/services/app_generation_worker.go"},
 		{"WorkspaceVersionService.CreateSnapshot", "internal/services/workspace_version_service.go"},
 		{"WorkspaceVersionService.RestoreSnapshot", "internal/services/workspace_version_service.go"},
 		{"WorkspaceVersionService.ListVersions", "internal/services/workspace_version_service.go"},

@@ -1,101 +1,36 @@
 <!--
-	Onboarding Screen 5: AI Analysis
-	Consolidated page showing all 3 insights with carousel transitions
-	Streams AI-generated insights in real-time
+	Onboarding Screen 6: AI Analysis (First Insight)
+	Streams AI-generated insights in real-time using Groq AI
+	Displays the first of 3 personalized insights
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { onboardingStore } from '$lib/stores/onboardingStore';
-	import { onboardingAnalysis, analyzingInsights } from '$lib/stores/onboardingAnalysis';
+	import { onboardingAnalysis, analyzingInsights, analysisFailed } from '$lib/stores/onboardingAnalysis';
 	import { getSession } from '$lib/auth-client';
-	import { fade } from 'svelte/transition';
 
-	let phase = $state<'loading' | 'insights' | 'generating'>('loading');
-	let currentInsightIndex = $state(0);
-	let showInsight = $state(false);
-	let error = $state<string | null>(null);
-
-	// Get insights from store
-	const insights = $derived([
-		$analyzingInsights.message1,
-		$analyzingInsights.message2,
-		$analyzingInsights.message3
-	]);
-
-	const currentInsight = $derived(insights[currentInsightIndex]);
-	const hasRealData = $derived($analyzingInsights.hasRealData);
-	const gmailConnected = $derived($onboardingStore.userData.gmailConnected);
-
-	// Delay helper
-	function delay(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
-	}
-
-	// Cycle through insights with fade transitions
-	async function cycleInsights() {
-		phase = 'insights';
-
-		for (let i = 0; i < 3; i++) {
-			currentInsightIndex = i;
-			showInsight = true;
-			await delay(2500); // Show each insight for 2.5s
-			showInsight = false;
-			await delay(400); // Fade transition
-		}
-
-		// Show generating message
-		phase = 'generating';
-		await delay(1500);
-
-		// Navigate to starter apps
-		onboardingStore.nextStep();
-		goto('/onboarding/starter-apps');
-	}
-
-	// Quick flow for skipped Gmail (no insights to show)
-	async function quickFlow() {
-		phase = 'loading';
-		await delay(1500);
-
-		phase = 'generating';
-		await delay(1500);
-
-		onboardingStore.nextStep();
-		goto('/onboarding/starter-apps');
-	}
+	let analyzing = true;
+	let error: string | null = null;
+	let insightMessage = '';
 
 	onMount(async () => {
-		// Check if Gmail was connected
-		if (!gmailConnected) {
-			quickFlow();
-			return;
-		}
+		// Subscribe to streaming analysis store
+		const unsubscribe = analyzingInsights.subscribe(($insights) => {
+			insightMessage = $insights.message1;
 
-		// Timeout fallback - if analysis takes too long, use defaults
-		const ANALYSIS_TIMEOUT = 10000; // 10 seconds max wait
-		let hasStartedInsights = false;
-		let timeoutId: ReturnType<typeof setTimeout>;
-
-		const startFallbackInsights = () => {
-			if (hasStartedInsights) return;
-			hasStartedInsights = true;
-
+			// Update legacy onboarding store for backward compatibility
 			onboardingStore.setAnalysis({
-				message1: 'No-code builder energy',
-				message2: 'Design tools are your playground',
-				message3: 'AI-curious, testing new platforms'
+				message1: $insights.message1,
+				message2: $insights.message2,
+				message3: $insights.message3
 			});
-			cycleInsights();
-		};
-
-		// Set timeout fallback
-		timeoutId = setTimeout(() => {
-			startFallbackInsights();
-		}, ANALYSIS_TIMEOUT);
+		});
 
 		// Subscribe to analysis state
 		const unsubscribeAnalysis = onboardingAnalysis.subscribe(($analysis) => {
+			// Update analyzing state based on stream status
+			analyzing = $analysis.isStreaming || $analysis.isLoading;
 			error = $analysis.error;
 
 			// Store additional data
@@ -107,42 +42,46 @@
 
 			// When analysis completes (or fails but has fallback data)
 			if ($analysis.status === 'completed' || $analysis.status === 'failed') {
-				clearTimeout(timeoutId);
+				analyzing = false;
 
-				// Update legacy onboarding store for backward compatibility
-				onboardingStore.setAnalysis({
-					message1: $analyzingInsights.message1,
-					message2: $analyzingInsights.message2,
-					message3: $analyzingInsights.message3
-				});
-
-				// Start cycling through insights
-				if (!hasStartedInsights) {
-					hasStartedInsights = true;
-					cycleInsights();
-				}
+				// Auto-advance to next screen after 2s
+				setTimeout(() => {
+					onboardingStore.nextStep();
+					goto('/onboarding/analyzing-2');
+				}, 2000);
 			}
 		});
 
 		// Get user session and start polling for real data
-		try {
-			const session = await getSession();
-			if (session.data?.user?.id) {
-				const userId = session.data.user.id;
+		const session = await getSession();
+		if (session.data && session.data.user && session.data.user.id) {
+			const userId = session.data.user.id;
+			console.log('[Analyzing] Starting analysis polling for user:', userId);
 
-				// Start polling for analysis status by user_id
-				onboardingAnalysis.pollByUserId(userId);
-			} else {
-				clearTimeout(timeoutId);
-				startFallbackInsights();
-			}
-		} catch (err) {
-			clearTimeout(timeoutId);
-			startFallbackInsights();
+			// Start polling for analysis status by user_id
+			onboardingAnalysis.pollByUserId(userId);
+		} else {
+			console.warn('[Analyzing] No user session found - using fallback insights');
+
+			// Set fallback insights
+			insightMessage = 'No-code builder energy';
+			analyzing = false;
+
+			onboardingStore.setAnalysis({
+				message1: 'No-code builder energy',
+				message2: 'Design tools are your playground',
+				message3: 'AI-curious, testing new platforms'
+			});
+
+			// Still auto-advance
+			setTimeout(() => {
+				onboardingStore.nextStep();
+				goto('/onboarding/analyzing-2');
+			}, 2000);
 		}
 
 		return () => {
-			clearTimeout(timeoutId);
+			unsubscribe();
 			unsubscribeAnalysis();
 		};
 	});
@@ -155,60 +94,34 @@
 <div class="onboarding-background">
 	<div class="analyzing-screen">
 		<div class="content">
-			{#if phase === 'loading'}
-				<div in:fade={{ duration: 300 }} out:fade={{ duration: 300 }}>
-					<h1 class="title">
-						Analyzing your workspace...
-					</h1>
+			{#if analyzing}
+				<h1 class="title">
+					Analyzing your workspace...
+				</h1>
 
-					<div class="spinner-wrapper">
-						<div class="spinner"></div>
-					</div>
-
-					{#if $onboardingAnalysis.isStreaming}
-						<p class="streaming-text">Reading your emails with AI...</p>
-					{/if}
-
-					{#if error}
-						<p class="error-text">{error}</p>
-						<p class="fallback-text">Using default insights</p>
-					{/if}
+				<!-- Loading Spinner -->
+				<div class="spinner-wrapper">
+					<div class="spinner"></div>
 				</div>
-			{:else if phase === 'insights'}
-				{#if showInsight}
-					<div
-						class="insight-container"
-						in:fade={{ duration: 400 }}
-						out:fade={{ duration: 400 }}
-					>
-						<h1 class="title insight-title">
-							{currentInsight}
-						</h1>
 
-						{#if hasRealData}
-							<p class="ai-badge">Based on your emails</p>
-						{/if}
-
-						<div class="dots">
-							{#each [0, 1, 2] as i}
-								<span
-									class="dot"
-									class:active={i === currentInsightIndex}
-								></span>
-							{/each}
-						</div>
-					</div>
+				<!-- Streaming indicator -->
+				{#if $onboardingAnalysis.isStreaming}
+					<p class="streaming-text">Reading your emails with AI...</p>
 				{/if}
-			{:else if phase === 'generating'}
-				<div in:fade={{ duration: 300 }}>
-					<h1 class="title">
-						Generating your apps...
-					</h1>
+			{:else if error}
+				<h1 class="title">
+					Analysis complete
+				</h1>
+				<p class="error-text">{error}</p>
+				<p class="fallback-text">Using default insights</p>
+			{:else}
+				<h1 class="title">
+					{insightMessage}
+				</h1>
 
-					<div class="spinner-wrapper">
-						<div class="spinner"></div>
-					</div>
-				</div>
+				{#if $analyzingInsights.hasRealData}
+					<p class="ai-badge">✨ AI-Generated</p>
+				{/if}
 			{/if}
 		</div>
 	</div>
@@ -240,7 +153,6 @@
 		align-items: center;
 		gap: 3rem;
 		text-align: center;
-		min-height: 300px;
 	}
 
 	.title {
@@ -250,22 +162,11 @@
 		line-height: 1.2;
 		letter-spacing: -0.02em;
 		margin: 0;
-	}
-
-	.insight-container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 2rem;
-	}
-
-	.insight-title {
-		font-size: 2.5rem;
-		max-width: 500px;
+		animation: fadeIn 0.8s ease-out 0.2s both;
 	}
 
 	.spinner-wrapper {
-		margin-top: 2rem;
+		animation: fadeIn 0.8s ease-out 0.3s both;
 	}
 
 	.spinner {
@@ -281,12 +182,14 @@
 		font-size: 0.875rem;
 		color: #666;
 		margin: 0;
+		animation: fadeIn 0.8s ease-out 0.5s both;
 	}
 
 	.error-text {
 		font-size: 1rem;
 		color: #DC2626;
 		margin: 0;
+		animation: fadeIn 0.8s ease-out 0.3s both;
 	}
 
 	.fallback-text {
@@ -302,25 +205,7 @@
 		padding: 0.375rem 0.75rem;
 		border-radius: 1rem;
 		margin: 0;
-	}
-
-	.dots {
-		display: flex;
-		gap: 0.5rem;
-		margin-top: 1rem;
-	}
-
-	.dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: #D1D5DB;
-		transition: all 0.3s ease;
-	}
-
-	.dot.active {
-		background: #1A1A1A;
-		transform: scale(1.25);
+		animation: fadeIn 0.8s ease-out 0.5s both;
 	}
 
 	@keyframes spin {
@@ -329,13 +214,20 @@
 		}
 	}
 
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
 	@media (max-width: 768px) {
 		.title {
 			font-size: 2rem;
-		}
-
-		.insight-title {
-			font-size: 1.75rem;
 		}
 
 		.content {
