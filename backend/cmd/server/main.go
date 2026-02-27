@@ -20,6 +20,7 @@ import (
 	"github.com/joho/godotenv"
 	internalAuth "github.com/rhl/businessos-backend/internal/auth"
 	"github.com/rhl/businessos-backend/internal/config"
+	osaclient "github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/container"
 	"github.com/rhl/businessos-backend/internal/database"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
@@ -726,6 +727,23 @@ func main() {
 	} else {
 		h.SetSkillsLoader(skillsLoader)
 		log.Printf("Skills loader initialized (%d skills loaded)", len(skillsLoader.GetEnabledSkills()))
+	}
+
+	// Initialize OSA client (optional: enabled when OSA_SHARED_SECRET or OSA_API_KEY is set)
+	{
+		osaCfg := osaclient.NewConfigFromEnv()
+		if osaCfg.IsConfigured() {
+			osaSdkClient, osaErr := osaclient.NewOSAClient(osaCfg)
+			if osaErr != nil {
+				slog.Warn("OSA client not available, OSA features disabled", "error", osaErr)
+			} else {
+				osaSvc := services.NewOSAService(osaSdkClient)
+				h.SetOSAService(osaSvc)
+				slog.Info("OSA service initialized", "mode", osaCfg.Mode)
+			}
+		} else {
+			slog.Info("OSA service skipped (OSA_SHARED_SECRET / OSA_API_KEY not set)")
+		}
 	}
 
 	// Optional background job: keep conversation_summaries fresh for context + semantic search.

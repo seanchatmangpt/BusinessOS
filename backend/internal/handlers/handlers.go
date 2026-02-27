@@ -57,6 +57,8 @@ type Handlers struct {
 	skillsLoader *services.SkillsLoader // Skills loader for agent prompts
 	// Caching services
 	queryCache *cache.QueryCache // Query result caching service for Redis
+	// OSA integration (optional: enabled when OSA_SHARED_SECRET or OSA_API_KEY is set)
+	osaSvc *services.OSAService
 }
 
 // NewHandlers creates a new Handlers instance
@@ -191,6 +193,11 @@ func (h *Handlers) SetSkillsLoader(skillsLoader *services.SkillsLoader) {
 // SetQueryCache sets the query cache service (optional, for Redis-based caching)
 func (h *Handlers) SetQueryCache(queryCache *cache.QueryCache) {
 	h.queryCache = queryCache
+}
+
+// SetOSAService sets the OSA service (optional: enabled when OSA_SHARED_SECRET or OSA_API_KEY is set)
+func (h *Handlers) SetOSAService(svc *services.OSAService) {
+	h.osaSvc = svc
 }
 
 // RegisterRoutes registers all API routes
@@ -1237,5 +1244,12 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 		customModules.POST("/import", customModulesHandler.ImportModule)
 	}
 	slog.Info("Custom modules routes registered at /api/modules/*")
+
+	// OSA integration routes - /api/osa/* (optional: only registered when OSA service is wired)
+	if h.osaSvc != nil {
+		osaHandler := NewOSAHandler(h.osaSvc)
+		osaHandler.RegisterOSARoutes(api)
+		slog.Info("OSA routes registered at /api/osa/*")
+	}
 
 }

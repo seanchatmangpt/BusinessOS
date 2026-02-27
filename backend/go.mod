@@ -3,9 +3,9 @@ module github.com/rhl/businessos-backend
 go 1.24.1
 
 require (
+	github.com/Miosa-osa/sdk-go v0.0.0-00010101000000-000000000000
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/alicebob/miniredis/v2 v2.35.0
-	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/creack/pty v1.1.24
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
@@ -23,12 +23,10 @@ require (
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/resend/resend-go/v2 v2.28.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/severity1/claude-agent-sdk-go v0.6.12
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.46.0
 	golang.org/x/oauth2 v0.34.0
-	golang.org/x/sync v0.19.0
 	golang.org/x/time v0.14.0
 	google.golang.org/api v0.257.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -85,7 +83,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.54.0 // indirect
-	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
@@ -109,6 +106,7 @@ require (
 	golang.org/x/arch v0.20.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
@@ -121,3 +119,4 @@ require (
 
 replace github.com/docker/docker => github.com/docker/docker v27.4.1+incompatible
 
+replace github.com/Miosa-osa/sdk-go => C:/Users/Pichau/AppData/Local/Temp/sdk-go-temp
