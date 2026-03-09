@@ -144,10 +144,10 @@
       context.role_name === 'manager';
   }
 
-  function handleWorkspaceUpdated(event: CustomEvent<Workspace>) {
-    workspace = event.detail;
+  function handleWorkspaceUpdated(updated: Workspace) {
+    workspace = updated;
     if ($currentWorkspace) {
-      $currentWorkspace = { ...$currentWorkspace, ...event.detail };
+      $currentWorkspace = { ...$currentWorkspace, ...updated };
     }
   }
 
@@ -300,12 +300,12 @@
 <style>
   .workspace-settings-page {
     min-height: 100vh;
-    background: var(--dbg2, var(--bos-bg-secondary, #f5f5f5));
+    background: var(--dbg2, #f5f5f5);
   }
 
   .settings-header {
-    background: var(--dbg, var(--bos-card, #fff));
-    border-bottom: 1px solid var(--dbd, var(--bos-border, #e0e0e0));
+    background: var(--dbg, #fff);
+    border-bottom: 1px solid var(--dbd, #e0e0e0);
     padding: 1.5rem 2rem;
   }
 
@@ -326,7 +326,7 @@
   .header-title h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--dt, var(--bos-text-primary, #111));
+    color: var(--dt, #111);
     margin: 0;
   }
 
@@ -339,14 +339,14 @@
   .workspace-name {
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--dt2, var(--bos-text-secondary, #555));
+    color: var(--dt2, #555);
   }
 
   .workspace-plan {
     display: inline-block;
     padding: 0.25rem 0.75rem;
-    background: #eff6ff;
-    color: #1e40af;
+    background: color-mix(in srgb, #3b82f6 12%, var(--dbg, #fff));
+    color: #3b82f6;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -361,7 +361,7 @@
     justify-content: center;
     padding: 4rem 2rem;
     gap: 1rem;
-    color: var(--dt3, var(--bos-text-tertiary, #888));
+    color: var(--dt3, #888);
   }
 
   .error-state {
@@ -373,21 +373,15 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
+    background: color-mix(in srgb, #f59e0b 10%, var(--dbg, #fff));
+    border: 1px solid color-mix(in srgb, #f59e0b 25%, var(--dbd, #e0e0e0));
     border-radius: 0.5rem;
-    color: #92400e;
+    color: var(--dt2, #92400e);
     font-size: 0.875rem;
     margin: 1rem 2rem;
     max-width: 1200px;
     margin-left: auto;
     margin-right: auto;
-  }
-
-  :global(.dark) .mock-data-banner {
-    background: #422006;
-    border-color: #a16207;
-    color: #fef3c7;
   }
 
   .settings-container {
@@ -400,9 +394,9 @@
     display: flex;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: var(--dbg, var(--bos-card, #fff));
+    background: var(--dbg, #fff);
     border-radius: 0.5rem;
-    border: 1px solid var(--dbd, var(--bos-border, #e0e0e0));
+    border: 1px solid var(--dbd, #e0e0e0);
     margin-bottom: 1.5rem;
   }
 
@@ -416,19 +410,19 @@
     border-radius: 0.375rem;
     cursor: pointer;
     transition: all 0.15s;
-    color: var(--dt3, var(--bos-text-tertiary, #888));
+    color: var(--dt3, #888);
     font-size: 0.875rem;
     font-weight: 500;
   }
 
   .tab-button:hover {
     background: var(--dbg3, #eee);
-    color: var(--dt, var(--bos-text-primary, #111));
+    color: var(--dt, #111);
   }
 
   .tab-button.active {
-    background: #eff6ff;
-    color: #1e40af;
+    background: color-mix(in srgb, #3b82f6 10%, var(--dbg, #fff));
+    color: #3b82f6;
   }
 
   .tab-badge {
@@ -438,21 +432,21 @@
     min-width: 1.25rem;
     height: 1.25rem;
     padding: 0 0.375rem;
-    background: currentColor;
-    color: white;
+    background: var(--dt3, #888);
+    color: var(--dbg, #fff);
     font-size: 0.75rem;
     font-weight: 600;
     border-radius: 9999px;
   }
 
   .tab-button.active .tab-badge {
-    background: #1e40af;
+    background: #3b82f6;
   }
 
   .settings-content {
-    background: var(--dbg, var(--bos-card, #fff));
+    background: var(--dbg, #fff);
     border-radius: 0.5rem;
-    border: 1px solid var(--dbd, var(--bos-border, #e0e0e0));
+    border: 1px solid var(--dbd, #e0e0e0);
     min-height: 400px;
   }
 </style>

@@ -4,8 +4,9 @@
 	import { page } from '$app/stores';
 	import { projects } from '$lib/stores/projects';
 	import { api, type ClientListResponse } from '$lib/api';
-	import { Dialog, Popover, DropdownMenu } from 'bits-ui';
+	import { Dialog, DropdownMenu } from 'bits-ui';
 	import type { Project } from '$lib/api';
+	import { Building2, Users, GraduationCap, FolderOpen, X, ChevronRight } from 'lucide-svelte';
 
 	// Preloaded data from +page.ts load function (prefetched on hover)
 	let { data } = $props();
@@ -18,8 +19,7 @@
 		description: '',
 		client_name: '',
 		project_type: 'internal',
-		priority: 'medium' as 'low' | 'medium' | 'high' | 'critical',
-		icon: '📁'
+		priority: 'medium' as 'low' | 'medium' | 'high' | 'critical'
 	});
 	let statusFilter = $state('');
 	let typeFilter = $state('');
@@ -31,16 +31,7 @@
 
 	// Clients for dropdown — seed from preloaded data
 	let clients = $state<ClientListResponse[]>(data?.clients ?? []);
-	let showIconPicker = $state(false);
 	let showAdvancedOptions = $state(false);
-
-	// Project icons
-	const projectIcons = [
-		'📁', '📂', '🗂️', '📊', '📈', '📉', '💼', '🏢', '🏠', '🏭',
-		'💡', '🎯', '⭐', '🌟', '✨', '🔥', '💎', '🎨', '🎬', '📸',
-		'🛠️', '⚙️', '🔧', '🔨', '🧰', '💻', '🖥️', '📱', '🌐', '🔌',
-		'📦', '🚀', '🛸', '✈️', '🚗', '🏆', '🎓', '📚', '📖', '✏️'
-	];
 
 	onMount(async () => {
 		// Seed the store with preloaded data if available (avoids redundant fetch)
@@ -121,29 +112,10 @@
 		try {
 			await projects.createProject(newProject);
 			showNewProject = false;
-			newProject = { name: '', description: '', client_name: '', project_type: 'internal', priority: 'medium', icon: '📁' };
+			newProject = { name: '', description: '', client_name: '', project_type: 'internal', priority: 'medium' };
 			showAdvancedOptions = false;
 		} catch (error) {
 			createError = (error as Error).message || 'Failed to create project';
-		}
-	}
-
-	function getTypeEmoji(type: string) {
-		switch (type) {
-			case 'internal': return '🏢';
-			case 'client_work': return '👥';
-			case 'learning': return '📚';
-			default: return '📁';
-		}
-	}
-
-	function getPriorityEmoji(priority: string) {
-		switch (priority) {
-			case 'critical': return '🔴';
-			case 'high': return '🟠';
-			case 'medium': return '🟡';
-			case 'low': return '🟢';
-			default: return '⚪';
 		}
 	}
 
@@ -187,15 +159,6 @@
 			case 'client_work': return 'Client Work';
 			case 'learning': return 'Learning';
 			default: return type;
-		}
-	}
-
-	function getTypeIcon(type: string) {
-		switch (type) {
-			case 'internal': return '🏢';
-			case 'client_work': return '👥';
-			case 'learning': return '📚';
-			default: return '📁';
 		}
 	}
 
@@ -410,7 +373,7 @@
 				title="Grid view"
 				aria-label="Grid view"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
 				</svg>
 			</button>
@@ -420,7 +383,7 @@
 				title="List view"
 				aria-label="List view"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
 				</svg>
 			</button>
@@ -430,7 +393,7 @@
 				title="Kanban view"
 				aria-label="Kanban view"
 			>
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
 				</svg>
 			</button>
@@ -478,7 +441,7 @@
 							<a href="/projects/{project.id}{embedSuffix}" class="block p-3 prm-ls-kanban-card rounded-lg transition-colors">
 								<div class="flex items-start justify-between mb-1">
 									<span class="text-sm font-medium prm-ls-title line-clamp-1">{project.name}</span>
-									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{getTypeIcon(project.project_type)}</span>
+									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{@render typeIcon(project.project_type, 12)}</span>
 								</div>
 								{#if project.client_name}
 									<p class="text-xs prm-ls-muted mb-1">{project.client_name}</p>
@@ -509,7 +472,7 @@
 							<a href="/projects/{project.id}{embedSuffix}" class="block p-3 prm-ls-kanban-card rounded-lg transition-colors">
 								<div class="flex items-start justify-between mb-1">
 									<span class="text-sm font-medium prm-ls-title line-clamp-1">{project.name}</span>
-									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{getTypeIcon(project.project_type)}</span>
+									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{@render typeIcon(project.project_type, 12)}</span>
 								</div>
 								{#if project.client_name}
 									<p class="text-xs prm-ls-muted mb-1">{project.client_name}</p>
@@ -540,7 +503,7 @@
 							<a href="/projects/{project.id}{embedSuffix}" class="block p-3 prm-ls-kanban-card rounded-lg transition-colors">
 								<div class="flex items-start justify-between mb-1">
 									<span class="text-sm font-medium prm-ls-title line-clamp-1">{project.name}</span>
-									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{getTypeIcon(project.project_type)}</span>
+									<span class="text-xs px-1.5 py-0.5 rounded {getTypeColor(project.project_type)}">{@render typeIcon(project.project_type, 12)}</span>
 								</div>
 								{#if project.client_name}
 									<p class="text-xs prm-ls-muted mb-1">{project.client_name}</p>
@@ -587,8 +550,8 @@
 									{/if}
 								</td>
 								<td class="px-4 py-3">
-									<span class="text-xs px-2 py-1 rounded-full {getTypeColor(project.project_type)}">
-										{getTypeIcon(project.project_type)} {getTypeLabel(project.project_type)}
+									<span class="text-xs px-2 py-1 rounded-full {getTypeColor(project.project_type)} prm-ls-type-inline">
+										{@render typeIcon(project.project_type, 12)} {getTypeLabel(project.project_type)}
 									</span>
 								</td>
 								<td class="px-4 py-3">
@@ -615,7 +578,7 @@
 				{#if groupedByType.internal.length > 0}
 					<div>
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-lg">{getTypeIcon('internal')}</span>
+							<span class="prm-ls-type-icon">{@render typeIcon('internal', 18)}</span>
 						<h2 class="font-semibold prm-ls-title">Internal Projects</h2>
 						<span class="text-xs prm-ls-icon">({groupedByType.internal.length})</span>
 						</div>
@@ -630,7 +593,7 @@
 				{#if groupedByType.client_work.length > 0}
 					<div>
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-lg">{getTypeIcon('client_work')}</span>
+							<span class="prm-ls-type-icon">{@render typeIcon('client_work', 18)}</span>
 						<h2 class="font-semibold prm-ls-title">Client Work</h2>
 						<span class="text-xs prm-ls-icon">({groupedByType.client_work.length})</span>
 						</div>
@@ -645,7 +608,7 @@
 				{#if groupedByType.learning.length > 0}
 					<div>
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-lg">{getTypeIcon('learning')}</span>
+							<span class="prm-ls-type-icon">{@render typeIcon('learning', 18)}</span>
 						<h2 class="font-semibold prm-ls-title">Learning</h2>
 						<span class="text-xs prm-ls-icon">({groupedByType.learning.length})</span>
 						</div>
@@ -660,7 +623,7 @@
 				{#if groupedByType.other.length > 0}
 					<div>
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-lg">{getTypeIcon('other')}</span>
+							<span class="prm-ls-type-icon">{@render typeIcon('other', 18)}</span>
 						<h2 class="font-semibold prm-ls-title">Other</h2>
 						<span class="text-xs prm-ls-icon">({groupedByType.other.length})</span>
 						</div>
@@ -683,12 +646,24 @@
 	</div>
 </div>
 
+{#snippet typeIcon(type: string, size: number)}
+	{#if type === 'internal'}
+		<Building2 {size} />
+	{:else if type === 'client_work'}
+		<Users {size} />
+	{:else if type === 'learning'}
+		<GraduationCap {size} />
+	{:else}
+		<FolderOpen {size} />
+	{/if}
+{/snippet}
+
 {#snippet projectCard(project: Project)}
 	<a href="/projects/{project.id}{embedSuffix}" class="block prm-ls-card prm-ls-card--{project.project_type} transition-all duration-200 cursor-pointer group">
 		<div class="p-4">
 			<div class="flex items-start justify-between mb-2">
 				<div class="flex items-center gap-2 min-w-0">
-					<span class="text-base flex-shrink-0">{getTypeIcon(project.project_type)}</span>
+					<span class="prm-ls-type-icon flex-shrink-0">{@render typeIcon(project.project_type, 16)}</span>
 					<h3 class="font-medium prm-ls-title line-clamp-1 text-sm">{project.name}</h3>
 				</div>
 				<span class="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ml-2 {getStatusColor(project.status)}">
@@ -721,181 +696,143 @@
 <!-- New Project Dialog -->
 <Dialog.Root bind:open={showNewProject}>
 	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 bg-black/40 z-50" />
-		<Dialog.Content class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 prm-ls-dialog shadow-xl p-6 w-full max-w-lg z-50 max-h-[90vh] overflow-y-auto">
-			<Dialog.Title class="text-lg font-semibold prm-ls-title mb-4">New Project</Dialog.Title>
+		<Dialog.Overlay class="dlg-np__overlay" />
+		<Dialog.Content class="dlg-np__panel">
+			<!-- Header -->
+			<div class="dlg-np__header">
+				<div>
+					<Dialog.Title class="dlg-np__title">New Project</Dialog.Title>
+					<p class="dlg-np__subtitle">Configure and create a new project</p>
+				</div>
+				<button class="dlg-np__close" onclick={() => { showNewProject = false; showAdvancedOptions = false; }} aria-label="Close dialog">
+					<X size={16} />
+				</button>
+			</div>
 
-			<form onsubmit={handleCreateProject} class="space-y-4">
-				<!-- Icon + Name Row -->
-				<div class="flex gap-3">
-					<!-- Icon Picker -->
-					<Popover.Root bind:open={showIconPicker}>
-						<Popover.Trigger class="w-14 h-14 rounded-xl prm-ls-icon-picker transition-colors flex items-center justify-center text-2xl flex-shrink-0 border-2 border-transparent">
-							{newProject.icon}
-						</Popover.Trigger>
-						<Popover.Content class="z-[60] prm-ls-popover rounded-xl shadow-lg p-3 w-64">
-							<p class="text-xs font-medium prm-ls-muted mb-2">Choose Icon</p>
-							<div class="grid grid-cols-8 gap-1">
-								{#each projectIcons as icon}
-									<button
-										type="button"
-										onclick={() => { newProject.icon = icon; showIconPicker = false; }}
-										class="w-7 h-7 rounded prm-ls-icon-btn flex items-center justify-center text-lg transition-colors {newProject.icon === icon ? 'prm-icon-picker--active' : ''}"
-									>
-										{icon}
-									</button>
-								{/each}
-							</div>
-						</Popover.Content>
-					</Popover.Root>
-
-					<div class="flex-1">
-						<label for="name" class="block text-sm font-medium prm-ls-label mb-1">Name</label>
-						<input
-							id="name"
-							type="text"
-							bind:value={newProject.name}
-							class="input input-square"
-							placeholder="Project name"
-							required
-						/>
-					</div>
+			<!-- Body -->
+			<form onsubmit={handleCreateProject} class="dlg-np__body">
+				<!-- Name -->
+				<div class="dlg-np__field">
+					<label for="np-name" class="dlg-np__label">Project Name</label>
+					<input
+						id="np-name"
+						type="text"
+						bind:value={newProject.name}
+						class="dlg-np__input"
+						placeholder="e.g. Website Redesign"
+						required
+					/>
 				</div>
 
-				<!-- Type Selection with Visual Cards -->
-				<div>
-					<label class="block text-sm font-medium prm-ls-label mb-2">Type</label>
-					<div class="grid grid-cols-3 gap-2">
-						<button
-							type="button"
-							onclick={() => newProject.project_type = 'internal'}
-							class="p-3 rounded-xl border-2 transition-all text-center {newProject.project_type === 'internal' ? 'prm-type-card--active-internal' : 'prm-ls-type-btn'}"
-						>
-							<span class="text-xl block mb-1">{getTypeEmoji('internal')}</span>
-							<span class="text-xs font-medium {newProject.project_type === 'internal' ? 'prm-type-card__label--active' : 'prm-ls-label'}">Internal</span>
-						</button>
-						<button
-							type="button"
-							onclick={() => newProject.project_type = 'client_work'}
-							class="p-3 rounded-xl border-2 transition-all text-center {newProject.project_type === 'client_work' ? 'prm-type-card--active-client' : 'prm-ls-type-btn'}"
-						>
-							<span class="text-xl block mb-1">{getTypeEmoji('client_work')}</span>
-							<span class="text-xs font-medium {newProject.project_type === 'client_work' ? 'prm-type-card__label--active' : 'prm-ls-label'}">Client Work</span>
-						</button>
-						<button
-							type="button"
-							onclick={() => newProject.project_type = 'learning'}
-							class="p-3 rounded-xl border-2 transition-all text-center {newProject.project_type === 'learning' ? 'prm-type-card--active-learning' : 'prm-ls-type-btn'}"
-						>
-							<span class="text-xl block mb-1">{getTypeEmoji('learning')}</span>
-							<span class="text-xs font-medium {newProject.project_type === 'learning' ? 'prm-type-card__label--active' : 'prm-ls-label'}">Learning</span>
-						</button>
-					</div>
-				</div>
-
-				<!-- Priority Selection with Visual Indicators -->
-				<div>
-					<label class="block text-sm font-medium prm-ls-label mb-2">Priority</label>
-					<div class="flex gap-2">
-						{#each ['low', 'medium', 'high', 'critical'] as priority}
+				<!-- Type -->
+				<div class="dlg-np__field">
+					<span class="dlg-np__label">Type</span>
+					<div class="dlg-np__type-grid">
+						{#each [
+							{ value: 'internal', label: 'Internal', color: '#8b5cf6' },
+							{ value: 'client_work', label: 'Client Work', color: '#3b82f6' },
+							{ value: 'learning', label: 'Learning', color: '#14b8a6' }
+						] as t}
 							<button
 								type="button"
-								onclick={() => newProject.priority = priority as 'low' | 'medium' | 'high' | 'critical'}
-								class="flex-1 py-2 px-3 rounded-lg border-2 transition-all text-center text-sm font-medium {newProject.priority === priority ? 'prm-priority-btn--active' : 'prm-ls-type-btn prm-ls-label'}"
+								onclick={() => newProject.project_type = t.value}
+								class="dlg-np__card {newProject.project_type === t.value ? 'dlg-np__card--active' : ''}"
+								style={newProject.project_type === t.value ? `border-color: ${t.color}; background: color-mix(in srgb, ${t.color} 8%, var(--dbg))` : ''}
+								aria-label="Select {t.label} type"
 							>
-								<span class="mr-1">{getPriorityEmoji(priority)}</span>
-								<span class="capitalize">{priority}</span>
+								<span class="dlg-np__card-icon" style={newProject.project_type === t.value ? `color: ${t.color}` : ''}>
+									{@render typeIcon(t.value, 20)}
+								</span>
+								<span class="dlg-np__card-label">{t.label}</span>
 							</button>
 						{/each}
 					</div>
 				</div>
 
-				<!-- Client Dropdown -->
-				<div>
-					<label class="block text-sm font-medium prm-ls-label mb-1">Client (optional)</label>
-					<DropdownMenu.Root>
-						<DropdownMenu.Trigger class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm prm-ls-client-trigger transition-colors">
-							<span class={newProject.client_name ? 'prm-ls-title' : 'prm-ls-icon'}>
-								{newProject.client_name || 'No client'}
-							</span>
-							<svg class="w-4 h-4 prm-ls-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-							</svg>
-						</DropdownMenu.Trigger>
-						<DropdownMenu.Portal>
-							<DropdownMenu.Content class="z-[70] w-[var(--bits-dropdown-trigger-width)] prm-ls-dropdown rounded-lg shadow-lg p-1 max-h-[200px] overflow-y-auto" sideOffset={4}>
-								<DropdownMenu.Item
-									class="px-3 py-2 text-sm rounded prm-ls-dropdown-item cursor-pointer transition-colors {!newProject.client_name ? 'prm-ls-empty-bg font-medium' : ''}"
-									onclick={() => newProject.client_name = ''}
-								>
-									No client
-								</DropdownMenu.Item>
-								{#each clients as client}
-									<DropdownMenu.Item
-										class="px-3 py-2 text-sm rounded prm-ls-dropdown-item cursor-pointer transition-colors {newProject.client_name === client.name ? 'prm-ls-empty-bg font-medium' : ''}"
-										onclick={() => newProject.client_name = client.name}
-									>
-										{client.name}
-									</DropdownMenu.Item>
-								{/each}
-							</DropdownMenu.Content>
-						</DropdownMenu.Portal>
-					</DropdownMenu.Root>
+				<!-- Priority -->
+				<div class="dlg-np__field">
+					<span class="dlg-np__label">Priority</span>
+					<div class="dlg-np__prio-grid">
+						{#each [
+							{ value: 'low', label: 'Low', color: '#22c55e' },
+							{ value: 'medium', label: 'Medium', color: '#eab308' },
+							{ value: 'high', label: 'High', color: '#f97316' },
+							{ value: 'critical', label: 'Critical', color: '#ef4444' }
+						] as p}
+							<button
+								type="button"
+								onclick={() => newProject.priority = p.value as 'low' | 'medium' | 'high' | 'critical'}
+								class="dlg-np__prio {newProject.priority === p.value ? 'dlg-np__prio--active' : ''}"
+								style={newProject.priority === p.value ? `border-color: ${p.color}; background: color-mix(in srgb, ${p.color} 10%, var(--dbg))` : ''}
+								aria-label="Set priority to {p.label}"
+							>
+								<span class="dlg-np__prio-dot" style="background: {p.color}"></span>
+								<span>{p.label}</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Client -->
+				<div class="dlg-np__field">
+					<label for="np-client" class="dlg-np__label">Client <span class="dlg-np__optional">(optional)</span></label>
+					<select
+						id="np-client"
+						class="dlg-np__select"
+						bind:value={newProject.client_name}
+					>
+						<option value="">No client</option>
+						{#each clients as client}
+							<option value={client.name}>{client.name}</option>
+						{/each}
+					</select>
 					{#if clients.length === 0}
-						<p class="text-xs prm-ls-icon mt-1">No clients yet. Create one in the Clients section.</p>
+						<p class="dlg-np__hint">No clients yet. Add one from the Clients page first.</p>
 					{/if}
 				</div>
 
 				<!-- Description -->
-				<div>
-					<label for="description" class="block text-sm font-medium prm-ls-label mb-1">Description</label>
+				<div class="dlg-np__field">
+					<label for="np-desc" class="dlg-np__label">Description <span class="dlg-np__optional">(optional)</span></label>
 					<textarea
-						id="description"
+						id="np-desc"
 						bind:value={newProject.description}
-						class="input input-square resize-none"
+						class="dlg-np__textarea"
 						rows="3"
-						placeholder="What's this project about?"
+						placeholder="Brief overview of the project scope and goals"
 					></textarea>
 				</div>
 
-				<!-- Advanced Options Toggle -->
+				<!-- Advanced Options -->
 				<button
 					type="button"
 					onclick={() => showAdvancedOptions = !showAdvancedOptions}
-					class="flex items-center gap-2 text-sm prm-ls-muted prm-ls-adv-toggle"
+					class="dlg-np__adv-toggle"
 				>
-					<svg
-						class="w-4 h-4 transition-transform {showAdvancedOptions ? 'rotate-90' : ''}"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-					</svg>
+					<ChevronRight size={14} class={showAdvancedOptions ? 'dlg-np__chevron--open' : ''} />
 					Advanced Options
 				</button>
 
 				{#if showAdvancedOptions}
-					<div class="space-y-4 pl-4 prm-ls-adv-border">
-						<p class="text-xs prm-ls-icon">Additional options like team assignment and tags will be available after creating the project.</p>
+					<div class="dlg-np__adv-content">
+						<p class="dlg-np__hint">Team assignment and tags are available after project creation.</p>
 					</div>
 				{/if}
 
 				{#if createError}
-					<div class="prm-create-error">
-						{createError}
-					</div>
+					<div class="dlg-np__error">{createError}</div>
 				{/if}
-
-				<div class="flex gap-3 pt-2">
-					<button type="button" onclick={() => { showNewProject = false; showAdvancedOptions = false; }} class="btn-pill btn-pill-secondary flex-1">
-						Cancel
-					</button>
-					<button type="submit" class="btn-pill btn-pill-primary btn-pill-sm flex-1">
-						Create Project
-					</button>
-				</div>
 			</form>
+
+			<!-- Footer -->
+			<div class="dlg-np__footer">
+				<button type="button" onclick={() => { showNewProject = false; showAdvancedOptions = false; }} class="btn-pill btn-pill-ghost btn-pill-sm">
+					Cancel
+				</button>
+				<button type="button" onclick={() => { const form = document.querySelector('.dlg-np__body') as HTMLFormElement; form?.requestSubmit(); }} class="btn-pill btn-pill-primary btn-pill-sm" disabled={!newProject.name.trim()}>
+					Create Project
+				</button>
+			</div>
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
@@ -959,18 +896,124 @@
 	.prm-ls-priority-default { color: var(--dt4, #9ca3af); }
 	.prm-ls-type-default { color: var(--dt2, #4b5563); background: var(--dbg2, #f9fafb); }
 
-	/* Dialog */
-	.prm-ls-dialog { background: var(--dbg, #fff); border-radius: 1rem; }
-	.prm-ls-popover { background: var(--dbg, #fff); border: 1px solid var(--dbd, #e5e7eb); }
-	.prm-ls-icon-picker { background: var(--dbg3, #f3f4f6); }
-	.prm-ls-icon-picker:hover { background: var(--dbg3, #e5e7eb); border-color: var(--dbd, #d1d5db); }
-	.prm-ls-icon-btn:hover { background: var(--dbg3, #f3f4f6); }
-	.prm-ls-type-btn { border-color: var(--dbd, #e5e7eb); }
-	.prm-ls-type-btn:hover { border-color: var(--dbd, #d1d5db); }
-	.prm-ls-client-trigger { border: 1px solid var(--dbd, #e5e7eb); border-radius: 0.5rem; background: var(--dbg, #fff); }
-	.prm-ls-client-trigger:hover { background: var(--dbg2, #f9fafb); }
-	.prm-ls-adv-toggle:hover { color: var(--dt2, #374151); }
-	.prm-ls-adv-border { border-left: 2px solid var(--dbd2, #f3f4f6); }
+	/* ── New Project Dialog (Foundation dlg- pattern) ── */
+	/* Portal renders outside component DOM — all dialog styles must be :global */
+	:global(.dlg-np__overlay) {
+		position: fixed; inset: 0; z-index: 300;
+		background: rgba(0, 0, 0, 0.72);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+	:global(.dlg-np__panel) {
+		position: fixed; z-index: 301;
+		top: 50%; left: 50%; transform: translate(-50%, -50%);
+		width: 100%; max-width: 480px; max-height: 90vh;
+		display: flex; flex-direction: column;
+		background: var(--dbg); border: 1px solid var(--dbd);
+		border-radius: 14px;
+		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(0, 0, 0, 0.35);
+	}
+	:global(.dlg-np__header) {
+		display: flex; justify-content: space-between; align-items: flex-start;
+		padding: 20px 24px 16px;
+		border-bottom: 1px solid var(--dbd2);
+	}
+	:global(.dlg-np__title) { font-size: 15px; font-weight: 600; color: var(--dt); margin: 0; }
+	:global(.dlg-np__subtitle) { font-size: 12px; color: var(--dt3); margin-top: 2px; }
+	:global(.dlg-np__close) {
+		width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+		background: var(--dbg2); border: 1px solid var(--dbd); border-radius: 7px;
+		color: var(--dt3); cursor: pointer; transition: background 0.15s;
+	}
+	:global(.dlg-np__close:hover) { background: var(--dbg3); color: var(--dt); }
+	:global(.dlg-np__body) {
+		flex: 1; overflow-y: auto;
+		padding: 20px 24px;
+		display: flex; flex-direction: column; gap: 16px;
+	}
+	:global(.dlg-np__footer) {
+		display: flex; justify-content: flex-end; gap: 8px;
+		padding: 14px 24px;
+		border-top: 1px solid var(--dbd2);
+	}
+	:global(.dlg-np__field) { display: flex; flex-direction: column; gap: 6px; }
+	:global(.dlg-np__label) { font-size: 12px; font-weight: 600; color: var(--dt2); text-transform: uppercase; letter-spacing: 0.04em; }
+	:global(.dlg-np__optional) { font-weight: 400; text-transform: none; color: var(--dt4); letter-spacing: 0; }
+	:global(.dlg-np__input) {
+		width: 100%; padding: 9px 12px;
+		background: var(--dbg2); border: 1px solid var(--dbd); border-radius: 8px;
+		color: var(--dt); font-size: 13px; outline: none; transition: border-color 0.15s;
+		box-sizing: border-box;
+	}
+	:global(.dlg-np__input:focus) { border-color: var(--dt3); }
+	:global(.dlg-np__input::placeholder) { color: var(--dt4); }
+	:global(.dlg-np__select) {
+		width: 100%; padding: 9px 12px;
+		background: var(--dbg2); border: 1px solid var(--dbd); border-radius: 8px;
+		color: var(--dt); font-size: 13px; outline: none; transition: border-color 0.15s;
+		appearance: none; box-sizing: border-box;
+		background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' fill='none' stroke='%23888' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2.5' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right 12px center;
+		padding-right: 32px;
+	}
+	:global(.dlg-np__select:focus) { border-color: var(--dt3); }
+	:global(.dlg-np__textarea) {
+		width: 100%; padding: 9px 12px;
+		background: var(--dbg2); border: 1px solid var(--dbd); border-radius: 8px;
+		color: var(--dt); font-size: 13px; outline: none; transition: border-color 0.15s;
+		resize: none; font-family: inherit; box-sizing: border-box;
+	}
+	:global(.dlg-np__textarea:focus) { border-color: var(--dt3); }
+	:global(.dlg-np__textarea::placeholder) { color: var(--dt4); }
+	:global(.dlg-np__hint) { font-size: 11px; color: var(--dt4); margin-top: 2px; }
+
+	/* Type selection cards */
+	:global(.dlg-np__type-grid) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+	:global(.dlg-np__card) {
+		display: flex; flex-direction: column; align-items: center; gap: 6px;
+		padding: 14px 8px 12px; border: 1.5px solid var(--dbd); border-radius: 10px;
+		background: var(--dbg2); cursor: pointer; transition: all 0.15s;
+	}
+	:global(.dlg-np__card:hover) { background: var(--dbg3); }
+	:global(.dlg-np__card--active) { font-weight: 600; }
+	:global(.dlg-np__card-icon) { color: var(--dt3); display: flex; align-items: center; justify-content: center; transition: color 0.15s; }
+	:global(.dlg-np__card-label) { font-size: 12px; color: var(--dt2); }
+
+	/* Priority buttons */
+	:global(.dlg-np__prio-grid) { display: flex; gap: 8px; }
+	:global(.dlg-np__prio) {
+		flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+		padding: 8px 10px; border: 1.5px solid var(--dbd); border-radius: 8px;
+		background: var(--dbg2); cursor: pointer; font-size: 12px; font-weight: 500;
+		color: var(--dt2); transition: all 0.15s;
+	}
+	:global(.dlg-np__prio:hover) { background: var(--dbg3); }
+	:global(.dlg-np__prio--active) { font-weight: 600; }
+	:global(.dlg-np__prio-dot) { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+	/* Advanced toggle */
+	:global(.dlg-np__adv-toggle) {
+		display: flex; align-items: center; gap: 6px;
+		font-size: 12px; color: var(--dt3); cursor: pointer;
+		background: none; border: none; padding: 0; transition: color 0.15s;
+	}
+	:global(.dlg-np__adv-toggle:hover) { color: var(--dt2); }
+	:global(.dlg-np__chevron--open) { transform: rotate(90deg); }
+	:global(.dlg-np__adv-content) {
+		padding: 10px 12px; background: var(--dbg2); border-radius: 8px;
+		border: 1px solid var(--dbd);
+	}
+	:global(.dlg-np__error) {
+		font-size: 13px; color: #ef4444;
+		background: color-mix(in srgb, #ef4444 8%, var(--dbg));
+		padding: 8px 12px; border-radius: 8px;
+		border: 1px solid color-mix(in srgb, #ef4444 20%, var(--dbd));
+	}
+
+	/* Type icon wrappers for list/card views */
+	.prm-ls-type-icon { display: inline-flex; align-items: center; color: var(--dt3); }
+	.prm-ls-type-inline { display: inline-flex; align-items: center; gap: 4px; }
 
 	/* Status Pills (global — used by utility import) */
 	:global(.prm-status) { display: inline-block; padding: 0.125rem 0.5rem; font-size: 0.6875rem; font-weight: 600; border-radius: 9999px; border: 1px solid transparent; }
@@ -1002,19 +1045,4 @@
 	/* Filter active state */
 	.prm-filter--active { box-shadow: 0 0 0 2px var(--dt3); }
 	.prm-dropdown-item--active { background: var(--dbg3); font-weight: 600; }
-
-	/* Icon picker active */
-	.prm-icon-picker--active { background: var(--dbg3); box-shadow: 0 0 0 2px var(--dt); }
-
-	/* Type card active states */
-	.prm-type-card--active-internal { border-color: #8b5cf6; background: color-mix(in srgb, #8b5cf6 10%, var(--dbg)); }
-	.prm-type-card--active-client { border-color: #3b82f6; background: color-mix(in srgb, #3b82f6 10%, var(--dbg)); }
-	.prm-type-card--active-learning { border-color: #14b8a6; background: color-mix(in srgb, #14b8a6 10%, var(--dbg)); }
-	.prm-type-card__label--active { color: var(--dt); }
-
-	/* Priority button active */
-	.prm-priority-btn--active { border-color: var(--dt); background: var(--dt); color: var(--dbg); }
-
-	/* Create error */
-	.prm-create-error { font-size: 0.875rem; color: #ef4444; background: color-mix(in srgb, #ef4444 10%, var(--dbg)); padding: 0.5rem 0.75rem; border-radius: 0.75rem; }
 </style>

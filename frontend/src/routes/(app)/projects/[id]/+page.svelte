@@ -173,12 +173,9 @@
 				</div>
 			</div>
 
-			<!-- Row 2: Icon + Title + Badges + Actions -->
+			<!-- Row 2: Title + Badges + Actions -->
 			<div class="px-6 pt-2 pb-1 flex items-center justify-between gap-4">
 				<div class="flex items-center gap-3 min-w-0">
-					<div class="w-8 h-8 rounded-lg prm-det-icon-gradient flex items-center justify-center text-white text-sm flex-shrink-0">
-						{getTypeIcon(project.project_type)}
-					</div>
 					<h1 class="text-lg font-semibold prm-det-title truncate">{project.name}</h1>
 					<span class="text-xs font-medium px-2 py-0.5 rounded-full border {getStatusColor(project.status)} flex items-center gap-1 flex-shrink-0">
 						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

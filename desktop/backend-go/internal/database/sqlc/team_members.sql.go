@@ -187,22 +187,22 @@ ORDER BY tm.name ASC
 `
 
 type ListTeamMembersRow struct {
-	ID              pgtype.UUID      `json:"id"`
-	UserID          string           `json:"user_id"`
-	Name            string           `json:"name"`
-	Email           string           `json:"email"`
-	Role            string           `json:"role"`
-	AvatarUrl       *string          `json:"avatar_url"`
-	Status          NullMemberstatus `json:"status"`
-	Capacity        *int32           `json:"capacity"`
-	ManagerID       pgtype.UUID      `json:"manager_id"`
-	Skills          []byte           `json:"skills"`
-	HourlyRate      pgtype.Numeric   `json:"hourly_rate"`
-	ShareCalendar   *bool            `json:"share_calendar"`
-	CalendarUserID  *string          `json:"calendar_user_id"`
-	JoinedAt        pgtype.Timestamp `json:"joined_at"`
-	CreatedAt       pgtype.Timestamp `json:"created_at"`
-	UpdatedAt       pgtype.Timestamp `json:"updated_at"`
+	ID                 pgtype.UUID      `json:"id"`
+	UserID             string           `json:"user_id"`
+	Name               string           `json:"name"`
+	Email              string           `json:"email"`
+	Role               string           `json:"role"`
+	AvatarUrl          *string          `json:"avatar_url"`
+	Status             NullMemberstatus `json:"status"`
+	Capacity           *int32           `json:"capacity"`
+	ManagerID          pgtype.UUID      `json:"manager_id"`
+	Skills             []byte           `json:"skills"`
+	HourlyRate         pgtype.Numeric   `json:"hourly_rate"`
+	ShareCalendar      *bool            `json:"share_calendar"`
+	CalendarUserID     *string          `json:"calendar_user_id"`
+	JoinedAt           pgtype.Timestamp `json:"joined_at"`
+	CreatedAt          pgtype.Timestamp `json:"created_at"`
+	UpdatedAt          pgtype.Timestamp `json:"updated_at"`
 	ActiveTaskCount    int64            `json:"active_task_count"`
 	ActiveProjectCount int64            `json:"active_project_count"`
 }

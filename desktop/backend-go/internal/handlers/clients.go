@@ -167,7 +167,7 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 	c.JSON(http.StatusCreated, TransformClient(client))
 }
 
-// GetClient returns a single client
+// GetClient returns a single client with its contacts, interactions, and deals
 func (h *ClientHandler) GetClient(c *gin.Context) {
 	user := middleware.GetCurrentUser(c)
 	if user == nil {
@@ -181,9 +181,10 @@ func (h *ClientHandler) GetClient(c *gin.Context) {
 		return
 	}
 
+	pgID := pgtype.UUID{Bytes: id, Valid: true}
 	queries := sqlc.New(h.pool)
 	client, err := queries.GetClient(c.Request.Context(), sqlc.GetClientParams{
-		ID:     pgtype.UUID{Bytes: id, Valid: true},
+		ID:     pgID,
 		UserID: user.ID,
 	})
 	if err != nil {
@@ -191,7 +192,53 @@ func (h *ClientHandler) GetClient(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, TransformClient(client))
+	// Fetch related data — errors are non-fatal, return empty slices
+	contacts, err := queries.ListClientContacts(c.Request.Context(), pgID)
+	if err != nil {
+		slog.Warn("failed to load client contacts", "client_id", id, "error", err)
+		contacts = nil
+	}
+	interactions, err := queries.ListClientInteractions(c.Request.Context(), pgID)
+	if err != nil {
+		slog.Warn("failed to load client interactions", "client_id", id, "error", err)
+		interactions = nil
+	}
+	deals, err := queries.ListClientDeals(c.Request.Context(), pgID)
+	if err != nil {
+		slog.Warn("failed to load client deals", "client_id", id, "error", err)
+		deals = nil
+	}
+
+	resp := TransformClient(client)
+	c.JSON(http.StatusOK, gin.H{
+		"id":                resp.ID,
+		"user_id":           resp.UserID,
+		"name":              resp.Name,
+		"type":              resp.Type,
+		"email":             resp.Email,
+		"phone":             resp.Phone,
+		"website":           resp.Website,
+		"industry":          resp.Industry,
+		"company_size":      resp.CompanySize,
+		"address":           resp.Address,
+		"city":              resp.City,
+		"state":             resp.State,
+		"zip_code":          resp.ZipCode,
+		"country":           resp.Country,
+		"status":            resp.Status,
+		"source":            resp.Source,
+		"assigned_to":       resp.AssignedTo,
+		"lifetime_value":    resp.LifetimeValue,
+		"tags":              resp.Tags,
+		"custom_fields":     resp.CustomFields,
+		"notes":             resp.Notes,
+		"created_at":        resp.CreatedAt,
+		"updated_at":        resp.UpdatedAt,
+		"last_contacted_at": resp.LastContactedAt,
+		"contacts":          TransformContacts(contacts),
+		"interactions":      TransformInteractions(interactions),
+		"deals":             transformClientDealsFromRows(deals),
+	})
 }
 
 // UpdateClient updates an existing client

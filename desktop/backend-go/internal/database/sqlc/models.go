@@ -2598,6 +2598,25 @@ type LinearTeam struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type McpServer struct {
+	ID            pgtype.UUID        `json:"id"`
+	UserID        string             `json:"user_id"`
+	Name          string             `json:"name"`
+	Description   *string            `json:"description"`
+	ServerUrl     string             `json:"server_url"`
+	Transport     string             `json:"transport"`
+	AuthType      string             `json:"auth_type"`
+	AuthTokenEnc  *string            `json:"auth_token_enc"`
+	CustomHeaders []byte             `json:"custom_headers"`
+	Enabled       bool               `json:"enabled"`
+	ToolsCache    []byte             `json:"tools_cache"`
+	Status        string             `json:"status"`
+	LastError     *string            `json:"last_error"`
+	LastConnected pgtype.Timestamptz `json:"last_connected"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
 type McpUsageLog struct {
 	ID             pgtype.UUID        `json:"id"`
 	UserID         string             `json:"user_id"`

@@ -72,7 +72,7 @@
 				<p class="am-page-muted">{storeState.error}</p>
 				<button
 					onclick={() => store.loadModules()}
-					class="am-retry-btn"
+					class="btn-pill btn-pill-ghost"
 					aria-label="Try again"
 				>
 					Try Again
@@ -223,22 +223,6 @@
 		justify-content: center;
 		color: #ef4444;
 		margin-bottom: 8px;
-	}
-	.am-retry-btn {
-		margin-top: 8px;
-		padding: 7px 20px;
-		border-radius: 999px;
-		border: 1px solid var(--dbd, #e0e0e0);
-		background: transparent;
-		color: var(--dt, #111);
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all .15s;
-	}
-	.am-retry-btn:hover {
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
 	}
 
 	/* Empty state */

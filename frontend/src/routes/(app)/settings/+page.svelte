@@ -199,23 +199,23 @@
 </div>
 
 <style>
-  :global(.st-page-bg) { background: var(--dbg, var(--bos-card, #fff)); }
+  :global(.st-page-bg) { background: var(--dbg, #fff); }
   :global(.st-page-header) { border-bottom: 1px solid var(--dbd2, #f0f0f0); }
-  :global(.st-title) { color: var(--dt, var(--bos-text-primary, #111)); }
-  :global(.st-muted) { color: var(--dt3, var(--bos-text-tertiary, #888)); }
-  :global(.st-spinner) { border-color: var(--dt, var(--bos-text-primary, #111)); }
-  :global(.st-tab-border) { border-bottom: 1px solid var(--dbd, var(--bos-border, #e0e0e0)); }
+  :global(.st-title) { color: var(--dt, #111); }
+  :global(.st-muted) { color: var(--dt3, #888); }
+  :global(.st-spinner) { border-color: var(--dt, #111); }
+  :global(.st-tab-border) { border-bottom: 1px solid var(--dbd, #e0e0e0); }
   :global(.st-tab-active) {
-    color: var(--dt, var(--bos-text-primary, #111));
-    border-color: var(--dt, var(--bos-text-primary, #111));
+    color: var(--dt, #111);
+    border-color: var(--dt, #111);
   }
   :global(.st-tab-inactive) {
-    color: var(--dt3, var(--bos-text-tertiary, #888));
+    color: var(--dt3, #888);
   }
   :global(.st-tab-inactive:hover) {
-    color: var(--dt2, var(--bos-text-secondary, #555));
+    color: var(--dt2, #555);
   }
   :global(.st-fade-gradient) {
-    background: linear-gradient(to left, var(--dbg, var(--bos-card, #fff)), transparent);
+    background: linear-gradient(to left, var(--dbg, #fff), transparent);
   }
 </style>

@@ -31,6 +31,8 @@
 	// Modal state
 	let showAddDealModal = $state(false);
 	let selectedStageId = $state<string | null>(null);
+	let dealSubmitting = $state(false);
+	let dealError = $state<string | null>(null);
 
 	// Load data on mount
 	onMount(async () => {
@@ -78,8 +80,12 @@
 		goto(`/crm/deals/${dealId}${embedSuffix}`);
 	}
 
-	function handleAddDeal(stageId: string) {
-		selectedStageId = stageId;
+	function handleAddDeal(stageId?: string) {
+		// Use provided stageId, or fall back to first available stage
+		const resolvedStageId = stageId || stages[0]?.id;
+		if (!resolvedStageId) return; // No stages available yet
+		selectedStageId = resolvedStageId;
+		dealError = null;
 		showAddDealModal = true;
 	}
 
@@ -91,11 +97,18 @@
 		}
 	}
 
-	function handleCreateDeal(data: CreateDealData) {
-		crm.createDeal(data).then(() => {
+	async function handleCreateDeal(data: CreateDealData) {
+		dealSubmitting = true;
+		dealError = null;
+		try {
+			await crm.createDeal(data);
 			showAddDealModal = false;
 			selectedStageId = null;
-		});
+		} catch (err) {
+			dealError = err instanceof Error ? err.message : 'Failed to create deal. Please try again.';
+		} finally {
+			dealSubmitting = false;
+		}
 	}
 
 	// Drag state
@@ -197,7 +210,8 @@
 
 			<!-- Add Deal Button -->
 			<button
-				onclick={() => handleAddDeal(stages[0]?.id)}
+				onclick={() => handleAddDeal()}
+				disabled={stages.length === 0}
 				class="btn-rounded btn-rounded-primary"
 				aria-label="Add new deal"
 			>
@@ -220,13 +234,19 @@
 	{/if}
 
 	<!-- Loading State -->
-	{#if loading && stages.length === 0}
+	{#if loading && stages.length === 0 && deals.length === 0}
 		<div class="cr-page__center">
 			<div class="cr-page__center-content">
 				<svg class="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
 				</svg>
 				<p class="cr-page__center-text">Loading pipeline...</p>
+			</div>
+		</div>
+	{:else if !currentPipeline && !loading && pipelines.length === 0}
+		<div class="cr-page__center">
+			<div class="cr-page__center-content">
+				<p class="cr-page__center-text">No pipelines found. Create one to get started.</p>
 			</div>
 		</div>
 	{:else if viewMode === 'kanban'}
@@ -368,7 +388,7 @@
 					<div class="cr-page__empty">
 						<p class="cr-page__empty-text">No deals in this pipeline yet.</p>
 						<button
-							onclick={() => handleAddDeal(stages[0]?.id)}
+							onclick={() => handleAddDeal()}
 							class="cr-page__empty-link"
 							aria-label="Add your first deal"
 						>
@@ -401,15 +421,22 @@
 				onsubmit={(e) => {
 					e.preventDefault();
 					const formData = new FormData(e.currentTarget);
+					const dateValue = (formData.get('expected_close_date') as string) || '';
 					handleCreateDeal({
 						pipeline_id: currentPipeline!.id,
 						stage_id: selectedStageId!,
 						name: formData.get('name') as string,
 						amount: formData.get('amount') ? Number(formData.get('amount')) : undefined,
-						expected_close_date: formData.get('expected_close_date') as string || undefined
+						expected_close_date: dateValue ? dateValue : undefined
 					});
 				}}
 			>
+				{#if dealError}
+					<div class="cr-modal__error">
+						<p class="cr-modal__error-text">{dealError}</p>
+					</div>
+				{/if}
+
 				<div class="cr-modal__fields">
 					<div class="cr-modal__field">
 						<label for="deal-name" class="cr-modal__label">Deal Name</label>
@@ -418,6 +445,7 @@
 							name="name"
 							type="text"
 							required
+							disabled={dealSubmitting}
 							class="cr-modal__input"
 							placeholder="e.g., Enterprise License Q1"
 						/>
@@ -429,6 +457,7 @@
 							id="deal-amount"
 							name="amount"
 							type="number"
+							disabled={dealSubmitting}
 							class="cr-modal__input"
 							placeholder="50000"
 						/>
@@ -440,8 +469,25 @@
 							id="deal-close-date"
 							name="expected_close_date"
 							type="date"
+							disabled={dealSubmitting}
 							class="cr-modal__input"
 						/>
+					</div>
+
+					<!-- Stage Selector -->
+					<div class="cr-modal__field">
+						<label for="deal-stage" class="cr-modal__label">Stage</label>
+						<select
+							id="deal-stage"
+							class="cr-modal__input"
+							disabled={dealSubmitting}
+							bind:value={selectedStageId}
+							aria-label="Select deal stage"
+						>
+							{#each stages as stage}
+								<option value={stage.id}>{stage.name}</option>
+							{/each}
+						</select>
 					</div>
 				</div>
 
@@ -449,15 +495,17 @@
 					<button
 						type="button"
 						onclick={() => (showAddDealModal = false)}
+						disabled={dealSubmitting}
 						class="btn-rounded btn-rounded-ghost"
 					>
 						Cancel
 					</button>
 					<button
 						type="submit"
+						disabled={dealSubmitting}
 						class="btn-pill btn-pill-primary btn-pill-sm"
 					>
-						Create Deal
+						{dealSubmitting ? 'Creating...' : 'Create Deal'}
 					</button>
 				</div>
 			</form>
@@ -951,6 +999,19 @@
 	}
 	.cr-modal__input::placeholder {
 		color: var(--dt4);
+	}
+	.cr-modal__error {
+		margin-bottom: 1rem;
+		padding: 0.625rem 0.75rem;
+		border-radius: 8px;
+		background: color-mix(in srgb, #ef4444 10%, var(--dbg));
+		border: 1px solid color-mix(in srgb, #ef4444 25%, var(--dbd));
+	}
+	.cr-modal__error-text {
+		font-size: 0.8125rem;
+		color: #ef4444;
+		margin: 0;
+		font-weight: 500;
 	}
 	.cr-modal__actions {
 		display: flex;

@@ -47,11 +47,9 @@
 		{/if}
 	</button>
 
-	{#if isExpanded}
-		<div class="sidebar-section__content">
-			{@render children()}
-		</div>
-	{/if}
+	<div class="sidebar-section__content" class:sidebar-section__content--collapsed={!isExpanded}>
+		{@render children()}
+	</div>
 </div>
 
 <style>
@@ -76,13 +74,13 @@
 	}
 
 	.sidebar-section__header--collapsible:hover {
-		background-color: hsl(var(--sidebar-accent) / 0.5);
+		background-color: var(--dbg3);
 	}
 
 	.sidebar-section__chevron {
 		width: 14px;
 		height: 14px;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		transition: transform 0.15s ease;
 	}
 
@@ -94,7 +92,7 @@
 		flex: 1;
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
@@ -112,6 +110,16 @@
 
 	.sidebar-section__content {
 		padding: 0.25rem 0;
+		overflow: hidden;
+		max-height: 2000px;
+		opacity: 1;
+		transition: max-height 0.25s ease, opacity 0.2s ease;
+	}
+
+	.sidebar-section__content--collapsed {
+		max-height: 0;
+		opacity: 0;
+		padding: 0;
 	}
 
 	:global(.sidebar-section__chevron) {

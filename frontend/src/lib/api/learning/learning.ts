@@ -15,7 +15,7 @@ import type {
 export async function recordFeedback(input: FeedbackInput): Promise<FeedbackEntry> {
   return request<FeedbackEntry>('/learning/feedback', {
     method: 'POST',
-    body: JSON.stringify(input)
+    body: input
   });
 }
 
@@ -25,7 +25,7 @@ export async function recordFeedback(input: FeedbackInput): Promise<FeedbackEntr
 export async function observeBehavior(observation: BehaviorObservation): Promise<{ status: string }> {
   return request<{ status: string }>('/learning/behavior', {
     method: 'POST',
-    body: JSON.stringify(observation)
+    body: observation
   });
 }
 

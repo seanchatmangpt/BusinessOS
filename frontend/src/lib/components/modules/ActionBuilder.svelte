@@ -291,7 +291,8 @@
 		transition: all .15s;
 	}
 	.am-ab__add:hover {
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
+		border-color: var(--dt3, #888);
+		color: var(--dt, #111);
+		background: var(--dbg2, #f5f5f5);
 	}
 </style>

@@ -86,5 +86,9 @@ export {
 	searchDocuments,
 	openDocument,
 	closeDocument,
-	openAndFetchDocument
+	openAndFetchDocument,
+	enableSharing,
+	disableSharing,
+	exportDocumentAsMarkdown,
+	exportDocumentAsJSON
 } from './documents.service';

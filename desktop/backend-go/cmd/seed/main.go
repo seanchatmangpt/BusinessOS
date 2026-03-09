@@ -99,21 +99,31 @@ func main() {
 	// Ensure user has a workspace membership (required for project_members)
 	ensureWorkspaceMembership(ctx, pool, uid)
 
-	// Seed in dependency order
+	// Seed in dependency order:
+	// 1. Team members (no deps)
+	// 2. Clients + contacts + interactions (no deps)
+	// 3. CRM pipeline/stages/companies/deals (no deps)
+	// 4. Client deals (needs pipeline from step 3)
+	// 5. Projects + members (needs clients for names)
+	// 6. Tasks (needs projects + team members)
+	// 7. Modules (needs workspace)
 	fmt.Println("\n--- Seeding team members ---")
 	seedTeamMembers(ctx, pool, uid)
 
 	fmt.Println("\n--- Seeding clients ---")
 	seedClients(ctx, pool, uid)
 
+	fmt.Println("\n--- Seeding CRM ---")
+	seedCRM(ctx, pool, uid)
+
+	fmt.Println("\n--- Seeding client deals ---")
+	seedClientDeals(ctx, pool, uid)
+
 	fmt.Println("\n--- Seeding projects ---")
 	seedProjects(ctx, pool, uid)
 
 	fmt.Println("\n--- Seeding tasks ---")
 	seedTasks(ctx, pool, uid)
-
-	fmt.Println("\n--- Seeding CRM ---")
-	seedCRM(ctx, pool, uid)
 
 	fmt.Println("\n--- Seeding modules ---")
 	seedModules(ctx, pool, uid)
@@ -178,8 +188,8 @@ func ensureWorkspaceMembership(ctx context.Context, pool *pgxpool.Pool, userID s
 
 	// Ensure dev workspace exists
 	pool.Exec(ctx, `
-		INSERT INTO workspaces (id, name, slug, description, plan_type, max_members, max_projects, max_storage_gb, owner_id, settings)
-		VALUES ($1, 'Development Workspace', 'dev-workspace', 'Dev workspace for seed data', 'professional', 50, 100, 50, $2, '{"dev_mode": true}')
+		INSERT INTO workspaces (id, name, slug, description, plan_type, owner_id, settings)
+		VALUES ($1, 'Development Workspace', 'dev-workspace', 'Dev workspace for seed data', 'professional', $2, '{"dev_mode": true}')
 		ON CONFLICT (id) DO NOTHING`,
 		devWorkspaceID, userID,
 	)
@@ -217,7 +227,8 @@ func cleanSeedData(ctx context.Context, pool *pgxpool.Pool) {
 	jobs := []cleanJob{
 		{"custom_modules", "custom_modules", "id", moduleIDs},
 		{"crm_activities", "crm_activities", "id", crmActivityIDs},
-		{"deals", "deals", "id", crmDealIDs},
+		{"crm_deals", "deals", "id", crmDealIDs},
+		{"client_deals", "deals", "id", clientDealIDs[:13]},
 		{"pipeline_stages", "pipeline_stages", "pipeline_id", []uuid.UUID{pipelineID}},
 		{"pipelines", "pipelines", "id", []uuid.UUID{pipelineID}},
 		{"companies", "companies", "id", companyIDs},

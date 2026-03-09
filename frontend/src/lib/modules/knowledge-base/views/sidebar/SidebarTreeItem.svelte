@@ -312,7 +312,7 @@
 </div>
 
 <style>
-	/* BusinessOS-style tree item */
+	/* KB tree item — Foundation tokens */
 	.tree-item-container {
 		display: flex;
 		flex-direction: column;
@@ -330,7 +330,7 @@
 		border-radius: 4px;
 		cursor: pointer;
 		text-align: left;
-		font-size: var(--bos-font-sm, 14px);
+		font-size: 14px;
 		color: inherit;
 		user-select: none;
 		position: relative;
@@ -344,7 +344,7 @@
 	.tree-item:hover,
 	.tree-item--hovered,
 	.tree-item:focus-visible {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.tree-item--active {
@@ -353,11 +353,11 @@
 
 	.tree-item--active .tree-item__title {
 		font-weight: 500;
-		color: var(--bos-v2-text-activated, #1e96eb);
+		color: #1e96eb;
 	}
 
 	.tree-item--active .tree-item__icon {
-		color: var(--bos-v2-icon-activated, #1e96eb);
+		color: #1e96eb;
 	}
 
 	.tree-item__chevron {
@@ -380,7 +380,7 @@
 	}
 
 	.tree-item__chevron:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.tree-item__chevron--expanded {
@@ -395,8 +395,8 @@
 	.tree-item__spinner {
 		width: 10px;
 		height: 10px;
-		border: 2px solid var(--bos-v2-icon-tertiary, #c9ccd0);
-		border-top-color: var(--bos-v2-icon-primary, #77757d);
+		border: 2px solid var(--dbd);
+		border-top-color: var(--dt3);
 		border-radius: 50%;
 		animation: spin 0.6s linear infinite;
 	}
@@ -414,7 +414,7 @@
 		margin-right: 6px;
 		flex-shrink: 0;
 		font-size: 16px;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 	}
 
 	.tree-item__icon :global(svg) {
@@ -424,8 +424,8 @@
 
 	.tree-item__title {
 		flex: 1;
-		font-size: var(--bos-font-sm, 14px);
-		color: var(--bos-v2-text-primary, #121212);
+		font-size: 14px;
+		color: var(--dt);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -436,8 +436,8 @@
 		width: 12px;
 		height: 12px;
 		margin-left: 4px;
-		color: var(--bos-warning-color, #f59e0b);
-		fill: var(--bos-warning-color, #f59e0b);
+		color: #f59e0b;
+		fill: #f59e0b;
 	}
 
 	/* Postfix actions - visible on hover */
@@ -455,13 +455,13 @@
 		height: 20px;
 		border-radius: 4px;
 		background: transparent;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.tree-item__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.tree-item__action :global(svg) {
@@ -474,40 +474,6 @@
 		flex-direction: column;
 	}
 
-	/* Dark mode overrides */
-	:global(.dark) .tree-item:hover,
-	:global(.dark) .tree-item--hovered {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
-	:global(.dark) .tree-item--active {
-		background: rgba(30, 150, 235, 0.2) !important;
-	}
-
-	:global(.dark) .tree-item--active .tree-item__title {
-		color: var(--bos-v2-text-activated, #60b5ff);
-	}
-
-	:global(.dark) .tree-item--active .tree-item__icon {
-		color: var(--bos-v2-icon-activated, #60b5ff);
-	}
-
-	:global(.dark) .tree-item__title {
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .tree-item__icon {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .tree-item__action {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .tree-item__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
 	/* Context menu (right-click) */
 	.context-menu-overlay {
 		position: fixed;
@@ -518,10 +484,10 @@
 	.context-menu {
 		position: fixed;
 		min-width: 200px;
-		background: hsl(var(--background));
-		border: 1px solid hsl(var(--border));
+		background: var(--dbg);
+		border: 1px solid var(--dbd);
 		border-radius: 8px;
-		box-shadow: 0 4px 16px hsl(var(--foreground) / 0.12);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 		padding: 4px;
 		z-index: 1001;
 	}
@@ -536,27 +502,27 @@
 		border: none;
 		border-radius: 4px;
 		font-size: 14px;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		cursor: pointer;
 		text-align: left;
 		transition: background-color 0.1s;
 	}
 
 	.context-menu__item:hover {
-		background: hsl(var(--muted));
+		background: var(--dbg2);
 	}
 
 	.context-menu__item--destructive {
-		color: hsl(var(--destructive));
+		color: #ef4444;
 	}
 
 	.context-menu__item--destructive:hover {
-		background: hsl(var(--destructive) / 0.1);
+		background: rgba(239, 68, 68, 0.1);
 	}
 
 	.context-menu__separator {
 		height: 1px;
-		background: hsl(var(--border));
+		background: var(--dbd);
 		margin: 4px 0;
 	}
 </style>

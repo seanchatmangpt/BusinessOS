@@ -153,8 +153,8 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: var(--bos-v2-layer-background-primary, #ffffff);
-		border: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
+		background: var(--dbg);
+		border: 1px solid var(--dbd);
 		border-radius: 8px;
 		overflow: hidden;
 	}
@@ -166,7 +166,7 @@
 	.bos-database__title {
 		font-size: 20px;
 		font-weight: 600;
-		color: var(--bos-v2-text-primary, #121212);
+		color: var(--dt);
 		margin: 0;
 	}
 
@@ -182,8 +182,8 @@
 		align-items: center;
 		justify-content: center;
 		height: 200px;
-		font-size: var(--bos-font-sm, 14px);
-		color: var(--bos-v2-text-secondary, #8e8d91);
+		font-size: 14px;
+		color: var(--dt2);
 	}
 
 	.bos-database__loading {
@@ -193,14 +193,14 @@
 		justify-content: center;
 		gap: 12px;
 		height: 200px;
-		color: var(--bos-v2-text-secondary, #8e8d91);
+		color: var(--dt2);
 	}
 
 	.bos-database__spinner {
 		width: 24px;
 		height: 24px;
-		border: 2px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
-		border-top-color: var(--bos-brand-color, #1e96eb);
+		border: 2px solid var(--dbd);
+		border-top-color: #1e96eb;
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}
@@ -209,20 +209,5 @@
 		to {
 			transform: rotate(360deg);
 		}
-	}
-
-	/* Dark mode */
-	:global(.dark) .bos-database {
-		background: var(--bos-v2-layer-background-primary, #1e1e1e);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-	}
-
-	:global(.dark) .bos-database__title {
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-database__spinner {
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-		border-top-color: var(--bos-brand-color, #1e96eb);
 	}
 </style>

@@ -143,6 +143,11 @@ export {
 	openDocument,
 	closeDocument,
 	openAndFetchDocument,
+	// Share & Export
+	enableSharing,
+	disableSharing,
+	exportDocumentAsMarkdown,
+	exportDocumentAsJSON,
 	// Page Adapter (Block <-> Page API bridge)
 	pageToBlocks,
 	blocksToPage,

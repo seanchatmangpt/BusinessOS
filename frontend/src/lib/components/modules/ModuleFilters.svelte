@@ -163,12 +163,18 @@
 		transition: all .15s;
 	}
 	.am-sort-chip:hover {
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
+		border-color: var(--dt3, #888);
+		color: var(--dt, #111);
 	}
 	.am-sort-chip--active {
-		background: var(--accent-blue, #3b82f6);
-		border-color: var(--accent-blue, #3b82f6);
+		background: #111;
+		border-color: #111;
+		color: #fff;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+	:global(.dark) .am-sort-chip--active {
+		background: rgba(255, 255, 255, 0.15);
+		border-color: rgba(255, 255, 255, 0.25);
 		color: #fff;
 	}
 
@@ -191,12 +197,12 @@
 		transition: all .15s;
 	}
 	.am-cat-chip:hover {
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
+		border-color: var(--dt3, #888);
+		color: var(--dt, #111);
 	}
 	.am-cat-chip--active {
-		background: rgba(59, 130, 246, 0.07);
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
+		background: rgba(0, 0, 0, 0.06);
+		border-color: var(--dt, #111);
+		color: var(--dt, #111);
 	}
 </style>

@@ -77,6 +77,8 @@ function mapContextToDocument(ctx: Context): Document {
 		is_template: ctx.is_template ?? false,
 		is_favorite: ctx.properties?.is_favorite === true,
 		is_archived: ctx.is_archived,
+		is_public: ctx.is_public ?? false,
+		share_id: ctx.share_id ?? null,
 		created_at: ctx.created_at,
 		updated_at: ctx.updated_at,
 		created_by: '', // Not provided by API
@@ -499,3 +501,79 @@ export const defaultProfileIcons: Record<ProfileType, string> = {
 	business: 'Building',
 	project: 'FolderKanban'
 };
+
+// ============================================================================
+// Share Operations
+// ============================================================================
+
+export async function enableSharing(id: string): Promise<{ share_id: string; share_url: string }> {
+	const result = await contextsApi.enableContextSharing(id);
+	// Re-fetch to update local state with share fields
+	await fetchDocument(id);
+	return result;
+}
+
+export async function disableSharing(id: string): Promise<void> {
+	await contextsApi.disableContextSharing(id);
+	await fetchDocument(id);
+}
+
+// ============================================================================
+// Export Operations
+// ============================================================================
+
+function blocksToMarkdown(blocks: Block[]): string {
+	return blocks.map(block => {
+		const text = block.content
+			? (typeof block.content === 'string'
+				? block.content
+				: block.content.map(rt => rt.plain_text || '').join(''))
+			: '';
+
+		switch (block.type) {
+			case 'heading_1': return `# ${text}`;
+			case 'heading_2': return `## ${text}`;
+			case 'heading_3': return `### ${text}`;
+			case 'bulleted_list': return `- ${text}`;
+			case 'numbered_list': return `1. ${text}`;
+			case 'to_do': {
+				const checked = block.properties?.checked ? 'x' : ' ';
+				return `- [${checked}] ${text}`;
+			}
+			case 'quote': return `> ${text}`;
+			case 'code': return `\`\`\`\n${text}\n\`\`\``;
+			case 'divider': return '---';
+			default: return text;
+		}
+	}).join('\n\n');
+}
+
+export function exportDocumentAsMarkdown(doc: Document): void {
+	const title = doc.title || 'Untitled';
+	const md = `# ${title}\n\n${blocksToMarkdown(doc.content)}`;
+	downloadFile(`${title}.md`, md, 'text/markdown');
+}
+
+export function exportDocumentAsJSON(doc: Document): void {
+	const title = doc.title || 'Untitled';
+	const data = {
+		title: doc.title,
+		icon: doc.icon,
+		cover: doc.cover,
+		content: doc.content,
+		properties: doc.properties,
+		created_at: doc.created_at,
+		updated_at: doc.updated_at
+	};
+	downloadFile(`${title}.json`, JSON.stringify(data, null, 2), 'application/json');
+}
+
+function downloadFile(filename: string, content: string, mimeType: string) {
+	const blob = new Blob([content], { type: mimeType });
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(url);
+}

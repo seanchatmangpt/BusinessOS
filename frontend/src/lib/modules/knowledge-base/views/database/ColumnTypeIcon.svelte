@@ -60,7 +60,7 @@
 	:global(.bos-column-icon) {
 		width: 14px;
 		height: 14px;
-		color: var(--bos-v2-icon-secondary, #a9a9ad);
+		color: var(--dt4);
 		flex-shrink: 0;
 	}
 </style>

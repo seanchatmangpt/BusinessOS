@@ -18,7 +18,7 @@
 
 	// State
 	let isLoading = $state(true);
-	let activeTab = $state<'connected' | 'available' | 'ai' | 'decisions'>('available');
+	let activeTab = $state<'connected' | 'available' | 'ai' | 'mcp' | 'decisions'>('available');
 	let hoveredId = $state<string | null>(null);
 	let connectingId = $state<string | null>(null);
 	let selectedProvider = $state<IntegrationProviderInfo | null>(null);
@@ -58,6 +58,20 @@
 
 	// Decisions error state
 	let decisionsError = $state<string | null>(null);
+
+	// MCP state
+	let mcpServers = $state<integrationsApi.MCPConnector[]>([]);
+	let mcpLoading = $state(false);
+	let showMCPModal = $state(false);
+	let editingMCPServer = $state<integrationsApi.MCPConnector | null>(null);
+	let testingMCPId = $state<string | null>(null);
+	let deletingMCPId = $state<string | null>(null);
+	let mcpError = $state<string | null>(null);
+	let mcpSuccess = $state<string | null>(null);
+	let expandedMCPId = $state<string | null>(null);
+	let mcpForm = $state({ name: '', server_url: '', description: '', auth_type: 'none' as 'none' | 'api_key' | 'bearer', auth_token: '', transport: 'sse' });
+	let mcpFormError = $state<string | null>(null);
+	let mcpFormSaving = $state(false);
 
 	// AI providers that use file import instead of OAuth
 	const fileImportProviders = ['chatgpt', 'claude', 'perplexity', 'gemini', 'granola'];
@@ -246,6 +260,14 @@
 			decisionsError = 'Failed to load pending decisions';
 		}
 
+		// Fetch MCP servers
+		try {
+			const mcpResult = await integrationsApi.getMCPConnectors();
+			mcpServers = mcpResult.servers || [];
+		} catch {
+			mcpServers = [];
+		}
+
 		authDataLoading = false;
 		authDataLoaded = true;
 		isLoading = false;
@@ -414,6 +436,130 @@
 			default: return 'ih-priority--default';
 		}
 	}
+
+	// ── MCP Handlers ──
+	function openMCPModal(server?: integrationsApi.MCPConnector) {
+		if (server) {
+			editingMCPServer = server;
+			mcpForm = { name: server.name, server_url: server.server_url, description: server.description || '', auth_type: server.auth_type, auth_token: '', transport: server.transport || 'sse' };
+		} else {
+			editingMCPServer = null;
+			mcpForm = { name: '', server_url: '', description: '', auth_type: 'none', auth_token: '', transport: 'sse' };
+		}
+		mcpFormError = null;
+		showMCPModal = true;
+	}
+
+	function closeMCPModal() {
+		showMCPModal = false;
+		editingMCPServer = null;
+		mcpFormError = null;
+	}
+
+	function validateMCPForm(): string | null {
+		if (!mcpForm.name.trim()) return 'Name is required';
+		if (!/^[a-z0-9][a-z0-9-]*$/.test(mcpForm.name)) return 'Name must be lowercase alphanumeric with hyphens';
+		if (!mcpForm.server_url.trim()) return 'Server URL is required';
+		try { new URL(mcpForm.server_url); } catch { return 'Invalid URL format'; }
+		if (mcpForm.auth_type !== 'none' && !editingMCPServer && !mcpForm.auth_token.trim()) return 'Auth token is required for this auth type';
+		return null;
+	}
+
+	async function handleMCPSubmit() {
+		const err = validateMCPForm();
+		if (err) { mcpFormError = err; return; }
+		mcpFormSaving = true;
+		mcpFormError = null;
+		try {
+			const data: integrationsApi.CreateMCPConnectorData = {
+				name: mcpForm.name.trim(),
+				server_url: mcpForm.server_url.trim(),
+				description: mcpForm.description.trim() || undefined,
+				auth_type: mcpForm.auth_type,
+				transport: mcpForm.transport,
+				auth_token: mcpForm.auth_token.trim() || undefined,
+			};
+			if (editingMCPServer) {
+				await integrationsApi.updateMCPConnector(editingMCPServer.id, data);
+				mcpSuccess = 'Server updated';
+			} else {
+				await integrationsApi.createMCPConnector(data);
+				mcpSuccess = 'Server added';
+			}
+			closeMCPModal();
+			await loadMCPServers();
+			setTimeout(() => (mcpSuccess = null), 3000);
+		} catch (e) {
+			mcpFormError = e instanceof Error ? e.message : 'Failed to save server';
+		} finally {
+			mcpFormSaving = false;
+		}
+	}
+
+	async function loadMCPServers() {
+		mcpLoading = true;
+		try {
+			const result = await integrationsApi.getMCPConnectors();
+			mcpServers = result.servers || [];
+		} catch {
+			mcpServers = [];
+		} finally {
+			mcpLoading = false;
+		}
+	}
+
+	async function handleTestMCP(id: string) {
+		testingMCPId = id;
+		mcpError = null;
+		try {
+			const result = await integrationsApi.testMCPConnector(id);
+			if (result.success) {
+				mcpSuccess = `Connection successful — ${result.tools_count ?? 0} tools discovered`;
+				await loadMCPServers();
+			} else {
+				mcpError = result.message || 'Connection test failed';
+			}
+			setTimeout(() => { mcpSuccess = null; mcpError = null; }, 5000);
+		} catch (e) {
+			mcpError = e instanceof Error ? e.message : 'Test failed';
+			setTimeout(() => (mcpError = null), 5000);
+		} finally {
+			testingMCPId = null;
+		}
+	}
+
+	async function handleDeleteMCP(id: string) {
+		deletingMCPId = id;
+		try {
+			await integrationsApi.deleteMCPConnector(id);
+			mcpSuccess = 'Server deleted';
+			await loadMCPServers();
+			setTimeout(() => (mcpSuccess = null), 3000);
+		} catch (e) {
+			mcpError = e instanceof Error ? e.message : 'Failed to delete';
+			setTimeout(() => (mcpError = null), 5000);
+		} finally {
+			deletingMCPId = null;
+		}
+	}
+
+	async function handleToggleMCP(server: integrationsApi.MCPConnector) {
+		try {
+			await integrationsApi.updateMCPConnector(server.id, { name: server.name, server_url: server.server_url, auth_type: server.auth_type });
+			await loadMCPServers();
+		} catch (e) {
+			mcpError = e instanceof Error ? e.message : 'Failed to toggle';
+			setTimeout(() => (mcpError = null), 5000);
+		}
+	}
+
+	function getMCPStatusClass(status: string) {
+		switch (status) {
+			case 'connected': return 'mcp-status--connected';
+			case 'error': return 'mcp-status--error';
+			default: return 'mcp-status--disconnected';
+		}
+	}
 </script>
 
 <svelte:head>
@@ -463,6 +609,12 @@
 					class="ih-tab {activeTab === 'ai' ? 'ih-tab--active' : ''}"
 				>
 					AI Models
+				</button>
+				<button
+					onclick={() => (activeTab = 'mcp')}
+					class="ih-tab {activeTab === 'mcp' ? 'ih-tab--active' : ''}"
+				>
+					MCP Servers ({mcpServers.length})
 				</button>
 				<button
 					onclick={() => (activeTab = 'decisions')}
@@ -865,6 +1017,129 @@
 					</p>
 				{/if}
 			</div>
+		{:else if activeTab === 'mcp'}
+			<!-- MCP Servers -->
+			<div class="mcp-section">
+				<!-- Header -->
+				<div class="mcp-header">
+					<div>
+						<h2 class="mcp-header__title">MCP Servers</h2>
+						<p class="mcp-header__subtitle">Connect external tool servers so your AI agents can use them</p>
+					</div>
+					<button onclick={() => openMCPModal()} class="btn-pill btn-pill-primary btn-pill-sm">
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+						Add MCP Server
+					</button>
+				</div>
+
+				{#if mcpError}
+					<div class="ih-alert ih-alert--error ih-alert--banner">
+						<p>{mcpError}</p>
+					</div>
+				{/if}
+				{#if mcpSuccess}
+					<div class="ih-alert ih-alert--success ih-alert--banner">
+						<p>{mcpSuccess}</p>
+					</div>
+				{/if}
+
+				{#if mcpLoading}
+					<div class="ih-empty">
+						<svg class="w-8 h-8 ih-spinner" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						<p class="ih-empty__text">Loading MCP servers...</p>
+					</div>
+				{:else if mcpServers.length === 0}
+					<div class="ih-empty">
+						<svg class="ih-empty__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2" />
+						</svg>
+						<h3 class="ih-empty__title">No MCP servers connected</h3>
+						<p class="ih-empty__text">Connect external MCP servers to give your AI agents access to additional tools and capabilities.</p>
+						<button onclick={() => openMCPModal()} class="btn-pill btn-pill-primary btn-pill-sm" style="margin-top: 1rem;">
+							Add Your First Server
+						</button>
+					</div>
+				{:else}
+					<div class="mcp-grid">
+						{#each mcpServers as server (server.id)}
+							<div class="ih-card mcp-card">
+								<div class="mcp-card__top">
+									<div class="mcp-card__info">
+										<div class="mcp-card__name-row">
+											<h3 class="ih-card__name">{server.name}</h3>
+											<span class="mcp-status {getMCPStatusClass(server.status)}">{server.status}</span>
+										</div>
+										<p class="mcp-card__url" title={server.server_url}>{server.server_url}</p>
+										{#if server.description}
+											<p class="mcp-card__desc">{server.description}</p>
+										{/if}
+									</div>
+									<div class="mcp-card__meta">
+										<span class="mcp-card__tools-count">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+											{server.tool_count} tools
+										</span>
+										{#if server.has_auth}
+											<span class="mcp-card__auth-badge">
+												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+												Auth
+											</span>
+										{/if}
+										<span class="mcp-card__transport">{server.transport}</span>
+									</div>
+								</div>
+
+								<div class="mcp-card__actions">
+									<button
+										onclick={() => handleTestMCP(server.id)}
+										disabled={testingMCPId === server.id}
+										class="btn-pill btn-pill-ghost btn-pill-sm"
+									>
+										{#if testingMCPId === server.id}
+											<svg class="w-4 h-4 ih-spinner--inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+											Testing...
+										{:else}
+											Test
+										{/if}
+									</button>
+									<button onclick={() => openMCPModal(server)} class="btn-pill btn-pill-ghost btn-pill-sm">Edit</button>
+									<button
+										onclick={() => handleDeleteMCP(server.id)}
+										disabled={deletingMCPId === server.id}
+										class="btn-pill btn-pill-ghost btn-pill-sm mcp-btn--danger"
+									>
+										{deletingMCPId === server.id ? 'Deleting...' : 'Delete'}
+									</button>
+								</div>
+
+								<!-- Expandable tools list -->
+								{#if server.tools && server.tools.length > 0}
+									<button class="mcp-card__expand-btn" onclick={() => expandedMCPId = expandedMCPId === server.id ? null : server.id}>
+										<svg class="w-4 h-4 mcp-chevron {expandedMCPId === server.id ? 'mcp-chevron--open' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+										{server.tools.length} available tools
+									</button>
+									{#if expandedMCPId === server.id}
+										<div class="mcp-tools-list" transition:slide={{ duration: 150 }}>
+											{#each server.tools as tool}
+												<div class="mcp-tool-item">
+													<span class="mcp-tool-item__name">{tool.name}</span>
+													{#if tool.description}
+														<span class="mcp-tool-item__desc">{tool.description}</span>
+													{/if}
+												</div>
+											{/each}
+										</div>
+									{/if}
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
 		{:else if activeTab === 'decisions'}
 			<!-- Pending Decisions -->
 			{#if decisionsError}
@@ -1254,6 +1529,77 @@
 	</div>
 {/if}
 
+<!-- MCP Server Modal -->
+{#if showMCPModal}
+	<div class="ih-modal-backdrop" transition:fade={{ duration: 150 }}>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="ih-modal-backdrop__overlay" onclick={closeMCPModal} onkeydown={(e) => { if (e.key === 'Escape') closeMCPModal(); }}></div>
+		<div class="ih-modal ih-modal--sm" transition:fade={{ duration: 150 }} role="dialog" aria-label="{editingMCPServer ? 'Edit' : 'Add'} MCP Server">
+			<div class="ih-modal__header">
+				<div class="ih-modal__header-inner">
+					<h3 class="ih-modal__title ih-modal__title--sm">{editingMCPServer ? 'Edit' : 'Add'} MCP Server</h3>
+					<button onclick={closeMCPModal} class="btn-pill btn-pill-ghost btn-pill-icon" aria-label="Close">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+					</button>
+				</div>
+			</div>
+			<div class="ih-modal__body">
+				{#if mcpFormError}
+					<div class="ih-alert ih-alert--error ih-alert--sm"><p>{mcpFormError}</p></div>
+				{/if}
+				<div class="mcp-form">
+					<label class="mcp-form__label">
+						<span>Name <span class="mcp-form__required">*</span></span>
+						<input type="text" bind:value={mcpForm.name} placeholder="my-mcp-server" class="mcp-form__input" disabled={!!editingMCPServer} />
+						<span class="mcp-form__hint">Lowercase letters, numbers, hyphens</span>
+					</label>
+					<label class="mcp-form__label">
+						<span>Server URL <span class="mcp-form__required">*</span></span>
+						<input type="url" bind:value={mcpForm.server_url} placeholder="https://mcp.example.com/sse" class="mcp-form__input" />
+					</label>
+					<label class="mcp-form__label">
+						<span>Description</span>
+						<textarea bind:value={mcpForm.description} placeholder="What does this server provide?" class="mcp-form__textarea" rows="2"></textarea>
+					</label>
+					<div class="mcp-form__row">
+						<label class="mcp-form__label">
+							<span>Transport</span>
+							<select bind:value={mcpForm.transport} class="mcp-form__select">
+								<option value="sse">SSE (Server-Sent Events)</option>
+							</select>
+						</label>
+						<label class="mcp-form__label">
+							<span>Auth Type</span>
+							<select bind:value={mcpForm.auth_type} class="mcp-form__select">
+								<option value="none">None</option>
+								<option value="api_key">API Key</option>
+								<option value="bearer">Bearer Token</option>
+							</select>
+						</label>
+					</div>
+					{#if mcpForm.auth_type !== 'none'}
+						<label class="mcp-form__label" transition:slide={{ duration: 150 }}>
+							<span>Auth Token <span class="mcp-form__required">*</span></span>
+							<input type="password" bind:value={mcpForm.auth_token} placeholder={editingMCPServer ? '(unchanged)' : 'Enter token'} class="mcp-form__input" />
+						</label>
+					{/if}
+				</div>
+			</div>
+			<div class="ih-modal__footer">
+				<button onclick={closeMCPModal} class="btn-pill btn-pill-ghost btn-pill-sm">Cancel</button>
+				<button onclick={handleMCPSubmit} disabled={mcpFormSaving} class="btn-pill btn-pill-primary btn-pill-sm">
+					{#if mcpFormSaving}
+						<svg class="w-4 h-4 ih-spinner--inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+						Saving...
+					{:else}
+						{editingMCPServer ? 'Update' : 'Add Server'}
+					{/if}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <style>
 	/* ═══════════════════════════════════════════════════════════
 	   INTEGRATIONS HUB — Foundation ih- Prefix System
@@ -1273,56 +1619,56 @@
 		z-index: 10;
 	}
 	.ih-header__inner {
-		max-width: 80rem;
+		max-width: 76rem;
 		margin: 0 auto;
-		padding: 1.5rem 2rem 0;
+		padding: var(--space-6) var(--space-8) 0;
 	}
 	.ih-header__top {
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
 	}
 	.ih-header__title {
-		font-size: 1.5rem;
-		font-weight: 700;
+		font-size: var(--text-2xl);
+		font-weight: var(--font-bold);
 		color: var(--dt);
+		letter-spacing: -0.01em;
 	}
 	.ih-header__subtitle {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
 	}
 	.ih-decisions-alert {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.375rem 0.75rem;
-		border-radius: 9999px;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-full);
 		background: rgba(245, 158, 11, 0.1);
-		color: #f59e0b;
-		font-size: 0.75rem;
-		font-weight: 500;
+		color: var(--accent-orange);
+		font-size: var(--text-xs);
+		font-weight: var(--font-medium);
 		cursor: pointer;
 		border: none;
-		transition: background 0.15s;
+		transition: background 200ms ease;
 	}
 	.ih-decisions-alert:hover {
-		background: rgba(245, 158, 11, 0.2);
+		background: rgba(245, 158, 11, 0.18);
 	}
 
 	/* Tabs */
 	.ih-tabs {
 		display: flex;
-		gap: 0;
-		border-bottom: 1px solid var(--dbd);
-		margin: 0 -2rem;
-		padding: 0 2rem;
+		gap: var(--space-1);
+		margin: 0 calc(-1 * var(--space-8));
+		padding: 0 var(--space-8);
 	}
 	.ih-tab {
-		padding: 0.75rem 1rem;
-		font-size: 0.875rem;
-		font-weight: 500;
+		padding: var(--space-3) var(--space-4);
+		font-size: var(--text-sm);
+		font-weight: var(--font-medium);
 		color: var(--dt3);
 		border-bottom: 2px solid transparent;
 		cursor: pointer;
@@ -1330,17 +1676,18 @@
 		border-top: none;
 		border-left: none;
 		border-right: none;
-		transition: color 0.15s, border-color 0.15s;
+		transition: color 200ms ease, border-color 200ms ease;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
+		white-space: nowrap;
 	}
 	.ih-tab:hover {
 		color: var(--dt2);
 	}
 	.ih-tab--active {
-		color: #3b82f6;
-		border-bottom-color: #3b82f6;
+		color: var(--accent-blue);
+		border-bottom-color: var(--accent-blue);
 	}
 	.ih-tab__count {
 		display: inline-flex;
@@ -1348,31 +1695,31 @@
 		justify-content: center;
 		min-width: 1.25rem;
 		height: 1.25rem;
-		padding: 0 0.375rem;
-		border-radius: 9999px;
-		background: rgba(59, 130, 246, 0.1);
-		color: #3b82f6;
-		font-size: 0.75rem;
-		font-weight: 600;
+		padding: 0 var(--space-1);
+		border-radius: var(--radius-full);
+		background: rgba(74, 144, 226, 0.1);
+		color: var(--accent-blue);
+		font-size: var(--text-xs);
+		font-weight: var(--font-semibold);
 	}
 
 	/* Content Area */
 	.ih-content {
-		max-width: 80rem;
+		max-width: 76rem;
 		margin: 0 auto;
-		padding: 1.5rem 2rem;
+		padding: var(--space-6) var(--space-8);
 	}
 	.ih-spinner-wrap {
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 3rem 0;
+		padding: var(--space-12) 0;
 	}
 	.ih-spinner {
 		width: 2rem;
 		height: 2rem;
 		border: 2px solid var(--dbd);
-		border-top-color: #3b82f6;
+		border-top-color: var(--accent-blue);
 		border-radius: 50%;
 		animation: ih-spin 0.7s linear infinite;
 	}
@@ -1381,7 +1728,7 @@
 		height: 1rem;
 		border-width: 2px;
 		border-color: var(--dbd);
-		border-top-color: #3b82f6;
+		border-top-color: var(--accent-blue);
 		border-radius: 50%;
 		animation: ih-spin 0.7s linear infinite;
 	}
@@ -1395,7 +1742,7 @@
 	/* Empty States */
 	.ih-empty {
 		text-align: center;
-		padding: 3rem 0;
+		padding: var(--space-16) var(--space-4);
 	}
 	.ih-empty__icon {
 		width: 3rem;
@@ -1404,21 +1751,26 @@
 		color: var(--dt4);
 	}
 	.ih-empty__title {
-		margin-top: 1rem;
-		font-size: 1.125rem;
-		font-weight: 500;
+		margin-top: var(--space-4);
+		font-size: var(--text-lg);
+		font-weight: var(--font-medium);
 		color: var(--dt);
 	}
 	.ih-empty__text {
-		margin-top: 0.5rem;
+		margin-top: var(--space-2);
 		color: var(--dt3);
+		font-size: var(--text-sm);
+		max-width: 28rem;
+		margin-left: auto;
+		margin-right: auto;
+		line-height: 1.5;
 	}
 
 	/* Card Grid */
 	.ih-grid {
 		display: grid;
-		grid-template-columns: repeat(1, 1fr);
-		gap: 1rem;
+		grid-template-columns: 1fr;
+		gap: var(--space-4);
 	}
 	@media (min-width: 768px) {
 		.ih-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1428,9 +1780,9 @@
 	}
 	.ih-grid--pb {
 		display: grid;
-		grid-template-columns: repeat(1, 1fr);
-		gap: 1rem;
-		padding-bottom: 2rem;
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+		padding-bottom: var(--space-8);
 	}
 	@media (min-width: 768px) {
 		.ih-grid--pb { grid-template-columns: repeat(2, 1fr); }
@@ -1443,12 +1795,13 @@
 	.ih-card {
 		background: var(--dbg2);
 		border: 1px solid var(--dbd);
-		border-radius: 0.75rem;
-		padding: 1rem;
-		transition: box-shadow 0.15s;
+		border-radius: var(--radius-md);
+		padding: var(--space-4);
+		transition: border-color 200ms ease, box-shadow 200ms ease;
 	}
 	.ih-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		border-color: var(--dbd2);
+		box-shadow: var(--shadow-sm);
 	}
 	.ih-card__header {
 		display: flex;
@@ -1458,7 +1811,7 @@
 	.ih-card__icon-wrap {
 		width: 2.5rem;
 		height: 2.5rem;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
 		background: var(--dbg3);
 		display: flex;
 		align-items: center;
@@ -1472,64 +1825,65 @@
 		object-fit: contain;
 	}
 	.ih-card__icon-letter {
-		font-size: 0.875rem;
-		font-weight: 700;
+		font-size: var(--text-sm);
+		font-weight: var(--font-bold);
 		color: var(--dt3);
 	}
 	.ih-card__icon-letter--sm {
-		font-size: 0.75rem;
-		font-weight: 700;
+		font-size: var(--text-xs);
+		font-weight: var(--font-bold);
 		color: var(--dt3);
 	}
 	.ih-card__info {
-		margin-left: 0.75rem;
+		margin-left: var(--space-3);
 		flex: 1;
 		min-width: 0;
 	}
 	.ih-card__name-row {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.ih-card__name {
-		font-weight: 500;
+		font-weight: var(--font-medium);
 		color: var(--dt);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		font-size: var(--text-sm);
 	}
 	.ih-card__meta {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
 	}
 	.ih-card__actions {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
-		margin-left: 0.5rem;
+		gap: var(--space-2);
+		margin-left: var(--space-2);
 	}
 	.ih-card__actions-btn {
-		padding: 0.375rem;
-		border-radius: 0.375rem;
+		padding: var(--space-1);
+		border-radius: var(--radius-xs);
 		color: var(--dt4);
 		background: none;
 		border: none;
 		cursor: pointer;
-		transition: color 0.15s, background 0.15s;
+		transition: color 200ms ease, background 200ms ease;
 	}
 	.ih-card__actions-btn:hover {
 		color: var(--dt2);
 		background: var(--dbg3);
 	}
 	.ih-card__settings-link {
-		font-size: 0.75rem;
-		color: #3b82f6;
+		font-size: var(--text-xs);
+		color: var(--accent-blue);
 		text-decoration: none;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		margin-top: 0.5rem;
+		gap: var(--space-1);
+		margin-top: var(--space-2);
 	}
 	.ih-card__settings-link:hover {
 		text-decoration: underline;
@@ -1538,27 +1892,28 @@
 	/* Badges */
 	.ih-badge {
 		display: inline-flex;
-		padding: 0.125rem 0.5rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		font-weight: 500;
+		padding: 2px var(--space-2);
+		border-radius: var(--radius-full);
+		font-size: 0.6875rem;
+		font-weight: var(--font-medium);
 		white-space: nowrap;
+		letter-spacing: 0.01em;
 	}
 	.ih-badge--connected {
-		background: rgba(34, 197, 94, 0.1);
-		color: #22c55e;
+		background: rgba(16, 185, 129, 0.1);
+		color: var(--accent-green);
 	}
 	.ih-badge--available {
-		background: rgba(59, 130, 246, 0.1);
-		color: #3b82f6;
+		background: rgba(74, 144, 226, 0.1);
+		color: var(--accent-blue);
 	}
 	.ih-badge--coming-soon {
 		background: rgba(156, 163, 175, 0.1);
 		color: var(--dt4);
 	}
 	.ih-badge--error {
-		background: rgba(239, 68, 68, 0.1);
-		color: #ef4444;
+		background: rgba(220, 38, 38, 0.1);
+		color: var(--color-error);
 	}
 	.ih-badge--default {
 		background: rgba(156, 163, 175, 0.1);
@@ -1568,22 +1923,22 @@
 	/* Priority Badges */
 	.ih-priority {
 		display: inline-flex;
-		padding: 0.125rem 0.5rem;
-		border-radius: 9999px;
-		font-size: 0.75rem;
-		font-weight: 500;
+		padding: 2px var(--space-2);
+		border-radius: var(--radius-full);
+		font-size: 0.6875rem;
+		font-weight: var(--font-medium);
 	}
 	.ih-priority--urgent {
-		background: rgba(239, 68, 68, 0.1);
-		color: #ef4444;
+		background: rgba(220, 38, 38, 0.1);
+		color: var(--color-error);
 	}
 	.ih-priority--high {
 		background: rgba(249, 115, 22, 0.1);
-		color: #f97316;
+		color: var(--accent-orange);
 	}
 	.ih-priority--medium {
 		background: rgba(245, 158, 11, 0.1);
-		color: #f59e0b;
+		color: var(--accent-orange);
 	}
 	.ih-priority--default {
 		background: rgba(156, 163, 175, 0.1);
@@ -1592,82 +1947,94 @@
 
 	/* Section Intro (Available tab) */
 	.ih-section-intro {
-		margin-bottom: 1.5rem;
+		margin-bottom: var(--space-5);
 	}
 	.ih-section-intro__title {
-		font-size: 1.125rem;
-		font-weight: 600;
+		font-size: var(--text-lg);
+		font-weight: var(--font-semibold);
 		color: var(--dt);
+		letter-spacing: -0.01em;
 	}
 	.ih-section-intro__text {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
+		line-height: 1.5;
 	}
 
 	/* Category Filter */
 	.ih-category-filter {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-bottom: 1.5rem;
+		align-items: center;
+		gap: var(--space-2);
+		margin-bottom: var(--space-5);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid var(--dbd2);
 	}
 	.ih-category-btn {
-		padding: 0.375rem 0.75rem;
-		border-radius: 9999px;
-		font-size: 0.875rem;
-		font-weight: 500;
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-full);
+		font-size: var(--text-xs);
+		font-weight: var(--font-medium);
 		border: 1px solid var(--dbd);
-		background: var(--dbg2);
+		background: var(--dbg);
 		color: var(--dt3);
 		cursor: pointer;
-		transition: all 0.15s;
+		transition: all 200ms ease;
 		text-transform: capitalize;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
 	}
 	.ih-category-btn:hover {
-		border-color: var(--dbd2);
+		border-color: var(--dbd);
 		color: var(--dt2);
+		background: var(--dbg2);
 	}
 	.ih-category-btn--active {
-		background: rgba(59, 130, 246, 0.1);
-		color: #3b82f6;
-		border-color: rgba(59, 130, 246, 0.3);
+		background: rgba(74, 144, 226, 0.1);
+		color: var(--accent-blue);
+		border-color: rgba(74, 144, 226, 0.3);
 	}
 
 	/* Provider Cards */
 	.ih-provider-card {
 		background: var(--dbg2);
 		border: 1px solid var(--dbd);
-		border-radius: 0.75rem;
-		padding: 1rem;
+		border-radius: var(--radius-md);
+		padding: var(--space-4);
 		cursor: pointer;
-		transition: all 0.15s;
+		transition: border-color 200ms ease, box-shadow 200ms ease;
+		position: relative;
 	}
 	.ih-provider-card:hover {
 		border-color: var(--dbd2);
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+		box-shadow: var(--shadow-sm);
 	}
 	.ih-provider-card--soon {
 		opacity: 0.6;
 	}
 	.ih-provider-card--connecting {
-		border-color: rgba(59, 130, 246, 0.3);
+		border-color: rgba(74, 144, 226, 0.3);
 	}
 	.ih-provider-card__header {
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-3);
 	}
 	.ih-provider-card__left {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: var(--space-3);
+		flex: 1;
+		min-width: 0;
 	}
 	.ih-provider-card__icon {
-		width: 2.5rem;
-		height: 2.5rem;
-		border-radius: 0.5rem;
+		width: 2.25rem;
+		height: 2.25rem;
+		border-radius: var(--radius-sm);
 		background: var(--dbg3);
 		display: flex;
 		align-items: center;
@@ -1676,56 +2043,60 @@
 		flex-shrink: 0;
 	}
 	.ih-provider-card__icon img {
-		width: 1.5rem;
-		height: 1.5rem;
+		width: 1.25rem;
+		height: 1.25rem;
 		object-fit: contain;
 	}
 	.ih-provider-card__name {
-		font-weight: 500;
+		font-size: var(--text-sm);
+		font-weight: var(--font-semibold);
 		color: var(--dt);
 	}
 	.ih-provider-card__desc {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt3);
-		margin-bottom: 0.75rem;
+		margin-bottom: var(--space-3);
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+		line-height: 1.5;
 	}
 	.ih-provider-card__stats {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--space-2);
+		padding-top: var(--space-3);
+		border-top: 1px solid var(--dbd2);
 	}
 
 	/* Status Pills */
 	.ih-status-pill {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.375rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-		padding: 0.125rem 0.5rem;
-		border-radius: 9999px;
+		gap: var(--space-1);
+		font-size: 0.6875rem;
+		font-weight: var(--font-medium);
+		padding: 2px var(--space-2);
+		border-radius: var(--radius-full);
 	}
 	.ih-status-pill--connected {
-		background: rgba(34, 197, 94, 0.1);
-		color: #22c55e;
+		background: rgba(16, 185, 129, 0.1);
+		color: var(--accent-green);
 	}
 	.ih-status-pill--soon {
 		background: rgba(156, 163, 175, 0.1);
 		color: var(--dt4);
 	}
 	.ih-status-pill--connecting {
-		background: rgba(59, 130, 246, 0.1);
-		color: #3b82f6;
+		background: rgba(74, 144, 226, 0.1);
+		color: var(--accent-blue);
 	}
 	.ih-status-dot--green {
 		width: 0.5rem;
 		height: 0.5rem;
 		border-radius: 50%;
-		background: #22c55e;
+		background: var(--accent-green);
 		display: inline-block;
 	}
 
@@ -1733,13 +2104,13 @@
 	.ih-autosync-badge {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: var(--space-1);
 		font-size: 0.625rem;
-		font-weight: 500;
-		padding: 0.125rem 0.375rem;
-		border-radius: 0.25rem;
+		font-weight: var(--font-medium);
+		padding: 2px var(--space-1);
+		border-radius: var(--radius-xs);
 		background: rgba(168, 85, 247, 0.1);
-		color: #a855f7;
+		color: var(--accent-purple);
 	}
 
 	/* Stat Row */
@@ -1747,25 +2118,30 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 	}
 	.ih-stat-row__label {
 		color: var(--dt4);
 	}
 	.ih-stat-row__value {
 		color: var(--dt2);
-		font-weight: 500;
+		font-weight: var(--font-medium);
 	}
 
 	/* Learn More Link */
 	.ih-learn-more {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		font-size: 0.75rem;
-		color: #3b82f6;
+		gap: var(--space-1);
+		font-size: var(--text-xs);
+		color: var(--accent-blue);
 		text-decoration: none;
-		margin-top: 0.5rem;
+		margin-top: var(--space-2);
+		font-weight: var(--font-medium);
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0;
 	}
 	.ih-learn-more:hover {
 		text-decoration: underline;
@@ -1777,15 +2153,16 @@
 		bottom: 100%;
 		left: 50%;
 		transform: translateX(-50%);
-		margin-bottom: 0.5rem;
-		padding: 0.375rem 0.75rem;
+		margin-bottom: var(--space-2);
+		padding: var(--space-1) var(--space-3);
 		background: var(--dbg3);
 		color: var(--dt2);
-		font-size: 0.75rem;
-		border-radius: 0.375rem;
+		font-size: var(--text-xs);
+		border-radius: var(--radius-xs);
 		white-space: nowrap;
 		pointer-events: none;
 		z-index: 10;
+		box-shadow: var(--shadow-sm);
 	}
 	.ih-tooltip__arrow {
 		position: absolute;
@@ -1803,96 +2180,105 @@
 	.ih-section {
 		background: var(--dbg2);
 		border: 1px solid var(--dbd);
-		border-radius: 0.75rem;
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
+		border-radius: var(--radius-md);
+		padding: var(--space-6);
+		margin-bottom: var(--space-6);
 	}
 	.ih-section__title {
-		font-size: 1.125rem;
-		font-weight: 600;
+		font-size: var(--text-lg);
+		font-weight: var(--font-semibold);
 		color: var(--dt);
-		margin-bottom: 0.25rem;
+		margin-bottom: var(--space-1);
 	}
 	.ih-section__desc {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
+		line-height: 1.5;
 	}
 	.ih-tier-list {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-3);
 	}
 	.ih-tier {
 		background: var(--dbg);
 		border: 1px solid var(--dbd);
-		border-radius: 0.5rem;
-		padding: 1rem;
+		border-radius: var(--radius-sm);
+		padding: var(--space-4);
 	}
 	.ih-tier__name {
-		font-weight: 600;
+		font-weight: var(--font-semibold);
 		color: var(--dt);
 		text-transform: capitalize;
-		margin-bottom: 0.25rem;
+		margin-bottom: var(--space-1);
+		font-size: var(--text-sm);
 	}
 	.ih-tier__desc {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
+		line-height: 1.5;
 	}
 	.ih-tier__model {
-		font-size: 0.75rem;
-		font-family: monospace;
+		font-size: var(--text-xs);
+		font-family: 'SF Mono', 'Fira Code', monospace;
 		color: var(--dt4);
+		background: var(--dbg2);
+		padding: var(--space-2) var(--space-3);
+		border-radius: var(--radius-xs);
+		border: 1px solid var(--dbd2);
 	}
 	.ih-ai-settings {
-		margin-top: 1rem;
+		margin-top: var(--space-4);
 	}
 	.ih-ai-settings__title {
-		font-size: 0.875rem;
-		font-weight: 600;
+		font-size: var(--text-sm);
+		font-weight: var(--font-semibold);
 		color: var(--dt);
-		margin-bottom: 0.75rem;
+		margin-bottom: var(--space-3);
 	}
 	.ih-ai-settings__list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.ih-checkbox-label {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.875rem;
+		gap: var(--space-3);
+		font-size: var(--text-sm);
 		color: var(--dt2);
 		cursor: pointer;
 	}
 	.ih-checkbox {
 		width: 1rem;
 		height: 1rem;
-		border-radius: 0.25rem;
-		accent-color: #3b82f6;
+		border-radius: var(--radius-xs);
+		accent-color: var(--accent-blue);
 	}
 	.ih-latency-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem 1rem;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
 		background: var(--dbg);
 		border: 1px solid var(--dbd);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
+		font-size: var(--text-sm);
+		color: var(--dt2);
 	}
 	.ih-latency-row__value {
-		font-family: monospace;
-		font-size: 0.875rem;
-		color: #22c55e;
+		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-size: var(--text-sm);
+		color: var(--accent-green);
 	}
 
 	/* Decisions Tab */
 	.ih-decision-list {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	.ih-decision__top {
 		display: flex;
@@ -1902,23 +2288,24 @@
 	.ih-decision__header {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.ih-decision__desc {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
+		line-height: 1.5;
 	}
 	.ih-decision__meta {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
-		margin-top: 0.5rem;
+		margin-top: var(--space-2);
 	}
 	.ih-decision__options {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
-		margin-top: 1rem;
+		gap: var(--space-2);
+		margin-top: var(--space-4);
 	}
 
 	/* ═══════════════════════════════════════════
@@ -1931,7 +2318,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: 1rem;
+		padding: var(--space-4);
 		background: rgba(0, 0, 0, 0.5);
 	}
 	.ih-modal-backdrop__overlay {
@@ -1943,8 +2330,8 @@
 		z-index: 10;
 		background: var(--dbg2);
 		border: 1px solid var(--dbd);
-		border-radius: 1rem;
-		box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-xl);
 		max-width: 32rem;
 		width: 100%;
 		max-height: 85vh;
@@ -1956,7 +2343,7 @@
 		max-width: 28rem;
 	}
 	.ih-modal__header {
-		padding: 1.5rem;
+		padding: var(--space-6);
 		border-bottom: 1px solid var(--dbd);
 	}
 	.ih-modal__header-inner {
@@ -1967,12 +2354,12 @@
 	.ih-modal__provider {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	.ih-modal__provider-icon {
-		width: 3.5rem;
-		height: 3.5rem;
-		border-radius: 0.75rem;
+		width: 3rem;
+		height: 3rem;
+		border-radius: var(--radius-md);
 		background: var(--dbg3);
 		display: flex;
 		align-items: center;
@@ -1981,71 +2368,74 @@
 		flex-shrink: 0;
 	}
 	.ih-modal__provider-img {
-		width: 2.25rem;
-		height: 2.25rem;
+		width: 2rem;
+		height: 2rem;
 		object-fit: contain;
 	}
 	.ih-modal__provider-letter {
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-size: var(--text-xl);
+		font-weight: var(--font-bold);
 		color: var(--dt3);
 	}
 	.ih-modal__title {
-		font-size: 1.25rem;
-		font-weight: 700;
+		font-size: var(--text-xl);
+		font-weight: var(--font-bold);
 		color: var(--dt);
 	}
 	.ih-modal__title--sm {
-		font-size: 1rem;
+		font-size: var(--text-base);
 	}
 	.ih-modal__subtitle {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
 	}
 	.ih-modal__category-badge {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		padding: 0.125rem 0.5rem;
-		margin-top: 0.25rem;
-		font-size: 0.75rem;
-		font-weight: 500;
-		border-radius: 9999px;
+		gap: var(--space-1);
+		padding: 2px var(--space-2);
+		margin-top: var(--space-1);
+		font-size: var(--text-xs);
+		font-weight: var(--font-medium);
+		border-radius: var(--radius-full);
 		background: var(--dbg3);
 		color: var(--dt3);
 		text-transform: capitalize;
 	}
 	.ih-modal__body {
-		padding: 1.5rem;
+		padding: var(--space-6);
 		overflow-y: auto;
 		flex: 1;
 	}
 	.ih-modal__desc {
 		color: var(--dt3);
-		margin-bottom: 1.5rem;
+		margin-bottom: var(--space-6);
+		line-height: 1.5;
+		font-size: var(--text-sm);
 	}
 	.ih-modal__help-text {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
-		margin-bottom: 1rem;
+		margin-bottom: var(--space-4);
+		line-height: 1.5;
 	}
 	.ih-modal__section {
-		margin-bottom: 1.5rem;
+		margin-bottom: var(--space-6);
 	}
 	.ih-modal__section-title {
-		font-size: 0.875rem;
-		font-weight: 600;
+		font-size: var(--text-sm);
+		font-weight: var(--font-semibold);
 		color: var(--dt);
-		margin-bottom: 0.75rem;
+		margin-bottom: var(--space-3);
 	}
 	.ih-modal__footer {
-		padding: 1.5rem;
+		padding: var(--space-4) var(--space-6);
 		border-top: 1px solid var(--dbd);
 		background: var(--dbg);
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.ih-modal__full-btn {
 		width: 100%;
@@ -2059,90 +2449,91 @@
 	.ih-modal__connected-status {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		color: #22c55e;
+		gap: var(--space-2);
+		color: var(--accent-green);
 	}
 	.ih-modal__connected-label {
-		font-size: 0.875rem;
-		font-weight: 500;
+		font-size: var(--text-sm);
+		font-weight: var(--font-medium);
 	}
 	.ih-modal__connected-account {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
 	}
 	.ih-modal__connected-actions {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	/* Feature List */
 	.ih-feature-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.ih-feature-item {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.875rem;
+		gap: var(--space-2);
+		font-size: var(--text-sm);
 		color: var(--dt3);
+		line-height: 1.5;
 	}
 	.ih-feature-icon {
-		color: #22c55e;
+		color: var(--accent-green);
 		flex-shrink: 0;
 	}
 
 	/* Sync Panel */
 	.ih-sync-panel {
 		background: var(--dbg);
-		border-radius: 0.75rem;
-		padding: 1rem;
-		margin-bottom: 1.5rem;
+		border-radius: var(--radius-md);
+		padding: var(--space-4);
+		margin-bottom: var(--space-6);
 	}
 	.ih-sync-grid {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-		gap: 1rem;
+		gap: var(--space-4);
 	}
 	.ih-sync-item {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.ih-sync-icon {
 		width: 2rem;
 		height: 2rem;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
 	}
 	.ih-sync-icon--green {
-		background: rgba(34, 197, 94, 0.1);
-		color: #22c55e;
+		background: rgba(16, 185, 129, 0.1);
+		color: var(--accent-green);
 	}
 	.ih-sync-icon--blue {
-		background: rgba(59, 130, 246, 0.1);
-		color: #3b82f6;
+		background: rgba(74, 144, 226, 0.1);
+		color: var(--accent-blue);
 	}
 	.ih-sync-icon--purple {
 		background: rgba(168, 85, 247, 0.1);
-		color: #a855f7;
+		color: var(--accent-purple);
 	}
 	.ih-sync-icon--amber {
 		background: rgba(245, 158, 11, 0.1);
-		color: #f59e0b;
+		color: var(--accent-orange);
 	}
 	.ih-sync-label {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
 	}
 	.ih-sync-value {
-		font-size: 0.875rem;
-		font-weight: 500;
+		font-size: var(--text-sm);
+		font-weight: var(--font-medium);
 		color: var(--dt);
 	}
 
@@ -2150,25 +2541,25 @@
 	.ih-tag-list {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.ih-skill-tag {
-		padding: 0.25rem 0.5rem;
-		font-size: 0.75rem;
-		font-family: monospace;
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--text-xs);
+		font-family: 'SF Mono', 'Fira Code', monospace;
 		background: var(--dbg3);
 		color: var(--dt3);
-		border-radius: 0.25rem;
+		border-radius: var(--radius-xs);
 	}
 	.ih-module-tag {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
-		padding: 0.25rem 0.5rem;
-		font-size: 0.75rem;
-		background: rgba(59, 130, 246, 0.08);
-		color: #3b82f6;
-		border-radius: 0.25rem;
+		gap: var(--space-1);
+		padding: var(--space-1) var(--space-2);
+		font-size: var(--text-xs);
+		background: rgba(74, 144, 226, 0.08);
+		color: var(--accent-blue);
+		border-radius: var(--radius-xs);
 		text-transform: capitalize;
 	}
 
@@ -2176,11 +2567,11 @@
 	.ih-toggle-label {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		cursor: pointer;
 	}
 	.ih-toggle-text {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
 	}
 	.ih-toggle {
@@ -2191,22 +2582,22 @@
 	.ih-toggle__track {
 		width: 100%;
 		height: 100%;
-		border-radius: 9999px;
+		border-radius: var(--radius-full);
 		background: var(--dbg3);
-		transition: background 0.2s;
+		transition: background 200ms ease;
 	}
 	.ih-toggle :checked ~ .ih-toggle__track {
-		background: #22c55e;
+		background: var(--accent-green);
 	}
 	.ih-toggle__thumb {
 		position: absolute;
-		left: 0.125rem;
-		top: 0.125rem;
+		left: 2px;
+		top: 2px;
 		width: 1rem;
 		height: 1rem;
 		border-radius: 50%;
 		background: white;
-		transition: transform 0.2s;
+		transition: transform 200ms ease;
 	}
 	.ih-toggle :checked ~ .ih-toggle__thumb {
 		transform: translateX(1.25rem);
@@ -2218,7 +2609,7 @@
 	.ih-import-icon {
 		width: 2rem;
 		height: 2rem;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
 	}
 	.ih-dropzone {
 		display: flex;
@@ -2228,67 +2619,67 @@
 		width: 100%;
 		height: 8rem;
 		border: 2px dashed var(--dbd);
-		border-radius: 0.75rem;
+		border-radius: var(--radius-md);
 		cursor: pointer;
-		transition: border-color 0.15s, background 0.15s;
+		transition: border-color 200ms ease, background 200ms ease;
 		background: var(--dbg);
 	}
 	.ih-dropzone:hover {
 		border-color: var(--dbd2);
 	}
 	.ih-dropzone--active {
-		border-color: #22c55e;
-		background: rgba(34, 197, 94, 0.05);
+		border-color: var(--accent-green);
+		background: rgba(16, 185, 129, 0.05);
 	}
 	.ih-dropzone__icon {
 		color: var(--dt4);
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 	.ih-dropzone__icon--success {
-		color: #22c55e;
-		margin-bottom: 0.5rem;
+		color: var(--accent-green);
+		margin-bottom: var(--space-2);
 	}
 	.ih-dropzone__filename {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #22c55e;
+		font-size: var(--text-sm);
+		font-weight: var(--font-medium);
+		color: var(--accent-green);
 	}
 	.ih-dropzone__filesize {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
 	}
 	.ih-dropzone__label {
-		font-size: 0.875rem;
+		font-size: var(--text-sm);
 		color: var(--dt3);
 	}
 	.ih-dropzone__formats {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
-		margin-top: 0.25rem;
+		margin-top: var(--space-1);
 	}
 
 	/* Alerts */
 	.ih-alert {
-		margin-top: 0.75rem;
-		padding: 0.75rem;
-		border-radius: 0.5rem;
-		font-size: 0.875rem;
+		margin-top: var(--space-3);
+		padding: var(--space-3);
+		border-radius: var(--radius-sm);
+		font-size: var(--text-sm);
 	}
 	.ih-alert--error {
-		background: rgba(239, 68, 68, 0.08);
-		border: 1px solid rgba(239, 68, 68, 0.2);
-		color: #ef4444;
+		background: rgba(220, 38, 38, 0.08);
+		border: 1px solid rgba(220, 38, 38, 0.2);
+		color: var(--color-error);
 	}
 	.ih-alert--success {
-		background: rgba(34, 197, 94, 0.08);
-		border: 1px solid rgba(34, 197, 94, 0.2);
-		color: #22c55e;
+		background: rgba(16, 185, 129, 0.08);
+		border: 1px solid rgba(16, 185, 129, 0.2);
+		color: var(--accent-green);
 	}
 	.ih-import-loading {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	/* Search Input */
@@ -2298,25 +2689,25 @@
 	}
 	.ih-search-icon {
 		position: absolute;
-		left: 0.625rem;
+		left: var(--space-3);
 		top: 50%;
 		transform: translateY(-50%);
 		color: var(--dt4);
 		pointer-events: none;
 	}
 	.ih-search-input {
-		padding: 0.375rem 0.75rem 0.375rem 2rem;
+		padding: var(--space-1) var(--space-3) var(--space-1) 2rem;
 		font-size: 0.8125rem;
-		border-radius: 0.5rem;
+		border-radius: var(--radius-sm);
 		border: 1px solid var(--dbd);
 		background: var(--dbg);
 		color: var(--dt);
 		outline: none;
 		width: 14rem;
-		transition: border-color 0.15s;
+		transition: border-color 200ms ease;
 	}
 	.ih-search-input:focus {
-		border-color: #3b82f6;
+		border-color: var(--accent-blue);
 	}
 	.ih-search-input::placeholder {
 		color: var(--dt4);
@@ -2324,20 +2715,20 @@
 
 	/* Card Sync Button */
 	.ih-card__sync-btn {
-		padding: 0.375rem;
-		border-radius: 0.375rem;
+		padding: var(--space-1);
+		border-radius: var(--radius-xs);
 		color: var(--dt4);
 		background: none;
 		border: 1px solid var(--dbd);
 		cursor: pointer;
-		transition: color 0.15s, background 0.15s;
+		transition: color 200ms ease, background 200ms ease;
 		display: inline-flex;
 		align-items: center;
 	}
 	.ih-card__sync-btn:hover:not(:disabled) {
-		color: #3b82f6;
-		background: rgba(59, 130, 246, 0.08);
-		border-color: rgba(59, 130, 246, 0.3);
+		color: var(--accent-blue);
+		background: rgba(74, 144, 226, 0.08);
+		border-color: rgba(74, 144, 226, 0.3);
 	}
 	.ih-card__sync-btn:disabled {
 		opacity: 0.5;
@@ -2348,35 +2739,265 @@
 	.ih-card__sub-meta {
 		font-size: 0.6875rem;
 		color: var(--dt4);
-		margin-top: 0.125rem;
+		margin-top: 2px;
 	}
 
 	/* Latency Input */
 	.ih-latency-input {
 		width: 5rem;
-		padding: 0.25rem 0.5rem;
-		font-family: monospace;
-		font-size: 0.875rem;
-		color: #22c55e;
+		padding: var(--space-1) var(--space-2);
+		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-size: var(--text-sm);
+		color: var(--accent-green);
 		background: var(--dbg2);
 		border: 1px solid var(--dbd);
-		border-radius: 0.375rem;
+		border-radius: var(--radius-xs);
 		outline: none;
 		text-align: right;
 	}
 	.ih-latency-input:focus {
-		border-color: #3b82f6;
+		border-color: var(--accent-blue);
 	}
 	.ih-latency-unit {
-		font-size: 0.75rem;
+		font-size: var(--text-xs);
 		color: var(--dt4);
 	}
 
 	/* Alert small variant */
 	.ih-alert--sm {
-		margin-top: 0.5rem;
-		margin-bottom: 0.5rem;
-		padding: 0.5rem 0.75rem;
+		margin-top: var(--space-2);
+		margin-bottom: var(--space-2);
+		padding: var(--space-2) var(--space-3);
 		font-size: 0.8125rem;
+	}
+
+	/* ═══════════════════════════════════════════════════════════
+	   MCP SERVERS — mcp- Prefix System
+	   ═══════════════════════════════════════════════════════════ */
+
+	.mcp-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-4);
+	}
+	.mcp-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-4);
+		margin-bottom: var(--space-2);
+	}
+	.mcp-header__title {
+		font-size: var(--text-lg);
+		font-weight: var(--font-semibold);
+		color: var(--dt);
+		margin: 0;
+	}
+	.mcp-header__subtitle {
+		font-size: 0.8125rem;
+		color: var(--dt3);
+		margin: 2px 0 0;
+	}
+	.mcp-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: var(--space-3);
+	}
+	@media (min-width: 768px) {
+		.mcp-grid { grid-template-columns: repeat(2, 1fr); }
+	}
+	@media (min-width: 1200px) {
+		.mcp-grid { grid-template-columns: repeat(3, 1fr); }
+	}
+	.mcp-card {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+	.mcp-card__top {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-2);
+	}
+	.mcp-card__info {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+	}
+	.mcp-card__name-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+	.mcp-card__url {
+		font-size: var(--text-xs);
+		color: var(--dt4);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
+		margin: 0;
+	}
+	.mcp-card__desc {
+		font-size: 0.8125rem;
+		color: var(--dt3);
+		margin: 0;
+		line-height: 1.5;
+	}
+	.mcp-card__meta {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		flex-wrap: wrap;
+	}
+	.mcp-card__tools-count {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		font-size: var(--text-xs);
+		color: var(--dt3);
+	}
+	.mcp-card__auth-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		font-size: 0.6875rem;
+		color: #facc15;
+		background: rgba(250, 204, 21, 0.1);
+		padding: 2px var(--space-1);
+		border-radius: var(--radius-xs);
+	}
+	.mcp-card__transport {
+		font-size: 0.6875rem;
+		color: var(--dt4);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+	.mcp-card__actions {
+		display: flex;
+		gap: var(--space-1);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--dbd);
+	}
+	.mcp-status {
+		font-size: 0.6875rem;
+		font-weight: var(--font-medium);
+		padding: 2px var(--space-2);
+		border-radius: var(--radius-full);
+		text-transform: capitalize;
+	}
+	.mcp-status--connected {
+		color: var(--accent-green);
+		background: rgba(16, 185, 129, 0.1);
+	}
+	.mcp-status--disconnected {
+		color: var(--dt4);
+		background: rgba(255, 255, 255, 0.05);
+	}
+	.mcp-status--error {
+		color: var(--color-error);
+		background: rgba(220, 38, 38, 0.1);
+	}
+	.mcp-btn--danger {
+		color: var(--color-error) !important;
+	}
+	.mcp-btn--danger:hover {
+		background: rgba(220, 38, 38, 0.1) !important;
+	}
+	.mcp-card__expand-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
+		font-size: var(--text-xs);
+		color: var(--dt3);
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: var(--space-1) 0;
+	}
+	.mcp-card__expand-btn:hover {
+		color: var(--dt);
+	}
+	.mcp-chevron {
+		transition: transform 150ms ease;
+	}
+	.mcp-chevron--open {
+		transform: rotate(180deg);
+	}
+	.mcp-tools-list {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		padding: var(--space-2) 0;
+	}
+	.mcp-tool-item {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: var(--space-2) var(--space-2);
+		background: var(--dbg);
+		border-radius: var(--radius-xs);
+	}
+	.mcp-tool-item__name {
+		font-size: 0.8125rem;
+		font-weight: var(--font-medium);
+		color: var(--dt);
+		font-family: 'SF Mono', 'Fira Code', monospace;
+	}
+	.mcp-tool-item__desc {
+		font-size: var(--text-xs);
+		color: var(--dt4);
+		line-height: 1.4;
+	}
+
+	/* MCP Form */
+	.mcp-form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-3);
+	}
+	.mcp-form__label {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-1);
+		font-size: 0.8125rem;
+		color: var(--dt2);
+	}
+	.mcp-form__required {
+		color: var(--color-error);
+	}
+	.mcp-form__input,
+	.mcp-form__select,
+	.mcp-form__textarea {
+		padding: var(--space-2) var(--space-3);
+		font-size: var(--text-sm);
+		color: var(--dt);
+		background: var(--dbg);
+		border: 1px solid var(--dbd);
+		border-radius: var(--radius-xs);
+		outline: none;
+		transition: border-color 200ms ease;
+	}
+	.mcp-form__input:focus,
+	.mcp-form__select:focus,
+	.mcp-form__textarea:focus {
+		border-color: var(--accent-blue);
+	}
+	.mcp-form__input:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+	.mcp-form__textarea {
+		resize: vertical;
+		min-height: 3rem;
+	}
+	.mcp-form__hint {
+		font-size: 0.6875rem;
+		color: var(--dt4);
+	}
+	.mcp-form__row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--space-3);
 	}
 </style>

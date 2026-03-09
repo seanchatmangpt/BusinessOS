@@ -79,8 +79,16 @@
 	let dragOverPosition: 'before' | 'after' | null = $state(null);
 
 	// Track block ID to detect external changes (document switch)
-	let lastBlockId = $state(block.id);
-	let lastContent = $state(getPlainText());
+	let lastBlockId = $state('');
+	let lastContent = $state('');
+
+	// Initialize tracking state from block prop
+	$effect(() => {
+		if (lastBlockId === '') {
+			lastBlockId = block.id;
+			lastContent = getPlainText();
+		}
+	});
 
 	function getPlainText(): string {
 		return block.content.map((rt) => rt.plain_text).join('');
@@ -491,6 +499,7 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="block-wrapper"
 	class:block-wrapper--hovered={isHovered}
@@ -574,7 +583,7 @@
 		left: 52px;
 		right: 0;
 		height: 2px;
-		background-color: hsl(var(--primary));
+		background-color: #1e96eb;
 		border-radius: 1px;
 	}
 
@@ -585,7 +594,7 @@
 		left: 52px;
 		right: 0;
 		height: 2px;
-		background-color: hsl(var(--primary));
+		background-color: #1e96eb;
 		border-radius: 1px;
 	}
 </style>

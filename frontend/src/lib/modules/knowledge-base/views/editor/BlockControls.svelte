@@ -83,13 +83,13 @@
 		background: transparent;
 		border: none;
 		border-radius: 0.25rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.1s;
 	}
 
 	.block-wrapper__btn:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.block-wrapper__drag {
@@ -109,6 +109,6 @@
 		margin-right: 0.5rem;
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 </style>

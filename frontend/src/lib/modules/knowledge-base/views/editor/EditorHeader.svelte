@@ -179,6 +179,7 @@
 	const isSolidColor = $derived(cover?.startsWith('#') && cover?.length === 7);
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="editor-header"
 	class:editor-header--has-cover={cover}
@@ -463,6 +464,7 @@
 			</div>
 		{/if}
 
+		<!-- svelte-ignore a11y_missing_content -->
 		<h1
 			class="editor-header__title"
 			contenteditable={!readOnly}
@@ -517,38 +519,38 @@
 		align-items: center;
 		gap: 0.375rem;
 		padding: 0.5rem 0.75rem;
-		background-color: hsl(var(--popover) / 0.85);
+		background-color: var(--dbg);
 		backdrop-filter: blur(8px);
-		border: 1px solid hsl(var(--border) / 0.5);
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
-		color: hsl(var(--popover-foreground));
+		color: var(--dt);
 		font-size: 0.8125rem;
 		font-weight: 500;
 		cursor: pointer;
 		transition: background-color 0.15s, border-color 0.15s;
-		box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 	}
 
 	.editor-header__cover-btn:hover {
-		background-color: hsl(var(--popover) / 0.95);
-		border-color: hsl(var(--border));
+		background-color: var(--dbg2);
+		border-color: var(--dbd);
 	}
 
 	.editor-header__cover-btn--active {
-		background-color: hsl(var(--primary));
-		color: hsl(var(--primary-foreground));
-		border-color: hsl(var(--primary));
+		background-color: #1e96eb;
+		color: #fff;
+		border-color: #1e96eb;
 	}
 
 	.editor-header__cover-btn--active:hover {
-		background-color: hsl(var(--primary) / 0.9);
-		border-color: hsl(var(--primary) / 0.9);
+		background-color: rgba(30, 150, 235, 0.9);
+		border-color: rgba(30, 150, 235, 0.9);
 	}
 
 	/* Cover picker styles - Notion-like tabbed picker */
 	.cover-picker {
 		width: 480px;
-		background: hsl(var(--background));
+		background: var(--dbg);
 		border-radius: 0.5rem;
 		overflow: hidden;
 	}
@@ -556,7 +558,7 @@
 	.cover-picker__tabs {
 		display: flex;
 		padding: 0.5rem 0.75rem;
-		border-bottom: 1px solid hsl(var(--border));
+		border-bottom: 1px solid var(--dbd);
 		gap: 0.25rem;
 	}
 
@@ -567,28 +569,28 @@
 		border-radius: 0.25rem;
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		cursor: pointer;
 		transition: color 0.15s, background-color 0.15s;
 	}
 
 	.cover-picker__tab:hover {
-		color: hsl(var(--foreground));
-		background-color: hsl(var(--muted));
+		color: var(--dt);
+		background-color: var(--dbg2);
 	}
 
 	.cover-picker__tab--active {
-		color: hsl(var(--foreground));
-		background-color: hsl(var(--muted));
+		color: var(--dt);
+		background-color: var(--dbg2);
 	}
 
 	.cover-picker__tab--remove {
 		margin-left: auto;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.cover-picker__tab--remove:hover {
-		color: hsl(var(--destructive));
+		color: #ef4444;
 	}
 
 	.cover-picker__content {
@@ -608,7 +610,7 @@
 	.cover-picker__label {
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		margin-bottom: 0.5rem;
 	}
 
@@ -629,7 +631,7 @@
 
 	.cover-picker__color:hover {
 		transform: scale(1.05);
-		box-shadow: 0 2px 8px hsl(var(--foreground) / 0.15);
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 	}
 
 	.cover-picker__gradients {
@@ -648,7 +650,7 @@
 
 	.cover-picker__gradient:hover {
 		transform: scale(1.05);
-		box-shadow: 0 2px 8px hsl(var(--foreground) / 0.15);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 	}
 
 	.cover-picker__images {
@@ -664,13 +666,13 @@
 		cursor: pointer;
 		overflow: hidden;
 		padding: 0;
-		background: hsl(var(--muted));
+		background: var(--dbg2);
 		transition: transform 0.15s, box-shadow 0.15s;
 	}
 
 	.cover-picker__image:hover {
 		transform: scale(1.05);
-		box-shadow: 0 2px 8px hsl(var(--foreground) / 0.15);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 	}
 
 	.cover-picker__image img {
@@ -692,23 +694,23 @@
 		gap: 0.5rem;
 		width: 100%;
 		padding: 2rem;
-		background: hsl(var(--muted) / 0.5);
-		border: 2px dashed hsl(var(--border));
+		background: var(--dbg2);
+		border: 2px dashed var(--dbd);
 		border-radius: 0.5rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		font-size: 0.875rem;
 		cursor: pointer;
 		transition: border-color 0.15s, background-color 0.15s;
 	}
 
 	.cover-picker__upload-btn:hover {
-		border-color: hsl(var(--muted-foreground));
-		background: hsl(var(--muted));
+		border-color: var(--dt3);
+		background: var(--dbg3);
 	}
 
 	.cover-picker__upload-hint {
 		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground) / 0.7);
+		color: var(--dt4);
 	}
 
 	.cover-picker__url-input {
@@ -719,29 +721,29 @@
 	.cover-picker__url-input input {
 		flex: 1;
 		padding: 0.625rem 0.875rem;
-		background: hsl(var(--muted));
-		border: 1px solid hsl(var(--border));
+		background: var(--dbg2);
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
 		font-size: 0.875rem;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.cover-picker__url-input input::placeholder {
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.cover-picker__url-input input:focus {
 		outline: none;
-		border-color: hsl(var(--primary));
+		border-color: #1e96eb;
 	}
 
 	.cover-picker__submit-btn {
 		width: 100%;
 		padding: 0.625rem;
-		background: hsl(var(--primary));
+		background: #1e96eb;
 		border: none;
 		border-radius: 0.375rem;
-		color: hsl(var(--primary-foreground));
+		color: #fff;
 		font-size: 0.875rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -760,7 +762,7 @@
 	.cover-picker__link-hint {
 		margin-top: 0.75rem;
 		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		text-align: center;
 	}
 
@@ -796,14 +798,14 @@
 		background: transparent;
 		border: none;
 		border-radius: 0.375rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		font-size: 0.875rem;
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.editor-header__action-btn:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.editor-header__icon-wrapper {
@@ -821,11 +823,11 @@
 		border-radius: 0.5rem;
 		cursor: pointer;
 		transition: background-color 0.15s;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.editor-header__icon:hover:not(:disabled) {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.editor-header__icon svg {
@@ -837,13 +839,13 @@
 		font-size: 2.5rem;
 		font-weight: 700;
 		line-height: 1.2;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		outline: none;
 		word-break: break-word;
 	}
 
 	.editor-header__title:empty::before {
 		content: attr(data-placeholder);
-		color: hsl(var(--muted-foreground) / 0.5);
+		color: var(--dt4);
 	}
 </style>

@@ -206,7 +206,7 @@
 
 	.table-block__wrapper {
 		overflow-x: auto;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
 	}
 
@@ -217,14 +217,14 @@
 	}
 
 	.table-block__cell {
-		border: 1px solid hsl(var(--border));
+		border: 1px solid var(--dbd);
 		min-width: 100px;
 		padding: 0;
 		vertical-align: top;
 	}
 
 	.table-block__cell--header {
-		background-color: hsl(var(--muted) / 0.5);
+		background-color: var(--dbg2);
 		font-weight: 500;
 	}
 
@@ -250,11 +250,11 @@
 	}
 
 	.table-block__input:focus {
-		background-color: hsl(var(--accent) / 0.1);
+		background-color: var(--dbg3);
 	}
 
 	.table-block__input::placeholder {
-		color: hsl(var(--muted-foreground) / 0.5);
+		color: var(--dt4);
 	}
 
 	.table-block__action {
@@ -267,7 +267,7 @@
 		background: transparent;
 		border: none;
 		border-radius: 0.25rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		cursor: pointer;
 		opacity: 0;
 		transition: opacity 0.1s, background-color 0.1s;
@@ -279,12 +279,12 @@
 	}
 
 	.table-block__action:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.table-block__action--delete:hover {
-		background-color: hsl(var(--destructive) / 0.1);
-		color: hsl(var(--destructive));
+		background-color: rgba(239, 68, 68, 0.1);
+		color: #ef4444;
 	}
 
 	.table-block__action:disabled {
@@ -304,17 +304,17 @@
 		gap: 0.25rem;
 		padding: 0.375rem 0.625rem;
 		background: transparent;
-		border: 1px dashed hsl(var(--border));
+		border: 1px dashed var(--dbd);
 		border-radius: 0.375rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		font-size: 0.75rem;
 		cursor: pointer;
 		transition: background-color 0.1s, border-color 0.1s;
 	}
 
 	.table-block__control:hover {
-		background-color: hsl(var(--muted) / 0.5);
-		border-color: hsl(var(--muted-foreground) / 0.3);
+		background-color: var(--dbg2);
+		border-color: var(--dt4);
 	}
 
 	.table-block--readonly .table-block__cell {

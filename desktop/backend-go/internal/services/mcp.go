@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -12,6 +13,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/integrations/google"
 	"github.com/rhl/businessos-backend/internal/integrations/notion"
 	"github.com/rhl/businessos-backend/internal/integrations/slack"
+	"github.com/rhl/businessos-backend/internal/security"
 )
 
 type MCPTool struct {
@@ -163,6 +165,45 @@ func (m *MCPService) GetBuiltinTools() []MCPTool {
 
 func (m *MCPService) GetAllTools() []MCPTool {
 	tools := m.GetBuiltinTools()
+
+	// Load dynamic MCP server tools
+	dynamicTools := m.getDynamicMCPTools(context.Background())
+	tools = append(tools, dynamicTools...)
+
+	return tools
+}
+
+// getDynamicMCPTools loads the user's enabled MCP servers and returns their
+// cached tools as MCPTool entries with "mcp:<server>" source attribution.
+func (m *MCPService) getDynamicMCPTools(ctx context.Context) []MCPTool {
+	if m.pool == nil || m.userID == "" {
+		return nil
+	}
+
+	queries := sqlc.New(m.pool)
+	servers, err := queries.ListEnabledMCPServers(ctx, m.userID)
+	if err != nil {
+		return nil
+	}
+
+	var tools []MCPTool
+	for _, srv := range servers {
+		if srv.ToolsCache == nil {
+			continue
+		}
+		var cachedTools []MCPClientTool
+		if err := json.Unmarshal(srv.ToolsCache, &cachedTools); err != nil {
+			continue
+		}
+		for _, ct := range cachedTools {
+			tools = append(tools, MCPTool{
+				Name:        fmt.Sprintf("%s.%s", srv.Name, ct.Name),
+				Description: ct.Description,
+				Parameters:  ct.InputSchema,
+				Source:       fmt.Sprintf("mcp:%s", srv.Name),
+			})
+		}
+	}
 	return tools
 }
 
@@ -177,6 +218,18 @@ func (m *MCPService) ExecuteTool(ctx context.Context, toolName string, arguments
 
 	if IsNotionTool(toolName) {
 		return m.ExecuteNotionTool(ctx, m.userID, toolName, arguments)
+	}
+
+	// Route namespaced MCP tools (e.g. "github.create_issue") to the correct server
+	if parts := strings.SplitN(toolName, ".", 2); len(parts) == 2 {
+		result, err := m.executeDynamicMCPTool(ctx, parts[0], parts[1], arguments)
+		if err == nil {
+			return result, nil
+		}
+		// If the server wasn't found, fall through to built-in tools
+		if !strings.Contains(err.Error(), "MCP server not found") {
+			return nil, err
+		}
 	}
 
 	queries := sqlc.New(m.pool)
@@ -398,4 +451,47 @@ func pgtypeToUUID(p pgtype.UUID) uuid.UUID {
 		return uuid.Nil
 	}
 	return uuid.UUID(p.Bytes)
+}
+
+// executeDynamicMCPTool finds the user's MCP server by name and executes a tool on it.
+func (m *MCPService) executeDynamicMCPTool(ctx context.Context, serverName, toolName string, arguments map[string]interface{}) (interface{}, error) {
+	if m.pool == nil || m.userID == "" {
+		return nil, fmt.Errorf("MCP server not found: %s", serverName)
+	}
+
+	queries := sqlc.New(m.pool)
+	servers, err := queries.ListEnabledMCPServers(ctx, m.userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query MCP servers: %w", err)
+	}
+
+	for _, srv := range servers {
+		if srv.Name != serverName {
+			continue
+		}
+
+		// Decrypt auth token
+		var authToken string
+		if srv.AuthTokenEnc != nil && *srv.AuthTokenEnc != "" {
+			enc := security.GetGlobalEncryption()
+			if enc != nil {
+				decrypted, err := enc.Decrypt(*srv.AuthTokenEnc)
+				if err != nil {
+					return nil, fmt.Errorf("failed to decrypt MCP server credentials: %w", err)
+				}
+				authToken = decrypted
+			}
+		}
+
+		// Parse custom headers
+		var headers map[string]string
+		if srv.CustomHeaders != nil {
+			_ = json.Unmarshal(srv.CustomHeaders, &headers)
+		}
+
+		client := NewMCPClient(srv.ServerUrl, srv.AuthType, authToken, headers)
+		return client.ExecuteTool(ctx, toolName, arguments)
+	}
+
+	return nil, fmt.Errorf("MCP server not found: %s", serverName)
 }

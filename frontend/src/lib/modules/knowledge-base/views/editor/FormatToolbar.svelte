@@ -56,10 +56,10 @@
 		align-items: center;
 		gap: 0.125rem;
 		padding: 0.25rem;
-		background-color: hsl(var(--background));
-		border: 1px solid hsl(var(--border));
+		background-color: var(--dbg);
+		border: 1px solid var(--dbd);
 		border-radius: 0.5rem;
-		box-shadow: 0 4px 12px hsl(var(--foreground) / 0.15);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		transform: translateX(-50%) translateY(-100%);
 		margin-top: -8px;
 	}
@@ -74,16 +74,16 @@
 		background: transparent;
 		border: none;
 		border-radius: 0.375rem;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		cursor: pointer;
 		transition: background-color 0.1s;
 	}
 
 	.format-toolbar__btn:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.format-toolbar__btn:active {
-		background-color: hsl(var(--accent));
+		background-color: var(--dbg3);
 	}
 </style>

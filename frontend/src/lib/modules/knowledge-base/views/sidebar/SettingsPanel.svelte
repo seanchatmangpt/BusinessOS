@@ -5,6 +5,7 @@
 	 */
 	import { Moon, Sun, Monitor, Type, FileText, Trash2, Download, Upload } from 'lucide-svelte';
 	import { Button, Separator } from '$lib/ui';
+	import { kbSettings } from '../../stores/settings';
 
 	interface Props {
 		onClose?: () => void;
@@ -12,19 +13,28 @@
 
 	let { onClose }: Props = $props();
 
-	// Settings state (would typically come from a store)
-	let theme = $state<'light' | 'dark' | 'system'>('system');
-	let fontSize = $state<'small' | 'default' | 'large'>('default');
-	let pageWidth = $state<'narrow' | 'default' | 'wide' | 'full'>('default');
-	let autoSaveDelay = $state(1000);
-	let trashRetention = $state(30);
+	// Bind to the persisted settings store
+	let fontSize = $state<'small' | 'default' | 'large'>($kbSettings.fontSize);
+	let pageWidth = $state<'narrow' | 'default' | 'wide' | 'full'>($kbSettings.pageWidth);
+	let autoSaveDelay = $state($kbSettings.autoSaveDelay);
+	let trashRetention = $state($kbSettings.trashRetention);
 
-	// Theme options
+	// Sync local → store whenever values change
+	$effect(() => { kbSettings.setFontSize(fontSize); });
+	$effect(() => { kbSettings.setPageWidth(pageWidth); });
+	$effect(() => { kbSettings.setAutoSaveDelay(autoSaveDelay); });
+	$effect(() => { kbSettings.setTrashRetention(trashRetention); });
+
+	const theme = 'system'; // Themes are managed at the app level
+
+	// Theme options — display only, KB settings does not control app-level theme
 	const themeOptions = [
 		{ id: 'light', label: 'Light', icon: Sun },
 		{ id: 'dark', label: 'Dark', icon: Moon },
 		{ id: 'system', label: 'System', icon: Monitor }
 	] as const;
+
+	let activeTheme = $state<string>(theme);
 
 	// Font size options
 	const fontSizeOptions = [
@@ -74,8 +84,8 @@
 					{#each themeOptions as option}
 						<button
 							class="settings-toggle"
-							class:settings-toggle--active={theme === option.id}
-							onclick={() => theme = option.id}
+							class:settings-toggle--active={activeTheme === option.id}
+							onclick={() => activeTheme = option.id}
 						>
 							{#if option.id === 'light'}
 								<Sun class="h-4 w-4" />
@@ -215,7 +225,7 @@
 	.settings-section__title {
 		font-size: 0.875rem;
 		font-weight: 600;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		margin: 0;
 	}
 
@@ -241,12 +251,12 @@
 	.settings-item__label {
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.settings-item__description {
 		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.settings-item__control {
@@ -256,7 +266,7 @@
 	/* Toggle Group */
 	.settings-toggle-group {
 		display: flex;
-		background: hsl(var(--muted));
+		background: var(--dbg2);
 		border-radius: 0.5rem;
 		padding: 0.25rem;
 		gap: 0.25rem;
@@ -270,7 +280,7 @@
 		border: none;
 		border-radius: 0.375rem;
 		background: transparent;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		font-size: 0.75rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -278,13 +288,13 @@
 	}
 
 	.settings-toggle:hover {
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.settings-toggle--active {
-		background: hsl(var(--background));
-		color: hsl(var(--foreground));
-		box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+		background: var(--dbg);
+		color: var(--dt);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	}
 
 	.settings-toggle--compact {
@@ -295,35 +305,35 @@
 	.settings-select {
 		min-width: 180px;
 		padding: 0.5rem 0.75rem;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
-		background: hsl(var(--background));
-		color: hsl(var(--foreground));
+		background: var(--dbg);
+		color: var(--dt);
 		font-size: 0.875rem;
 		cursor: pointer;
 	}
 
 	.settings-select:focus {
 		outline: none;
-		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+		border-color: #1e96eb;
+		box-shadow: 0 0 0 2px rgba(30, 150, 235, 0.2);
 	}
 
 	/* Input */
 	.settings-input {
 		width: 100px;
 		padding: 0.5rem 0.75rem;
-		border: 1px solid hsl(var(--border));
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
-		background: hsl(var(--background));
-		color: hsl(var(--foreground));
+		background: var(--dbg);
+		color: var(--dt);
 		font-size: 0.875rem;
 		text-align: right;
 	}
 
 	.settings-input:focus {
 		outline: none;
-		border-color: hsl(var(--primary));
-		box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+		border-color: #1e96eb;
+		box-shadow: 0 0 0 2px rgba(30, 150, 235, 0.2);
 	}
 </style>

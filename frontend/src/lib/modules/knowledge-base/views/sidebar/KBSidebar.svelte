@@ -302,7 +302,7 @@
 					onclick={() => handleViewChange(option.id)}
 				>
 					<span class="bos-sidebar__nav-icon">
-						<svelte:component this={option.icon} />
+						<option.icon />
 					</span>
 					<span class="bos-sidebar__nav-label">{option.label}</span>
 				</button>
@@ -383,6 +383,7 @@
 		</ScrollArea>
 
 		<!-- Resize handle -->
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
 		<div
 			class="bos-sidebar__resize"
 			onmousedown={handleResizeStart}
@@ -411,7 +412,7 @@
 						class:bos-sidebar__action--active={currentView === option.id}
 						onclick={() => handleViewChange(option.id)}
 					>
-						<svelte:component this={option.icon} />
+					<option.icon />
 					</button>
 				</Tooltip>
 			{/each}
@@ -443,14 +444,14 @@
 </Modal>
 
 <style>
-	/* BusinessOS Sidebar */
+	/* KB Sidebar — Foundation tokens */
 	.bos-sidebar {
 		position: relative;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background-color: var(--bos-v2-layer-background-secondary, #f4f4f5);
-		border-right: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
+		background-color: var(--dbg2);
+		border-right: 1px solid var(--dbd);
 		transition: width 0.2s ease;
 	}
 
@@ -474,8 +475,8 @@
 		min-height: 30px;
 		padding: 4px 8px;
 		border-radius: 4px;
-		font-size: var(--bos-font-sm, 14px);
-		color: var(--bos-v2-text-primary, #121212);
+		font-size: 14px;
+		color: var(--dt);
 		background: transparent;
 		border: none;
 		cursor: pointer;
@@ -484,11 +485,11 @@
 	}
 
 	.bos-sidebar__nav-item:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.bos-sidebar__nav-item--active {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 		font-weight: 500;
 	}
 
@@ -498,7 +499,7 @@
 		justify-content: center;
 		width: 16px;
 		height: 16px;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 	}
 
 	.bos-sidebar__nav-icon :global(svg) {
@@ -514,11 +515,11 @@
 	.bos-sidebar__divider {
 		height: 1px;
 		margin: 8px;
-		background-color: var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
+		background-color: var(--dbd);
 	}
 
-	/* Content area */
-	.bos-sidebar__content {
+	/* Content area - applied via class prop on ScrollArea */
+	:global(.bos-sidebar__content) {
 		flex: 1;
 		overflow: hidden;
 		padding: 0 8px 8px;
@@ -534,9 +535,9 @@
 	}
 
 	.bos-sidebar__profile-title {
-		font-size: var(--bos-font-sm, 14px);
+		font-size: 14px;
 		font-weight: 600;
-		color: var(--bos-v2-text-primary, #121212);
+		color: var(--dt);
 	}
 
 	.bos-sidebar__profile-add {
@@ -548,13 +549,13 @@
 		border-radius: 4px;
 		background: transparent;
 		border: none;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.bos-sidebar__profile-add:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.bos-sidebar__profile-add :global(svg) {
@@ -568,8 +569,8 @@
 		align-items: center;
 		justify-content: center;
 		padding: 2rem 1rem;
-		color: var(--bos-v2-text-tertiary, #77757d);
-		font-size: var(--bos-font-sm, 14px);
+		color: var(--dt3);
+		font-size: 14px;
 	}
 
 	.bos-sidebar__empty {
@@ -582,8 +583,8 @@
 	}
 
 	.bos-sidebar__empty p {
-		color: var(--bos-v2-text-tertiary, #77757d);
-		font-size: var(--bos-font-sm, 14px);
+		color: var(--dt3);
+		font-size: 14px;
 		margin: 0;
 	}
 
@@ -593,16 +594,16 @@
 		gap: 0.375rem;
 		padding: 0.5rem 0.75rem;
 		border-radius: 6px;
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 		border: none;
-		color: var(--bos-v2-text-primary, #121212);
-		font-size: var(--bos-font-sm, 14px);
+		color: var(--dt);
+		font-size: 14px;
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.bos-sidebar__empty-btn:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.08));
+		background: var(--dbd);
 	}
 
 	/* Resize handle */
@@ -619,7 +620,7 @@
 
 	.bos-sidebar__resize:hover,
 	.bos-sidebar__resize:active {
-		background-color: var(--bos-v2-layer-insideBorder-primaryBorder, #1e96eb);
+		background-color: #1e96eb;
 	}
 
 	/* Collapsed state */
@@ -640,18 +641,18 @@
 		border-radius: 4px;
 		background: transparent;
 		border: none;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.bos-sidebar__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.bos-sidebar__action--active {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
-		color: var(--bos-v2-icon-activated, #1e96eb);
+		background: var(--dbg3);
+		color: #1e96eb;
 	}
 
 	.bos-sidebar__action :global(svg) {
@@ -671,14 +672,14 @@
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
-		background-color: var(--bos-v2-layer-background-primary, #ffffff);
-		border: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
-		color: var(--bos-v2-icon-primary, #77757d);
+		background-color: var(--dbg);
+		border: 1px solid var(--dbd);
+		color: var(--dt3);
 		cursor: pointer;
 		opacity: 0;
 		transition: opacity 0.15s, background-color 0.15s;
 		z-index: 10;
-		box-shadow: var(--bos-shadow-1);
+		box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 	}
 
 	.bos-sidebar:hover .bos-sidebar__toggle {
@@ -686,73 +687,11 @@
 	}
 
 	.bos-sidebar__toggle:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.bos-sidebar__toggle :global(svg) {
 		width: 14px;
 		height: 14px;
-	}
-
-	/* Dark mode */
-	:global(.dark) .bos-sidebar {
-		background-color: var(--bos-v2-layer-background-secondary, #2c2c2c);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-	}
-
-	:global(.dark) .bos-sidebar__nav-item {
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-sidebar__nav-item:hover,
-	:global(.dark) .bos-sidebar__nav-item--active {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
-	:global(.dark) .bos-sidebar__nav-icon {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar__divider {
-		background-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-	}
-
-	:global(.dark) .bos-sidebar__action {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
-	:global(.dark) .bos-sidebar__toggle {
-		background-color: var(--bos-v2-layer-background-primary, #1e1e1e);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar__profile-title {
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-sidebar__profile-add {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar__profile-add:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
-	:global(.dark) .bos-sidebar__empty p {
-		color: var(--bos-v2-text-tertiary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar__empty-btn {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-sidebar__empty-btn:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.12));
 	}
 </style>

@@ -81,7 +81,7 @@
 	</div>
 
 	<div class="td-member-card__actions">
-		<button class="btn-pill btn-pill-soft btn-pill-sm">View Profile</button>
+		<a href="/team/{id}" class="btn-pill btn-pill-soft btn-pill-sm" aria-label="View profile of {name}" onclick={(e) => e.stopPropagation()}>View Profile</a>
 	</div>
 </div>
 

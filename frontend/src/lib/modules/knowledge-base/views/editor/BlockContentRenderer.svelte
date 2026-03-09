@@ -357,7 +357,7 @@
 
 	.block:empty::before {
 		content: attr(data-placeholder);
-		color: hsl(var(--muted-foreground) / 0.5);
+		color: var(--dt4);
 	}
 
 	.block--paragraph {
@@ -397,7 +397,7 @@
 
 	.block__bullet,
 	.block__number {
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		font-size: 1rem;
 		line-height: 1.6;
 		min-width: 1.25rem;
@@ -429,15 +429,15 @@
 
 	.block__todo-content--checked {
 		text-decoration: line-through;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.block--quote {
-		border-left: 3px solid hsl(var(--border));
+		border-left: 3px solid var(--dbd);
 		padding-left: 1rem;
 		margin: 0.25rem 0;
 		font-style: italic;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	/* Divider wrapper */
@@ -463,16 +463,15 @@
 
 	.block--divider--solid hr {
 		height: 1px;
-		background-color: #e5e5e5;
-		background-color: var(--bos-border-color, #e3e2e4);
+		background-color: var(--dbd);
 	}
 
 	.block--divider--dashed hr {
 		height: 1px;
 		background-image: repeating-linear-gradient(
 			90deg,
-			var(--bos-border-color, #e3e2e4) 0px,
-			var(--bos-border-color, #e3e2e4) 8px,
+			var(--dbd) 0px,
+			var(--dbd) 8px,
 			transparent 8px,
 			transparent 16px
 		);
@@ -482,8 +481,8 @@
 		height: 2px;
 		background-image: repeating-linear-gradient(
 			90deg,
-			var(--bos-border-color, #e3e2e4) 0px,
-			var(--bos-border-color, #e3e2e4) 3px,
+			var(--dbd) 0px,
+			var(--dbd) 3px,
 			transparent 3px,
 			transparent 8px
 		);
@@ -491,56 +490,19 @@
 
 	.block--divider--thick hr {
 		height: 3px;
-		background-color: var(--bos-border-color, #e3e2e4);
+		background-color: var(--dbd);
 	}
 
 	.block--divider--double hr {
 		height: 5px;
 		background-image: linear-gradient(
 			to bottom,
-			var(--bos-border-color, #e3e2e4) 0px,
-			var(--bos-border-color, #e3e2e4) 1px,
+			var(--dbd) 0px,
+			var(--dbd) 1px,
 			transparent 1px,
 			transparent 4px,
-			var(--bos-border-color, #e3e2e4) 4px,
-			var(--bos-border-color, #e3e2e4) 5px
-		);
-	}
-
-	:global(.dark) .block--divider--solid hr,
-	:global(.dark) .block--divider--thick hr {
-		background-color: #3c3c42;
-	}
-
-	:global(.dark) .block--divider--dashed hr {
-		background-image: repeating-linear-gradient(
-			90deg,
-			#3c3c42 0px,
-			#3c3c42 8px,
-			transparent 8px,
-			transparent 16px
-		);
-	}
-
-	:global(.dark) .block--divider--dotted hr {
-		background-image: repeating-linear-gradient(
-			90deg,
-			#3c3c42 0px,
-			#3c3c42 3px,
-			transparent 3px,
-			transparent 8px
-		);
-	}
-
-	:global(.dark) .block--divider--double hr {
-		background-image: linear-gradient(
-			to bottom,
-			#3c3c42 0px,
-			#3c3c42 1px,
-			transparent 1px,
-			transparent 4px,
-			#3c3c42 4px,
-			#3c3c42 5px
+			var(--dbd) 4px,
+			var(--dbd) 5px
 		);
 	}
 
@@ -548,9 +510,9 @@
 		height: 2px;
 		background: linear-gradient(90deg,
 			transparent 0%,
-			hsl(var(--primary) / 0.5) 20%,
-			hsl(var(--primary)) 50%,
-			hsl(var(--primary) / 0.5) 80%,
+			rgba(30, 150, 235, 0.5) 20%,
+			#1e96eb 50%,
+			rgba(30, 150, 235, 0.5) 80%,
 			transparent 100%
 		);
 		border-radius: 1px;
@@ -564,17 +526,17 @@
 		z-index: 50;
 		margin-top: 0.5rem;
 		padding: 0.5rem;
-		background: hsl(var(--background));
-		border: 1px solid hsl(var(--border));
+		background: var(--dbg);
+		border: 1px solid var(--dbd);
 		border-radius: 0.5rem;
-		box-shadow: 0 4px 16px hsl(var(--foreground) / 0.12);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 		min-width: 160px;
 	}
 
 	.divider-picker__label {
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		margin-bottom: 0.5rem;
 		padding: 0 0.25rem;
 	}
@@ -594,18 +556,18 @@
 		border: none;
 		border-radius: 0.375rem;
 		font-size: 0.875rem;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.divider-picker__option:hover {
-		background: hsl(var(--muted));
+		background: var(--dbg2);
 	}
 
 	.divider-picker__option--active {
-		background: hsl(var(--primary) / 0.1);
-		color: hsl(var(--primary));
+		background: rgba(30, 150, 235, 0.1);
+		color: #1e96eb;
 	}
 
 	.divider-picker__preview {
@@ -665,13 +627,13 @@
 	.divider-picker__preview--gradient {
 		background: linear-gradient(90deg,
 			transparent 0%,
-			hsl(var(--primary)) 50%,
+			#1e96eb 50%,
 			transparent 100%
 		);
 	}
 
 	.block--code {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 		border-radius: 0.375rem;
 		padding: 1rem;
 		margin: 0.25rem 0;
@@ -689,7 +651,7 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 0.75rem;
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 		border-radius: 0.375rem;
 		padding: 1rem;
 		margin: 0.25rem 0;
@@ -699,7 +661,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		flex-shrink: 0;
 	}
 
@@ -725,14 +687,14 @@
 		background: transparent;
 		border: none;
 		border-radius: 0.25rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.1s;
 		flex-shrink: 0;
 	}
 
 	.block__toggle-btn:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.block__toggle-content {
@@ -752,7 +714,7 @@
 
 	.block__image-caption {
 		font-size: 0.875rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		text-align: center;
 		margin-top: 0.5rem;
 	}
@@ -764,18 +726,18 @@
 		justify-content: center;
 		gap: 0.5rem;
 		padding: 2rem;
-		background-color: hsl(var(--muted) / 0.5);
-		border: 2px dashed hsl(var(--border));
+		background-color: var(--dbg2);
+		border: 2px dashed var(--dbd);
 		border-radius: 0.5rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		cursor: pointer;
 		position: relative;
 		transition: border-color 0.15s, background-color 0.15s;
 	}
 
 	.block__image-placeholder:hover {
-		border-color: hsl(var(--muted-foreground));
-		background-color: hsl(var(--muted));
+		border-color: var(--dt3);
+		background-color: var(--dbg2);
 	}
 
 	.block__image-input {
@@ -794,8 +756,8 @@
 		align-items: center;
 		gap: 1rem;
 		padding: 1rem;
-		background-color: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
+		background-color: var(--dbg2);
+		border: 1px solid var(--dbd);
 		border-radius: 0.5rem;
 		text-decoration: none;
 		color: inherit;
@@ -803,7 +765,7 @@
 	}
 
 	.block__bookmark-link:hover {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 	}
 
 	.block__bookmark-content {
@@ -813,7 +775,7 @@
 
 	.block__bookmark-title {
 		font-weight: 500;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -821,7 +783,7 @@
 
 	.block__bookmark-description {
 		font-size: 0.875rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		margin-top: 0.25rem;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
@@ -834,12 +796,12 @@
 		align-items: center;
 		gap: 0.375rem;
 		font-size: 0.75rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		margin-top: 0.5rem;
 	}
 
 	.block__bookmark-icon {
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 		flex-shrink: 0;
 	}
 
@@ -848,10 +810,10 @@
 		align-items: center;
 		gap: 0.75rem;
 		padding: 0.75rem 1rem;
-		background-color: hsl(var(--muted) / 0.5);
-		border: 1px solid hsl(var(--border));
+		background-color: var(--dbg2);
+		border: 1px solid var(--dbd);
 		border-radius: 0.5rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.block__bookmark-input {
@@ -860,26 +822,26 @@
 		border: none;
 		outline: none;
 		font-size: 0.875rem;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.block__bookmark-input::placeholder {
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	/* Inline formatting styles */
 	.block :global(.inline-code),
 	.block :global(code:not([class])) {
-		background-color: hsl(var(--muted));
+		background-color: var(--dbg2);
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		font-family: ui-monospace, monospace;
 		font-size: 0.875em;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 	}
 
 	.block :global(a) {
-		color: hsl(var(--primary));
+		color: #1e96eb;
 		text-decoration: underline;
 		text-underline-offset: 2px;
 	}

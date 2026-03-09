@@ -259,7 +259,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background: var(--bos-v2-layer-background-primary, #ffffff);
+		background: var(--dbg);
 	}
 
 	.bos-database-table__wrapper {
@@ -276,15 +276,15 @@
 	.bos-database-table__row-handle-header {
 		width: 32px;
 		min-width: 32px;
-		background: var(--bos-v2-layer-background-secondary, #f4f4f5);
-		border-bottom: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
+		background: var(--dbg2);
+		border-bottom: 1px solid var(--dbd);
 	}
 
 	.bos-database-table__add-column {
 		width: 40px;
 		min-width: 40px;
-		background: var(--bos-v2-layer-background-secondary, #f4f4f5);
-		border-bottom: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
+		background: var(--dbg2);
+		border-bottom: 1px solid var(--dbd);
 		text-align: center;
 	}
 
@@ -298,14 +298,14 @@
 		border: none;
 		background: transparent;
 		border-radius: 4px;
-		color: var(--bos-v2-icon-secondary, #a9a9ad);
+		color: var(--dt4);
 		cursor: pointer;
 		transition: all 0.15s;
 	}
 
 	.bos-database-table__add-column-btn:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
-		color: var(--bos-v2-icon-primary, #77757d);
+		background: var(--dbg3);
+		color: var(--dt3);
 	}
 
 	.bos-database-table__add-column-btn :global(svg) {
@@ -314,11 +314,15 @@
 	}
 
 	.bos-database-table__row {
-		border-bottom: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.06));
+		border-bottom: 1px solid var(--dbd);
+	}
+
+	.bos-database-table__row:nth-child(even) {
+		background: var(--dbg2);
 	}
 
 	.bos-database-table__row--hovered {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.02));
+		background: var(--dbg3);
 	}
 
 	.bos-database-table__row-handle {
@@ -346,14 +350,14 @@
 		border: none;
 		background: transparent;
 		border-radius: 4px;
-		color: var(--bos-v2-icon-tertiary, #c9ccd0);
+		color: var(--dt4);
 		cursor: pointer;
 	}
 
 	.bos-database-table__row-grip:hover,
 	.bos-database-table__row-menu:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
-		color: var(--bos-v2-icon-secondary, #a9a9ad);
+		background: var(--dbg3);
+		color: var(--dt3);
 	}
 
 	.bos-database-table__row-grip {
@@ -368,7 +372,7 @@
 
 	.bos-database-table__cell {
 		padding: 0;
-		border-right: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.06));
+		border-right: 1px solid var(--dbd);
 		vertical-align: middle;
 	}
 
@@ -388,15 +392,15 @@
 		border: none;
 		background: transparent;
 		border-radius: 4px;
-		font-size: var(--bos-font-sm, 14px);
-		color: var(--bos-v2-text-secondary, #8e8d91);
+		font-size: 14px;
+		color: var(--dt2);
 		cursor: pointer;
 		transition: all 0.15s;
 	}
 
 	.bos-database-table__add-row-btn:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
-		color: var(--bos-v2-text-primary, #121212);
+		background: var(--dbg3);
+		color: var(--dt);
 	}
 
 	.bos-database-table__add-row-btn :global(svg) {
@@ -409,45 +413,12 @@
 		align-items: center;
 		height: 28px;
 		padding: 0 12px;
-		border-top: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
-		background: var(--bos-v2-layer-background-secondary, #f4f4f5);
+		border-top: 1px solid var(--dbd);
+		background: var(--dbg2);
 	}
 
 	.bos-database-table__count {
 		font-size: 12px;
-		color: var(--bos-v2-text-secondary, #8e8d91);
-	}
-
-	/* Dark mode */
-	:global(.dark) .bos-database-table {
-		background: var(--bos-v2-layer-background-primary, #1e1e1e);
-	}
-
-	:global(.dark) .bos-database-table__row-handle-header,
-	:global(.dark) .bos-database-table__add-column {
-		background: var(--bos-v2-layer-background-secondary, #2c2c2c);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-	}
-
-	:global(.dark) .bos-database-table__row {
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.06));
-	}
-
-	:global(.dark) .bos-database-table__row--hovered {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.02));
-	}
-
-	:global(.dark) .bos-database-table__cell {
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.06));
-	}
-
-	:global(.dark) .bos-database-table__add-row-btn:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-database-table__status {
-		background: var(--bos-v2-layer-background-secondary, #2c2c2c);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
+		color: var(--dt2);
 	}
 </style>

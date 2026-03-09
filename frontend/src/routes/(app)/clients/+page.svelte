@@ -44,7 +44,7 @@
 			(c) =>
 				c.name.toLowerCase().includes(query) ||
 				(c.email && c.email.toLowerCase().includes(query)) ||
-				(c.phone && c.phone.includes(query))
+				(c.phone && c.phone.toLowerCase().includes(query))
 		);
 	});
 

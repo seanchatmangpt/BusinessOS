@@ -349,14 +349,25 @@ export async function getImportProgress(importId: string) {
 // Custom MCP Connector
 // ============================================
 
+export interface MCPConnectorTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
 export interface MCPConnector {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   server_url: string;
-  auth_type: 'none' | 'api_key' | 'oauth';
-  api_key?: string;
-  is_active: boolean;
+  auth_type: 'none' | 'api_key' | 'bearer';
+  has_auth: boolean;
+  enabled: boolean;
+  status: 'connected' | 'disconnected' | 'error';
+  transport: string;
+  tools: MCPConnectorTool[];
+  tool_count: number;
+  last_connected_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -365,12 +376,21 @@ export interface CreateMCPConnectorData {
   name: string;
   description?: string;
   server_url: string;
-  auth_type: 'none' | 'api_key' | 'oauth';
-  api_key?: string;
+  auth_type: 'none' | 'api_key' | 'bearer';
+  auth_token?: string;
+  transport?: string;
+  custom_headers?: Record<string, string>;
+}
+
+export interface TestMCPConnectorResponse {
+  success: boolean;
+  message: string;
+  tools_count?: number;
+  tools?: MCPConnectorTool[];
 }
 
 export async function getMCPConnectors() {
-  return request<{ connectors: MCPConnector[] }>('/integrations/mcp/connectors');
+  return request<{ servers: MCPConnector[] }>('/integrations/mcp/connectors');
 }
 
 export async function createMCPConnector(data: CreateMCPConnectorData) {
@@ -392,7 +412,13 @@ export async function deleteMCPConnector(id: string) {
 }
 
 export async function testMCPConnector(id: string) {
-  return request<{ success: boolean; message?: string }>(`/integrations/mcp/connectors/${id}/test`, {
+  return request<TestMCPConnectorResponse>(`/integrations/mcp/connectors/${id}/test`, {
+    method: 'POST'
+  });
+}
+
+export async function discoverMCPConnectorTools(id: string) {
+  return request<TestMCPConnectorResponse>(`/integrations/mcp/connectors/${id}/discover`, {
     method: 'POST'
   });
 }

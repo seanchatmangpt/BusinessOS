@@ -49,6 +49,21 @@ func (h *Handlers) registerIntegrationRoutes(api *gin.RouterGroup, auth gin.Hand
 		integrationsProtected.PUT("/ai/preferences", integrationsHandler.UpdateModelPreferences)
 	}
 
+	// MCP Server management - /api/integrations/mcp/connectors
+	mcpServersHandler := NewMCPServersHandler(h.pool)
+	mcpConnectors := integrationsModule.Group("/mcp/connectors")
+	mcpConnectors.Use(auth, middleware.RequireAuth())
+	{
+		mcpConnectors.GET("", mcpServersHandler.ListMCPServers)
+		mcpConnectors.POST("", mcpServersHandler.CreateMCPServer)
+		mcpConnectors.GET("/:id", mcpServersHandler.GetMCPServer)
+		mcpConnectors.PUT("/:id", mcpServersHandler.UpdateMCPServer)
+		mcpConnectors.DELETE("/:id", mcpServersHandler.DeleteMCPServer)
+		mcpConnectors.POST("/:id/test", mcpServersHandler.TestMCPServer)
+		mcpConnectors.POST("/:id/discover", mcpServersHandler.DiscoverMCPTools)
+	}
+	slog.Info("MCP server routes registered at /api/integrations/mcp/connectors/*")
+
 	// Module-specific integration endpoints - /api/modules/:id/integrations
 	modules := api.Group("/modules")
 	modules.Use(optionalAuth) // Optional auth for browsing available integrations

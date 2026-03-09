@@ -2,12 +2,15 @@
 	import { tick } from 'svelte';
 	import { ScrollArea } from '$lib/ui';
 	import { activeDocument, activeDocumentStore } from '../../stores/documents';
-	import { updateDocument, toggleFavorite, deleteDocument } from '../../services/documents.service';
+	import { kbSettings, fontSizePx, pageMaxWidth } from '../../stores/settings';
+	import { updateDocument, toggleFavorite, deleteDocument, enableSharing, disableSharing, exportDocumentAsMarkdown, exportDocumentAsJSON } from '../../services/documents.service';
 	import type { Document, Block } from '../../entities/types';
 	import EditorHeader from './EditorHeader.svelte';
 	import BlockRenderer from './BlockRenderer.svelte';
 	import EditorToolbar from './EditorToolbar.svelte';
-	import { debounce } from '$lib/utils';
+	import ShareModal from './ShareModal.svelte';
+	import ExportMenu from './ExportMenu.svelte';
+	import { debounce, formatRelativeTime } from '$lib/utils';
 
 	interface Props {
 		documentId?: string;
@@ -38,11 +41,27 @@
 	let dragStartPositionY = $state(50);
 	let coverElement: HTMLDivElement | null = $state(null);
 
+	// Share & Export modals
+	let showShareModal = $state(false);
+	let showExportMenu = $state(false);
+
 	// Focus management - track which block should receive focus
 	let focusBlockId = $state<string | null>(null);
 
 	// Track which document we're editing to detect document switches
 	let currentDocId = $state<string | null>(null);
+
+	// Word count from content blocks
+	const wordCount = $derived(
+		localContent.reduce((count, block) => {
+			const text = block.content
+				? (typeof block.content === 'string'
+					? block.content
+					: block.content.map(rt => rt.plain_text || '').join(''))
+				: '';
+			return count + (text.trim() ? text.trim().split(/\s+/).length : 0);
+		}, 0)
+	);
 
 	// Sync local state ONLY when switching to a different document
 	// This prevents the save response from overwriting user's in-progress edits
@@ -66,8 +85,8 @@
 		}
 	});
 
-	// Auto-save with debounce
-	const debouncedSave = debounce(async () => {
+	// Auto-save with debounce — delay sourced from settings store
+	let debouncedSave = debounce(async () => {
 		if (!doc || !hasChanges) return;
 
 		try {
@@ -79,7 +98,24 @@
 		} catch (error) {
 			console.error('Failed to save document:', error);
 		}
-	}, 1000);
+	}, $kbSettings.autoSaveDelay);
+
+	// Rebuild debounce when delay setting changes
+	$effect(() => {
+		const delay = $kbSettings.autoSaveDelay;
+		debouncedSave = debounce(async () => {
+			if (!doc || !hasChanges) return;
+			try {
+				await updateDocument(doc.id, {
+					title: localTitle,
+					content: localContent
+				});
+				hasChanges = false;
+			} catch (error) {
+				console.error('Failed to save document:', error);
+			}
+		}, delay);
+	});
 
 	function handleTitleChange(newTitle: string) {
 		localTitle = newTitle;
@@ -227,8 +263,11 @@
 	}
 
 	function handleShare() {
-		// TODO: Implement share modal
-		if (import.meta.env.DEV) console.log('Share document:', doc?.id);
+		showShareModal = true;
+	}
+
+	function handleExport() {
+		showExportMenu = true;
 	}
 
 	async function handleDelete() {
@@ -265,6 +304,7 @@
 			{onClose}
 			onToggleFavorite={handleToggleFavorite}
 			onShare={handleShare}
+			onExport={handleExport}
 			onDelete={handleDelete}
 		/>
 
@@ -299,7 +339,11 @@
 				</div>
 			{/if}
 			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-			<div class="document-editor__container" onclick={handleContentAreaClick}>
+			<div
+				class="document-editor__container"
+				style="max-width: {$pageMaxWidth}; font-size: {$fontSizePx}"
+				onclick={handleContentAreaClick}
+			>
 				<EditorHeader
 					title={localTitle}
 					icon={doc.icon}
@@ -312,6 +356,21 @@
 					onCoverChange={handleCoverChange}
 					onStartReposition={handleStartReposition}
 				/>
+
+				<!-- Page metadata bar -->
+				<div class="document-editor__meta">
+					<span class="document-editor__meta-item">
+						{wordCount} {wordCount === 1 ? 'word' : 'words'}
+					</span>
+					<span class="document-editor__meta-sep">·</span>
+					<span class="document-editor__meta-item">
+						Edited {formatRelativeTime(doc.updated_at)}
+					</span>
+					{#if doc.is_public}
+						<span class="document-editor__meta-sep">·</span>
+						<span class="document-editor__meta-item document-editor__meta-item--public">Published</span>
+					{/if}
+				</div>
 
 				<div class="document-editor__blocks">
 					{#each localContent as block, index (block.id)}
@@ -343,6 +402,21 @@
 			<p>Select a document to start editing</p>
 		</div>
 	{/if}
+
+	{#if doc}
+		<ShareModal
+			bind:open={showShareModal}
+			documentId={doc.id}
+			documentTitle={doc.title}
+			isPublic={doc.is_public}
+			shareId={doc.share_id}
+		/>
+
+		<ExportMenu
+			bind:open={showExportMenu}
+			document={doc}
+		/>
+	{/if}
 </div>
 
 <style>
@@ -350,10 +424,11 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		background-color: hsl(var(--background));
+		background-color: var(--dbg);
 	}
 
-	.document-editor__content {
+	/* Content area - applied via class prop on ScrollArea */
+	:global(.document-editor__content) {
 		flex: 1;
 		overflow: hidden;
 	}
@@ -387,7 +462,7 @@
 		content: '';
 		position: absolute;
 		inset: 0;
-		background: hsl(var(--foreground) / 0.1);
+		background: rgba(0, 0, 0, 0.1);
 		pointer-events: none;
 	}
 
@@ -397,22 +472,44 @@
 		left: 50%;
 		transform: translate(-50%, -50%);
 		padding: 0.5rem 1rem;
-		background: hsl(var(--background) / 0.9);
-		border: 1px solid hsl(var(--border));
+		background: var(--dbg);
+		border: 1px solid var(--dbd);
 		border-radius: 0.375rem;
 		font-size: 0.875rem;
 		font-weight: 500;
-		color: hsl(var(--foreground));
+		color: var(--dt);
 		pointer-events: none;
-		box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 	}
 
 	.document-editor__container {
-		max-width: 900px;
+		max-width: 900px; /* overridden by inline style from settings */
 		margin: 0 auto;
 		padding: 0 4rem 8rem;
 		min-height: 100%;
 		cursor: text;
+		transition: max-width 0.3s ease;
+	}
+
+	.document-editor__meta {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 0 16px;
+		font-size: 12px;
+		color: var(--dt4);
+	}
+
+	.document-editor__meta-item {
+		white-space: nowrap;
+	}
+
+	.document-editor__meta-item--public {
+		color: #22c55e;
+	}
+
+	.document-editor__meta-sep {
+		opacity: 0.5;
 	}
 
 	.document-editor__blocks {
@@ -431,7 +528,7 @@
 		align-items: center;
 		justify-content: center;
 		height: 100%;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.document-editor__loading {
@@ -441,14 +538,14 @@
 		justify-content: center;
 		height: 100%;
 		gap: 1rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 
 	.document-editor__spinner {
 		width: 32px;
 		height: 32px;
-		border: 3px solid hsl(var(--border));
-		border-top-color: hsl(var(--primary));
+		border: 3px solid var(--dbd);
+		border-top-color: #1e96eb;
 		border-radius: 50%;
 		animation: spin 0.8s linear infinite;
 	}
@@ -466,11 +563,11 @@
 		justify-content: center;
 		height: 100%;
 		gap: 0.5rem;
-		color: hsl(var(--destructive));
+		color: #ef4444;
 	}
 
 	.document-editor__error-detail {
 		font-size: 0.875rem;
-		color: hsl(var(--muted-foreground));
+		color: var(--dt3);
 	}
 </style>

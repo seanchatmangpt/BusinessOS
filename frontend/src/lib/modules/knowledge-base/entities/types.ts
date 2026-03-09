@@ -23,6 +23,8 @@ export interface Document {
 	is_template: boolean;
 	is_favorite: boolean;
 	is_archived: boolean;
+	is_public: boolean;
+	share_id: string | null;
 	created_at: string;
 	updated_at: string;
 	created_by: string;

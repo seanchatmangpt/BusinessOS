@@ -229,39 +229,40 @@
 	.tb-toolbar-seg-inactive:hover {
 		color: var(--dt, #111);
 	}
-	.tb-toolbar-dropdown {
+	/* :global needed because bits-ui renders its own elements */
+	:global(.tb-toolbar-dropdown) {
 		background: var(--dbg, #fff);
 		border: 1px solid var(--dbd, #e0e0e0);
 	}
-	.tb-toolbar-dropdown-hover:hover {
+	:global(.tb-toolbar-dropdown-hover:hover) {
 		background: var(--dbg2, #f5f5f5);
 	}
-	.tb-toolbar-meta {
+	:global(.tb-toolbar-meta) {
 		color: var(--dt2, #555);
 	}
-	.tb-toolbar-label {
+	:global(.tb-toolbar-label) {
 		color: var(--dt, #111);
 	}
-	.tb-toolbar-check {
+	:global(.tb-toolbar-check) {
 		border-color: var(--dbd, #e0e0e0);
 	}
-	.tb-toolbar-chevron {
+	:global(.tb-toolbar-chevron) {
 		color: var(--dt4, #bbb);
 	}
-	.tb-toolbar-sep {
+	:global(.tb-toolbar-sep) {
 		border-top: 1px solid var(--dbd2, #f0f0f0);
 	}
-	.tb-toolbar-group-active {
+	:global(.tb-toolbar-group-active) {
 		background: var(--dbg2, #f5f5f5);
 		color: var(--dt, #111);
 	}
-	.tb-toolbar-group-item {
+	:global(.tb-toolbar-group-item) {
 		color: var(--dt2, #555);
 	}
-	.tb-toolbar-group-item:hover {
+	:global(.tb-toolbar-group-item:hover) {
 		background: var(--dbg2, #f5f5f5);
 	}
-	.tb-toolbar-check-icon {
+	:global(.tb-toolbar-check-icon) {
 		color: var(--dt, #111);
 	}
 	.tb-toolbar-search-icon {

@@ -5060,3 +5060,28 @@ CREATE INDEX idx_osa_template_usage_workflow ON osa_template_usage_log(workflow_
 CREATE INDEX idx_osa_template_usage_status ON osa_template_usage_log(status);
 CREATE INDEX idx_osa_template_usage_created ON osa_template_usage_log(created_at DESC);
 CREATE INDEX idx_osa_template_usage_rating ON osa_template_usage_log(user_rating) WHERE user_rating IS NOT NULL;
+
+-- =============================================================================
+-- MCP SERVERS - External Model Context Protocol server connections
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS mcp_servers (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         VARCHAR(255) NOT NULL,
+    name            VARCHAR(100) NOT NULL,
+    description     TEXT DEFAULT '',
+    server_url      TEXT NOT NULL,
+    transport       VARCHAR(20) NOT NULL DEFAULT 'sse',
+    auth_type       VARCHAR(20) NOT NULL DEFAULT 'none',
+    auth_token_enc  TEXT,
+    custom_headers  JSONB NOT NULL DEFAULT '{}',
+    enabled         BOOLEAN NOT NULL DEFAULT true,
+    tools_cache     JSONB NOT NULL DEFAULT '[]',
+    status          VARCHAR(20) NOT NULL DEFAULT 'disconnected',
+    last_error      TEXT,
+    last_connected  TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_user ON mcp_servers(user_id);
+CREATE INDEX IF NOT EXISTS idx_mcp_servers_enabled ON mcp_servers(user_id, enabled);

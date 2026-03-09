@@ -234,45 +234,50 @@ func seedClients(ctx context.Context, pool *pgxpool.Pool, userID string) {
 		}
 	}
 	fmt.Printf("  + %d interactions\n", len(interactions))
+}
 
-	// --- Client Deals (1-2 per client) ---
+// seedClientDeals inserts client-linked deals into the `deals` table.
+// Must be called AFTER seedCRM() so pipelineID and stageIDs exist.
+func seedClientDeals(ctx context.Context, pool *pgxpool.Pool, userID string) {
+	// stageIDs: 0=Lead, 1=Qualified, 2=Proposal, 3=Negotiation, 4=Closed Won
 	type clientDeal struct {
 		id        uuid.UUID
 		clientIdx int
 		name      string
 		value     float64
-		stage     string
 		prob      int
+		stageIdx  int  // index into stageIDs
 		closeDays *int // positive = future, negative = past
 		notes     string
+		status    string
 	}
 
 	cd := func(d int) *int { return &d }
 
 	clientDeals := []clientDeal{
 		// Nexus Digital
-		{clientDealIDs[0], 0, "Mobile App Development Retainer", 48000, "proposal", 60, cd(30), "Monthly retainer for ongoing mobile development work"},
-		{clientDealIDs[1], 0, "Website Redesign Phase 2", 35000, "negotiation", 75, cd(14), "Continuation of initial website project"},
+		{clientDealIDs[0], 0, "Mobile App Development Retainer", 48000, 60, 2, cd(30), "Monthly retainer for ongoing mobile development work", "open"},
+		{clientDealIDs[1], 0, "Website Redesign Phase 2", 35000, 75, 3, cd(14), "Continuation of initial website project", "open"},
 		// Apex Manufacturing
-		{clientDealIDs[2], 1, "ERP Modernization", 145000, "closed_won", 100, cd(-5), "Signed. 18-month project timeline."},
-		{clientDealIDs[3], 1, "IoT Dashboard Add-on", 32000, "qualification", 25, cd(60), "Exploring real-time factory monitoring"},
+		{clientDealIDs[2], 1, "ERP Modernization", 145000, 100, 4, cd(-5), "Signed. 18-month project timeline.", "won"},
+		{clientDealIDs[3], 1, "IoT Dashboard Add-on", 32000, 25, 1, cd(60), "Exploring real-time factory monitoring", "open"},
 		// Sarah Chen
-		{clientDealIDs[4], 2, "Q2 Strategy Engagement", 18000, "proposal", 80, cd(21), "Quarterly consulting retainer renewal"},
+		{clientDealIDs[4], 2, "Q2 Strategy Engagement", 18000, 80, 2, cd(21), "Quarterly consulting retainer renewal", "open"},
 		// Meridian Healthcare
-		{clientDealIDs[5], 3, "Patient Portal Phase 2", 95000, "negotiation", 70, cd(45), "Adding telehealth integration"},
-		{clientDealIDs[6], 3, "Staff Scheduling Module", 42000, "qualification", 30, cd(90), "Early discussions about workforce management"},
+		{clientDealIDs[5], 3, "Patient Portal Phase 2", 95000, 70, 3, cd(45), "Adding telehealth integration", "open"},
+		{clientDealIDs[6], 3, "Staff Scheduling Module", 42000, 30, 1, cd(90), "Early discussions about workforce management", "open"},
 		// Brightwave Studios
-		{clientDealIDs[7], 4, "Project Management Platform", 28000, "proposal", 50, cd(30), "Custom PM tool for creative workflows"},
+		{clientDealIDs[7], 4, "Project Management Platform", 28000, 50, 2, cd(30), "Custom PM tool for creative workflows", "open"},
 		// Terraform Real Estate
-		{clientDealIDs[8], 5, "Tenant Management Portal", 67000, "qualification", 20, cd(60), "Comprehensive property management solution"},
+		{clientDealIDs[8], 5, "Tenant Management Portal", 67000, 20, 1, cd(60), "Comprehensive property management solution", "open"},
 		// CloudNine SaaS
-		{clientDealIDs[9], 6, "API Integration Package", 22000, "qualification", 15, cd(45), "Custom API integration development"},
+		{clientDealIDs[9], 6, "API Integration Package", 22000, 15, 1, cd(45), "Custom API integration development", "open"},
 		// GreenRoot Organics
-		{clientDealIDs[10], 7, "Inventory Tracking System", 38000, "qualification", 10, cd(90), "Warehouse-to-store tracking"},
+		{clientDealIDs[10], 7, "Inventory Tracking System", 38000, 10, 0, cd(90), "Warehouse-to-store tracking", "open"},
 		// Pacific Ventures
-		{clientDealIDs[11], 8, "Dashboard Phase 2", 55000, "closed_won", 100, cd(-30), "Delivered and paid"},
+		{clientDealIDs[11], 8, "Dashboard Phase 2", 55000, 100, 4, cd(-30), "Delivered and paid", "won"},
 		// Atlas Logistics
-		{clientDealIDs[12], 9, "Fleet Management App", 75000, "closed_lost", 0, cd(-60), "Client chose in-house development"},
+		{clientDealIDs[12], 9, "Fleet Management App", 75000, 0, 0, cd(-60), "Client chose in-house development", "lost"},
 	}
 
 	for _, d := range clientDeals {
@@ -288,12 +293,13 @@ func seedClients(ctx context.Context, pool *pgxpool.Pool, userID string) {
 		}
 
 		q := fmt.Sprintf(`
-			INSERT INTO client_deals (id, client_id, name, value, stage, probability, expected_close_date, notes)
-			VALUES ($1, $2, $3, $4, $5::dealstage, $6, %s, $7)
+			INSERT INTO deals (id, user_id, pipeline_id, stage_id, client_id, name, description, amount, probability, expected_close_date, status)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, %s, $10)
 			ON CONFLICT (id) DO NOTHING`, closeExpr)
 
 		_, err := pool.Exec(ctx, q,
-			d.id, clientIDs[d.clientIdx], d.name, d.value, d.stage, d.prob, d.notes,
+			d.id, userID, pipelineID, stageIDs[d.stageIdx], clientIDs[d.clientIdx],
+			d.name, d.notes, d.value, d.prob, d.status,
 		)
 		if err != nil {
 			log.Printf("  client_deal %s: %v", d.name, err)

@@ -92,17 +92,17 @@
 	{:else}
 		<div class="flex-1 overflow-y-auto relative" in:fade={{ duration: 300 }}>
 			<!-- Top Toolbar -->
-			<div class="px-6 pt-4 pb-2">
-				<div class="flex items-center justify-end gap-3">
+			<div class="px-6 pt-3 pb-1">
+				<div class="flex items-center justify-end gap-2">
 					<!-- Segmented Control: View / Edit -->
-					<div class="dw-page-seg flex items-center p-1 rounded-lg" role="tablist">
+					<div class="dw-page-seg flex items-center p-0.5 rounded-md" role="tablist">
 						<button
 							onclick={() => layout.isEditMode && layout.toggleEditMode()}
 							role="tab"
 							aria-selected={!layout.isEditMode}
-							class="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {!layout.isEditMode ? 'dw-page-seg-active shadow-sm' : 'dw-page-seg-inactive'}"
+							class="inline-flex items-center justify-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md transition-colors {!layout.isEditMode ? 'dw-page-seg-active shadow-sm' : 'dw-page-seg-inactive'}"
 						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 							</svg>
@@ -112,9 +112,9 @@
 							onclick={() => !layout.isEditMode && layout.toggleEditMode()}
 							role="tab"
 							aria-selected={layout.isEditMode}
-							class="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {layout.isEditMode ? 'dw-page-seg-active shadow-sm' : 'dw-page-seg-inactive'}"
+							class="inline-flex items-center justify-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md transition-colors {layout.isEditMode ? 'dw-page-seg-active shadow-sm' : 'dw-page-seg-inactive'}"
 						>
-							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 							</svg>
 							Edit
@@ -122,16 +122,16 @@
 					</div>
 
 					<!-- Separator -->
-					<div class="dw-page-sep h-6 w-px"></div>
+					<div class="dw-page-sep h-4 w-px"></div>
 
 					<!-- Analytics -->
 					{#if !layout.isEditMode && !layout.showWidgetPicker}
 						<button
 							onclick={() => (analytics.showAnalyticsSidepanel = true)}
-							class="dw-page-icon-btn inline-flex items-center justify-center p-2 rounded-lg transition-colors"
+							class="dw-page-icon-btn inline-flex items-center justify-center p-1.5 rounded-md transition-colors"
 							title="View Dashboard Analytics"
 						>
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
 							</svg>
 						</button>
@@ -206,14 +206,14 @@
 							<div class="relative {layout.isEditMode ? 'pt-2' : ''}">
 								<!-- Edit Mode Overlay Controls -->
 								{#if layout.isEditMode}
-									<div class="absolute top-0 right-1 z-10 flex gap-1">
+									<div class="absolute -top-1 right-0.5 z-20 flex gap-0.5">
 										<!-- Collapse Toggle -->
 										<button
 											onclick={(e) => { e.stopPropagation(); layout.toggleWidgetCollapse(widget.id); }}
-											class="dw-page-ctrl inline-flex items-center justify-center p-1.5 rounded-lg border shadow-sm transition-colors"
+											class="dw-page-ctrl inline-flex items-center justify-center p-1 rounded-md border transition-colors"
 											title={widget.collapsed ? 'Expand' : 'Collapse'}
 										>
-											<svg class="w-3 h-3 dw-page-ctrl-icon transition-transform {widget.collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<svg class="w-2.5 h-2.5 dw-page-ctrl-icon transition-transform {widget.collapsed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
 											</svg>
 										</button>
@@ -221,44 +221,47 @@
 										<!-- Widget Menu -->
 										<DropdownMenu.Root>
 											<DropdownMenu.Trigger
-												class="dw-page-ctrl inline-flex items-center justify-center p-1.5 rounded-lg border shadow-sm transition-colors"
+												class="dw-page-ctrl inline-flex items-center justify-center p-1 rounded-md border transition-colors"
 											>
-												<svg class="w-3 h-3 dw-page-ctrl-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<svg class="w-2.5 h-2.5 dw-page-ctrl-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
 												</svg>
 											</DropdownMenu.Trigger>
 											<DropdownMenu.Content
-												class="dw-page-dropdown z-50 min-w-[160px] rounded-lg border shadow-lg py-1"
-												sideOffset={4}
+												class="dw-dd z-[100] min-w-[140px] rounded-lg border py-0.5"
+												sideOffset={6}
+												align="end"
+												collisionPadding={12}
+												avoidCollisions={true}
 											>
 												<!-- Size Options -->
 												<DropdownMenu.Sub>
-												<DropdownMenu.SubTrigger class="dw-page-dropdown-item flex items-center justify-between gap-2 px-3 py-2 text-sm cursor-pointer w-full">
-														<div class="flex items-center gap-2">
-															<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<DropdownMenu.SubTrigger class="dw-dd-item flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs cursor-pointer w-full">
+														<div class="flex items-center gap-1.5">
+															<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
 															</svg>
 															Size
 														</div>
-														<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<svg class="w-2.5 h-2.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 														</svg>
 													</DropdownMenu.SubTrigger>
-													<DropdownMenu.SubContent class="dw-page-dropdown z-50 min-w-[120px] rounded-lg border shadow-lg py-1">
+													<DropdownMenu.SubContent class="dw-dd z-[100] min-w-[100px] rounded-lg border py-0.5" collisionPadding={12} avoidCollisions={true}>
 														<DropdownMenu.Item
-															class="dw-page-dropdown-item flex items-center gap-2 px-3 py-2 text-sm cursor-pointer {widget.size === 'small' ? 'dw-page-dropdown-item--active' : ''}"
+															class="dw-dd-item px-2.5 py-1.5 text-xs cursor-pointer {widget.size === 'small' ? 'dw-dd-item--active' : ''}"
 															onclick={() => layout.setWidgetSize(widget.id, 'small')}
 														>
 															Small
 														</DropdownMenu.Item>
 														<DropdownMenu.Item
-															class="dw-page-dropdown-item flex items-center gap-2 px-3 py-2 text-sm cursor-pointer {widget.size === 'medium' ? 'dw-page-dropdown-item--active' : ''}"
+															class="dw-dd-item px-2.5 py-1.5 text-xs cursor-pointer {widget.size === 'medium' ? 'dw-dd-item--active' : ''}"
 															onclick={() => layout.setWidgetSize(widget.id, 'medium')}
 														>
 															Medium
 														</DropdownMenu.Item>
 														<DropdownMenu.Item
-															class="dw-page-dropdown-item flex items-center gap-2 px-3 py-2 text-sm cursor-pointer {widget.size === 'large' ? 'dw-page-dropdown-item--active' : ''}"
+															class="dw-dd-item px-2.5 py-1.5 text-xs cursor-pointer {widget.size === 'large' ? 'dw-dd-item--active' : ''}"
 															onclick={() => layout.setWidgetSize(widget.id, 'large')}
 														>
 															Large
@@ -268,36 +271,36 @@
 
 												<!-- Color Options -->
 												<DropdownMenu.Sub>
-												<DropdownMenu.SubTrigger class="dw-page-dropdown-item flex items-center justify-between gap-2 px-3 py-2 text-sm cursor-pointer w-full">
-														<div class="flex items-center gap-2">
-															<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<DropdownMenu.SubTrigger class="dw-dd-item flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs cursor-pointer w-full">
+														<div class="flex items-center gap-1.5">
+															<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
 															</svg>
 															Color
 														</div>
-														<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<svg class="w-2.5 h-2.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 														</svg>
 													</DropdownMenu.SubTrigger>
-													<DropdownMenu.SubContent class="dw-page-dropdown z-50 min-w-[120px] rounded-lg border shadow-lg py-1">
+													<DropdownMenu.SubContent class="dw-dd z-[100] min-w-[100px] rounded-lg border py-0.5" collisionPadding={12} avoidCollisions={true}>
 														{#each accentColors as color}
 															<DropdownMenu.Item
-																class="dw-page-dropdown-item flex items-center gap-2 px-3 py-2 text-sm cursor-pointer {widget.accentColor === color.value ? 'dw-page-dropdown-item--active' : ''}"
+																class="dw-dd-item flex items-center gap-1.5 px-2.5 py-1.5 text-xs cursor-pointer {widget.accentColor === color.value ? 'dw-dd-item--active' : ''}"
 																onclick={() => layout.setWidgetAccentColor(widget.id, color.value)}
 															>
-																<span class="w-3 h-3 rounded-full {getAccentColorClass(color.value)}"></span>
+																<span class="w-2.5 h-2.5 rounded-full {getAccentColorClass(color.value)}"></span>
 																{color.name}
 															</DropdownMenu.Item>
 														{/each}
 													</DropdownMenu.SubContent>
 												</DropdownMenu.Sub>
 
-												<DropdownMenu.Separator class="dw-page-dropdown-sep my-1 h-px" />
+												<DropdownMenu.Separator class="dw-dd-sep my-0.5 h-px" />
 												<DropdownMenu.Item
-													class="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 cursor-pointer"
+													class="dw-dd-item dw-dd-item--danger flex items-center gap-1.5 px-2.5 py-1.5 text-xs cursor-pointer"
 													onclick={() => layout.removeWidget(widget.id)}
 												>
-													<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 													</svg>
 													Remove
@@ -320,10 +323,10 @@
 									{#if !layout.isEditMode && !widget.collapsed && !widget.showAnalytics}
 										<button
 											onclick={(e) => { e.stopPropagation(); layout.toggleWidgetAnalytics(widget.id); }}
-											class="dw-page-ctrl inline-flex items-center justify-center p-1.5 rounded-lg border shadow-sm transition-colors absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100"
+											class="dw-page-ctrl inline-flex items-center justify-center p-1 rounded-md border transition-colors absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100"
 											title="View Analytics"
 										>
-											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
 											</svg>
 										</button>
@@ -708,22 +711,32 @@
 		color: var(--dt2, #555);
 	}
 
-	/* Dropdown */
-	.dw-page-dropdown {
+	/* Dropdown menus */
+	.dw-dd {
 		background: var(--dbg, #fff);
 		border-color: var(--dbd, #e0e0e0);
+		box-shadow: 0 4px 16px rgba(0,0,0,.12), 0 1px 3px rgba(0,0,0,.06);
+		backdrop-filter: blur(8px);
 	}
-	.dw-page-dropdown-item {
+	.dw-dd-item {
 		color: var(--dt, #111);
+		border-radius: 4px;
+		margin: 0 2px;
 	}
-	.dw-page-dropdown-item:hover {
+	.dw-dd-item:hover {
 		background: var(--dbg2, #f5f5f5);
 	}
-	.dw-page-dropdown-item--active {
+	.dw-dd-item--active {
 		color: #3b82f6;
 		background: rgba(59, 130, 246, 0.08);
 	}
-	.dw-page-dropdown-sep {
+	.dw-dd-item--danger {
+		color: #ef4444;
+	}
+	.dw-dd-item--danger:hover {
+		background: rgba(239, 68, 68, 0.08);
+	}
+	.dw-dd-sep {
 		background: var(--dbd2, #f0f0f0);
 	}
 

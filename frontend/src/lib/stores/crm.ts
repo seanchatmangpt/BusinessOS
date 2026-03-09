@@ -171,18 +171,18 @@ function createCRMStore() {
 				const response = await crmApi.getPipelines();
 				const pipelines = response.pipelines;
 				// Auto-select first pipeline if none selected
-				let currentPipeline: Pipeline | null = null;
+				let selectedPipeline: Pipeline | null = null;
 				update((s) => {
 					if (!s.currentPipeline && pipelines.length > 0) {
-						currentPipeline = pipelines.find((p) => p.is_default) || pipelines[0];
+						selectedPipeline = pipelines.find((p) => p.is_default) || pipelines[0];
 					} else {
-						currentPipeline = s.currentPipeline;
+						selectedPipeline = s.currentPipeline;
 					}
-					return { ...s, pipelines, currentPipeline, loading: false };
+					return { ...s, pipelines, currentPipeline: selectedPipeline, loading: false };
 				});
 				// Load stages for current pipeline
-				if (currentPipeline?.id) {
-					this.loadPipelineStages(currentPipeline.id);
+				if (selectedPipeline) {
+					this.loadPipelineStages((selectedPipeline as Pipeline).id);
 				}
 			} catch (error) {
 				console.error('Failed to load pipelines:', error);

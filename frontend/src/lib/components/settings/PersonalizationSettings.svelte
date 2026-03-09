@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { learning } from '$lib/stores/learning';
 	import type { PersonalizationProfile, DetectedPattern } from '$lib/api/learning';
 
@@ -8,7 +9,7 @@
 	let isSavingPersonalization = $state(false);
 	let saveMessage = $state('');
 
-	$effect(() => {
+	onMount(() => {
 		loadPersonalizationData();
 	});
 
@@ -242,7 +243,7 @@
 			<button
 				onclick={savePersonalizationProfile}
 				disabled={isSavingPersonalization || !personalizationProfile}
-				class="btn-pill btn-pill-ghost btn btn-primary"
+				class="btn-pill btn-pill-primary btn-pill-sm"
 			>
 				{#if isSavingPersonalization}
 					<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -259,27 +260,33 @@
 </div>
 
 <style>
-	.st-title { color: var(--dt, var(--bos-text-primary, #111)); }
-	.st-muted { color: var(--dt3, var(--bos-text-tertiary, #888)); }
-	.st-label { color: var(--dt2, var(--bos-text-secondary, #555)); }
+	.card {
+		background: var(--dbg, #fff);
+		border: 1px solid var(--dbd, #e5e7eb);
+		border-radius: 1rem;
+		padding: 1.5rem;
+	}
+	.st-title { color: var(--dt, #111); }
+	.st-muted { color: var(--dt3, #888); }
+	.st-label { color: var(--dt2, #555); }
 	.st-icon  { color: var(--dt4, #bbb); }
-	.st-spinner { border-color: var(--dt, var(--bos-text-primary, #111)); }
-	.st-toggle-on  { background: var(--dt, var(--bos-text-primary, #111)); }
+	.st-spinner { border-color: var(--dt, #111); }
+	.st-toggle-on  { background: var(--dt, #111); }
 	.st-toggle-off { background: var(--dbg3, #eee); }
-	.st-toggle-knob { background: var(--dbg, var(--bos-card, #fff)); }
+	.st-toggle-knob { background: var(--dbg, #fff); }
 	.st-opt-selected {
-		border-color: var(--dt, var(--bos-text-primary, #111));
-		background: var(--dbg2, var(--bos-bg-secondary, #f5f5f5));
-		color: var(--dt, var(--bos-text-primary, #111));
+		border-color: var(--dt, #111);
+		background: var(--dbg2, #f5f5f5);
+		color: var(--dt, #111);
 	}
 	.st-opt {
-		border-color: var(--dbd, var(--bos-border, #e0e0e0));
-		color: var(--dt2, var(--bos-text-secondary, #555));
+		border-color: var(--dbd, #e0e0e0);
+		color: var(--dt2, #555);
 	}
 	.st-opt:hover { border-color: var(--dt4, #bbb); }
-	.st-pattern-card { background: var(--dbg2, var(--bos-bg-secondary, #f5f5f5)); }
+	.st-pattern-card { background: var(--dbg2, #f5f5f5); }
 	.st-low-confidence {
 		background: var(--dbg3, #eee);
-		color: var(--dt2, var(--bos-text-secondary, #555));
+		color: var(--dt2, #555);
 	}
 </style>

@@ -2,6 +2,7 @@
 	import type { CustomModule } from '$lib/types/modules';
 	import { categoryLabels } from '$lib/types/modules';
 	import { Download, Star, Package } from 'lucide-svelte';
+	import { moduleIconMap } from './moduleIcons';
 
 	interface Props {
 		module: CustomModule;
@@ -9,6 +10,8 @@
 	}
 
 	let { module, onClick }: Props = $props();
+
+	const IconComponent = $derived(module.icon ? moduleIconMap[module.icon] ?? null : null);
 
 	const categoryHexColors: Record<string, string> = {
 		productivity: '#3b82f6',
@@ -34,12 +37,12 @@
 >
 	<!-- Header with Icon and Meta -->
 	<div class="am-module-card__header">
-		{#if module.icon}
+		{#if IconComponent}
 			<div
 				class="am-module-card__icon"
 				style="background: {categoryHexColors[module.category] || '#6366f1'}"
 			>
-				{module.icon}
+				<IconComponent class="w-5 h-5" />
 			</div>
 		{:else}
 			<div class="am-module-card__icon am-module-card__icon--fallback">

@@ -79,7 +79,7 @@
 		width: 24px;
 		height: 24px;
 		border-radius: 4px;
-		background: linear-gradient(135deg, var(--bos-brand-color, #1e96eb) 0%, #1976d2 100%);
+		background: linear-gradient(135deg, #1e96eb 0%, #1976d2 100%);
 		color: #ffffff;
 		font-size: 10px;
 		font-weight: 700;
@@ -87,9 +87,9 @@
 	}
 
 	.bos-sidebar-header__name {
-		font-size: var(--bos-font-sm, 14px);
+		font-size: 14px;
 		font-weight: 600;
-		color: var(--bos-v2-text-primary, #121212);
+		color: var(--dt);
 	}
 
 	.bos-sidebar-header__actions {
@@ -98,7 +98,7 @@
 		gap: 8px;
 	}
 
-	/* Search button - quick-search-input style */
+	/* Search button */
 	.bos-sidebar-header__search {
 		display: flex;
 		align-items: center;
@@ -107,16 +107,16 @@
 		height: 32px;
 		padding: 0 12px;
 		border-radius: 8px;
-		background-color: var(--bos-v2-layer-background-primary, #ffffff);
-		border: 1px solid var(--bos-v2-layer-insideBorder-border, rgba(0, 0, 0, 0.1));
-		color: var(--bos-v2-text-secondary, #8e8d91);
-		font-size: var(--bos-font-sm, 14px);
+		background-color: var(--dbg);
+		border: 1px solid var(--dbd);
+		color: var(--dt2);
+		font-size: 14px;
 		cursor: pointer;
 		transition: border-color 0.15s;
 	}
 
 	.bos-sidebar-header__search:hover {
-		border-color: var(--bos-v2-layer-insideBorder-primaryBorder, #1e96eb);
+		border-color: #1e96eb;
 	}
 
 	.bos-sidebar-header__search :global(svg) {
@@ -135,10 +135,10 @@
 		align-items: center;
 		padding: 2px 6px;
 		border-radius: 4px;
-		background-color: var(--bos-v2-layer-background-secondary, #f4f4f5);
-		font-family: var(--bos-font-code-family);
+		background-color: var(--dbg2);
+		font-family: monospace;
 		font-size: 10px;
-		color: var(--bos-v2-text-tertiary, #bfbfc3);
+		color: var(--dt3);
 	}
 
 	/* Action buttons */
@@ -156,13 +156,13 @@
 		border-radius: 4px;
 		background: transparent;
 		border: none;
-		color: var(--bos-v2-icon-primary, #77757d);
+		color: var(--dt3);
 		cursor: pointer;
 		transition: background-color 0.15s;
 	}
 
 	.bos-sidebar-header__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(0, 0, 0, 0.04));
+		background: var(--dbg3);
 	}
 
 	.bos-sidebar-header__action :global(svg) {
@@ -172,43 +172,11 @@
 
 	/* Primary action (New page) - subtle emphasis */
 	.bos-sidebar-header__action--primary {
-		color: var(--bos-brand-color, #1e96eb);
+		color: #1e96eb;
 	}
 
 	.bos-sidebar-header__action--primary:hover {
-		background: var(--bos-brand-color, #1e96eb);
-		color: #ffffff;
-	}
-
-	/* Dark mode */
-	:global(.dark) .bos-sidebar-header__name {
-		color: var(--bos-v2-text-primary, #e6e6e6);
-	}
-
-	:global(.dark) .bos-sidebar-header__search {
-		background-color: var(--bos-v2-layer-background-primary, #1e1e1e);
-		border-color: var(--bos-v2-layer-insideBorder-border, rgba(255, 255, 255, 0.1));
-	}
-
-	:global(.dark) .bos-sidebar-header__search kbd {
-		background-color: var(--bos-v2-layer-background-tertiary, #3a3a3a);
-		color: var(--bos-v2-text-tertiary, #545459);
-	}
-
-	:global(.dark) .bos-sidebar-header__action {
-		color: var(--bos-v2-icon-primary, #a6a6ad);
-	}
-
-	:global(.dark) .bos-sidebar-header__action:hover {
-		background: var(--bos-v2-layer-background-hoverOverlay, rgba(255, 255, 255, 0.08));
-	}
-
-	:global(.dark) .bos-sidebar-header__action--primary {
-		color: var(--bos-brand-color, #4da6f0);
-	}
-
-	:global(.dark) .bos-sidebar-header__action--primary:hover {
-		background: var(--bos-brand-color, #4da6f0);
+		background: #1e96eb;
 		color: #ffffff;
 	}
 </style>

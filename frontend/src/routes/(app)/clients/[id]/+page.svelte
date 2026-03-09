@@ -23,9 +23,11 @@
 
 	// State
 	let activeTab = $state<Tab>('overview');
-	let client = $state<ClientDetailResponse | null>(null);
-	let loading = $state(false);
-	let error = $state<string | null>(null);
+
+	// Derive from store auto-subscription
+	let client = $derived($clients.currentClient);
+	let loading = $derived($clients.loading);
+	let error = $derived($clients.error);
 
 	// Modal states
 	let showAddContactModal = $state(false);
@@ -38,24 +40,12 @@
 	let interactionForm = $state<CreateInteractionData>({ type: 'call', subject: '' });
 	let dealForm = $state<CreateDealData>({ name: '' });
 
-	$effect(() => {
-		const unsubscribe = clients.subscribe((state) => {
-			client = state.currentClient;
-			loading = state.loading;
-			error = state.error;
-		});
-		return unsubscribe;
-	});
-
-	// Load client on mount or when ID changes
-	$effect(() => {
+	// Load client on mount / when ID changes
+	onMount(() => {
 		const id = $page.params.id;
 		if (id) {
 			clients.loadClient(id);
 		}
-	});
-
-	onMount(() => {
 		return () => {
 			clients.clearCurrent();
 		};
@@ -163,15 +153,15 @@
 	}
 
 	function getTotalDealsValue(): number {
-		if (!client) return 0;
-		return client.deals.reduce((sum, d) => sum + d.value, 0);
+		if (!client?.deals) return 0;
+		return client.deals.reduce((sum, d) => sum + (d.value || 0), 0);
 	}
 
 	function getActiveDealsValue(): number {
-		if (!client) return 0;
+		if (!client?.deals) return 0;
 		return client.deals
 			.filter((d) => d.stage !== 'closed_won' && d.stage !== 'closed_lost')
-			.reduce((sum, d) => sum + d.value, 0);
+			.reduce((sum, d) => sum + (d.value || 0), 0);
 	}
 </script>
 
@@ -266,9 +256,9 @@
 			<div class="px-6 flex gap-6 border-t border-gray-100">
 				{#each [
 					{ id: 'overview', label: 'Overview' },
-					{ id: 'contacts', label: `Contacts (${client.contacts.length})` },
-					{ id: 'interactions', label: `Interactions (${client.interactions.length})` },
-					{ id: 'deals', label: `Deals (${client.deals.length})` }
+					{ id: 'contacts', label: `Contacts (${client.contacts?.length ?? 0})` },
+					{ id: 'interactions', label: `Interactions (${client.interactions?.length ?? 0})` },
+					{ id: 'deals', label: `Deals (${client.deals?.length ?? 0})` }
 				] as tab}
 					<button
 						onclick={() => (activeTab = tab.id as Tab)}
@@ -346,7 +336,7 @@
 										View all
 									</button>
 								</div>
-								{#if client.interactions.length === 0}
+								{#if !client.interactions || client.interactions.length === 0}
 									<p class="text-sm text-gray-500">No interactions yet</p>
 								{:else}
 									<div class="space-y-3">
@@ -380,11 +370,11 @@
 									</div>
 									<div class="pt-3 border-t border-gray-100 grid grid-cols-2 gap-4">
 										<div>
-											<div class="text-2xl font-semibold text-gray-900">{client.deals.length}</div>
-											<div class="text-xs text-gray-500">Total Deals</div>
-										</div>
-										<div>
-											<div class="text-2xl font-semibold text-gray-900">{client.contacts.length}</div>
+										<div class="text-2xl font-semibold text-gray-900">{client.deals?.length ?? 0}</div>
+										<div class="text-xs text-gray-500">Total Deals</div>
+									</div>
+									<div>
+										<div class="text-2xl font-semibold text-gray-900">{client.contacts?.length ?? 0}</div>
 											<div class="text-xs text-gray-500">Contacts</div>
 										</div>
 									</div>
@@ -439,7 +429,7 @@
 								Add Contact
 							</button>
 						</div>
-						{#if client.contacts.length === 0}
+						{#if !client.contacts || client.contacts.length === 0}
 							<div class="px-6 py-12 text-center text-gray-500">
 								<p>No contacts yet</p>
 							</div>
@@ -496,7 +486,7 @@
 								Log Interaction
 							</button>
 						</div>
-						{#if client.interactions.length === 0}
+						{#if !client.interactions || client.interactions.length === 0}
 							<div class="px-6 py-12 text-center text-gray-500">
 								<p>No interactions yet</p>
 							</div>
@@ -545,7 +535,7 @@
 								Add Deal
 							</button>
 						</div>
-						{#if client.deals.length === 0}
+						{#if !client.deals || client.deals.length === 0}
 							<div class="px-6 py-12 text-center text-gray-500">
 								<p>No deals yet</p>
 							</div>

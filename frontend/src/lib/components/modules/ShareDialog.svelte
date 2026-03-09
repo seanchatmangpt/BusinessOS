@@ -169,7 +169,7 @@
 				<button
 					type="button"
 					onclick={onClose}
-					class="am-share-btn am-share-btn--ghost"
+					class="btn-pill btn-pill-ghost"
 					disabled={isSharing}
 					aria-label="Cancel"
 				>
@@ -179,7 +179,7 @@
 					type="button"
 					onclick={handleShare}
 					disabled={isSharing}
-					class="am-share-btn am-share-btn--primary"
+					class="btn-pill btn-pill-primary am-glow"
 					aria-label="Share module"
 				>
 					{isSharing ? 'Sharing...' : 'Share Module'}
@@ -390,34 +390,17 @@
 		border-top: 1px solid var(--dbd2, #f0f0f0);
 		background: var(--dbg2, #f5f5f5);
 	}
-	.am-share-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 8px 18px;
-		border-radius: 999px;
-		border: none;
-		font-size: 13px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all .15s;
+	/* Foundation glow modifier for primary CTAs */
+	.am-glow {
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+			0 4px 16px 0 rgba(99, 102, 241, 0.25),
+			0 8px 32px 0 rgba(99, 102, 241, 0.15);
 	}
-	.am-share-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-	.am-share-btn--ghost {
-		background: transparent;
-		color: var(--dt2, #555);
-	}
-	.am-share-btn--ghost:hover {
-		background: var(--dbg3, #eee);
-	}
-	.am-share-btn--primary {
-		background: var(--accent-blue, #3b82f6);
-		color: #fff;
-	}
-	.am-share-btn--primary:hover {
-		filter: brightness(0.9);
+	.am-glow:hover:not(:disabled) {
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+			0 6px 24px 0 rgba(99, 102, 241, 0.35),
+			0 12px 40px 0 rgba(99, 102, 241, 0.2);
 	}
 </style>

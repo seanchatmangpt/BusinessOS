@@ -221,7 +221,7 @@
 				{#if currentStep > 1}
 					<button
 						onclick={handlePrevious}
-						class="am-icon-btn"
+						class="btn-pill btn-pill-ghost"
 						aria-label="Previous step"
 					>
 						<ArrowLeft class="w-4 h-4" />
@@ -234,7 +234,7 @@
 					<button
 						onclick={() => handleCreate(true)}
 						disabled={isCreating}
-						class="am-icon-btn"
+						class="btn-pill btn-pill-ghost"
 						aria-label="Save draft"
 					>
 						<Save class="w-4 h-4" />
@@ -243,7 +243,7 @@
 					<button
 						onclick={() => handleCreate(false)}
 						disabled={isCreating}
-						class="am-btn am-btn--install"
+						class="btn-pill btn-pill-primary am-glow"
 						aria-label="Create module"
 					>
 						<span>{isCreating ? 'Creating...' : 'Create Module'}</span>
@@ -251,7 +251,7 @@
 				{:else}
 					<button
 						onclick={handleNext}
-						class="am-btn am-btn--install"
+						class="btn-pill btn-pill-primary am-glow"
 						aria-label="Next step"
 					>
 						<span>Next</span>
@@ -479,54 +479,17 @@
 		gap: 10px;
 	}
 
-	/* Buttons (shared with detail) */
-	.am-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 8px 18px;
-		border-radius: 999px;
-		border: none;
-		font-size: 13px;
-		font-weight: 600;
-		cursor: pointer;
-		transition: all .18s;
-		white-space: nowrap;
-		gap: 6px;
+	/* Foundation glow modifier for primary CTAs */
+	.am-glow {
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+			0 4px 16px 0 rgba(99, 102, 241, 0.25),
+			0 8px 32px 0 rgba(99, 102, 241, 0.15);
 	}
-	.am-btn--install {
-		background: var(--accent-blue, #3b82f6);
-		color: #fff;
-	}
-	.am-btn--install:hover {
-		filter: brightness(0.9);
-		transform: translateY(-1px);
-	}
-	.am-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-		transform: none;
-	}
-	.am-icon-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 14px;
-		border-radius: 999px;
-		border: 1px solid var(--dbd, #e0e0e0);
-		background: transparent;
-		color: var(--dt2, #555);
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
-		transition: all .15s;
-	}
-	.am-icon-btn:hover {
-		border-color: var(--accent-blue, #3b82f6);
-		color: var(--accent-blue, #3b82f6);
-	}
-	.am-icon-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
+	.am-glow:hover:not(:disabled) {
+		box-shadow:
+			0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+			0 6px 24px 0 rgba(99, 102, 241, 0.35),
+			0 12px 40px 0 rgba(99, 102, 241, 0.2);
 	}
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ClientListResponse, ClientStatus } from '$lib/api';
-	import { statusColors, statusLabels } from '$lib/stores/clients';
+	import { statusLabels } from '$lib/stores/clients';
 
 	interface Props {
 		clients: ClientListResponse[];
@@ -10,8 +10,8 @@
 
 	let { clients, onClientClick, onStatusChange }: Props = $props();
 
-	function formatCurrency(value: number | null): string {
-		if (value === null) return '-';
+	function formatCurrency(value: number | null | undefined): string {
+		if (value === null || value === undefined || isNaN(value)) return '-';
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
 			currency: 'USD',
@@ -20,7 +20,7 @@
 		}).format(value);
 	}
 
-	function formatDate(dateStr: string | null): string {
+	function formatDate(dateStr: string | null | undefined): string {
 		if (!dateStr) return '-';
 		return new Date(dateStr).toLocaleDateString('en-US', {
 			month: 'short',
@@ -37,11 +37,24 @@
 			.toUpperCase()
 			.slice(0, 2);
 	}
+
+	function getLogoColor(type: string): string {
+		return type === 'company' ? '#6366f1' : '#8b5cf6';
+	}
 </script>
 
 <div class="cr-table-container">
 	<div class="cr-table-wrap">
-		<table class="cr-table">
+		<table class="cr-table" aria-label="Clients table">
+			<colgroup>
+				<col style="width: 22%;" />
+				<col style="width: 9%;" />
+				<col style="width: 9%;" />
+				<col style="width: 22%;" />
+				<col style="width: 13%;" />
+				<col style="width: 11%;" />
+				<col style="width: 14%;" />
+			</colgroup>
 			<thead>
 				<tr>
 					<th class="cr-table__th"><span class="cr-table__th-label">Client</span></th>
@@ -49,32 +62,42 @@
 					<th class="cr-table__th"><span class="cr-table__th-label">Status</span></th>
 					<th class="cr-table__th"><span class="cr-table__th-label">Contact</span></th>
 					<th class="cr-table__th"><span class="cr-table__th-label">Last Contact</span></th>
-					<th class="cr-table__th"><span class="cr-table__th-label">Value</span></th>
+					<th class="cr-table__th cr-table__th--right"><span class="cr-table__th-label">Value</span></th>
 					<th class="cr-table__th"><span class="cr-table__th-label">Deals</span></th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each clients as client}
+				{#each clients as client (client.id)}
+					{@const logoColor = getLogoColor(client.type)}
 					<tr
 						class="cr-table__row"
 						onclick={() => onClientClick(client.id)}
+						role="button"
+						tabindex="0"
+						onkeydown={(e) => e.key === 'Enter' && onClientClick(client.id)}
 					>
-						<td class="cr-table__td cr-table__td--name">
-							<div class="cr-logo cr-logo--sm" style="background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.15);">
-								<span class="cr-logo__initials" style="color: #6366f1">{getInitials(client.name)}</span>
-							</div>
-							<div>
-								<div class="cr-table__name">{client.name}</div>
-								{#if client.tags && client.tags.length > 0}
-									<div class="cr-table__tags">
-										{#each client.tags.slice(0, 2) as tag}
-											<span class="cr-table__tag">{tag}</span>
-										{/each}
-										{#if client.tags.length > 2}
-											<span class="cr-table__tag-more">+{client.tags.length - 2}</span>
-										{/if}
-									</div>
-								{/if}
+						<td class="cr-table__td">
+							<div class="cr-table__name-wrap">
+								<div
+									class="cr-logo cr-logo--sm"
+									style="background: {logoColor}18; border-color: {logoColor}28;"
+									aria-hidden="true"
+								>
+									<span class="cr-logo__initials" style="color: {logoColor}">{getInitials(client.name)}</span>
+								</div>
+								<div class="cr-table__name-col">
+									<div class="cr-table__name">{client.name}</div>
+									{#if client.tags && client.tags.length > 0}
+										<div class="cr-table__tags">
+											{#each client.tags.slice(0, 2) as tag}
+												<span class="cr-table__tag">{tag}</span>
+											{/each}
+											{#if client.tags.length > 2}
+												<span class="cr-table__tag-more">+{client.tags.length - 2}</span>
+											{/if}
+										</div>
+									{/if}
+								</div>
 							</div>
 						</td>
 						<td class="cr-table__td">
@@ -102,21 +125,25 @@
 						</td>
 						<td class="cr-table__td">
 							<div class="cr-table__contact">{client.email || '-'}</div>
-							<div class="cr-table__contact-sub">{client.phone || ''}</div>
+							{#if client.phone}
+								<div class="cr-table__contact-sub">{client.phone}</div>
+							{/if}
 						</td>
 						<td class="cr-table__td cr-table__td--muted">
 							{formatDate(client.last_contacted_at)}
 						</td>
-						<td class="cr-table__td">
+						<td class="cr-table__td cr-table__td--right">
 							<div class="cr-table__value">{formatCurrency(client.lifetime_value)}</div>
-							{#if client.active_deals_value > 0}
+							{#if client.active_deals_value && client.active_deals_value > 0}
 								<div class="cr-table__pipeline-value">{formatCurrency(client.active_deals_value)} in pipeline</div>
 							{/if}
 						</td>
-						<td class="cr-table__td cr-table__td--muted">
-							<span>{client.deals_count} deals</span>
-							<span class="cr-table__separator">·</span>
-							<span>{client.contacts_count} contacts</span>
+						<td class="cr-table__td cr-table__td--deals">
+							<span class="cr-table__deal-count">{client.deals_count ?? 0}</span>
+							<span class="cr-table__deal-label">deals</span>
+							<span class="cr-table__separator" aria-hidden="true">&middot;</span>
+							<span class="cr-table__deal-count">{client.contacts_count ?? 0}</span>
+							<span class="cr-table__deal-label">contacts</span>
 						</td>
 					</tr>
 				{/each}
@@ -126,7 +153,7 @@
 </div>
 
 <style>
-	/* ─── Table (Foundation CRM pattern) ───────────────────────── */
+	/* ─── Table (Foundation CRM pattern, cr- prefix) ──────────── */
 	.cr-table-container {
 		flex: 1;
 		overflow: auto;
@@ -138,6 +165,7 @@
 	.cr-table {
 		width: 100%;
 		border-collapse: collapse;
+		table-layout: fixed;
 		font-size: 13px;
 	}
 	.cr-table__th {
@@ -148,6 +176,12 @@
 		position: sticky;
 		top: 0;
 		z-index: 1;
+	}
+	.cr-table__th--right {
+		text-align: right;
+	}
+	.cr-table__th--right .cr-table__th-label {
+		text-align: right;
 	}
 	.cr-table__th-label {
 		display: block;
@@ -166,15 +200,17 @@
 		background: var(--dbg2, #f5f5f5);
 	}
 	.cr-table__row:not(:last-child) .cr-table__td {
-		border-bottom: 1px solid var(--dbd, #e0e0e0);
+		border-bottom: 1px solid var(--dbd2, #f0f0f0);
 	}
 	.cr-table__td {
 		padding: 10px 16px;
 		color: var(--dt, #111);
 		vertical-align: middle;
 		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
-	.cr-table__td--name {
+	.cr-table__name-wrap {
 		display: flex;
 		align-items: center;
 		gap: 10px;
@@ -183,10 +219,24 @@
 		color: var(--dt3, #888);
 		font-size: 12px;
 	}
+	.cr-table__td--right {
+		text-align: right;
+	}
+	.cr-table__td--deals {
+		font-size: 12px;
+		color: var(--dt3, #888);
+	}
+	.cr-table__name-col {
+		min-width: 0;
+		overflow: hidden;
+	}
 	.cr-table__name {
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--dt, #111);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.cr-table__tags {
 		display: flex;
@@ -208,6 +258,9 @@
 	.cr-table__contact {
 		font-size: 13px;
 		color: var(--dt, #111);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.cr-table__contact-sub {
 		font-size: 11px;
@@ -225,9 +278,18 @@
 		margin-top: 1px;
 	}
 	:global(.dark) .cr-table__pipeline-value { color: #4ade80; }
+
+	/* Deals column */
+	.cr-table__deal-count {
+		font-weight: 600;
+		color: var(--dt2, #555);
+	}
+	.cr-table__deal-label {
+		color: var(--dt3, #888);
+	}
 	.cr-table__separator {
 		margin: 0 4px;
-		color: var(--dbd, #e0e0e0);
+		color: var(--dt3, #888);
 	}
 
 	/* Status Select (styled native) */

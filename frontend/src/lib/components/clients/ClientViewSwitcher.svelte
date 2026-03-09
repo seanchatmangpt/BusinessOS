@@ -216,8 +216,8 @@
 		box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
 	}
 
-	/* Filter buttons */
-	.cr-toolbar__filter-btn {
+	/* Filter buttons — :global needed because bits-ui renders its own elements */
+	:global(.cr-toolbar__filter-btn) {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
@@ -232,19 +232,19 @@
 		transition: background 0.12s, border-color 0.12s;
 		white-space: nowrap;
 	}
-	.cr-toolbar__filter-btn:hover {
+	:global(.cr-toolbar__filter-btn:hover) {
 		background: var(--dbg2, #f5f5f5);
 		border-color: var(--dbd, #e0e0e0);
 	}
-	.cr-toolbar__chevron {
+	:global(.cr-toolbar__chevron) {
 		width: 14px;
 		height: 14px;
 		color: var(--dt3, #888);
 		flex-shrink: 0;
 	}
 
-	/* Dropdown (Foundation CRM pattern) */
-	.cr-dropdown {
+	/* Dropdown (Foundation CRM pattern) — :global for bits-ui portal */
+	:global(.cr-dropdown) {
 		z-index: 50;
 		min-width: 160px;
 		border-radius: 10px;
@@ -254,7 +254,7 @@
 		overflow: hidden;
 		padding: 4px;
 	}
-	.cr-dropdown__item {
+	:global(.cr-dropdown__item) {
 		display: block;
 		width: 100%;
 		padding: 7px 10px;
@@ -268,10 +268,10 @@
 		border-radius: 7px;
 		transition: background 0.1s;
 	}
-	.cr-dropdown__item:hover {
+	:global(.cr-dropdown__item:hover) {
 		background: var(--dbg2, #f5f5f5);
 	}
-	.cr-dropdown__item--active {
+	:global(.cr-dropdown__item--active) {
 		background: var(--dbg2, #f5f5f5);
 		font-weight: 600;
 	}
