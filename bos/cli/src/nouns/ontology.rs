@@ -35,6 +35,18 @@ pub struct OntologyExecuted {
     pub tables: Vec<TableExecutionResult>,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub struct OntologyInferred {
+    pub tables_inferred: usize,
+    pub properties_inferred: usize,
+    pub relationships_inferred: usize,
+    pub high_confidence: usize,
+    pub medium_confidence: usize,
+    pub low_confidence: usize,
+    pub output_path: String,
+}
+
 fn execute_single_table(
     config: bos_core::ontology::mapping::MappingConfig,
     database: String,
@@ -49,6 +61,57 @@ fn execute_single_table(
         triples_generated: result.triples_generated,
         construct_triples: result.construct_triples,
     })
+}
+
+fn infer_config_from_level(level: Option<&str>) -> bos_core::InferConfig {
+    match level {
+        Some("high") => bos_core::InferConfig::high_confidence(),
+        Some("medium") => bos_core::InferConfig {
+            confidence_threshold: 0.5,
+            ..Default::default()
+        },
+        _ => bos_core::InferConfig::default(),
+    }
+}
+
+fn parse_conventions_file(
+    conv_path: &str,
+    config: &mut bos_core::InferConfig,
+) -> Result<()> {
+    let content = std::fs::read_to_string(conv_path)
+        .map_err(|e| clap_noun_verb::NounVerbError::execution_error(
+            format!("Failed to read conventions file: {e}")
+        ))?;
+    let overrides: serde_json::Value = serde_json::from_str(&content)
+        .map_err(|e| clap_noun_verb::NounVerbError::execution_error(
+            format!("Failed to parse conventions JSON: {e}")
+        ))?;
+
+    if let Some(tables) = overrides.get("tables").and_then(|v| v.as_object()) {
+        for (key, val) in tables {
+            if let Some(arr) = val.as_array() {
+                if arr.len() == 2 {
+                    let ns = arr[0].as_str()
+                        .ok_or_else(|| clap_noun_verb::NounVerbError::execution_error(
+                            format!("Invalid table override for '{}': first element must be a string", key)
+                        ))?;
+                    let cls = arr[1].as_str()
+                        .ok_or_else(|| clap_noun_verb::NounVerbError::execution_error(
+                            format!("Invalid table override for '{}': second element must be a string", key)
+                        ))?;
+                    config.table_overrides.insert(key.clone(), (ns.to_string(), cls.to_string()));
+                }
+            }
+        }
+    }
+    if let Some(columns) = overrides.get("columns").and_then(|v| v.as_object()) {
+        for (key, val) in columns {
+            if let Some(s) = val.as_str() {
+                config.column_overrides.insert(key.clone(), s.to_string());
+            }
+        }
+    }
+    Ok(())
 }
 
 fn execute_all_tables(
@@ -201,5 +264,52 @@ fn execute(
             total_construct_triples: total_construct,
             tables,
         })
+    })
+}
+
+/// Infer ontology mappings from workspace schema
+///
+/// # Arguments
+/// * `workspace` - Workspace directory containing model.json [default: .]
+/// * `output` - Output mapping file path
+/// * `confidence` - Minimum confidence threshold (high, medium, low) [default: low]
+/// * `conventions` - Custom conventions override file [hide]
+/// * `dry_run` - Print mappings without writing file
+#[verb("infer")]
+fn infer(
+    workspace: Option<String>,
+    output: String,
+    confidence: Option<String>,
+    conventions: Option<String>,
+    dry_run: bool,
+) -> Result<OntologyInferred> {
+    let ws = workspace.unwrap_or_else(|| ".".to_string());
+    let mut config = infer_config_from_level(confidence.as_deref());
+    if let Some(conv_path) = conventions {
+        parse_conventions_file(&conv_path, &mut config)?;
+    }
+
+    let result = bos_core::OntologyInferrer::infer_from_workspace(
+        std::path::Path::new(&ws), config,
+    ).map_err(|e| clap_noun_verb::NounVerbError::execution_error(e.to_string()))?;
+
+    let json = serde_json::to_string_pretty(&result.config)
+        .map_err(|e| clap_noun_verb::NounVerbError::execution_error(format!("Serialization failed: {e}")))?;
+
+    if !dry_run {
+        std::fs::write(&output, &json)
+            .map_err(|e| clap_noun_verb::NounVerbError::execution_error(format!("Write failed: {e}")))?;
+    } else {
+        eprintln!("{}", json);
+    }
+
+    Ok(OntologyInferred {
+        tables_inferred: result.tables_inferred,
+        properties_inferred: result.properties_inferred,
+        relationships_inferred: result.relationships_inferred,
+        high_confidence: result.high_confidence,
+        medium_confidence: result.medium_confidence,
+        low_confidence: result.low_confidence,
+        output_path: output,
     })
 }
