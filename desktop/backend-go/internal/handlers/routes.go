@@ -36,6 +36,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerPlatformRoutes(api, auth)
 	h.registerOSARoutes(api, auth)
 	h.registerOntologyRoutes(api, auth)
+	h.registerComplianceRoutes(api, auth)
 }
 
 // registerOntologyRoutes wires /api/ontology routes via bos CLI bridge.

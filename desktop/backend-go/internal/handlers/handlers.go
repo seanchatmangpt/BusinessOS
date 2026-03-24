@@ -87,6 +87,8 @@ type Handlers struct {
 	subconsciousObserver *subconscious.Observer      // Subconscious observer for async pattern detection
 	// Ontology / RDF bridge
 	bosOntologyService *services.BosOntologyService // bos CLI bridge for RDF operations
+	// Zero-Touch Compliance (Innovation 3)
+	complianceService *services.ComplianceService // Compliance status, audit trail, gap analysis
 }
 
 // NewHandlers creates a new Handlers instance
