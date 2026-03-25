@@ -4446,3 +4446,148 @@ func TestIter21LLMToolOrchestrationStrategy(t *testing.T) {
 func TestIter21LLMToolOrchestrationSuccessRateKey(t *testing.T) {
 	assert.Equal(t, "llm.tool.orchestration.success_rate", string(LLMToolOrchestrationSuccessRateKey))
 }
+
+// Iter22: Signal batch aggregation tests
+func TestSignalBatchSizeAttrName(t *testing.T) {
+	if SignalBatchSize != "signal.batch.size" {
+		t.Errorf("expected signal.batch.size, got %s", SignalBatchSize)
+	}
+}
+
+func TestSignalBatchWindowMsAttrName(t *testing.T) {
+	if SignalBatchWindowMs != "signal.batch.window_ms" {
+		t.Errorf("expected signal.batch.window_ms, got %s", SignalBatchWindowMs)
+	}
+}
+
+func TestSignalBatchDropCountAttrName(t *testing.T) {
+	if SignalBatchDropCount != "signal.batch.drop_count" {
+		t.Errorf("expected signal.batch.drop_count, got %s", SignalBatchDropCount)
+	}
+}
+
+// Iter22: Workspace memory compaction tests
+func TestWorkspaceMemoryCompactionRatioAttrName(t *testing.T) {
+	if WorkspaceMemoryCompactionRatio != "workspace.memory.compaction_ratio" {
+		t.Errorf("expected workspace.memory.compaction_ratio, got %s", WorkspaceMemoryCompactionRatio)
+	}
+}
+
+func TestWorkspaceMemoryCompactionMsAttrName(t *testing.T) {
+	if WorkspaceMemoryCompactionMs != "workspace.memory.compaction_ms" {
+		t.Errorf("expected workspace.memory.compaction_ms, got %s", WorkspaceMemoryCompactionMs)
+	}
+}
+
+func TestWorkspaceMemoryItemsBeforeAttrName(t *testing.T) {
+	if WorkspaceMemoryItemsBefore != "workspace.memory.items_before" {
+		t.Errorf("expected workspace.memory.items_before, got %s", WorkspaceMemoryItemsBefore)
+	}
+}
+
+func TestWorkspaceMemoryItemsAfterAttrName(t *testing.T) {
+	if WorkspaceMemoryItemsAfter != "workspace.memory.items_after" {
+		t.Errorf("expected workspace.memory.items_after, got %s", WorkspaceMemoryItemsAfter)
+	}
+}
+
+// Iter22: A2A bid evaluation tests
+func TestA2ABidStrategyAttrName(t *testing.T) {
+	if A2ABidStrategy != "a2a.bid.strategy" {
+		t.Errorf("expected a2a.bid.strategy, got %s", A2ABidStrategy)
+	}
+}
+
+func TestA2ABidScoreAttrName(t *testing.T) {
+	if A2ABidScore != "a2a.bid.score" {
+		t.Errorf("expected a2a.bid.score, got %s", A2ABidScore)
+	}
+}
+
+func TestA2ABidWinnerIdAttrName(t *testing.T) {
+	if A2ABidWinnerId != "a2a.bid.winner_id" {
+		t.Errorf("expected a2a.bid.winner_id, got %s", A2ABidWinnerId)
+	}
+}
+
+// Iter22: PM alignment analysis tests
+func TestProcessMiningAlignmentOptimalPathLengthAttrName(t *testing.T) {
+	if ProcessMiningAlignmentOptimalPathLength != "process.mining.alignment.optimal_path_length" {
+		t.Errorf("expected process.mining.alignment.optimal_path_length, got %s", ProcessMiningAlignmentOptimalPathLength)
+	}
+}
+
+func TestProcessMiningAlignmentMoveCountAttrName(t *testing.T) {
+	if ProcessMiningAlignmentMoveCount != "process.mining.alignment.move_count" {
+		t.Errorf("expected process.mining.alignment.move_count, got %s", ProcessMiningAlignmentMoveCount)
+	}
+}
+
+func TestProcessMiningAlignmentFitnessDeltaAttrName(t *testing.T) {
+	if ProcessMiningAlignmentFitnessDelta != "process.mining.alignment.fitness_delta" {
+		t.Errorf("expected process.mining.alignment.fitness_delta, got %s", ProcessMiningAlignmentFitnessDelta)
+	}
+}
+
+// Iter22: Consensus partition recovery tests
+func TestConsensusPartitionDetectedAttrName(t *testing.T) {
+	if ConsensusPartitionDetected != "consensus.partition.detected" {
+		t.Errorf("expected consensus.partition.detected, got %s", ConsensusPartitionDetected)
+	}
+}
+
+func TestConsensusPartitionSizeAttrName(t *testing.T) {
+	if ConsensusPartitionSize != "consensus.partition.size" {
+		t.Errorf("expected consensus.partition.size, got %s", ConsensusPartitionSize)
+	}
+}
+
+func TestConsensusPartitionRecoveryMsAttrName(t *testing.T) {
+	if ConsensusPartitionRecoveryMs != "consensus.partition.recovery_ms" {
+		t.Errorf("expected consensus.partition.recovery_ms, got %s", ConsensusPartitionRecoveryMs)
+	}
+}
+
+func TestConsensusPartitionStrategyAttrName(t *testing.T) {
+	if ConsensusPartitionStrategy != "consensus.partition.strategy" {
+		t.Errorf("expected consensus.partition.strategy, got %s", ConsensusPartitionStrategy)
+	}
+}
+
+// Iter22: Healing rollback tests
+func TestHealingRollbackStrategyAttrName(t *testing.T) {
+	if HealingRollbackStrategy != "healing.rollback.strategy" {
+		t.Errorf("expected healing.rollback.strategy, got %s", HealingRollbackStrategy)
+	}
+}
+
+func TestHealingRollbackCheckpointIdAttrName(t *testing.T) {
+	if HealingRollbackCheckpointId != "healing.rollback.checkpoint_id" {
+		t.Errorf("expected healing.rollback.checkpoint_id, got %s", HealingRollbackCheckpointId)
+	}
+}
+
+func TestHealingRollbackRecoveryMsAttrName(t *testing.T) {
+	if HealingRollbackRecoveryMs != "healing.rollback.recovery_ms" {
+		t.Errorf("expected healing.rollback.recovery_ms, got %s", HealingRollbackRecoveryMs)
+	}
+}
+
+func TestHealingRollbackSuccessAttrName(t *testing.T) {
+	if HealingRollbackSuccess != "healing.rollback.success" {
+		t.Errorf("expected healing.rollback.success, got %s", HealingRollbackSuccess)
+	}
+}
+
+// Iter22: LLM structured output tests
+func TestLLMStructuredOutputSchemaIdAttrName(t *testing.T) {
+	if LLMStructuredOutputSchemaId != "llm.structured_output.schema_id" {
+		t.Errorf("expected llm.structured_output.schema_id, got %s", LLMStructuredOutputSchemaId)
+	}
+}
+
+func TestLLMStructuredOutputValidationMsAttrName(t *testing.T) {
+	if LLMStructuredOutputValidationMs != "llm.structured_output.validation_ms" {
+		t.Errorf("expected llm.structured_output.validation_ms, got %s", LLMStructuredOutputValidationMs)
+	}
+}
