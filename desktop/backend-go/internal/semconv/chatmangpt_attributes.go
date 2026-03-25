@@ -16,9 +16,30 @@ const (
 	// ChatmangptBudgetTimeMsKey is the OTel attribute key for chatmangpt.budget.time_ms.
 	// Time budget allocated for the operation in milliseconds.
 	ChatmangptBudgetTimeMsKey = attribute.Key("chatmangpt.budget.time_ms")
+	// ChatmangptDeploymentKey is the OTel attribute key for chatmangpt.deployment.
+	// Deployment environment for this ChatmanGPT instance.
+	ChatmangptDeploymentKey = attribute.Key("chatmangpt.deployment")
 	// ChatmangptServiceTierKey is the OTel attribute key for chatmangpt.service.tier.
 	// Priority tier of the operation, used for budget enforcement.
 	ChatmangptServiceTierKey = attribute.Key("chatmangpt.service.tier")
+	// ChatmangptSessionIdKey is the OTel attribute key for chatmangpt.session.id.
+	// Unique identifier for the ChatmanGPT session.
+	ChatmangptSessionIdKey = attribute.Key("chatmangpt.session.id")
+	// ChatmangptSessionModelSwitchesKey is the OTel attribute key for chatmangpt.session.model_switches.
+	// Number of times the model was switched during the session.
+	ChatmangptSessionModelSwitchesKey = attribute.Key("chatmangpt.session.model_switches")
+	// ChatmangptSessionTokenCountKey is the OTel attribute key for chatmangpt.session.token_count.
+	// Total tokens consumed in the session so far.
+	ChatmangptSessionTokenCountKey = attribute.Key("chatmangpt.session.token_count")
+	// ChatmangptSessionTurnCountKey is the OTel attribute key for chatmangpt.session.turn_count.
+	// Number of conversation turns in the session.
+	ChatmangptSessionTurnCountKey = attribute.Key("chatmangpt.session.turn_count")
+	// ChatmangptVersionKey is the OTel attribute key for chatmangpt.version.
+	// Version of the ChatmanGPT system emitting this telemetry.
+	ChatmangptVersionKey = attribute.Key("chatmangpt.version")
+	// ChatmangptWaveKey is the OTel attribute key for chatmangpt.wave.
+	// Wave number of the ChatmanGPT development phase that produced this span.
+	ChatmangptWaveKey = attribute.Key("chatmangpt.wave")
 )
 
 // ChatmangptAgentId returns an attribute KeyValue for chatmangpt.agent.id.
@@ -34,6 +55,22 @@ func ChatmangptBudgetExceeded(val bool) attribute.KeyValue {
 // ChatmangptBudgetTimeMs returns an attribute KeyValue for chatmangpt.budget.time_ms.
 func ChatmangptBudgetTimeMs(val int64) attribute.KeyValue {
 	return ChatmangptBudgetTimeMsKey.Int64(val)
+}
+
+// ChatmangptDeployment returns an attribute KeyValue for chatmangpt.deployment.
+func ChatmangptDeployment(val string) attribute.KeyValue {
+	return ChatmangptDeploymentKey.String(val)
+}
+
+// ChatmangptDeploymentValues contains the known enum values for chatmangpt.deployment.
+var ChatmangptDeploymentValues = struct {
+	Development string
+	Staging string
+	Production string
+}{
+	Development: "development",
+	Staging: "staging",
+	Production: "production",
 }
 
 // ChatmangptServiceTier returns an attribute KeyValue for chatmangpt.service.tier.
@@ -52,5 +89,35 @@ var ChatmangptServiceTierValues = struct {
 	High: "high",
 	Normal: "normal",
 	Low: "low",
+}
+
+// ChatmangptSessionId returns an attribute KeyValue for chatmangpt.session.id.
+func ChatmangptSessionId(val string) attribute.KeyValue {
+	return ChatmangptSessionIdKey.String(val)
+}
+
+// ChatmangptSessionModelSwitches returns an attribute KeyValue for chatmangpt.session.model_switches.
+func ChatmangptSessionModelSwitches(val int64) attribute.KeyValue {
+	return ChatmangptSessionModelSwitchesKey.Int64(val)
+}
+
+// ChatmangptSessionTokenCount returns an attribute KeyValue for chatmangpt.session.token_count.
+func ChatmangptSessionTokenCount(val int64) attribute.KeyValue {
+	return ChatmangptSessionTokenCountKey.Int64(val)
+}
+
+// ChatmangptSessionTurnCount returns an attribute KeyValue for chatmangpt.session.turn_count.
+func ChatmangptSessionTurnCount(val int64) attribute.KeyValue {
+	return ChatmangptSessionTurnCountKey.Int64(val)
+}
+
+// ChatmangptVersion returns an attribute KeyValue for chatmangpt.version.
+func ChatmangptVersion(val string) attribute.KeyValue {
+	return ChatmangptVersionKey.String(val)
+}
+
+// ChatmangptWave returns an attribute KeyValue for chatmangpt.wave.
+func ChatmangptWave(val int64) attribute.KeyValue {
+	return ChatmangptWaveKey.Int64(val)
 }
 

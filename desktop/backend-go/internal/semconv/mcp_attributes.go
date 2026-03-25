@@ -7,19 +7,207 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Mcp Attributes
 const (
+	// McpConnectionIdKey is the OTel attribute key for mcp.connection.id.
+	// Unique identifier for this MCP client-server connection.
+	McpConnectionIdKey = attribute.Key("mcp.connection.id")
+	// McpConnectionPoolActiveCountKey is the OTel attribute key for mcp.connection.pool.active_count.
+	// Number of currently active connections in the pool.
+	McpConnectionPoolActiveCountKey = attribute.Key("mcp.connection.pool.active_count")
+	// McpConnectionPoolIdleCountKey is the OTel attribute key for mcp.connection.pool.idle_count.
+	// Number of idle connections available in the pool.
+	McpConnectionPoolIdleCountKey = attribute.Key("mcp.connection.pool.idle_count")
+	// McpConnectionPoolSizeKey is the OTel attribute key for mcp.connection.pool.size.
+	// Total size (max connections) of the MCP connection pool.
+	McpConnectionPoolSizeKey = attribute.Key("mcp.connection.pool.size")
+	// McpConnectionPoolWaitMsKey is the OTel attribute key for mcp.connection.pool.wait_ms.
+	// Time in milliseconds the request waited to acquire a connection.
+	McpConnectionPoolWaitMsKey = attribute.Key("mcp.connection.pool.wait_ms")
+	// McpConnectionTransportKey is the OTel attribute key for mcp.connection.transport.
+	// Transport protocol used for this MCP connection.
+	McpConnectionTransportKey = attribute.Key("mcp.connection.transport")
 	// McpProtocolKey is the OTel attribute key for mcp.protocol.
 	// Transport protocol used for MCP communication.
 	McpProtocolKey = attribute.Key("mcp.protocol")
+	// McpProtocolVersionKey is the OTel attribute key for mcp.protocol.version.
+	// MCP protocol version negotiated for this connection.
+	McpProtocolVersionKey = attribute.Key("mcp.protocol.version")
+	// McpRegistryServerCountKey is the OTel attribute key for mcp.registry.server_count.
+	// Number of active MCP servers in the registry.
+	McpRegistryServerCountKey = attribute.Key("mcp.registry.server_count")
+	// McpRegistryToolCountKey is the OTel attribute key for mcp.registry.tool_count.
+	// Number of tools registered with this MCP server.
+	McpRegistryToolCountKey = attribute.Key("mcp.registry.tool_count")
+	// McpResourceMimeTypeKey is the OTel attribute key for mcp.resource.mime_type.
+	// MIME type of the MCP resource content.
+	McpResourceMimeTypeKey = attribute.Key("mcp.resource.mime_type")
+	// McpResourceSizeBytesKey is the OTel attribute key for mcp.resource.size_bytes.
+	// Size of the MCP resource content in bytes.
+	McpResourceSizeBytesKey = attribute.Key("mcp.resource.size_bytes")
+	// McpResourceUriKey is the OTel attribute key for mcp.resource.uri.
+	// URI identifying the MCP resource being accessed.
+	McpResourceUriKey = attribute.Key("mcp.resource.uri")
+	// McpServerHealthCheckDurationMsKey is the OTel attribute key for mcp.server.health.check_duration_ms.
+	// Duration of the health check in milliseconds.
+	McpServerHealthCheckDurationMsKey = attribute.Key("mcp.server.health.check_duration_ms")
+	// McpServerHealthStatusKey is the OTel attribute key for mcp.server.health.status.
+	// Health status of the MCP server.
+	McpServerHealthStatusKey = attribute.Key("mcp.server.health.status")
+	// McpServerHealthToolCountKey is the OTel attribute key for mcp.server.health.tool_count.
+	// Number of tools registered on the MCP server.
+	McpServerHealthToolCountKey = attribute.Key("mcp.server.health.tool_count")
+	// McpServerHealthUptimeMsKey is the OTel attribute key for mcp.server.health.uptime_ms.
+	// Uptime of the MCP server in milliseconds.
+	McpServerHealthUptimeMsKey = attribute.Key("mcp.server.health.uptime_ms")
+	// McpServerMetricsErrorRateKey is the OTel attribute key for mcp.server.metrics.error_rate.
+	// Error rate of the MCP server as a fraction [0.0, 1.0].
+	McpServerMetricsErrorRateKey = attribute.Key("mcp.server.metrics.error_rate")
+	// McpServerMetricsP99LatencyMsKey is the OTel attribute key for mcp.server.metrics.p99_latency_ms.
+	// 99th percentile latency in milliseconds for MCP server request handling.
+	McpServerMetricsP99LatencyMsKey = attribute.Key("mcp.server.metrics.p99_latency_ms")
+	// McpServerMetricsRequestCountKey is the OTel attribute key for mcp.server.metrics.request_count.
+	// Total number of requests received by the MCP server.
+	McpServerMetricsRequestCountKey = attribute.Key("mcp.server.metrics.request_count")
 	// McpServerNameKey is the OTel attribute key for mcp.server.name.
 	// Name of the MCP server hosting the tool.
 	McpServerNameKey = attribute.Key("mcp.server.name")
+	// McpSessionIdKey is the OTel attribute key for mcp.session.id.
+	// Session identifier for the MCP client-server connection.
+	McpSessionIdKey = attribute.Key("mcp.session.id")
+	// McpToolAnalyticsAvgLatencyMsKey is the OTel attribute key for mcp.tool.analytics.avg_latency_ms.
+	// Average latency (ms) for MCP tool invocations in the reporting window.
+	McpToolAnalyticsAvgLatencyMsKey = attribute.Key("mcp.tool.analytics.avg_latency_ms")
+	// McpToolAnalyticsCallCountKey is the OTel attribute key for mcp.tool.analytics.call_count.
+	// Total number of calls made to this MCP tool in the current reporting window.
+	McpToolAnalyticsCallCountKey = attribute.Key("mcp.tool.analytics.call_count")
+	// McpToolAnalyticsErrorRateKey is the OTel attribute key for mcp.tool.analytics.error_rate.
+	// Error rate for MCP tool invocations in the reporting window, range [0.0, 1.0].
+	McpToolAnalyticsErrorRateKey = attribute.Key("mcp.tool.analytics.error_rate")
+	// McpToolCacheHitKey is the OTel attribute key for mcp.tool.cache.hit.
+	// Whether the tool response was served from cache.
+	McpToolCacheHitKey = attribute.Key("mcp.tool.cache.hit")
+	// McpToolCacheKeyKey is the OTel attribute key for mcp.tool.cache.key.
+	// Cache key used for tool response lookup.
+	McpToolCacheKeyKey = attribute.Key("mcp.tool.cache.key")
+	// McpToolCacheTtlMsKey is the OTel attribute key for mcp.tool.cache.ttl_ms.
+	// Cache time-to-live in milliseconds.
+	McpToolCacheTtlMsKey = attribute.Key("mcp.tool.cache.ttl_ms")
+	// McpToolCompositionCompletedStepsKey is the OTel attribute key for mcp.tool.composition.completed_steps.
+	// Number of steps completed successfully in the composition chain.
+	McpToolCompositionCompletedStepsKey = attribute.Key("mcp.tool.composition.completed_steps")
+	// McpToolCompositionStepCountKey is the OTel attribute key for mcp.tool.composition.step_count.
+	// Number of tool steps in the composition chain.
+	McpToolCompositionStepCountKey = attribute.Key("mcp.tool.composition.step_count")
+	// McpToolCompositionStrategyKey is the OTel attribute key for mcp.tool.composition.strategy.
+	// The composition strategy for chaining multiple MCP tools together.
+	McpToolCompositionStrategyKey = attribute.Key("mcp.tool.composition.strategy")
+	// McpToolCompositionTimeoutMsKey is the OTel attribute key for mcp.tool.composition.timeout_ms.
+	// Total timeout for the entire composition chain in milliseconds.
+	McpToolCompositionTimeoutMsKey = attribute.Key("mcp.tool.composition.timeout_ms")
+	// McpToolCompositionIdKey is the OTel attribute key for mcp.tool.composition_id.
+	// Unique identifier for a composed tool pipeline.
+	McpToolCompositionIdKey = attribute.Key("mcp.tool.composition_id")
+	// McpToolCompositionLatencyMsKey is the OTel attribute key for mcp.tool.composition_latency_ms.
+	// Total latency in milliseconds for the composed tool pipeline execution.
+	McpToolCompositionLatencyMsKey = attribute.Key("mcp.tool.composition_latency_ms")
+	// McpToolCompositionStepCountKey is the OTel attribute key for mcp.tool.composition_step_count.
+	// Number of steps in the tool composition pipeline.
+	McpToolCompositionStepCountKey = attribute.Key("mcp.tool.composition_step_count")
+	// McpToolCompositionStrategyKey is the OTel attribute key for mcp.tool.composition_strategy.
+	// Strategy used to compose multiple tools into a pipeline.
+	McpToolCompositionStrategyKey = attribute.Key("mcp.tool.composition_strategy")
+	// McpToolDeprecatedKey is the OTel attribute key for mcp.tool.deprecated.
+	// Whether the MCP tool is deprecated.
+	McpToolDeprecatedKey = attribute.Key("mcp.tool.deprecated")
+	// McpToolDeprecationPolicyKey is the OTel attribute key for mcp.tool.deprecation.policy.
+	// The deprecation policy applied to the tool.
+	McpToolDeprecationPolicyKey = attribute.Key("mcp.tool.deprecation.policy")
+	// McpToolDeprecationReasonKey is the OTel attribute key for mcp.tool.deprecation.reason.
+	// Reason the tool was deprecated (if applicable).
+	McpToolDeprecationReasonKey = attribute.Key("mcp.tool.deprecation.reason")
+	// McpToolDeprecationReplacementToolKey is the OTel attribute key for mcp.tool.deprecation.replacement_tool.
+	// The name of the replacement tool that supersedes the deprecated tool.
+	McpToolDeprecationReplacementToolKey = attribute.Key("mcp.tool.deprecation.replacement_tool")
+	// McpToolDeprecationSunsetDateMsKey is the OTel attribute key for mcp.tool.deprecation.sunset_date_ms.
+	// Unix timestamp (ms) when the deprecated tool will be removed.
+	McpToolDeprecationSunsetDateMsKey = attribute.Key("mcp.tool.deprecation.sunset_date_ms")
+	// McpToolInputSizeKey is the OTel attribute key for mcp.tool.input_size.
+	// Size in bytes of the tool input payload.
+	McpToolInputSizeKey = attribute.Key("mcp.tool.input_size")
 	// McpToolNameKey is the OTel attribute key for mcp.tool.name.
 	// Name of the MCP tool being invoked.
 	McpToolNameKey = attribute.Key("mcp.tool.name")
+	// McpToolOutputSizeKey is the OTel attribute key for mcp.tool.output_size.
+	// Size in bytes of the tool output payload.
+	McpToolOutputSizeKey = attribute.Key("mcp.tool.output_size")
 	// McpToolResultCountKey is the OTel attribute key for mcp.tool.result_count.
 	// Number of results returned by the MCP tool.
 	McpToolResultCountKey = attribute.Key("mcp.tool.result_count")
+	// McpToolRetryCountKey is the OTel attribute key for mcp.tool.retry_count.
+	// Number of retry attempts for a tool execution (0 = first attempt succeeded).
+	McpToolRetryCountKey = attribute.Key("mcp.tool.retry_count")
+	// McpToolSchemaHashKey is the OTel attribute key for mcp.tool.schema_hash.
+	// Hash of the tool's input/output JSON schema (for schema drift detection).
+	McpToolSchemaHashKey = attribute.Key("mcp.tool.schema_hash")
+	// McpToolTimeoutMsKey is the OTel attribute key for mcp.tool.timeout_ms.
+	// Configured timeout in milliseconds for tool execution (Armstrong budget constraint).
+	McpToolTimeoutMsKey = attribute.Key("mcp.tool.timeout_ms")
+	// McpToolVersionKey is the OTel attribute key for mcp.tool.version.
+	// Version of the MCP tool being invoked.
+	McpToolVersionKey = attribute.Key("mcp.tool.version")
+	// McpTransportErrorCountKey is the OTel attribute key for mcp.transport.error_count.
+	// Number of transport-level errors since last reset.
+	McpTransportErrorCountKey = attribute.Key("mcp.transport.error_count")
+	// McpTransportLatencyMsKey is the OTel attribute key for mcp.transport.latency_ms.
+	// Latency of the MCP transport connection in milliseconds.
+	McpTransportLatencyMsKey = attribute.Key("mcp.transport.latency_ms")
+	// McpTransportReconnectCountKey is the OTel attribute key for mcp.transport.reconnect_count.
+	// Number of reconnection attempts for the MCP transport.
+	McpTransportReconnectCountKey = attribute.Key("mcp.transport.reconnect_count")
+	// McpTransportTypeKey is the OTel attribute key for mcp.transport.type.
+	// Transport protocol used by the MCP connection.
+	McpTransportTypeKey = attribute.Key("mcp.transport.type")
 )
+
+// McpConnectionId returns an attribute KeyValue for mcp.connection.id.
+func McpConnectionId(val string) attribute.KeyValue {
+	return McpConnectionIdKey.String(val)
+}
+
+// McpConnectionPoolActiveCount returns an attribute KeyValue for mcp.connection.pool.active_count.
+func McpConnectionPoolActiveCount(val int64) attribute.KeyValue {
+	return McpConnectionPoolActiveCountKey.Int64(val)
+}
+
+// McpConnectionPoolIdleCount returns an attribute KeyValue for mcp.connection.pool.idle_count.
+func McpConnectionPoolIdleCount(val int64) attribute.KeyValue {
+	return McpConnectionPoolIdleCountKey.Int64(val)
+}
+
+// McpConnectionPoolSize returns an attribute KeyValue for mcp.connection.pool.size.
+func McpConnectionPoolSize(val int64) attribute.KeyValue {
+	return McpConnectionPoolSizeKey.Int64(val)
+}
+
+// McpConnectionPoolWaitMs returns an attribute KeyValue for mcp.connection.pool.wait_ms.
+func McpConnectionPoolWaitMs(val int64) attribute.KeyValue {
+	return McpConnectionPoolWaitMsKey.Int64(val)
+}
+
+// McpConnectionTransport returns an attribute KeyValue for mcp.connection.transport.
+func McpConnectionTransport(val string) attribute.KeyValue {
+	return McpConnectionTransportKey.String(val)
+}
+
+// McpConnectionTransportValues contains the known enum values for mcp.connection.transport.
+var McpConnectionTransportValues = struct {
+	Stdio string
+	Http string
+	Sse string
+}{
+	Stdio: "stdio",
+	Http: "http",
+	Sse: "sse",
+}
 
 // McpProtocol returns an attribute KeyValue for mcp.protocol.
 func McpProtocol(val string) attribute.KeyValue {
@@ -37,9 +225,229 @@ var McpProtocolValues = struct {
 	Sse: "sse",
 }
 
+// McpProtocolVersion returns an attribute KeyValue for mcp.protocol.version.
+func McpProtocolVersion(val string) attribute.KeyValue {
+	return McpProtocolVersionKey.String(val)
+}
+
+// McpRegistryServerCount returns an attribute KeyValue for mcp.registry.server_count.
+func McpRegistryServerCount(val int64) attribute.KeyValue {
+	return McpRegistryServerCountKey.Int64(val)
+}
+
+// McpRegistryToolCount returns an attribute KeyValue for mcp.registry.tool_count.
+func McpRegistryToolCount(val int64) attribute.KeyValue {
+	return McpRegistryToolCountKey.Int64(val)
+}
+
+// McpResourceMimeType returns an attribute KeyValue for mcp.resource.mime_type.
+func McpResourceMimeType(val string) attribute.KeyValue {
+	return McpResourceMimeTypeKey.String(val)
+}
+
+// McpResourceSizeBytes returns an attribute KeyValue for mcp.resource.size_bytes.
+func McpResourceSizeBytes(val int64) attribute.KeyValue {
+	return McpResourceSizeBytesKey.Int64(val)
+}
+
+// McpResourceUri returns an attribute KeyValue for mcp.resource.uri.
+func McpResourceUri(val string) attribute.KeyValue {
+	return McpResourceUriKey.String(val)
+}
+
+// McpServerHealthCheckDurationMs returns an attribute KeyValue for mcp.server.health.check_duration_ms.
+func McpServerHealthCheckDurationMs(val int64) attribute.KeyValue {
+	return McpServerHealthCheckDurationMsKey.Int64(val)
+}
+
+// McpServerHealthStatus returns an attribute KeyValue for mcp.server.health.status.
+func McpServerHealthStatus(val string) attribute.KeyValue {
+	return McpServerHealthStatusKey.String(val)
+}
+
+// McpServerHealthStatusValues contains the known enum values for mcp.server.health.status.
+var McpServerHealthStatusValues = struct {
+	Healthy string
+	Degraded string
+	Unhealthy string
+	Unknown string
+}{
+	Healthy: "healthy",
+	Degraded: "degraded",
+	Unhealthy: "unhealthy",
+	Unknown: "unknown",
+}
+
+// McpServerHealthToolCount returns an attribute KeyValue for mcp.server.health.tool_count.
+func McpServerHealthToolCount(val int64) attribute.KeyValue {
+	return McpServerHealthToolCountKey.Int64(val)
+}
+
+// McpServerHealthUptimeMs returns an attribute KeyValue for mcp.server.health.uptime_ms.
+func McpServerHealthUptimeMs(val int64) attribute.KeyValue {
+	return McpServerHealthUptimeMsKey.Int64(val)
+}
+
+// McpServerMetricsErrorRate returns an attribute KeyValue for mcp.server.metrics.error_rate.
+func McpServerMetricsErrorRate(val float64) attribute.KeyValue {
+	return McpServerMetricsErrorRateKey.Float64(val)
+}
+
+// McpServerMetricsP99LatencyMs returns an attribute KeyValue for mcp.server.metrics.p99_latency_ms.
+func McpServerMetricsP99LatencyMs(val float64) attribute.KeyValue {
+	return McpServerMetricsP99LatencyMsKey.Float64(val)
+}
+
+// McpServerMetricsRequestCount returns an attribute KeyValue for mcp.server.metrics.request_count.
+func McpServerMetricsRequestCount(val int64) attribute.KeyValue {
+	return McpServerMetricsRequestCountKey.Int64(val)
+}
+
 // McpServerName returns an attribute KeyValue for mcp.server.name.
 func McpServerName(val string) attribute.KeyValue {
 	return McpServerNameKey.String(val)
+}
+
+// McpSessionId returns an attribute KeyValue for mcp.session.id.
+func McpSessionId(val string) attribute.KeyValue {
+	return McpSessionIdKey.String(val)
+}
+
+// McpToolAnalyticsAvgLatencyMs returns an attribute KeyValue for mcp.tool.analytics.avg_latency_ms.
+func McpToolAnalyticsAvgLatencyMs(val float64) attribute.KeyValue {
+	return McpToolAnalyticsAvgLatencyMsKey.Float64(val)
+}
+
+// McpToolAnalyticsCallCount returns an attribute KeyValue for mcp.tool.analytics.call_count.
+func McpToolAnalyticsCallCount(val int64) attribute.KeyValue {
+	return McpToolAnalyticsCallCountKey.Int64(val)
+}
+
+// McpToolAnalyticsErrorRate returns an attribute KeyValue for mcp.tool.analytics.error_rate.
+func McpToolAnalyticsErrorRate(val float64) attribute.KeyValue {
+	return McpToolAnalyticsErrorRateKey.Float64(val)
+}
+
+// McpToolCacheHit returns an attribute KeyValue for mcp.tool.cache.hit.
+func McpToolCacheHit(val bool) attribute.KeyValue {
+	return McpToolCacheHitKey.Bool(val)
+}
+
+// McpToolCacheKey returns an attribute KeyValue for mcp.tool.cache.key.
+func McpToolCacheKey(val string) attribute.KeyValue {
+	return McpToolCacheKeyKey.String(val)
+}
+
+// McpToolCacheTtlMs returns an attribute KeyValue for mcp.tool.cache.ttl_ms.
+func McpToolCacheTtlMs(val int64) attribute.KeyValue {
+	return McpToolCacheTtlMsKey.Int64(val)
+}
+
+// McpToolCompositionCompletedSteps returns an attribute KeyValue for mcp.tool.composition.completed_steps.
+func McpToolCompositionCompletedSteps(val int64) attribute.KeyValue {
+	return McpToolCompositionCompletedStepsKey.Int64(val)
+}
+
+// McpToolCompositionStepCount returns an attribute KeyValue for mcp.tool.composition.step_count.
+func McpToolCompositionStepCount(val int64) attribute.KeyValue {
+	return McpToolCompositionStepCountKey.Int64(val)
+}
+
+// McpToolCompositionStrategy returns an attribute KeyValue for mcp.tool.composition.strategy.
+func McpToolCompositionStrategy(val string) attribute.KeyValue {
+	return McpToolCompositionStrategyKey.String(val)
+}
+
+// McpToolCompositionStrategyValues contains the known enum values for mcp.tool.composition.strategy.
+var McpToolCompositionStrategyValues = struct {
+	Sequential string
+	Parallel string
+	Fallback string
+	Pipeline string
+}{
+	Sequential: "sequential",
+	Parallel: "parallel",
+	Fallback: "fallback",
+	Pipeline: "pipeline",
+}
+
+// McpToolCompositionTimeoutMs returns an attribute KeyValue for mcp.tool.composition.timeout_ms.
+func McpToolCompositionTimeoutMs(val int64) attribute.KeyValue {
+	return McpToolCompositionTimeoutMsKey.Int64(val)
+}
+
+// McpToolCompositionId returns an attribute KeyValue for mcp.tool.composition_id.
+func McpToolCompositionId(val string) attribute.KeyValue {
+	return McpToolCompositionIdKey.String(val)
+}
+
+// McpToolCompositionLatencyMs returns an attribute KeyValue for mcp.tool.composition_latency_ms.
+func McpToolCompositionLatencyMs(val int64) attribute.KeyValue {
+	return McpToolCompositionLatencyMsKey.Int64(val)
+}
+
+// McpToolCompositionStepCount returns an attribute KeyValue for mcp.tool.composition_step_count.
+func McpToolCompositionStepCount(val int64) attribute.KeyValue {
+	return McpToolCompositionStepCountKey.Int64(val)
+}
+
+// McpToolCompositionStrategy returns an attribute KeyValue for mcp.tool.composition_strategy.
+func McpToolCompositionStrategy(val string) attribute.KeyValue {
+	return McpToolCompositionStrategyKey.String(val)
+}
+
+// McpToolCompositionStrategyValues contains the known enum values for mcp.tool.composition_strategy.
+var McpToolCompositionStrategyValues = struct {
+	Pipeline string
+	FanOut string
+	Conditional string
+	Loop string
+}{
+	Pipeline: "pipeline",
+	FanOut: "fan_out",
+	Conditional: "conditional",
+	Loop: "loop",
+}
+
+// McpToolDeprecated returns an attribute KeyValue for mcp.tool.deprecated.
+func McpToolDeprecated(val bool) attribute.KeyValue {
+	return McpToolDeprecatedKey.Bool(val)
+}
+
+// McpToolDeprecationPolicy returns an attribute KeyValue for mcp.tool.deprecation.policy.
+func McpToolDeprecationPolicy(val string) attribute.KeyValue {
+	return McpToolDeprecationPolicyKey.String(val)
+}
+
+// McpToolDeprecationPolicyValues contains the known enum values for mcp.tool.deprecation.policy.
+var McpToolDeprecationPolicyValues = struct {
+	Immediate string
+	GracePeriod string
+	WarnOnly string
+}{
+	Immediate: "immediate",
+	GracePeriod: "grace_period",
+	WarnOnly: "warn_only",
+}
+
+// McpToolDeprecationReason returns an attribute KeyValue for mcp.tool.deprecation.reason.
+func McpToolDeprecationReason(val string) attribute.KeyValue {
+	return McpToolDeprecationReasonKey.String(val)
+}
+
+// McpToolDeprecationReplacementTool returns an attribute KeyValue for mcp.tool.deprecation.replacement_tool.
+func McpToolDeprecationReplacementTool(val string) attribute.KeyValue {
+	return McpToolDeprecationReplacementToolKey.String(val)
+}
+
+// McpToolDeprecationSunsetDateMs returns an attribute KeyValue for mcp.tool.deprecation.sunset_date_ms.
+func McpToolDeprecationSunsetDateMs(val int64) attribute.KeyValue {
+	return McpToolDeprecationSunsetDateMsKey.Int64(val)
+}
+
+// McpToolInputSize returns an attribute KeyValue for mcp.tool.input_size.
+func McpToolInputSize(val int64) attribute.KeyValue {
+	return McpToolInputSizeKey.Int64(val)
 }
 
 // McpToolName returns an attribute KeyValue for mcp.tool.name.
@@ -47,96 +455,66 @@ func McpToolName(val string) attribute.KeyValue {
 	return McpToolNameKey.String(val)
 }
 
+// McpToolOutputSize returns an attribute KeyValue for mcp.tool.output_size.
+func McpToolOutputSize(val int64) attribute.KeyValue {
+	return McpToolOutputSizeKey.Int64(val)
+}
+
 // McpToolResultCount returns an attribute KeyValue for mcp.tool.result_count.
 func McpToolResultCount(val int64) attribute.KeyValue {
 	return McpToolResultCountKey.Int64(val)
 }
 
-// Wave 9 Iteration 8: MCP Tool Schema attributes
-
-const (
-	// McpToolInputSizeKey is the OTel attribute key for mcp.tool.input_size.
-	// Size of the MCP tool input payload in bytes.
-	McpToolInputSizeKey = attribute.Key("mcp.tool.input_size")
-	// McpToolOutputSizeKey is the OTel attribute key for mcp.tool.output_size.
-	// Size of the MCP tool output payload in bytes.
-	McpToolOutputSizeKey = attribute.Key("mcp.tool.output_size")
-	// McpToolRetryCountKey is the OTel attribute key for mcp.tool.retry_count.
-	// Number of retries attempted for this MCP tool invocation.
-	McpToolRetryCountKey = attribute.Key("mcp.tool.retry_count")
-	// McpToolTimeoutMsKey is the OTel attribute key for mcp.tool.timeout_ms.
-	// Timeout in milliseconds for the MCP tool invocation.
-	McpToolTimeoutMsKey = attribute.Key("mcp.tool.timeout_ms")
-)
-
-// McpToolInputSize returns an attribute KeyValue for mcp.tool.input_size.
-func McpToolInputSize(val int) attribute.KeyValue {
-	return McpToolInputSizeKey.Int(val)
-}
-
-// McpToolOutputSize returns an attribute KeyValue for mcp.tool.output_size.
-func McpToolOutputSize(val int) attribute.KeyValue {
-	return McpToolOutputSizeKey.Int(val)
-}
-
 // McpToolRetryCount returns an attribute KeyValue for mcp.tool.retry_count.
-func McpToolRetryCount(val int) attribute.KeyValue {
-	return McpToolRetryCountKey.Int(val)
+func McpToolRetryCount(val int64) attribute.KeyValue {
+	return McpToolRetryCountKey.Int64(val)
+}
+
+// McpToolSchemaHash returns an attribute KeyValue for mcp.tool.schema_hash.
+func McpToolSchemaHash(val string) attribute.KeyValue {
+	return McpToolSchemaHashKey.String(val)
 }
 
 // McpToolTimeoutMs returns an attribute KeyValue for mcp.tool.timeout_ms.
-func McpToolTimeoutMs(val int) attribute.KeyValue {
-	return McpToolTimeoutMsKey.Int(val)
+func McpToolTimeoutMs(val int64) attribute.KeyValue {
+	return McpToolTimeoutMsKey.Int64(val)
 }
 
-// Wave 9 iteration 10: MCP registry and connection attributes
-
-const (
-	// McpRegistryToolCountKey is the OTel attribute key for mcp.registry.tool_count.
-	// Number of tools registered in the MCP server registry.
-	McpRegistryToolCountKey = attribute.Key("mcp.registry.tool_count")
-	// McpRegistryServerCountKey is the OTel attribute key for mcp.registry.server_count.
-	// Number of servers registered in the MCP registry.
-	McpRegistryServerCountKey = attribute.Key("mcp.registry.server_count")
-	// McpConnectionIDKey is the OTel attribute key for mcp.connection.id.
-	// Unique identifier for the MCP connection.
-	McpConnectionIDKey = attribute.Key("mcp.connection.id")
-	// McpConnectionTransportKey is the OTel attribute key for mcp.connection.transport.
-	// Transport protocol used for the MCP connection.
-	McpConnectionTransportKey = attribute.Key("mcp.connection.transport")
-	// McpProtocolVersionKey is the OTel attribute key for mcp.protocol.version.
-	// Version of the MCP protocol in use.
-	McpProtocolVersionKey = attribute.Key("mcp.protocol.version")
-)
-
-// McpRegistryToolCount returns an attribute KeyValue for mcp.registry.tool_count.
-func McpRegistryToolCount(val int) attribute.KeyValue {
-	return McpRegistryToolCountKey.Int(val)
+// McpToolVersion returns an attribute KeyValue for mcp.tool.version.
+func McpToolVersion(val string) attribute.KeyValue {
+	return McpToolVersionKey.String(val)
 }
 
-// McpRegistryServerCount returns an attribute KeyValue for mcp.registry.server_count.
-func McpRegistryServerCount(val int) attribute.KeyValue {
-	return McpRegistryServerCountKey.Int(val)
+// McpTransportErrorCount returns an attribute KeyValue for mcp.transport.error_count.
+func McpTransportErrorCount(val int64) attribute.KeyValue {
+	return McpTransportErrorCountKey.Int64(val)
 }
 
-// McpConnectionID returns an attribute KeyValue for mcp.connection.id.
-func McpConnectionID(val string) attribute.KeyValue {
-	return McpConnectionIDKey.String(val)
+// McpTransportLatencyMs returns an attribute KeyValue for mcp.transport.latency_ms.
+func McpTransportLatencyMs(val float64) attribute.KeyValue {
+	return McpTransportLatencyMsKey.Float64(val)
 }
 
-// McpConnectionTransport returns an attribute KeyValue for mcp.connection.transport.
-func McpConnectionTransport(val string) attribute.KeyValue {
-	return McpConnectionTransportKey.String(val)
+// McpTransportReconnectCount returns an attribute KeyValue for mcp.transport.reconnect_count.
+func McpTransportReconnectCount(val int64) attribute.KeyValue {
+	return McpTransportReconnectCountKey.Int64(val)
 }
 
-// McpProtocolVersion returns an attribute KeyValue for mcp.protocol.version.
-func McpProtocolVersion(val string) attribute.KeyValue {
-	return McpProtocolVersionKey.String(val)
+// McpTransportType returns an attribute KeyValue for mcp.transport.type.
+func McpTransportType(val string) attribute.KeyValue {
+	return McpTransportTypeKey.String(val)
 }
 
-const (
-	McpConnectionTransportStdio = "stdio"
-	McpConnectionTransportHttp  = "http"
-	McpConnectionTransportSse   = "sse"
-)
+// McpTransportTypeValues contains the known enum values for mcp.transport.type.
+var McpTransportTypeValues = struct {
+	Stdio string
+	Http string
+	Sse string
+	Websocket string
+}{
+	Stdio: "stdio",
+	Http: "http",
+	Sse: "sse",
+	Websocket: "websocket",
+}
 

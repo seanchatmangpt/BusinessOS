@@ -7,26 +7,284 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Agent Attributes
 const (
+	// AgentBudgetRemainingMsKey is the OTel attribute key for agent.budget.remaining_ms.
+	// Remaining time budget for the agent operation in milliseconds.
+	AgentBudgetRemainingMsKey = attribute.Key("agent.budget.remaining_ms")
+	// AgentBudgetTierKey is the OTel attribute key for agent.budget.tier.
+	// The priority tier of the agent operation (affects budget allocation).
+	AgentBudgetTierKey = attribute.Key("agent.budget.tier")
+	// AgentCapabilityCatalogIdKey is the OTel attribute key for agent.capability.catalog_id.
+	// Unique identifier for the agent capability catalog.
+	AgentCapabilityCatalogIdKey = attribute.Key("agent.capability.catalog_id")
+	// AgentCapabilityCatalogVersionKey is the OTel attribute key for agent.capability.catalog_version.
+	// Version string of the agent capability catalog.
+	AgentCapabilityCatalogVersionKey = attribute.Key("agent.capability.catalog_version")
+	// AgentCapabilityCountKey is the OTel attribute key for agent.capability.count.
+	// Number of capabilities registered by this agent.
+	AgentCapabilityCountKey = attribute.Key("agent.capability.count")
+	// AgentCapabilityScopeKey is the OTel attribute key for agent.capability.scope.
+	// Scope of the agent capability catalog (local node, cluster, or federated).
+	AgentCapabilityScopeKey = attribute.Key("agent.capability.scope")
+	// AgentCoordinationLatencyMsKey is the OTel attribute key for agent.coordination.latency_ms.
+	// Latency in milliseconds for agent coordination messages (round-trip).
+	AgentCoordinationLatencyMsKey = attribute.Key("agent.coordination.latency_ms")
+	// AgentDecisionConfidenceKey is the OTel attribute key for agent.decision.confidence.
+	// Confidence score for the agent's decision, range [0.0, 1.0].
+	AgentDecisionConfidenceKey = attribute.Key("agent.decision.confidence")
+	// AgentDecisionTypeKey is the OTel attribute key for agent.decision.type.
+	// The type of decision made by the agent.
+	AgentDecisionTypeKey = attribute.Key("agent.decision.type")
 	// AgentDecisionTypeKey is the OTel attribute key for agent.decision_type.
 	// Type of decision made by the agent in the ReAct loop.
 	AgentDecisionTypeKey = attribute.Key("agent.decision_type")
+	// AgentExecutionCriticalPathMsKey is the OTel attribute key for agent.execution.critical_path_ms.
+	// Duration of the critical path through the execution graph in milliseconds.
+	AgentExecutionCriticalPathMsKey = attribute.Key("agent.execution.critical_path_ms")
+	// AgentExecutionEdgeCountKey is the OTel attribute key for agent.execution.edge_count.
+	// Number of edges (dependencies) in the execution graph.
+	AgentExecutionEdgeCountKey = attribute.Key("agent.execution.edge_count")
+	// AgentExecutionGraphIdKey is the OTel attribute key for agent.execution.graph_id.
+	// Unique identifier for the agent execution graph (DAG of agent steps).
+	AgentExecutionGraphIdKey = attribute.Key("agent.execution.graph_id")
+	// AgentExecutionNodeCountKey is the OTel attribute key for agent.execution.node_count.
+	// Number of nodes (steps) in the execution graph.
+	AgentExecutionNodeCountKey = attribute.Key("agent.execution.node_count")
+	// AgentHandoffReasonKey is the OTel attribute key for agent.handoff.reason.
+	// Reason the agent handoff was initiated.
+	AgentHandoffReasonKey = attribute.Key("agent.handoff.reason")
+	// AgentHandoffStateTransferMsKey is the OTel attribute key for agent.handoff.state_transfer_ms.
+	// Time taken to transfer state to the receiving agent in milliseconds.
+	AgentHandoffStateTransferMsKey = attribute.Key("agent.handoff.state_transfer_ms")
+	// AgentHandoffTargetIdKey is the OTel attribute key for agent.handoff.target_id.
+	// Identifier of the agent receiving the handoff.
+	AgentHandoffTargetIdKey = attribute.Key("agent.handoff.target_id")
 	// AgentIdKey is the OTel attribute key for agent.id.
 	// Unique identifier of the agent.
 	AgentIdKey = attribute.Key("agent.id")
 	// AgentLlmModelKey is the OTel attribute key for agent.llm_model.
 	// The LLM model used for agent inference.
 	AgentLlmModelKey = attribute.Key("agent.llm_model")
+	// AgentLoopIterationKey is the OTel attribute key for agent.loop.iteration.
+	// Current iteration of the agent's main processing loop.
+	AgentLoopIterationKey = attribute.Key("agent.loop.iteration")
+	// AgentMemoryFederationPeerCountKey is the OTel attribute key for agent.memory.federation.peer_count.
+	// Number of peer agents sharing the same federated memory pool.
+	AgentMemoryFederationPeerCountKey = attribute.Key("agent.memory.federation.peer_count")
+	// AgentMemoryFederationVersionKey is the OTel attribute key for agent.memory.federation.version.
+	// Monotonically increasing version counter for federated memory consistency.
+	AgentMemoryFederationVersionKey = attribute.Key("agent.memory.federation.version")
+	// AgentMemoryFederationIdKey is the OTel attribute key for agent.memory.federation_id.
+	// Identifier of the federated memory pool shared across multiple agents.
+	AgentMemoryFederationIdKey = attribute.Key("agent.memory.federation_id")
+	// AgentMemorySizeKey is the OTel attribute key for agent.memory.size.
+	// Current size of the agent's working memory in tokens or items.
+	AgentMemorySizeKey = attribute.Key("agent.memory.size")
+	// AgentMemorySyncLatencyMsKey is the OTel attribute key for agent.memory.sync.latency_ms.
+	// Latency in milliseconds for synchronizing state with federated memory peers.
+	AgentMemorySyncLatencyMsKey = attribute.Key("agent.memory.sync.latency_ms")
+	// AgentMemoryTypeKey is the OTel attribute key for agent.memory.type.
+	// Type of memory the agent is accessing or updating.
+	AgentMemoryTypeKey = attribute.Key("agent.memory.type")
+	// AgentMessageCountKey is the OTel attribute key for agent.message.count.
+	// Number of messages exchanged by this agent during the current operation.
+	AgentMessageCountKey = attribute.Key("agent.message.count")
+	// AgentOrchestratorIdKey is the OTel attribute key for agent.orchestrator.id.
+	// Identifier of the orchestrating agent supervising this agent (Armstrong supervision tree).
+	AgentOrchestratorIdKey = attribute.Key("agent.orchestrator.id")
 	// AgentOutcomeKey is the OTel attribute key for agent.outcome.
 	// Outcome of the agent decision.
 	AgentOutcomeKey = attribute.Key("agent.outcome")
+	// AgentPipelineIdKey is the OTel attribute key for agent.pipeline.id.
+	// Identifier of the agent pipeline being executed.
+	AgentPipelineIdKey = attribute.Key("agent.pipeline.id")
+	// AgentPipelineRetryPolicyKey is the OTel attribute key for agent.pipeline.retry_policy.
+	// Retry policy for the agent pipeline stage.
+	AgentPipelineRetryPolicyKey = attribute.Key("agent.pipeline.retry_policy")
+	// AgentPipelineStageKey is the OTel attribute key for agent.pipeline.stage.
+	// Current stage name in the agent pipeline.
+	AgentPipelineStageKey = attribute.Key("agent.pipeline.stage")
+	// AgentPipelineStageCountKey is the OTel attribute key for agent.pipeline.stage_count.
+	// Total number of stages in the pipeline.
+	AgentPipelineStageCountKey = attribute.Key("agent.pipeline.stage_count")
+	// AgentReasoningConfidenceDeltaKey is the OTel attribute key for agent.reasoning.confidence_delta.
+	// Change in confidence score from start to end of the reasoning trace, range [-1.0, 1.0].
+	AgentReasoningConfidenceDeltaKey = attribute.Key("agent.reasoning.confidence_delta")
+	// AgentReasoningDurationMsKey is the OTel attribute key for agent.reasoning.duration_ms.
+	// Duration in milliseconds of the complete reasoning trace.
+	AgentReasoningDurationMsKey = attribute.Key("agent.reasoning.duration_ms")
+	// AgentReasoningStepCountKey is the OTel attribute key for agent.reasoning.step_count.
+	// Number of reasoning steps in the agent's chain-of-thought trace.
+	AgentReasoningStepCountKey = attribute.Key("agent.reasoning.step_count")
+	// AgentReasoningTraceIdKey is the OTel attribute key for agent.reasoning.trace_id.
+	// Unique identifier for an agent reasoning trace (chain-of-thought record).
+	AgentReasoningTraceIdKey = attribute.Key("agent.reasoning.trace_id")
+	// AgentSpawnCountKey is the OTel attribute key for agent.spawn.count.
+	// Number of child agents spawned by this agent in the current session.
+	AgentSpawnCountKey = attribute.Key("agent.spawn.count")
+	// AgentSpawnLatencyMsKey is the OTel attribute key for agent.spawn.latency_ms.
+	// Time in milliseconds from spawn request to agent ready state.
+	AgentSpawnLatencyMsKey = attribute.Key("agent.spawn.latency_ms")
+	// AgentSpawnParentIdKey is the OTel attribute key for agent.spawn.parent_id.
+	// Identifier of the parent agent that initiated the spawn operation.
+	AgentSpawnParentIdKey = attribute.Key("agent.spawn.parent_id")
+	// AgentSpawnStrategyKey is the OTel attribute key for agent.spawn.strategy.
+	// Strategy used to create the spawned agent.
+	AgentSpawnStrategyKey = attribute.Key("agent.spawn.strategy")
+	// AgentTaskStatusKey is the OTel attribute key for agent.task.status.
+	// The current execution status of the agent task.
+	AgentTaskStatusKey = attribute.Key("agent.task.status")
 	// AgentTokenCountKey is the OTel attribute key for agent.token_count.
 	// Total token count for the agent inference.
 	AgentTokenCountKey = attribute.Key("agent.token_count")
+	// AgentTopologyTypeKey is the OTel attribute key for agent.topology.type.
+	// The coordination topology of agents in this multi-agent system.
+	AgentTopologyTypeKey = attribute.Key("agent.topology.type")
+	// AgentWorkflowCheckpointIdKey is the OTel attribute key for agent.workflow.checkpoint_id.
+	// Unique identifier for the workflow checkpoint.
+	AgentWorkflowCheckpointIdKey = attribute.Key("agent.workflow.checkpoint_id")
+	// AgentWorkflowCheckpointStepKey is the OTel attribute key for agent.workflow.checkpoint_step.
+	// Step number at which the checkpoint was captured.
+	AgentWorkflowCheckpointStepKey = attribute.Key("agent.workflow.checkpoint_step")
+	// AgentWorkflowResumeCountKey is the OTel attribute key for agent.workflow.resume_count.
+	// Number of times this workflow has been resumed from a checkpoint.
+	AgentWorkflowResumeCountKey = attribute.Key("agent.workflow.resume_count")
 )
+
+// AgentBudgetRemainingMs returns an attribute KeyValue for agent.budget.remaining_ms.
+func AgentBudgetRemainingMs(val int64) attribute.KeyValue {
+	return AgentBudgetRemainingMsKey.Int64(val)
+}
+
+// AgentBudgetTier returns an attribute KeyValue for agent.budget.tier.
+func AgentBudgetTier(val string) attribute.KeyValue {
+	return AgentBudgetTierKey.String(val)
+}
+
+// AgentBudgetTierValues contains the known enum values for agent.budget.tier.
+var AgentBudgetTierValues = struct {
+	Critical string
+	High string
+	Normal string
+	Low string
+}{
+	Critical: "critical",
+	High: "high",
+	Normal: "normal",
+	Low: "low",
+}
+
+// AgentCapabilityCatalogId returns an attribute KeyValue for agent.capability.catalog_id.
+func AgentCapabilityCatalogId(val string) attribute.KeyValue {
+	return AgentCapabilityCatalogIdKey.String(val)
+}
+
+// AgentCapabilityCatalogVersion returns an attribute KeyValue for agent.capability.catalog_version.
+func AgentCapabilityCatalogVersion(val string) attribute.KeyValue {
+	return AgentCapabilityCatalogVersionKey.String(val)
+}
+
+// AgentCapabilityCount returns an attribute KeyValue for agent.capability.count.
+func AgentCapabilityCount(val int64) attribute.KeyValue {
+	return AgentCapabilityCountKey.Int64(val)
+}
+
+// AgentCapabilityScope returns an attribute KeyValue for agent.capability.scope.
+func AgentCapabilityScope(val string) attribute.KeyValue {
+	return AgentCapabilityScopeKey.String(val)
+}
+
+// AgentCapabilityScopeValues contains the known enum values for agent.capability.scope.
+var AgentCapabilityScopeValues = struct {
+	Local string
+	Cluster string
+	Federated string
+}{
+	Local: "local",
+	Cluster: "cluster",
+	Federated: "federated",
+}
+
+// AgentCoordinationLatencyMs returns an attribute KeyValue for agent.coordination.latency_ms.
+func AgentCoordinationLatencyMs(val int64) attribute.KeyValue {
+	return AgentCoordinationLatencyMsKey.Int64(val)
+}
+
+// AgentDecisionConfidence returns an attribute KeyValue for agent.decision.confidence.
+func AgentDecisionConfidence(val float64) attribute.KeyValue {
+	return AgentDecisionConfidenceKey.Float64(val)
+}
+
+// AgentDecisionType returns an attribute KeyValue for agent.decision.type.
+func AgentDecisionType(val string) attribute.KeyValue {
+	return AgentDecisionTypeKey.String(val)
+}
+
+// AgentDecisionTypeValues contains the known enum values for agent.decision.type.
+var AgentDecisionTypeValues = struct {
+	Action string
+	Delegation string
+	Escalation string
+	Defer string
+	Reject string
+}{
+	Action: "action",
+	Delegation: "delegation",
+	Escalation: "escalation",
+	Defer: "defer",
+	Reject: "reject",
+}
 
 // AgentDecisionType returns an attribute KeyValue for agent.decision_type.
 func AgentDecisionType(val string) attribute.KeyValue {
 	return AgentDecisionTypeKey.String(val)
+}
+
+// AgentExecutionCriticalPathMs returns an attribute KeyValue for agent.execution.critical_path_ms.
+func AgentExecutionCriticalPathMs(val int64) attribute.KeyValue {
+	return AgentExecutionCriticalPathMsKey.Int64(val)
+}
+
+// AgentExecutionEdgeCount returns an attribute KeyValue for agent.execution.edge_count.
+func AgentExecutionEdgeCount(val int64) attribute.KeyValue {
+	return AgentExecutionEdgeCountKey.Int64(val)
+}
+
+// AgentExecutionGraphId returns an attribute KeyValue for agent.execution.graph_id.
+func AgentExecutionGraphId(val string) attribute.KeyValue {
+	return AgentExecutionGraphIdKey.String(val)
+}
+
+// AgentExecutionNodeCount returns an attribute KeyValue for agent.execution.node_count.
+func AgentExecutionNodeCount(val int64) attribute.KeyValue {
+	return AgentExecutionNodeCountKey.Int64(val)
+}
+
+// AgentHandoffReason returns an attribute KeyValue for agent.handoff.reason.
+func AgentHandoffReason(val string) attribute.KeyValue {
+	return AgentHandoffReasonKey.String(val)
+}
+
+// AgentHandoffReasonValues contains the known enum values for agent.handoff.reason.
+var AgentHandoffReasonValues = struct {
+	Capability string
+	Load string
+	Timeout string
+	Priority string
+}{
+	Capability: "capability",
+	Load: "load",
+	Timeout: "timeout",
+	Priority: "priority",
+}
+
+// AgentHandoffStateTransferMs returns an attribute KeyValue for agent.handoff.state_transfer_ms.
+func AgentHandoffStateTransferMs(val int64) attribute.KeyValue {
+	return AgentHandoffStateTransferMsKey.Int64(val)
+}
+
+// AgentHandoffTargetId returns an attribute KeyValue for agent.handoff.target_id.
+func AgentHandoffTargetId(val string) attribute.KeyValue {
+	return AgentHandoffTargetIdKey.String(val)
 }
 
 // AgentId returns an attribute KeyValue for agent.id.
@@ -37,6 +295,64 @@ func AgentId(val string) attribute.KeyValue {
 // AgentLlmModel returns an attribute KeyValue for agent.llm_model.
 func AgentLlmModel(val string) attribute.KeyValue {
 	return AgentLlmModelKey.String(val)
+}
+
+// AgentLoopIteration returns an attribute KeyValue for agent.loop.iteration.
+func AgentLoopIteration(val int64) attribute.KeyValue {
+	return AgentLoopIterationKey.Int64(val)
+}
+
+// AgentMemoryFederationPeerCount returns an attribute KeyValue for agent.memory.federation.peer_count.
+func AgentMemoryFederationPeerCount(val int64) attribute.KeyValue {
+	return AgentMemoryFederationPeerCountKey.Int64(val)
+}
+
+// AgentMemoryFederationVersion returns an attribute KeyValue for agent.memory.federation.version.
+func AgentMemoryFederationVersion(val int64) attribute.KeyValue {
+	return AgentMemoryFederationVersionKey.Int64(val)
+}
+
+// AgentMemoryFederationId returns an attribute KeyValue for agent.memory.federation_id.
+func AgentMemoryFederationId(val string) attribute.KeyValue {
+	return AgentMemoryFederationIdKey.String(val)
+}
+
+// AgentMemorySize returns an attribute KeyValue for agent.memory.size.
+func AgentMemorySize(val int64) attribute.KeyValue {
+	return AgentMemorySizeKey.Int64(val)
+}
+
+// AgentMemorySyncLatencyMs returns an attribute KeyValue for agent.memory.sync.latency_ms.
+func AgentMemorySyncLatencyMs(val int64) attribute.KeyValue {
+	return AgentMemorySyncLatencyMsKey.Int64(val)
+}
+
+// AgentMemoryType returns an attribute KeyValue for agent.memory.type.
+func AgentMemoryType(val string) attribute.KeyValue {
+	return AgentMemoryTypeKey.String(val)
+}
+
+// AgentMemoryTypeValues contains the known enum values for agent.memory.type.
+var AgentMemoryTypeValues = struct {
+	ShortTerm string
+	LongTerm string
+	Episodic string
+	Semantic string
+}{
+	ShortTerm: "short_term",
+	LongTerm: "long_term",
+	Episodic: "episodic",
+	Semantic: "semantic",
+}
+
+// AgentMessageCount returns an attribute KeyValue for agent.message.count.
+func AgentMessageCount(val int64) attribute.KeyValue {
+	return AgentMessageCountKey.Int64(val)
+}
+
+// AgentOrchestratorId returns an attribute KeyValue for agent.orchestrator.id.
+func AgentOrchestratorId(val string) attribute.KeyValue {
+	return AgentOrchestratorIdKey.String(val)
 }
 
 // AgentOutcome returns an attribute KeyValue for agent.outcome.
@@ -55,8 +371,147 @@ var AgentOutcomeValues = struct {
 	Escalated: "escalated",
 }
 
+// AgentPipelineId returns an attribute KeyValue for agent.pipeline.id.
+func AgentPipelineId(val string) attribute.KeyValue {
+	return AgentPipelineIdKey.String(val)
+}
+
+// AgentPipelineRetryPolicy returns an attribute KeyValue for agent.pipeline.retry_policy.
+func AgentPipelineRetryPolicy(val string) attribute.KeyValue {
+	return AgentPipelineRetryPolicyKey.String(val)
+}
+
+// AgentPipelineRetryPolicyValues contains the known enum values for agent.pipeline.retry_policy.
+var AgentPipelineRetryPolicyValues = struct {
+	None string
+	FixedDelay string
+	ExponentialBackoff string
+	CircuitBreaker string
+}{
+	None: "none",
+	FixedDelay: "fixed_delay",
+	ExponentialBackoff: "exponential_backoff",
+	CircuitBreaker: "circuit_breaker",
+}
+
+// AgentPipelineStage returns an attribute KeyValue for agent.pipeline.stage.
+func AgentPipelineStage(val string) attribute.KeyValue {
+	return AgentPipelineStageKey.String(val)
+}
+
+// AgentPipelineStageCount returns an attribute KeyValue for agent.pipeline.stage_count.
+func AgentPipelineStageCount(val int64) attribute.KeyValue {
+	return AgentPipelineStageCountKey.Int64(val)
+}
+
+// AgentReasoningConfidenceDelta returns an attribute KeyValue for agent.reasoning.confidence_delta.
+func AgentReasoningConfidenceDelta(val float64) attribute.KeyValue {
+	return AgentReasoningConfidenceDeltaKey.Float64(val)
+}
+
+// AgentReasoningDurationMs returns an attribute KeyValue for agent.reasoning.duration_ms.
+func AgentReasoningDurationMs(val int64) attribute.KeyValue {
+	return AgentReasoningDurationMsKey.Int64(val)
+}
+
+// AgentReasoningStepCount returns an attribute KeyValue for agent.reasoning.step_count.
+func AgentReasoningStepCount(val int64) attribute.KeyValue {
+	return AgentReasoningStepCountKey.Int64(val)
+}
+
+// AgentReasoningTraceId returns an attribute KeyValue for agent.reasoning.trace_id.
+func AgentReasoningTraceId(val string) attribute.KeyValue {
+	return AgentReasoningTraceIdKey.String(val)
+}
+
+// AgentSpawnCount returns an attribute KeyValue for agent.spawn.count.
+func AgentSpawnCount(val int64) attribute.KeyValue {
+	return AgentSpawnCountKey.Int64(val)
+}
+
+// AgentSpawnLatencyMs returns an attribute KeyValue for agent.spawn.latency_ms.
+func AgentSpawnLatencyMs(val int64) attribute.KeyValue {
+	return AgentSpawnLatencyMsKey.Int64(val)
+}
+
+// AgentSpawnParentId returns an attribute KeyValue for agent.spawn.parent_id.
+func AgentSpawnParentId(val string) attribute.KeyValue {
+	return AgentSpawnParentIdKey.String(val)
+}
+
+// AgentSpawnStrategy returns an attribute KeyValue for agent.spawn.strategy.
+func AgentSpawnStrategy(val string) attribute.KeyValue {
+	return AgentSpawnStrategyKey.String(val)
+}
+
+// AgentSpawnStrategyValues contains the known enum values for agent.spawn.strategy.
+var AgentSpawnStrategyValues = struct {
+	OnDemand string
+	PreWarmed string
+	Pooled string
+}{
+	OnDemand: "on_demand",
+	PreWarmed: "pre_warmed",
+	Pooled: "pooled",
+}
+
+// AgentTaskStatus returns an attribute KeyValue for agent.task.status.
+func AgentTaskStatus(val string) attribute.KeyValue {
+	return AgentTaskStatusKey.String(val)
+}
+
+// AgentTaskStatusValues contains the known enum values for agent.task.status.
+var AgentTaskStatusValues = struct {
+	Pending string
+	Running string
+	Completed string
+	Failed string
+	Cancelled string
+}{
+	Pending: "pending",
+	Running: "running",
+	Completed: "completed",
+	Failed: "failed",
+	Cancelled: "cancelled",
+}
+
 // AgentTokenCount returns an attribute KeyValue for agent.token_count.
 func AgentTokenCount(val int64) attribute.KeyValue {
 	return AgentTokenCountKey.Int64(val)
+}
+
+// AgentTopologyType returns an attribute KeyValue for agent.topology.type.
+func AgentTopologyType(val string) attribute.KeyValue {
+	return AgentTopologyTypeKey.String(val)
+}
+
+// AgentTopologyTypeValues contains the known enum values for agent.topology.type.
+var AgentTopologyTypeValues = struct {
+	Pipeline string
+	FanOut string
+	Hierarchical string
+	Mesh string
+	Star string
+}{
+	Pipeline: "pipeline",
+	FanOut: "fan_out",
+	Hierarchical: "hierarchical",
+	Mesh: "mesh",
+	Star: "star",
+}
+
+// AgentWorkflowCheckpointId returns an attribute KeyValue for agent.workflow.checkpoint_id.
+func AgentWorkflowCheckpointId(val string) attribute.KeyValue {
+	return AgentWorkflowCheckpointIdKey.String(val)
+}
+
+// AgentWorkflowCheckpointStep returns an attribute KeyValue for agent.workflow.checkpoint_step.
+func AgentWorkflowCheckpointStep(val int64) attribute.KeyValue {
+	return AgentWorkflowCheckpointStepKey.Int64(val)
+}
+
+// AgentWorkflowResumeCount returns an attribute KeyValue for agent.workflow.resume_count.
+func AgentWorkflowResumeCount(val int64) attribute.KeyValue {
+	return AgentWorkflowResumeCountKey.Int64(val)
 }
 

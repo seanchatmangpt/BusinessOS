@@ -7,64 +7,483 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Healing Attributes
 const (
+	// HealingAdaptiveLearningRateKey is the OTel attribute key for healing.adaptive.learning_rate.
+	// Learning rate used to adjust the adaptive healing threshold — controls how quickly it adapts.
+	HealingAdaptiveLearningRateKey = attribute.Key("healing.adaptive.learning_rate")
+	// HealingAdaptiveThresholdCurrentKey is the OTel attribute key for healing.adaptive.threshold_current.
+	// Current adaptive healing threshold — dynamically adjusted based on system behavior.
+	HealingAdaptiveThresholdCurrentKey = attribute.Key("healing.adaptive.threshold_current")
+	// HealingAdaptiveThresholdMaxKey is the OTel attribute key for healing.adaptive.threshold_max.
+	// Maximum allowed value for the adaptive healing threshold.
+	HealingAdaptiveThresholdMaxKey = attribute.Key("healing.adaptive.threshold_max")
+	// HealingAdaptiveThresholdMinKey is the OTel attribute key for healing.adaptive.threshold_min.
+	// Minimum allowed value for the adaptive healing threshold.
+	HealingAdaptiveThresholdMinKey = attribute.Key("healing.adaptive.threshold_min")
 	// HealingAgentIdKey is the OTel attribute key for healing.agent_id.
 	// Identifier of the OSA agent that owns the healing operation.
 	HealingAgentIdKey = attribute.Key("healing.agent_id")
+	// HealingAnomalyBaselineMsKey is the OTel attribute key for healing.anomaly.baseline_ms.
+	// Baseline observation window in milliseconds used for anomaly detection.
+	HealingAnomalyBaselineMsKey = attribute.Key("healing.anomaly.baseline_ms")
+	// HealingAnomalyDetectionMethodKey is the OTel attribute key for healing.anomaly.detection_method.
+	// Method used to detect the system anomaly.
+	HealingAnomalyDetectionMethodKey = attribute.Key("healing.anomaly.detection_method")
+	// HealingAnomalyScoreKey is the OTel attribute key for healing.anomaly.score.
+	// Anomaly score for the detected system behavior, range [0.0, 1.0]. Higher = more anomalous.
+	HealingAnomalyScoreKey = attribute.Key("healing.anomaly.score")
+	// HealingAnomalyThresholdKey is the OTel attribute key for healing.anomaly.threshold.
+	// Score threshold above which behavior is classified as anomalous, range [0.0, 1.0].
+	HealingAnomalyThresholdKey = attribute.Key("healing.anomaly.threshold")
+	// HealingAttemptKey is the OTel attribute key for healing.attempt.
+	// Current healing attempt number (1-indexed) for this failure event.
+	HealingAttemptKey = attribute.Key("healing.attempt")
 	// HealingAttemptNumberKey is the OTel attribute key for healing.attempt_number.
 	// The number of healing attempts made for this failure (1-indexed).
 	HealingAttemptNumberKey = attribute.Key("healing.attempt_number")
+	// HealingBackpressureDropRateKey is the OTel attribute key for healing.backpressure.drop_rate.
+	// Fraction of healing requests dropped due to backpressure [0.0, 1.0].
+	HealingBackpressureDropRateKey = attribute.Key("healing.backpressure.drop_rate")
+	// HealingBackpressureLevelKey is the OTel attribute key for healing.backpressure.level.
+	// Current backpressure level in the healing pipeline.
+	HealingBackpressureLevelKey = attribute.Key("healing.backpressure.level")
+	// HealingBackpressureQueueDepthKey is the OTel attribute key for healing.backpressure.queue_depth.
+	// Current number of healing requests queued.
+	HealingBackpressureQueueDepthKey = attribute.Key("healing.backpressure.queue_depth")
+	// HealingCascadeDepthKey is the OTel attribute key for healing.cascade.depth.
+	// Depth of the cascade failure chain — number of chained failures detected.
+	HealingCascadeDepthKey = attribute.Key("healing.cascade.depth")
+	// HealingCascadeDetectedKey is the OTel attribute key for healing.cascade.detected.
+	// Whether a cascade failure was detected during healing (multiple correlated failures).
+	HealingCascadeDetectedKey = attribute.Key("healing.cascade.detected")
+	// HealingCheckpointCompressionRatioKey is the OTel attribute key for healing.checkpoint.compression_ratio.
+	// Compression ratio of the healing checkpoint data, range [0.0, 1.0].
+	HealingCheckpointCompressionRatioKey = attribute.Key("healing.checkpoint.compression_ratio")
+	// HealingCheckpointIdKey is the OTel attribute key for healing.checkpoint.id.
+	// Unique identifier for the healing checkpoint.
+	HealingCheckpointIdKey = attribute.Key("healing.checkpoint.id")
+	// HealingCheckpointRestoreMsKey is the OTel attribute key for healing.checkpoint.restore_ms.
+	// Time taken to restore from the checkpoint in milliseconds.
+	HealingCheckpointRestoreMsKey = attribute.Key("healing.checkpoint.restore_ms")
+	// HealingCheckpointSizeBytesKey is the OTel attribute key for healing.checkpoint.size_bytes.
+	// Size of the healing checkpoint in bytes.
+	HealingCheckpointSizeBytesKey = attribute.Key("healing.checkpoint.size_bytes")
+	// HealingCircuitBreakerCallCountKey is the OTel attribute key for healing.circuit_breaker.call_count.
+	// Total number of calls passed through the circuit breaker in current window.
+	HealingCircuitBreakerCallCountKey = attribute.Key("healing.circuit_breaker.call_count")
+	// HealingCircuitBreakerFailureCountKey is the OTel attribute key for healing.circuit_breaker.failure_count.
+	// Number of consecutive failures that triggered the circuit breaker.
+	HealingCircuitBreakerFailureCountKey = attribute.Key("healing.circuit_breaker.failure_count")
+	// HealingCircuitBreakerResetMsKey is the OTel attribute key for healing.circuit_breaker.reset_ms.
+	// Time in milliseconds before the circuit breaker attempts half-open reset.
+	HealingCircuitBreakerResetMsKey = attribute.Key("healing.circuit_breaker.reset_ms")
+	// HealingCircuitBreakerStateKey is the OTel attribute key for healing.circuit_breaker.state.
+	// Current state of the healing circuit breaker.
+	HealingCircuitBreakerStateKey = attribute.Key("healing.circuit_breaker.state")
+	// HealingColdStandbyDataLagMsKey is the OTel attribute key for healing.cold_standby.data_lag_ms.
+	// Data replication lag of the cold standby at the time of promotion, in milliseconds.
+	HealingColdStandbyDataLagMsKey = attribute.Key("healing.cold_standby.data_lag_ms")
+	// HealingColdStandbyIdKey is the OTel attribute key for healing.cold_standby.id.
+	// Unique identifier of the cold standby instance being promoted.
+	HealingColdStandbyIdKey = attribute.Key("healing.cold_standby.id")
+	// HealingColdStandbyReadinessKey is the OTel attribute key for healing.cold_standby.readiness.
+	// Readiness state of the cold standby instance.
+	HealingColdStandbyReadinessKey = attribute.Key("healing.cold_standby.readiness")
+	// HealingColdStandbyWarmupMsKey is the OTel attribute key for healing.cold_standby.warmup_ms.
+	// Time in milliseconds required to warm up the cold standby before it can serve traffic.
+	HealingColdStandbyWarmupMsKey = attribute.Key("healing.cold_standby.warmup_ms")
 	// HealingConfidenceKey is the OTel attribute key for healing.confidence.
 	// Confidence score for the failure mode classification, in range [0.0, 1.0].
 	HealingConfidenceKey = attribute.Key("healing.confidence")
 	// HealingDiagnosisStageKey is the OTel attribute key for healing.diagnosis_stage.
 	// The current stage of the healing diagnosis pipeline.
 	HealingDiagnosisStageKey = attribute.Key("healing.diagnosis_stage")
+	// HealingEscalationLevelKey is the OTel attribute key for healing.escalation.level.
+	// Escalation level when automatic healing fails — determines alerting response.
+	HealingEscalationLevelKey = attribute.Key("healing.escalation.level")
 	// HealingEscalationReasonKey is the OTel attribute key for healing.escalation_reason.
 	// Human-readable reason explaining why the healing operation was escalated to a human operator.
 	HealingEscalationReasonKey = attribute.Key("healing.escalation_reason")
+	// HealingFailoverDurationMsKey is the OTel attribute key for healing.failover.duration_ms.
+	// Duration (ms) of the failover operation from start to completion.
+	HealingFailoverDurationMsKey = attribute.Key("healing.failover.duration_ms")
+	// HealingFailoverSourceIdKey is the OTel attribute key for healing.failover.source_id.
+	// The identifier of the source (failing) system component.
+	HealingFailoverSourceIdKey = attribute.Key("healing.failover.source_id")
+	// HealingFailoverTargetIdKey is the OTel attribute key for healing.failover.target_id.
+	// The identifier of the target (replacement) system component.
+	HealingFailoverTargetIdKey = attribute.Key("healing.failover.target_id")
+	// HealingFailoverTypeKey is the OTel attribute key for healing.failover.type.
+	// The type of failover transition being performed.
+	HealingFailoverTypeKey = attribute.Key("healing.failover.type")
 	// HealingFailureModeKey is the OTel attribute key for healing.failure_mode.
 	// The classified failure mode detected by the healing diagnosis engine.
 	HealingFailureModeKey = attribute.Key("healing.failure_mode")
 	// HealingFingerprintKey is the OTel attribute key for healing.fingerprint.
 	// Process fingerprint hash for identifying similar failure patterns.
 	HealingFingerprintKey = attribute.Key("healing.fingerprint")
+	// HealingInterventionDurationMsKey is the OTel attribute key for healing.intervention.duration_ms.
+	// Duration of the healing intervention in milliseconds.
+	HealingInterventionDurationMsKey = attribute.Key("healing.intervention.duration_ms")
+	// HealingInterventionOutcomeKey is the OTel attribute key for healing.intervention.outcome.
+	// Outcome of the healing intervention.
+	HealingInterventionOutcomeKey = attribute.Key("healing.intervention.outcome")
+	// HealingInterventionScoreKey is the OTel attribute key for healing.intervention.score.
+	// Intervention effectiveness score in range [0.0, 1.0] — higher is more effective.
+	HealingInterventionScoreKey = attribute.Key("healing.intervention.score")
+	// HealingInterventionTypeKey is the OTel attribute key for healing.intervention.type.
+	// Type of healing intervention applied.
+	HealingInterventionTypeKey = attribute.Key("healing.intervention.type")
+	// HealingIterationKey is the OTel attribute key for healing.iteration.
+	// Current iteration count in the recovery loop.
+	HealingIterationKey = attribute.Key("healing.iteration")
+	// HealingLoadSheddingShedPctKey is the OTel attribute key for healing.load_shedding.shed_pct.
+	// Percentage of requests shed (dropped) during this load shedding event, range [0.0, 100.0].
+	HealingLoadSheddingShedPctKey = attribute.Key("healing.load_shedding.shed_pct")
+	// HealingLoadSheddingStrategyKey is the OTel attribute key for healing.load_shedding.strategy.
+	// The strategy used to select which requests to shed.
+	HealingLoadSheddingStrategyKey = attribute.Key("healing.load_shedding.strategy")
+	// HealingLoadSheddingThresholdKey is the OTel attribute key for healing.load_shedding.threshold.
+	// The load threshold (0.0-1.0) at which load shedding is triggered.
+	HealingLoadSheddingThresholdKey = attribute.Key("healing.load_shedding.threshold")
 	// HealingMaxAttemptsKey is the OTel attribute key for healing.max_attempts.
 	// Maximum number of healing attempts before escalation.
 	HealingMaxAttemptsKey = attribute.Key("healing.max_attempts")
+	// HealingMaxIterationsKey is the OTel attribute key for healing.max_iterations.
+	// Maximum number of recovery iterations before escalation (WvdA liveness bound).
+	HealingMaxIterationsKey = attribute.Key("healing.max_iterations")
+	// HealingMemoryCompressionRatioKey is the OTel attribute key for healing.memory.compression_ratio.
+	// Compression ratio of the memory snapshot, range [0.0, 1.0] (1.0 = no compression).
+	HealingMemoryCompressionRatioKey = attribute.Key("healing.memory.compression_ratio")
+	// HealingMemoryRestoreMsKey is the OTel attribute key for healing.memory.restore_ms.
+	// Duration in milliseconds to restore the system state from a memory snapshot.
+	HealingMemoryRestoreMsKey = attribute.Key("healing.memory.restore_ms")
+	// HealingMemorySnapshotIdKey is the OTel attribute key for healing.memory.snapshot_id.
+	// Unique identifier for a healing memory snapshot used for state preservation.
+	HealingMemorySnapshotIdKey = attribute.Key("healing.memory.snapshot_id")
+	// HealingMemorySnapshotSizeBytesKey is the OTel attribute key for healing.memory.snapshot_size_bytes.
+	// Size in bytes of the healing memory snapshot.
+	HealingMemorySnapshotSizeBytesKey = attribute.Key("healing.memory.snapshot_size_bytes")
 	// HealingMttrMsKey is the OTel attribute key for healing.mttr_ms.
 	// Mean time to recovery in milliseconds for the healing operation.
 	HealingMttrMsKey = attribute.Key("healing.mttr_ms")
+	// HealingPatternIdKey is the OTel attribute key for healing.pattern.id.
+	// Identifier of the healing pattern matched from the pattern library.
+	HealingPatternIdKey = attribute.Key("healing.pattern.id")
+	// HealingPatternLibrarySizeKey is the OTel attribute key for healing.pattern.library_size.
+	// Number of patterns currently loaded in the healing pattern library.
+	HealingPatternLibrarySizeKey = attribute.Key("healing.pattern.library_size")
+	// HealingPatternMatchConfidenceKey is the OTel attribute key for healing.pattern.match_confidence.
+	// Confidence score for the matched healing pattern, range [0.0, 1.0].
+	HealingPatternMatchConfidenceKey = attribute.Key("healing.pattern.match_confidence")
+	// HealingPlaybookExecutionMsKey is the OTel attribute key for healing.playbook.execution_ms.
+	// Total execution time of the playbook in milliseconds.
+	HealingPlaybookExecutionMsKey = attribute.Key("healing.playbook.execution_ms")
+	// HealingPlaybookIdKey is the OTel attribute key for healing.playbook.id.
+	// Identifier of the recovery playbook being executed.
+	HealingPlaybookIdKey = attribute.Key("healing.playbook.id")
+	// HealingPlaybookStepCountKey is the OTel attribute key for healing.playbook.step_count.
+	// Total number of steps in the recovery playbook.
+	HealingPlaybookStepCountKey = attribute.Key("healing.playbook.step_count")
+	// HealingPlaybookStepCurrentKey is the OTel attribute key for healing.playbook.step_current.
+	// Current step number being executed in the playbook.
+	HealingPlaybookStepCurrentKey = attribute.Key("healing.playbook.step_current")
+	// HealingPredictionConfidenceKey is the OTel attribute key for healing.prediction.confidence.
+	// Confidence score for the failure prediction [0.0, 1.0].
+	HealingPredictionConfidenceKey = attribute.Key("healing.prediction.confidence")
+	// HealingPredictionHorizonMsKey is the OTel attribute key for healing.prediction.horizon_ms.
+	// Time horizon in milliseconds for which the failure prediction is made.
+	HealingPredictionHorizonMsKey = attribute.Key("healing.prediction.horizon_ms")
+	// HealingPredictionModelKey is the OTel attribute key for healing.prediction.model.
+	// Name or version of the predictive model used for failure prediction.
+	HealingPredictionModelKey = attribute.Key("healing.prediction.model")
+	// HealingQuarantineActiveKey is the OTel attribute key for healing.quarantine.active.
+	// Whether the quarantine is currently active.
+	HealingQuarantineActiveKey = attribute.Key("healing.quarantine.active")
+	// HealingQuarantineDurationMsKey is the OTel attribute key for healing.quarantine.duration_ms.
+	// Duration in milliseconds the component remained in quarantine.
+	HealingQuarantineDurationMsKey = attribute.Key("healing.quarantine.duration_ms")
+	// HealingQuarantineIdKey is the OTel attribute key for healing.quarantine.id.
+	// Unique identifier for the quarantine zone applied to an isolated component.
+	HealingQuarantineIdKey = attribute.Key("healing.quarantine.id")
+	// HealingQuarantineReasonKey is the OTel attribute key for healing.quarantine.reason.
+	// Reason the component was placed into quarantine.
+	HealingQuarantineReasonKey = attribute.Key("healing.quarantine.reason")
+	// HealingRateLimitBurstSizeKey is the OTel attribute key for healing.rate_limit.burst_size.
+	// Maximum burst size above the base rate limit.
+	HealingRateLimitBurstSizeKey = attribute.Key("healing.rate_limit.burst_size")
+	// HealingRateLimitCurrentRateKey is the OTel attribute key for healing.rate_limit.current_rate.
+	// Current observed request rate per second.
+	HealingRateLimitCurrentRateKey = attribute.Key("healing.rate_limit.current_rate")
+	// HealingRateLimitRequestsPerSecKey is the OTel attribute key for healing.rate_limit.requests_per_sec.
+	// Maximum allowed recovery requests per second.
+	HealingRateLimitRequestsPerSecKey = attribute.Key("healing.rate_limit.requests_per_sec")
 	// HealingRecoveryActionKey is the OTel attribute key for healing.recovery_action.
 	// The recovery action taken by the reflex arc.
 	HealingRecoveryActionKey = attribute.Key("healing.recovery_action")
+	// HealingRecoveryCompleteKey is the OTel attribute key for healing.recovery_complete.
+	// Whether the healing operation reached a terminal state (success or escalated).
+	HealingRecoveryCompleteKey = attribute.Key("healing.recovery_complete")
 	// HealingRecoveryStrategyKey is the OTel attribute key for healing.recovery_strategy.
 	// The recovery strategy selected by the healing engine.
 	HealingRecoveryStrategyKey = attribute.Key("healing.recovery_strategy")
 	// HealingReflexArcKey is the OTel attribute key for healing.reflex_arc.
 	// The named reflex arc triggered during healing.
 	HealingReflexArcKey = attribute.Key("healing.reflex_arc")
+	// HealingRepairStrategyKey is the OTel attribute key for healing.repair.strategy.
+	// The repair strategy applied during healing recovery.
+	HealingRepairStrategyKey = attribute.Key("healing.repair.strategy")
+	// HealingRollbackCheckpointIdKey is the OTel attribute key for healing.rollback.checkpoint_id.
+	// Identifier of the checkpoint or snapshot used as the rollback target.
+	HealingRollbackCheckpointIdKey = attribute.Key("healing.rollback.checkpoint_id")
+	// HealingRollbackRecoveryMsKey is the OTel attribute key for healing.rollback.recovery_ms.
+	// Time in milliseconds to complete the rollback operation.
+	HealingRollbackRecoveryMsKey = attribute.Key("healing.rollback.recovery_ms")
+	// HealingRollbackStrategyKey is the OTel attribute key for healing.rollback.strategy.
+	// Strategy used to roll back the system to a known-good state.
+	HealingRollbackStrategyKey = attribute.Key("healing.rollback.strategy")
+	// HealingRollbackSuccessKey is the OTel attribute key for healing.rollback.success.
+	// Whether the rollback operation completed successfully.
+	HealingRollbackSuccessKey = attribute.Key("healing.rollback.success")
+	// HealingRootCauseIdKey is the OTel attribute key for healing.root_cause.id.
+	// Identifier of the root cause failure that triggered this cascade.
+	HealingRootCauseIdKey = attribute.Key("healing.root_cause.id")
+	// HealingSelfHealingEnabledKey is the OTel attribute key for healing.self_healing.enabled.
+	// Whether autonomous self-healing is enabled for this component.
+	HealingSelfHealingEnabledKey = attribute.Key("healing.self_healing.enabled")
+	// HealingSelfHealingSuccessRateKey is the OTel attribute key for healing.self_healing.success_rate.
+	// Fraction of self-healing attempts that succeeded, range [0.0, 1.0].
+	HealingSelfHealingSuccessRateKey = attribute.Key("healing.self_healing.success_rate")
+	// HealingSelfHealingTriggerCountKey is the OTel attribute key for healing.self_healing.trigger_count.
+	// Number of times self-healing has been triggered in the current session.
+	HealingSelfHealingTriggerCountKey = attribute.Key("healing.self_healing.trigger_count")
+	// HealingSimulationDurationMsKey is the OTel attribute key for healing.simulation.duration_ms.
+	// Total duration in milliseconds of the recovery simulation run.
+	HealingSimulationDurationMsKey = attribute.Key("healing.simulation.duration_ms")
+	// HealingSimulationFailureModeCountKey is the OTel attribute key for healing.simulation.failure_mode_count.
+	// Number of distinct failure modes simulated in this recovery simulation.
+	HealingSimulationFailureModeCountKey = attribute.Key("healing.simulation.failure_mode_count")
+	// HealingSimulationIdKey is the OTel attribute key for healing.simulation.id.
+	// Unique identifier for a healing recovery simulation run.
+	HealingSimulationIdKey = attribute.Key("healing.simulation.id")
+	// HealingSimulationSuccessRateKey is the OTel attribute key for healing.simulation.success_rate.
+	// Fraction of simulated recovery scenarios that succeeded, range [0.0, 1.0].
+	HealingSimulationSuccessRateKey = attribute.Key("healing.simulation.success_rate")
+	// HealingSurgeDetectionWindowMsKey is the OTel attribute key for healing.surge.detection_window_ms.
+	// Time window in milliseconds over which surge is detected.
+	HealingSurgeDetectionWindowMsKey = attribute.Key("healing.surge.detection_window_ms")
+	// HealingSurgeMitigationStrategyKey is the OTel attribute key for healing.surge.mitigation_strategy.
+	// Strategy applied to mitigate healing request surge.
+	HealingSurgeMitigationStrategyKey = attribute.Key("healing.surge.mitigation_strategy")
+	// HealingSurgeThresholdMultiplierKey is the OTel attribute key for healing.surge.threshold_multiplier.
+	// Multiplier applied to baseline thresholds to detect a healing surge.
+	HealingSurgeThresholdMultiplierKey = attribute.Key("healing.surge.threshold_multiplier")
 	// HealingTimeoutMsKey is the OTel attribute key for healing.timeout_ms.
-	// Maximum time budget in milliseconds for a healing operation (WvdA deadlock freedom).
+	// Maximum time budget for the healing operation in milliseconds (WvdA deadlock freedom).
 	HealingTimeoutMsKey = attribute.Key("healing.timeout_ms")
-	// HealingMaxIterationsKey is the OTel attribute key for healing.max_iterations.
-	// Maximum iterations allowed in the healing diagnosis loop (WvdA boundedness).
-	HealingMaxIterationsKey = attribute.Key("healing.max_iterations")
-	// HealingIterationKey is the OTel attribute key for healing.iteration.
-	// Current iteration number of the healing diagnosis loop.
-	HealingIterationKey = attribute.Key("healing.iteration")
-	// HealingRecoveryCompleteKey is the OTel attribute key for healing.recovery_complete.
-	// Whether the recovery operation completed successfully.
-	HealingRecoveryCompleteKey = attribute.Key("healing.recovery_complete")
+	// HealingWarmStandbyIdKey is the OTel attribute key for healing.warm_standby.id.
+	// Unique identifier for the warm standby replica.
+	HealingWarmStandbyIdKey = attribute.Key("healing.warm_standby.id")
+	// HealingWarmStandbyLatencyMsKey is the OTel attribute key for healing.warm_standby.latency_ms.
+	// Activation latency of the warm standby in milliseconds — time from trigger to live.
+	HealingWarmStandbyLatencyMsKey = attribute.Key("healing.warm_standby.latency_ms")
+	// HealingWarmStandbyReadinessKey is the OTel attribute key for healing.warm_standby.readiness.
+	// Readiness state of the warm standby replica.
+	HealingWarmStandbyReadinessKey = attribute.Key("healing.warm_standby.readiness")
+	// HealingWarmStandbyReplicaCountKey is the OTel attribute key for healing.warm_standby.replica_count.
+	// Number of warm standby replicas available for failover.
+	HealingWarmStandbyReplicaCountKey = attribute.Key("healing.warm_standby.replica_count")
 )
+
+// HealingAdaptiveLearningRate returns an attribute KeyValue for healing.adaptive.learning_rate.
+func HealingAdaptiveLearningRate(val float64) attribute.KeyValue {
+	return HealingAdaptiveLearningRateKey.Float64(val)
+}
+
+// HealingAdaptiveThresholdCurrent returns an attribute KeyValue for healing.adaptive.threshold_current.
+func HealingAdaptiveThresholdCurrent(val float64) attribute.KeyValue {
+	return HealingAdaptiveThresholdCurrentKey.Float64(val)
+}
+
+// HealingAdaptiveThresholdMax returns an attribute KeyValue for healing.adaptive.threshold_max.
+func HealingAdaptiveThresholdMax(val float64) attribute.KeyValue {
+	return HealingAdaptiveThresholdMaxKey.Float64(val)
+}
+
+// HealingAdaptiveThresholdMin returns an attribute KeyValue for healing.adaptive.threshold_min.
+func HealingAdaptiveThresholdMin(val float64) attribute.KeyValue {
+	return HealingAdaptiveThresholdMinKey.Float64(val)
+}
 
 // HealingAgentId returns an attribute KeyValue for healing.agent_id.
 func HealingAgentId(val string) attribute.KeyValue {
 	return HealingAgentIdKey.String(val)
 }
 
+// HealingAnomalyBaselineMs returns an attribute KeyValue for healing.anomaly.baseline_ms.
+func HealingAnomalyBaselineMs(val int64) attribute.KeyValue {
+	return HealingAnomalyBaselineMsKey.Int64(val)
+}
+
+// HealingAnomalyDetectionMethod returns an attribute KeyValue for healing.anomaly.detection_method.
+func HealingAnomalyDetectionMethod(val string) attribute.KeyValue {
+	return HealingAnomalyDetectionMethodKey.String(val)
+}
+
+// HealingAnomalyDetectionMethodValues contains the known enum values for healing.anomaly.detection_method.
+var HealingAnomalyDetectionMethodValues = struct {
+	Statistical string
+	Ml string
+	RuleBased string
+	Hybrid string
+}{
+	Statistical: "statistical",
+	Ml: "ml",
+	RuleBased: "rule_based",
+	Hybrid: "hybrid",
+}
+
+// HealingAnomalyScore returns an attribute KeyValue for healing.anomaly.score.
+func HealingAnomalyScore(val float64) attribute.KeyValue {
+	return HealingAnomalyScoreKey.Float64(val)
+}
+
+// HealingAnomalyThreshold returns an attribute KeyValue for healing.anomaly.threshold.
+func HealingAnomalyThreshold(val float64) attribute.KeyValue {
+	return HealingAnomalyThresholdKey.Float64(val)
+}
+
+// HealingAttempt returns an attribute KeyValue for healing.attempt.
+func HealingAttempt(val int64) attribute.KeyValue {
+	return HealingAttemptKey.Int64(val)
+}
+
 // HealingAttemptNumber returns an attribute KeyValue for healing.attempt_number.
 func HealingAttemptNumber(val int64) attribute.KeyValue {
 	return HealingAttemptNumberKey.Int64(val)
+}
+
+// HealingBackpressureDropRate returns an attribute KeyValue for healing.backpressure.drop_rate.
+func HealingBackpressureDropRate(val float64) attribute.KeyValue {
+	return HealingBackpressureDropRateKey.Float64(val)
+}
+
+// HealingBackpressureLevel returns an attribute KeyValue for healing.backpressure.level.
+func HealingBackpressureLevel(val string) attribute.KeyValue {
+	return HealingBackpressureLevelKey.String(val)
+}
+
+// HealingBackpressureLevelValues contains the known enum values for healing.backpressure.level.
+var HealingBackpressureLevelValues = struct {
+	None string
+	Low string
+	Medium string
+	High string
+	Critical string
+}{
+	None: "none",
+	Low: "low",
+	Medium: "medium",
+	High: "high",
+	Critical: "critical",
+}
+
+// HealingBackpressureQueueDepth returns an attribute KeyValue for healing.backpressure.queue_depth.
+func HealingBackpressureQueueDepth(val int64) attribute.KeyValue {
+	return HealingBackpressureQueueDepthKey.Int64(val)
+}
+
+// HealingCascadeDepth returns an attribute KeyValue for healing.cascade.depth.
+func HealingCascadeDepth(val int64) attribute.KeyValue {
+	return HealingCascadeDepthKey.Int64(val)
+}
+
+// HealingCascadeDetected returns an attribute KeyValue for healing.cascade.detected.
+func HealingCascadeDetected(val bool) attribute.KeyValue {
+	return HealingCascadeDetectedKey.Bool(val)
+}
+
+// HealingCheckpointCompressionRatio returns an attribute KeyValue for healing.checkpoint.compression_ratio.
+func HealingCheckpointCompressionRatio(val float64) attribute.KeyValue {
+	return HealingCheckpointCompressionRatioKey.Float64(val)
+}
+
+// HealingCheckpointId returns an attribute KeyValue for healing.checkpoint.id.
+func HealingCheckpointId(val string) attribute.KeyValue {
+	return HealingCheckpointIdKey.String(val)
+}
+
+// HealingCheckpointRestoreMs returns an attribute KeyValue for healing.checkpoint.restore_ms.
+func HealingCheckpointRestoreMs(val int64) attribute.KeyValue {
+	return HealingCheckpointRestoreMsKey.Int64(val)
+}
+
+// HealingCheckpointSizeBytes returns an attribute KeyValue for healing.checkpoint.size_bytes.
+func HealingCheckpointSizeBytes(val int64) attribute.KeyValue {
+	return HealingCheckpointSizeBytesKey.Int64(val)
+}
+
+// HealingCircuitBreakerCallCount returns an attribute KeyValue for healing.circuit_breaker.call_count.
+func HealingCircuitBreakerCallCount(val int64) attribute.KeyValue {
+	return HealingCircuitBreakerCallCountKey.Int64(val)
+}
+
+// HealingCircuitBreakerFailureCount returns an attribute KeyValue for healing.circuit_breaker.failure_count.
+func HealingCircuitBreakerFailureCount(val int64) attribute.KeyValue {
+	return HealingCircuitBreakerFailureCountKey.Int64(val)
+}
+
+// HealingCircuitBreakerResetMs returns an attribute KeyValue for healing.circuit_breaker.reset_ms.
+func HealingCircuitBreakerResetMs(val int64) attribute.KeyValue {
+	return HealingCircuitBreakerResetMsKey.Int64(val)
+}
+
+// HealingCircuitBreakerState returns an attribute KeyValue for healing.circuit_breaker.state.
+func HealingCircuitBreakerState(val string) attribute.KeyValue {
+	return HealingCircuitBreakerStateKey.String(val)
+}
+
+// HealingCircuitBreakerStateValues contains the known enum values for healing.circuit_breaker.state.
+var HealingCircuitBreakerStateValues = struct {
+	Closed string
+	Open string
+	HalfOpen string
+}{
+	Closed: "closed",
+	Open: "open",
+	HalfOpen: "half_open",
+}
+
+// HealingColdStandbyDataLagMs returns an attribute KeyValue for healing.cold_standby.data_lag_ms.
+func HealingColdStandbyDataLagMs(val int64) attribute.KeyValue {
+	return HealingColdStandbyDataLagMsKey.Int64(val)
+}
+
+// HealingColdStandbyId returns an attribute KeyValue for healing.cold_standby.id.
+func HealingColdStandbyId(val string) attribute.KeyValue {
+	return HealingColdStandbyIdKey.String(val)
+}
+
+// HealingColdStandbyReadiness returns an attribute KeyValue for healing.cold_standby.readiness.
+func HealingColdStandbyReadiness(val string) attribute.KeyValue {
+	return HealingColdStandbyReadinessKey.String(val)
+}
+
+// HealingColdStandbyReadinessValues contains the known enum values for healing.cold_standby.readiness.
+var HealingColdStandbyReadinessValues = struct {
+	Cold string
+	Warming string
+	Ready string
+	Failed string
+}{
+	Cold: "cold",
+	Warming: "warming",
+	Ready: "ready",
+	Failed: "failed",
+}
+
+// HealingColdStandbyWarmupMs returns an attribute KeyValue for healing.cold_standby.warmup_ms.
+func HealingColdStandbyWarmupMs(val int64) attribute.KeyValue {
+	return HealingColdStandbyWarmupMsKey.Int64(val)
 }
 
 // HealingConfidence returns an attribute KeyValue for healing.confidence.
@@ -90,9 +509,60 @@ var HealingDiagnosisStageValues = struct {
 	Escalation: "escalation",
 }
 
+// HealingEscalationLevel returns an attribute KeyValue for healing.escalation.level.
+func HealingEscalationLevel(val string) attribute.KeyValue {
+	return HealingEscalationLevelKey.String(val)
+}
+
+// HealingEscalationLevelValues contains the known enum values for healing.escalation.level.
+var HealingEscalationLevelValues = struct {
+	None string
+	Warn string
+	Critical string
+	Page string
+}{
+	None: "none",
+	Warn: "warn",
+	Critical: "critical",
+	Page: "page",
+}
+
 // HealingEscalationReason returns an attribute KeyValue for healing.escalation_reason.
 func HealingEscalationReason(val string) attribute.KeyValue {
 	return HealingEscalationReasonKey.String(val)
+}
+
+// HealingFailoverDurationMs returns an attribute KeyValue for healing.failover.duration_ms.
+func HealingFailoverDurationMs(val int64) attribute.KeyValue {
+	return HealingFailoverDurationMsKey.Int64(val)
+}
+
+// HealingFailoverSourceId returns an attribute KeyValue for healing.failover.source_id.
+func HealingFailoverSourceId(val string) attribute.KeyValue {
+	return HealingFailoverSourceIdKey.String(val)
+}
+
+// HealingFailoverTargetId returns an attribute KeyValue for healing.failover.target_id.
+func HealingFailoverTargetId(val string) attribute.KeyValue {
+	return HealingFailoverTargetIdKey.String(val)
+}
+
+// HealingFailoverType returns an attribute KeyValue for healing.failover.type.
+func HealingFailoverType(val string) attribute.KeyValue {
+	return HealingFailoverTypeKey.String(val)
+}
+
+// HealingFailoverTypeValues contains the known enum values for healing.failover.type.
+var HealingFailoverTypeValues = struct {
+	WarmToCold string
+	PrimaryToWarm string
+	PrimaryToCold string
+	Geographic string
+}{
+	WarmToCold: "warm_to_cold",
+	PrimaryToWarm: "primary_to_warm",
+	PrimaryToCold: "primary_to_cold",
+	Geographic: "geographic",
 }
 
 // HealingFailureMode returns an attribute KeyValue for healing.failure_mode.
@@ -124,9 +594,111 @@ func HealingFingerprint(val string) attribute.KeyValue {
 	return HealingFingerprintKey.String(val)
 }
 
+// HealingInterventionDurationMs returns an attribute KeyValue for healing.intervention.duration_ms.
+func HealingInterventionDurationMs(val int64) attribute.KeyValue {
+	return HealingInterventionDurationMsKey.Int64(val)
+}
+
+// HealingInterventionOutcome returns an attribute KeyValue for healing.intervention.outcome.
+func HealingInterventionOutcome(val string) attribute.KeyValue {
+	return HealingInterventionOutcomeKey.String(val)
+}
+
+// HealingInterventionOutcomeValues contains the known enum values for healing.intervention.outcome.
+var HealingInterventionOutcomeValues = struct {
+	Success string
+	Partial string
+	Failed string
+	Escalated string
+}{
+	Success: "success",
+	Partial: "partial",
+	Failed: "failed",
+	Escalated: "escalated",
+}
+
+// HealingInterventionScore returns an attribute KeyValue for healing.intervention.score.
+func HealingInterventionScore(val float64) attribute.KeyValue {
+	return HealingInterventionScoreKey.Float64(val)
+}
+
+// HealingInterventionType returns an attribute KeyValue for healing.intervention.type.
+func HealingInterventionType(val string) attribute.KeyValue {
+	return HealingInterventionTypeKey.String(val)
+}
+
+// HealingInterventionTypeValues contains the known enum values for healing.intervention.type.
+var HealingInterventionTypeValues = struct {
+	Automatic string
+	Manual string
+	Assisted string
+	Deferred string
+}{
+	Automatic: "automatic",
+	Manual: "manual",
+	Assisted: "assisted",
+	Deferred: "deferred",
+}
+
+// HealingIteration returns an attribute KeyValue for healing.iteration.
+func HealingIteration(val int64) attribute.KeyValue {
+	return HealingIterationKey.Int64(val)
+}
+
+// HealingLoadSheddingShedPct returns an attribute KeyValue for healing.load_shedding.shed_pct.
+func HealingLoadSheddingShedPct(val float64) attribute.KeyValue {
+	return HealingLoadSheddingShedPctKey.Float64(val)
+}
+
+// HealingLoadSheddingStrategy returns an attribute KeyValue for healing.load_shedding.strategy.
+func HealingLoadSheddingStrategy(val string) attribute.KeyValue {
+	return HealingLoadSheddingStrategyKey.String(val)
+}
+
+// HealingLoadSheddingStrategyValues contains the known enum values for healing.load_shedding.strategy.
+var HealingLoadSheddingStrategyValues = struct {
+	Random string
+	Priority string
+	Oldest string
+}{
+	Random: "random",
+	Priority: "priority",
+	Oldest: "oldest",
+}
+
+// HealingLoadSheddingThreshold returns an attribute KeyValue for healing.load_shedding.threshold.
+func HealingLoadSheddingThreshold(val float64) attribute.KeyValue {
+	return HealingLoadSheddingThresholdKey.Float64(val)
+}
+
 // HealingMaxAttempts returns an attribute KeyValue for healing.max_attempts.
 func HealingMaxAttempts(val int64) attribute.KeyValue {
 	return HealingMaxAttemptsKey.Int64(val)
+}
+
+// HealingMaxIterations returns an attribute KeyValue for healing.max_iterations.
+func HealingMaxIterations(val int64) attribute.KeyValue {
+	return HealingMaxIterationsKey.Int64(val)
+}
+
+// HealingMemoryCompressionRatio returns an attribute KeyValue for healing.memory.compression_ratio.
+func HealingMemoryCompressionRatio(val float64) attribute.KeyValue {
+	return HealingMemoryCompressionRatioKey.Float64(val)
+}
+
+// HealingMemoryRestoreMs returns an attribute KeyValue for healing.memory.restore_ms.
+func HealingMemoryRestoreMs(val int64) attribute.KeyValue {
+	return HealingMemoryRestoreMsKey.Int64(val)
+}
+
+// HealingMemorySnapshotId returns an attribute KeyValue for healing.memory.snapshot_id.
+func HealingMemorySnapshotId(val string) attribute.KeyValue {
+	return HealingMemorySnapshotIdKey.String(val)
+}
+
+// HealingMemorySnapshotSizeBytes returns an attribute KeyValue for healing.memory.snapshot_size_bytes.
+func HealingMemorySnapshotSizeBytes(val int64) attribute.KeyValue {
+	return HealingMemorySnapshotSizeBytesKey.Int64(val)
 }
 
 // HealingMttrMs returns an attribute KeyValue for healing.mttr_ms.
@@ -134,9 +706,112 @@ func HealingMttrMs(val int64) attribute.KeyValue {
 	return HealingMttrMsKey.Int64(val)
 }
 
+// HealingPatternId returns an attribute KeyValue for healing.pattern.id.
+func HealingPatternId(val string) attribute.KeyValue {
+	return HealingPatternIdKey.String(val)
+}
+
+// HealingPatternLibrarySize returns an attribute KeyValue for healing.pattern.library_size.
+func HealingPatternLibrarySize(val int64) attribute.KeyValue {
+	return HealingPatternLibrarySizeKey.Int64(val)
+}
+
+// HealingPatternMatchConfidence returns an attribute KeyValue for healing.pattern.match_confidence.
+func HealingPatternMatchConfidence(val float64) attribute.KeyValue {
+	return HealingPatternMatchConfidenceKey.Float64(val)
+}
+
+// HealingPlaybookExecutionMs returns an attribute KeyValue for healing.playbook.execution_ms.
+func HealingPlaybookExecutionMs(val int64) attribute.KeyValue {
+	return HealingPlaybookExecutionMsKey.Int64(val)
+}
+
+// HealingPlaybookId returns an attribute KeyValue for healing.playbook.id.
+func HealingPlaybookId(val string) attribute.KeyValue {
+	return HealingPlaybookIdKey.String(val)
+}
+
+// HealingPlaybookStepCount returns an attribute KeyValue for healing.playbook.step_count.
+func HealingPlaybookStepCount(val int64) attribute.KeyValue {
+	return HealingPlaybookStepCountKey.Int64(val)
+}
+
+// HealingPlaybookStepCurrent returns an attribute KeyValue for healing.playbook.step_current.
+func HealingPlaybookStepCurrent(val int64) attribute.KeyValue {
+	return HealingPlaybookStepCurrentKey.Int64(val)
+}
+
+// HealingPredictionConfidence returns an attribute KeyValue for healing.prediction.confidence.
+func HealingPredictionConfidence(val float64) attribute.KeyValue {
+	return HealingPredictionConfidenceKey.Float64(val)
+}
+
+// HealingPredictionHorizonMs returns an attribute KeyValue for healing.prediction.horizon_ms.
+func HealingPredictionHorizonMs(val int64) attribute.KeyValue {
+	return HealingPredictionHorizonMsKey.Int64(val)
+}
+
+// HealingPredictionModel returns an attribute KeyValue for healing.prediction.model.
+func HealingPredictionModel(val string) attribute.KeyValue {
+	return HealingPredictionModelKey.String(val)
+}
+
+// HealingQuarantineActive returns an attribute KeyValue for healing.quarantine.active.
+func HealingQuarantineActive(val bool) attribute.KeyValue {
+	return HealingQuarantineActiveKey.Bool(val)
+}
+
+// HealingQuarantineDurationMs returns an attribute KeyValue for healing.quarantine.duration_ms.
+func HealingQuarantineDurationMs(val int64) attribute.KeyValue {
+	return HealingQuarantineDurationMsKey.Int64(val)
+}
+
+// HealingQuarantineId returns an attribute KeyValue for healing.quarantine.id.
+func HealingQuarantineId(val string) attribute.KeyValue {
+	return HealingQuarantineIdKey.String(val)
+}
+
+// HealingQuarantineReason returns an attribute KeyValue for healing.quarantine.reason.
+func HealingQuarantineReason(val string) attribute.KeyValue {
+	return HealingQuarantineReasonKey.String(val)
+}
+
+// HealingQuarantineReasonValues contains the known enum values for healing.quarantine.reason.
+var HealingQuarantineReasonValues = struct {
+	Anomaly string
+	Compliance string
+	CascadeRisk string
+	Manual string
+}{
+	Anomaly: "anomaly",
+	Compliance: "compliance",
+	CascadeRisk: "cascade_risk",
+	Manual: "manual",
+}
+
+// HealingRateLimitBurstSize returns an attribute KeyValue for healing.rate_limit.burst_size.
+func HealingRateLimitBurstSize(val int64) attribute.KeyValue {
+	return HealingRateLimitBurstSizeKey.Int64(val)
+}
+
+// HealingRateLimitCurrentRate returns an attribute KeyValue for healing.rate_limit.current_rate.
+func HealingRateLimitCurrentRate(val float64) attribute.KeyValue {
+	return HealingRateLimitCurrentRateKey.Float64(val)
+}
+
+// HealingRateLimitRequestsPerSec returns an attribute KeyValue for healing.rate_limit.requests_per_sec.
+func HealingRateLimitRequestsPerSec(val float64) attribute.KeyValue {
+	return HealingRateLimitRequestsPerSecKey.Float64(val)
+}
+
 // HealingRecoveryAction returns an attribute KeyValue for healing.recovery_action.
 func HealingRecoveryAction(val string) attribute.KeyValue {
 	return HealingRecoveryActionKey.String(val)
+}
+
+// HealingRecoveryComplete returns an attribute KeyValue for healing.recovery_complete.
+func HealingRecoveryComplete(val bool) attribute.KeyValue {
+	return HealingRecoveryCompleteKey.Bool(val)
 }
 
 // HealingRecoveryStrategy returns an attribute KeyValue for healing.recovery_strategy.
@@ -164,23 +839,154 @@ func HealingReflexArc(val string) attribute.KeyValue {
 	return HealingReflexArcKey.String(val)
 }
 
+// HealingRepairStrategy returns an attribute KeyValue for healing.repair.strategy.
+func HealingRepairStrategy(val string) attribute.KeyValue {
+	return HealingRepairStrategyKey.String(val)
+}
+
+// HealingRepairStrategyValues contains the known enum values for healing.repair.strategy.
+var HealingRepairStrategyValues = struct {
+	Restart string
+	Rollback string
+	Failover string
+	Rebalance string
+}{
+	Restart: "restart",
+	Rollback: "rollback",
+	Failover: "failover",
+	Rebalance: "rebalance",
+}
+
+// HealingRollbackCheckpointId returns an attribute KeyValue for healing.rollback.checkpoint_id.
+func HealingRollbackCheckpointId(val string) attribute.KeyValue {
+	return HealingRollbackCheckpointIdKey.String(val)
+}
+
+// HealingRollbackRecoveryMs returns an attribute KeyValue for healing.rollback.recovery_ms.
+func HealingRollbackRecoveryMs(val int64) attribute.KeyValue {
+	return HealingRollbackRecoveryMsKey.Int64(val)
+}
+
+// HealingRollbackStrategy returns an attribute KeyValue for healing.rollback.strategy.
+func HealingRollbackStrategy(val string) attribute.KeyValue {
+	return HealingRollbackStrategyKey.String(val)
+}
+
+// HealingRollbackStrategyValues contains the known enum values for healing.rollback.strategy.
+var HealingRollbackStrategyValues = struct {
+	Checkpoint string
+	Snapshot string
+	Incremental string
+}{
+	Checkpoint: "checkpoint",
+	Snapshot: "snapshot",
+	Incremental: "incremental",
+}
+
+// HealingRollbackSuccess returns an attribute KeyValue for healing.rollback.success.
+func HealingRollbackSuccess(val bool) attribute.KeyValue {
+	return HealingRollbackSuccessKey.Bool(val)
+}
+
+// HealingRootCauseId returns an attribute KeyValue for healing.root_cause.id.
+func HealingRootCauseId(val string) attribute.KeyValue {
+	return HealingRootCauseIdKey.String(val)
+}
+
+// HealingSelfHealingEnabled returns an attribute KeyValue for healing.self_healing.enabled.
+func HealingSelfHealingEnabled(val bool) attribute.KeyValue {
+	return HealingSelfHealingEnabledKey.Bool(val)
+}
+
+// HealingSelfHealingSuccessRate returns an attribute KeyValue for healing.self_healing.success_rate.
+func HealingSelfHealingSuccessRate(val float64) attribute.KeyValue {
+	return HealingSelfHealingSuccessRateKey.Float64(val)
+}
+
+// HealingSelfHealingTriggerCount returns an attribute KeyValue for healing.self_healing.trigger_count.
+func HealingSelfHealingTriggerCount(val int64) attribute.KeyValue {
+	return HealingSelfHealingTriggerCountKey.Int64(val)
+}
+
+// HealingSimulationDurationMs returns an attribute KeyValue for healing.simulation.duration_ms.
+func HealingSimulationDurationMs(val int64) attribute.KeyValue {
+	return HealingSimulationDurationMsKey.Int64(val)
+}
+
+// HealingSimulationFailureModeCount returns an attribute KeyValue for healing.simulation.failure_mode_count.
+func HealingSimulationFailureModeCount(val int64) attribute.KeyValue {
+	return HealingSimulationFailureModeCountKey.Int64(val)
+}
+
+// HealingSimulationId returns an attribute KeyValue for healing.simulation.id.
+func HealingSimulationId(val string) attribute.KeyValue {
+	return HealingSimulationIdKey.String(val)
+}
+
+// HealingSimulationSuccessRate returns an attribute KeyValue for healing.simulation.success_rate.
+func HealingSimulationSuccessRate(val float64) attribute.KeyValue {
+	return HealingSimulationSuccessRateKey.Float64(val)
+}
+
+// HealingSurgeDetectionWindowMs returns an attribute KeyValue for healing.surge.detection_window_ms.
+func HealingSurgeDetectionWindowMs(val int64) attribute.KeyValue {
+	return HealingSurgeDetectionWindowMsKey.Int64(val)
+}
+
+// HealingSurgeMitigationStrategy returns an attribute KeyValue for healing.surge.mitigation_strategy.
+func HealingSurgeMitigationStrategy(val string) attribute.KeyValue {
+	return HealingSurgeMitigationStrategyKey.String(val)
+}
+
+// HealingSurgeMitigationStrategyValues contains the known enum values for healing.surge.mitigation_strategy.
+var HealingSurgeMitigationStrategyValues = struct {
+	Shed string
+	Queue string
+	Throttle string
+}{
+	Shed: "shed",
+	Queue: "queue",
+	Throttle: "throttle",
+}
+
+// HealingSurgeThresholdMultiplier returns an attribute KeyValue for healing.surge.threshold_multiplier.
+func HealingSurgeThresholdMultiplier(val float64) attribute.KeyValue {
+	return HealingSurgeThresholdMultiplierKey.Float64(val)
+}
+
 // HealingTimeoutMs returns an attribute KeyValue for healing.timeout_ms.
 func HealingTimeoutMs(val int64) attribute.KeyValue {
 	return HealingTimeoutMsKey.Int64(val)
 }
 
-// HealingMaxIterations returns an attribute KeyValue for healing.max_iterations.
-func HealingMaxIterations(val int64) attribute.KeyValue {
-	return HealingMaxIterationsKey.Int64(val)
+// HealingWarmStandbyId returns an attribute KeyValue for healing.warm_standby.id.
+func HealingWarmStandbyId(val string) attribute.KeyValue {
+	return HealingWarmStandbyIdKey.String(val)
 }
 
-// HealingIteration returns an attribute KeyValue for healing.iteration.
-func HealingIteration(val int64) attribute.KeyValue {
-	return HealingIterationKey.Int64(val)
+// HealingWarmStandbyLatencyMs returns an attribute KeyValue for healing.warm_standby.latency_ms.
+func HealingWarmStandbyLatencyMs(val int64) attribute.KeyValue {
+	return HealingWarmStandbyLatencyMsKey.Int64(val)
 }
 
-// HealingRecoveryComplete returns an attribute KeyValue for healing.recovery_complete.
-func HealingRecoveryComplete(val bool) attribute.KeyValue {
-	return HealingRecoveryCompleteKey.Bool(val)
+// HealingWarmStandbyReadiness returns an attribute KeyValue for healing.warm_standby.readiness.
+func HealingWarmStandbyReadiness(val string) attribute.KeyValue {
+	return HealingWarmStandbyReadinessKey.String(val)
+}
+
+// HealingWarmStandbyReadinessValues contains the known enum values for healing.warm_standby.readiness.
+var HealingWarmStandbyReadinessValues = struct {
+	Ready string
+	Warming string
+	Unavailable string
+}{
+	Ready: "ready",
+	Warming: "warming",
+	Unavailable: "unavailable",
+}
+
+// HealingWarmStandbyReplicaCount returns an attribute KeyValue for healing.warm_standby.replica_count.
+func HealingWarmStandbyReplicaCount(val int64) attribute.KeyValue {
+	return HealingWarmStandbyReplicaCountKey.Int64(val)
 }
 

@@ -10,6 +10,9 @@ const (
 	// CanopyAdapterActionKey is the OTel attribute key for canopy.adapter.action.
 	// Action performed by the Canopy adapter.
 	CanopyAdapterActionKey = attribute.Key("canopy.adapter.action")
+	// CanopyAdapterErrorCountKey is the OTel attribute key for canopy.adapter.error_count.
+	// Cumulative error count from the adapter since last reset.
+	CanopyAdapterErrorCountKey = attribute.Key("canopy.adapter.error_count")
 	// CanopyAdapterNameKey is the OTel attribute key for canopy.adapter.name.
 	// Name of the Canopy adapter being invoked.
 	CanopyAdapterNameKey = attribute.Key("canopy.adapter.name")
@@ -28,18 +31,54 @@ const (
 	// CanopyCommandTypeKey is the OTel attribute key for canopy.command.type.
 	// Type of command being dispatched through Canopy.
 	CanopyCommandTypeKey = attribute.Key("canopy.command.type")
+	// CanopyConflictCountKey is the OTel attribute key for canopy.conflict.count.
+	// Number of state conflicts detected during workspace synchronization.
+	CanopyConflictCountKey = attribute.Key("canopy.conflict.count")
+	// CanopyHeartbeatLatencyMsKey is the OTel attribute key for canopy.heartbeat.latency_ms.
+	// Round-trip latency of the heartbeat probe in milliseconds (Armstrong WvdA bounded).
+	CanopyHeartbeatLatencyMsKey = attribute.Key("canopy.heartbeat.latency_ms")
+	// CanopyHeartbeatMissedCountKey is the OTel attribute key for canopy.heartbeat.missed_count.
+	// Consecutive missed heartbeats before this probe was sent (liveness indicator).
+	CanopyHeartbeatMissedCountKey = attribute.Key("canopy.heartbeat.missed_count")
+	// CanopyHeartbeatSequenceNumKey is the OTel attribute key for canopy.heartbeat.sequence_num.
+	// Monotonically increasing sequence number of this heartbeat probe for ordering.
+	CanopyHeartbeatSequenceNumKey = attribute.Key("canopy.heartbeat.sequence_num")
 	// CanopyHeartbeatStatusKey is the OTel attribute key for canopy.heartbeat.status.
 	// Health status reported by the heartbeat.
 	CanopyHeartbeatStatusKey = attribute.Key("canopy.heartbeat.status")
 	// CanopyHeartbeatTierKey is the OTel attribute key for canopy.heartbeat.tier.
 	// Priority tier of the heartbeat dispatch.
 	CanopyHeartbeatTierKey = attribute.Key("canopy.heartbeat.tier")
+	// CanopyOperationTypeKey is the OTel attribute key for canopy.operation.type.
+	// The type of workspace operation being performed.
+	CanopyOperationTypeKey = attribute.Key("canopy.operation.type")
+	// CanopyPeerCountKey is the OTel attribute key for canopy.peer.count.
+	// Number of peer nodes participating in workspace synchronization.
+	CanopyPeerCountKey = attribute.Key("canopy.peer.count")
+	// CanopyProtocolVersionKey is the OTel attribute key for canopy.protocol.version.
+	// The version of the Canopy workspace protocol in use.
+	CanopyProtocolVersionKey = attribute.Key("canopy.protocol.version")
 	// CanopyResponseTimeMsKey is the OTel attribute key for canopy.response_time_ms.
 	// Time in milliseconds for the Canopy workspace to respond to a command.
 	CanopyResponseTimeMsKey = attribute.Key("canopy.response_time_ms")
+	// CanopySessionIdKey is the OTel attribute key for canopy.session.id.
+	// Unique identifier for the Canopy workspace session.
+	CanopySessionIdKey = attribute.Key("canopy.session.id")
 	// CanopySignalModeKey is the OTel attribute key for canopy.signal.mode.
 	// Signal Theory mode of the workspace signal (M in S=(M,G,T,F,W)).
 	CanopySignalModeKey = attribute.Key("canopy.signal.mode")
+	// CanopySnapshotCompressionRatioKey is the OTel attribute key for canopy.snapshot.compression_ratio.
+	// Compression ratio achieved on the snapshot (uncompressed/compressed), >= 1.0.
+	CanopySnapshotCompressionRatioKey = attribute.Key("canopy.snapshot.compression_ratio")
+	// CanopySnapshotIdKey is the OTel attribute key for canopy.snapshot.id.
+	// Unique identifier of the canopy workspace snapshot.
+	CanopySnapshotIdKey = attribute.Key("canopy.snapshot.id")
+	// CanopySnapshotSizeBytesKey is the OTel attribute key for canopy.snapshot.size_bytes.
+	// Size of the serialized snapshot in bytes.
+	CanopySnapshotSizeBytesKey = attribute.Key("canopy.snapshot.size_bytes")
+	// CanopySyncStrategyKey is the OTel attribute key for canopy.sync.strategy.
+	// The synchronization strategy used for workspace state reconciliation.
+	CanopySyncStrategyKey = attribute.Key("canopy.sync.strategy")
 	// CanopyWorkspaceIdKey is the OTel attribute key for canopy.workspace.id.
 	// Unique identifier for the Canopy workspace session.
 	CanopyWorkspaceIdKey = attribute.Key("canopy.workspace.id")
@@ -48,6 +87,11 @@ const (
 // CanopyAdapterAction returns an attribute KeyValue for canopy.adapter.action.
 func CanopyAdapterAction(val string) attribute.KeyValue {
 	return CanopyAdapterActionKey.String(val)
+}
+
+// CanopyAdapterErrorCount returns an attribute KeyValue for canopy.adapter.error_count.
+func CanopyAdapterErrorCount(val int64) attribute.KeyValue {
+	return CanopyAdapterErrorCountKey.Int64(val)
 }
 
 // CanopyAdapterName returns an attribute KeyValue for canopy.adapter.name.
@@ -120,6 +164,26 @@ var CanopyCommandTypeValues = struct {
 	Delegate: "delegate",
 }
 
+// CanopyConflictCount returns an attribute KeyValue for canopy.conflict.count.
+func CanopyConflictCount(val int64) attribute.KeyValue {
+	return CanopyConflictCountKey.Int64(val)
+}
+
+// CanopyHeartbeatLatencyMs returns an attribute KeyValue for canopy.heartbeat.latency_ms.
+func CanopyHeartbeatLatencyMs(val int64) attribute.KeyValue {
+	return CanopyHeartbeatLatencyMsKey.Int64(val)
+}
+
+// CanopyHeartbeatMissedCount returns an attribute KeyValue for canopy.heartbeat.missed_count.
+func CanopyHeartbeatMissedCount(val int64) attribute.KeyValue {
+	return CanopyHeartbeatMissedCountKey.Int64(val)
+}
+
+// CanopyHeartbeatSequenceNum returns an attribute KeyValue for canopy.heartbeat.sequence_num.
+func CanopyHeartbeatSequenceNum(val int64) attribute.KeyValue {
+	return CanopyHeartbeatSequenceNumKey.Int64(val)
+}
+
 // CanopyHeartbeatStatus returns an attribute KeyValue for canopy.heartbeat.status.
 func CanopyHeartbeatStatus(val string) attribute.KeyValue {
 	return CanopyHeartbeatStatusKey.String(val)
@@ -156,9 +220,42 @@ var CanopyHeartbeatTierValues = struct {
 	Low: "low",
 }
 
+// CanopyOperationType returns an attribute KeyValue for canopy.operation.type.
+func CanopyOperationType(val string) attribute.KeyValue {
+	return CanopyOperationTypeKey.String(val)
+}
+
+// CanopyOperationTypeValues contains the known enum values for canopy.operation.type.
+var CanopyOperationTypeValues = struct {
+	Read string
+	Write string
+	Subscribe string
+	Publish string
+}{
+	Read: "read",
+	Write: "write",
+	Subscribe: "subscribe",
+	Publish: "publish",
+}
+
+// CanopyPeerCount returns an attribute KeyValue for canopy.peer.count.
+func CanopyPeerCount(val int64) attribute.KeyValue {
+	return CanopyPeerCountKey.Int64(val)
+}
+
+// CanopyProtocolVersion returns an attribute KeyValue for canopy.protocol.version.
+func CanopyProtocolVersion(val string) attribute.KeyValue {
+	return CanopyProtocolVersionKey.String(val)
+}
+
 // CanopyResponseTimeMs returns an attribute KeyValue for canopy.response_time_ms.
 func CanopyResponseTimeMs(val int64) attribute.KeyValue {
 	return CanopyResponseTimeMsKey.Int64(val)
+}
+
+// CanopySessionId returns an attribute KeyValue for canopy.session.id.
+func CanopySessionId(val string) attribute.KeyValue {
+	return CanopySessionIdKey.String(val)
 }
 
 // CanopySignalMode returns an attribute KeyValue for canopy.signal.mode.
@@ -166,45 +263,41 @@ func CanopySignalMode(val string) attribute.KeyValue {
 	return CanopySignalModeKey.String(val)
 }
 
+// CanopySnapshotCompressionRatio returns an attribute KeyValue for canopy.snapshot.compression_ratio.
+func CanopySnapshotCompressionRatio(val float64) attribute.KeyValue {
+	return CanopySnapshotCompressionRatioKey.Float64(val)
+}
+
+// CanopySnapshotId returns an attribute KeyValue for canopy.snapshot.id.
+func CanopySnapshotId(val string) attribute.KeyValue {
+	return CanopySnapshotIdKey.String(val)
+}
+
+// CanopySnapshotSizeBytes returns an attribute KeyValue for canopy.snapshot.size_bytes.
+func CanopySnapshotSizeBytes(val int64) attribute.KeyValue {
+	return CanopySnapshotSizeBytesKey.Int64(val)
+}
+
+// CanopySyncStrategy returns an attribute KeyValue for canopy.sync.strategy.
+func CanopySyncStrategy(val string) attribute.KeyValue {
+	return CanopySyncStrategyKey.String(val)
+}
+
+// CanopySyncStrategyValues contains the known enum values for canopy.sync.strategy.
+var CanopySyncStrategyValues = struct {
+	Immediate string
+	Batched string
+	Eventual string
+	ConflictFree string
+}{
+	Immediate: "immediate",
+	Batched: "batched",
+	Eventual: "eventual",
+	ConflictFree: "conflict_free",
+}
+
 // CanopyWorkspaceId returns an attribute KeyValue for canopy.workspace.id.
 func CanopyWorkspaceId(val string) attribute.KeyValue {
 	return CanopyWorkspaceIdKey.String(val)
-}
-
-// Wave 9 iteration 10: Canopy heartbeat latency, sequence, missed count, session id
-
-const (
-	// CanopyHeartbeatLatencyMsKey is the OTel attribute key for canopy.heartbeat.latency_ms.
-	// Round-trip latency for a heartbeat probe in milliseconds.
-	CanopyHeartbeatLatencyMsKey = attribute.Key("canopy.heartbeat.latency_ms")
-	// CanopyHeartbeatSequenceNumKey is the OTel attribute key for canopy.heartbeat.sequence_num.
-	// Monotonic sequence number of the heartbeat message.
-	CanopyHeartbeatSequenceNumKey = attribute.Key("canopy.heartbeat.sequence_num")
-	// CanopyHeartbeatMissedCountKey is the OTel attribute key for canopy.heartbeat.missed_count.
-	// Number of consecutive missed heartbeats detected.
-	CanopyHeartbeatMissedCountKey = attribute.Key("canopy.heartbeat.missed_count")
-	// CanopySessionIDKey is the OTel attribute key for canopy.session.id.
-	// Unique identifier for the Canopy session.
-	CanopySessionIDKey = attribute.Key("canopy.session.id")
-)
-
-// CanopyHeartbeatLatencyMs returns an attribute KeyValue for canopy.heartbeat.latency_ms.
-func CanopyHeartbeatLatencyMs(val int) attribute.KeyValue {
-	return CanopyHeartbeatLatencyMsKey.Int(val)
-}
-
-// CanopyHeartbeatSequenceNum returns an attribute KeyValue for canopy.heartbeat.sequence_num.
-func CanopyHeartbeatSequenceNum(val int) attribute.KeyValue {
-	return CanopyHeartbeatSequenceNumKey.Int(val)
-}
-
-// CanopyHeartbeatMissedCount returns an attribute KeyValue for canopy.heartbeat.missed_count.
-func CanopyHeartbeatMissedCount(val int) attribute.KeyValue {
-	return CanopyHeartbeatMissedCountKey.Int(val)
-}
-
-// CanopySessionID returns an attribute KeyValue for canopy.session.id.
-func CanopySessionID(val string) attribute.KeyValue {
-	return CanopySessionIDKey.String(val)
 }
 

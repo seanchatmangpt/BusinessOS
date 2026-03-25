@@ -7,44 +7,424 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Consensus Attributes
 const (
+	// ConsensusBlockHeightKey is the OTel attribute key for consensus.block.height.
+	// Block height (sequence number) of the committed decision in the consensus log.
+	ConsensusBlockHeightKey = attribute.Key("consensus.block.height")
 	// ConsensusBlockHashKey is the OTel attribute key for consensus.block_hash.
 	// Hash of the proposed block in this consensus round.
 	ConsensusBlockHashKey = attribute.Key("consensus.block_hash")
+	// ConsensusByzantineDetectedFaultsKey is the OTel attribute key for consensus.byzantine.detected_faults.
+	// Number of byzantine faults detected in the current epoch.
+	ConsensusByzantineDetectedFaultsKey = attribute.Key("consensus.byzantine.detected_faults")
+	// ConsensusByzantineQuorumAdjustmentsKey is the OTel attribute key for consensus.byzantine.quorum_adjustments.
+	// Number of quorum size adjustments made during byzantine recovery.
+	ConsensusByzantineQuorumAdjustmentsKey = attribute.Key("consensus.byzantine.quorum_adjustments")
+	// ConsensusByzantineRecoveryRoundKey is the OTel attribute key for consensus.byzantine.recovery_round.
+	// Round number at which byzantine fault recovery was initiated.
+	ConsensusByzantineRecoveryRoundKey = attribute.Key("consensus.byzantine.recovery_round")
+	// ConsensusByzantineFaultsKey is the OTel attribute key for consensus.byzantine_faults.
+	// Number of Byzantine (malicious/faulty) nodes detected in the current consensus view.
+	ConsensusByzantineFaultsKey = attribute.Key("consensus.byzantine_faults")
+	// ConsensusDecisionValueKey is the OTel attribute key for consensus.decision.value.
+	// Hash or compact representation of the decided value (for audit/tracing purposes).
+	ConsensusDecisionValueKey = attribute.Key("consensus.decision.value")
+	// ConsensusEpochDurationMsKey is the OTel attribute key for consensus.epoch.duration_ms.
+	// Duration of the consensus epoch in milliseconds.
+	ConsensusEpochDurationMsKey = attribute.Key("consensus.epoch.duration_ms")
+	// ConsensusEpochFinalizationRoundKey is the OTel attribute key for consensus.epoch.finalization.round.
+	// The consensus round number at which the epoch was finalized.
+	ConsensusEpochFinalizationRoundKey = attribute.Key("consensus.epoch.finalization.round")
+	// ConsensusEpochFinalizationSignatureCountKey is the OTel attribute key for consensus.epoch.finalization.signature_count.
+	// Number of validator signatures collected for epoch finalization proof.
+	ConsensusEpochFinalizationSignatureCountKey = attribute.Key("consensus.epoch.finalization.signature_count")
+	// ConsensusEpochIdKey is the OTel attribute key for consensus.epoch.id.
+	// Monotonically increasing epoch identifier for the consensus protocol.
+	ConsensusEpochIdKey = attribute.Key("consensus.epoch.id")
+	// ConsensusEpochKeyRotationIdKey is the OTel attribute key for consensus.epoch.key_rotation_id.
+	// Unique identifier for the key rotation event within a consensus epoch.
+	ConsensusEpochKeyRotationIdKey = attribute.Key("consensus.epoch.key_rotation_id")
+	// ConsensusEpochKeyRotationMsKey is the OTel attribute key for consensus.epoch.key_rotation_ms.
+	// Duration of the key rotation operation in milliseconds.
+	ConsensusEpochKeyRotationMsKey = attribute.Key("consensus.epoch.key_rotation_ms")
+	// ConsensusEpochKeyRotationReasonKey is the OTel attribute key for consensus.epoch.key_rotation_reason.
+	// Reason that triggered the epoch key rotation.
+	ConsensusEpochKeyRotationReasonKey = attribute.Key("consensus.epoch.key_rotation_reason")
+	// ConsensusEpochLeaderChangesKey is the OTel attribute key for consensus.epoch.leader_changes.
+	// Number of leader changes that occurred during this epoch.
+	ConsensusEpochLeaderChangesKey = attribute.Key("consensus.epoch.leader_changes")
+	// ConsensusEpochQuorumSnapshotHashKey is the OTel attribute key for consensus.epoch.quorum_snapshot_hash.
+	// Hash of the quorum membership set for integrity verification.
+	ConsensusEpochQuorumSnapshotHashKey = attribute.Key("consensus.epoch.quorum_snapshot_hash")
+	// ConsensusEpochQuorumSnapshotRoundKey is the OTel attribute key for consensus.epoch.quorum_snapshot_round.
+	// Round number at which the quorum snapshot was taken.
+	ConsensusEpochQuorumSnapshotRoundKey = attribute.Key("consensus.epoch.quorum_snapshot_round")
+	// ConsensusEpochQuorumSnapshotSizeKey is the OTel attribute key for consensus.epoch.quorum_snapshot_size.
+	// Number of nodes in the quorum at snapshot time.
+	ConsensusEpochQuorumSnapshotSizeKey = attribute.Key("consensus.epoch.quorum_snapshot_size")
+	// ConsensusEpochStartRoundKey is the OTel attribute key for consensus.epoch.start_round.
+	// Round number at which this epoch began.
+	ConsensusEpochStartRoundKey = attribute.Key("consensus.epoch.start_round")
+	// ConsensusEpochTransitionFromEpochKey is the OTel attribute key for consensus.epoch.transition.from_epoch.
+	// The epoch number transitioning from.
+	ConsensusEpochTransitionFromEpochKey = attribute.Key("consensus.epoch.transition.from_epoch")
+	// ConsensusEpochTransitionToEpochKey is the OTel attribute key for consensus.epoch.transition.to_epoch.
+	// The epoch number transitioning to.
+	ConsensusEpochTransitionToEpochKey = attribute.Key("consensus.epoch.transition.to_epoch")
+	// ConsensusEpochTransitionTriggerKey is the OTel attribute key for consensus.epoch.transition.trigger.
+	// Trigger that initiated the epoch transition.
+	ConsensusEpochTransitionTriggerKey = attribute.Key("consensus.epoch.transition.trigger")
+	// ConsensusFailureCountKey is the OTel attribute key for consensus.failure.count.
+	// Number of Byzantine failures detected in the current view.
+	ConsensusFailureCountKey = attribute.Key("consensus.failure.count")
+	// ConsensusForkDepthKey is the OTel attribute key for consensus.fork.depth.
+	// Depth of the detected fork — number of diverged blocks.
+	ConsensusForkDepthKey = attribute.Key("consensus.fork.depth")
+	// ConsensusForkDetectedKey is the OTel attribute key for consensus.fork.detected.
+	// Whether a fork was detected in the consensus chain.
+	ConsensusForkDetectedKey = attribute.Key("consensus.fork.detected")
+	// ConsensusForkResolutionStrategyKey is the OTel attribute key for consensus.fork.resolution_strategy.
+	// Strategy used to resolve the detected fork.
+	ConsensusForkResolutionStrategyKey = attribute.Key("consensus.fork.resolution_strategy")
 	// ConsensusLatencyMsKey is the OTel attribute key for consensus.latency_ms.
 	// Latency of the consensus round in milliseconds.
 	ConsensusLatencyMsKey = attribute.Key("consensus.latency_ms")
 	// ConsensusLeaderIdKey is the OTel attribute key for consensus.leader.id.
 	// The node ID of the current consensus leader.
 	ConsensusLeaderIdKey = attribute.Key("consensus.leader.id")
+	// ConsensusLeaderRotationCountKey is the OTel attribute key for consensus.leader.rotation_count.
+	// Number of leader rotations since consensus started.
+	ConsensusLeaderRotationCountKey = attribute.Key("consensus.leader.rotation_count")
+	// ConsensusLeaderScoreKey is the OTel attribute key for consensus.leader.score.
+	// Leader selection score used in the rotation algorithm [0.0, 1.0].
+	ConsensusLeaderScoreKey = attribute.Key("consensus.leader.score")
+	// ConsensusLeaderTenureMsKey is the OTel attribute key for consensus.leader.tenure_ms.
+	// Duration of the current leader's tenure in milliseconds.
+	ConsensusLeaderTenureMsKey = attribute.Key("consensus.leader.tenure_ms")
+	// ConsensusLeaderIdKey is the OTel attribute key for consensus.leader_id.
+	// ID of the leader node for this consensus view.
+	ConsensusLeaderIdKey = attribute.Key("consensus.leader_id")
+	// ConsensusLivenessProofRoundsKey is the OTel attribute key for consensus.liveness.proof_rounds.
+	// Number of consecutive rounds completed to prove liveness of the protocol.
+	ConsensusLivenessProofRoundsKey = attribute.Key("consensus.liveness.proof_rounds")
+	// ConsensusLivenessTimeoutRatioKey is the OTel attribute key for consensus.liveness.timeout_ratio.
+	// Ratio of elapsed time to view timeout — approaching 1.0 means view change imminent.
+	ConsensusLivenessTimeoutRatioKey = attribute.Key("consensus.liveness.timeout_ratio")
+	// ConsensusNetworkDiameterHopsKey is the OTel attribute key for consensus.network.diameter_hops.
+	// Network diameter in hops — the longest shortest path between any two nodes.
+	ConsensusNetworkDiameterHopsKey = attribute.Key("consensus.network.diameter_hops")
+	// ConsensusNetworkNodeDegreeKey is the OTel attribute key for consensus.network.node_degree.
+	// Average node degree (connections per node) in the consensus network topology.
+	ConsensusNetworkNodeDegreeKey = attribute.Key("consensus.network.node_degree")
+	// ConsensusNetworkPartitionCountKey is the OTel attribute key for consensus.network.partition_count.
+	// Number of network partitions detected in the consensus cluster.
+	ConsensusNetworkPartitionCountKey = attribute.Key("consensus.network.partition_count")
+	// ConsensusNetworkPartitionDetectedKey is the OTel attribute key for consensus.network.partition_detected.
+	// Whether a network partition has been detected affecting consensus.
+	ConsensusNetworkPartitionDetectedKey = attribute.Key("consensus.network.partition_detected")
+	// ConsensusNetworkRecoveryDurationMsKey is the OTel attribute key for consensus.network.recovery.duration_ms.
+	// Time taken to recover network connectivity in milliseconds.
+	ConsensusNetworkRecoveryDurationMsKey = attribute.Key("consensus.network.recovery.duration_ms")
+	// ConsensusNetworkRecoveryNodesRejoinedKey is the OTel attribute key for consensus.network.recovery.nodes_rejoined.
+	// Number of nodes that rejoined the consensus cluster during recovery.
+	ConsensusNetworkRecoveryNodesRejoinedKey = attribute.Key("consensus.network.recovery.nodes_rejoined")
+	// ConsensusNetworkRecoveryRoundsMissedKey is the OTel attribute key for consensus.network.recovery.rounds_missed.
+	// Number of consensus rounds missed during network outage.
+	ConsensusNetworkRecoveryRoundsMissedKey = attribute.Key("consensus.network.recovery.rounds_missed")
+	// ConsensusNetworkRecoveryStrategyKey is the OTel attribute key for consensus.network.recovery.strategy.
+	// Strategy used to recover consensus network connectivity.
+	ConsensusNetworkRecoveryStrategyKey = attribute.Key("consensus.network.recovery.strategy")
+	// ConsensusNetworkRecoveryMsKey is the OTel attribute key for consensus.network.recovery_ms.
+	// Time in milliseconds for the network to recover from a partition event.
+	ConsensusNetworkRecoveryMsKey = attribute.Key("consensus.network.recovery_ms")
+	// ConsensusNetworkTopologyTypeKey is the OTel attribute key for consensus.network.topology_type.
+	// The topology type of the consensus network.
+	ConsensusNetworkTopologyTypeKey = attribute.Key("consensus.network.topology_type")
 	// ConsensusNodeIdKey is the OTel attribute key for consensus.node_id.
 	// Identifier of the consensus node.
 	ConsensusNodeIdKey = attribute.Key("consensus.node_id")
+	// ConsensusPartitionDetectedKey is the OTel attribute key for consensus.partition.detected.
+	// Whether a network partition was detected in the consensus cluster.
+	ConsensusPartitionDetectedKey = attribute.Key("consensus.partition.detected")
+	// ConsensusPartitionHealStrategyKey is the OTel attribute key for consensus.partition.heal_strategy.
+	// The strategy used to heal the consensus state after partition recovery.
+	ConsensusPartitionHealStrategyKey = attribute.Key("consensus.partition.heal_strategy")
+	// ConsensusPartitionIsolationMsKey is the OTel attribute key for consensus.partition.isolation_ms.
+	// Duration (ms) for which the partition was isolated before healing began.
+	ConsensusPartitionIsolationMsKey = attribute.Key("consensus.partition.isolation_ms")
+	// ConsensusPartitionRecoveryMsKey is the OTel attribute key for consensus.partition.recovery_ms.
+	// Time in milliseconds to recover from the network partition.
+	ConsensusPartitionRecoveryMsKey = attribute.Key("consensus.partition.recovery_ms")
+	// ConsensusPartitionSizeKey is the OTel attribute key for consensus.partition.size.
+	// Number of nodes in the detected partition.
+	ConsensusPartitionSizeKey = attribute.Key("consensus.partition.size")
+	// ConsensusPartitionStrategyKey is the OTel attribute key for consensus.partition.strategy.
+	// Strategy used to resolve the network partition.
+	ConsensusPartitionStrategyKey = attribute.Key("consensus.partition.strategy")
 	// ConsensusPhaseKey is the OTel attribute key for consensus.phase.
 	// The current phase of the HotStuff BFT consensus protocol.
 	ConsensusPhaseKey = attribute.Key("consensus.phase")
+	// ConsensusQuorumAdmittedCountKey is the OTel attribute key for consensus.quorum.admitted_count.
+	// Number of new replicas admitted to the quorum during this growth operation.
+	ConsensusQuorumAdmittedCountKey = attribute.Key("consensus.quorum.admitted_count")
+	// ConsensusQuorumCurrentSizeKey is the OTel attribute key for consensus.quorum.current_size.
+	// Current quorum size before the growth operation.
+	ConsensusQuorumCurrentSizeKey = attribute.Key("consensus.quorum.current_size")
+	// ConsensusQuorumGrowthRateKey is the OTel attribute key for consensus.quorum.growth_rate.
+	// Rate of quorum size growth per epoch, as a fraction of current quorum size.
+	ConsensusQuorumGrowthRateKey = attribute.Key("consensus.quorum.growth_rate")
+	// ConsensusQuorumHealthKey is the OTel attribute key for consensus.quorum.health.
+	// Health status of the quorum — based on how many replicas are reachable relative to quorum threshold.
+	ConsensusQuorumHealthKey = attribute.Key("consensus.quorum.health")
+	// ConsensusQuorumShrinkNewSizeKey is the OTel attribute key for consensus.quorum.shrink.new_size.
+	// New quorum size after the shrink operation completes.
+	ConsensusQuorumShrinkNewSizeKey = attribute.Key("consensus.quorum.shrink.new_size")
+	// ConsensusQuorumShrinkReasonKey is the OTel attribute key for consensus.quorum.shrink.reason.
+	// The reason for shrinking the consensus quorum.
+	ConsensusQuorumShrinkReasonKey = attribute.Key("consensus.quorum.shrink.reason")
+	// ConsensusQuorumShrinkRemovedCountKey is the OTel attribute key for consensus.quorum.shrink.removed_count.
+	// Number of nodes removed from the quorum in this shrink operation.
+	ConsensusQuorumShrinkRemovedCountKey = attribute.Key("consensus.quorum.shrink.removed_count")
+	// ConsensusQuorumShrinkSafetyMarginKey is the OTel attribute key for consensus.quorum.shrink.safety_margin.
+	// Fault tolerance margin remaining after shrink, as fraction [0.0, 1.0].
+	ConsensusQuorumShrinkSafetyMarginKey = attribute.Key("consensus.quorum.shrink.safety_margin")
+	// ConsensusQuorumTargetSizeKey is the OTel attribute key for consensus.quorum.target_size.
+	// Target quorum size after growth operation completes.
+	ConsensusQuorumTargetSizeKey = attribute.Key("consensus.quorum.target_size")
 	// ConsensusQuorumSizeKey is the OTel attribute key for consensus.quorum_size.
 	// Number of votes required for quorum (typically 2f+1 for f Byzantine faults).
 	ConsensusQuorumSizeKey = attribute.Key("consensus.quorum_size")
+	// ConsensusReplicaCountKey is the OTel attribute key for consensus.replica.count.
+	// Total number of replicas participating in the consensus protocol.
+	ConsensusReplicaCountKey = attribute.Key("consensus.replica.count")
+	// ConsensusReplicaLagMsKey is the OTel attribute key for consensus.replica.lag_ms.
+	// Replication lag in milliseconds — how far behind the slowest replica is.
+	ConsensusReplicaLagMsKey = attribute.Key("consensus.replica.lag_ms")
 	// ConsensusRoundNumKey is the OTel attribute key for consensus.round_num.
 	// The round number within the BFT consensus protocol.
 	ConsensusRoundNumKey = attribute.Key("consensus.round_num")
 	// ConsensusRoundTypeKey is the OTel attribute key for consensus.round_type.
 	// Phase of the BFT consensus round.
 	ConsensusRoundTypeKey = attribute.Key("consensus.round_type")
+	// ConsensusSafetyCheckIntervalMsKey is the OTel attribute key for consensus.safety.check_interval_ms.
+	// Interval between consecutive safety checks in milliseconds.
+	ConsensusSafetyCheckIntervalMsKey = attribute.Key("consensus.safety.check_interval_ms")
+	// ConsensusSafetyQuorumRatioKey is the OTel attribute key for consensus.safety.quorum_ratio.
+	// Achieved safety quorum ratio during the consensus round, range [0.0, 1.0].
+	ConsensusSafetyQuorumRatioKey = attribute.Key("consensus.safety.quorum_ratio")
+	// ConsensusSafetyThresholdKey is the OTel attribute key for consensus.safety.threshold.
+	// Minimum fraction of replicas required for a safe consensus decision [0.0, 1.0]. Typical: 0.67 (2/3).
+	ConsensusSafetyThresholdKey = attribute.Key("consensus.safety.threshold")
+	// ConsensusSafetyViolationCountKey is the OTel attribute key for consensus.safety.violation_count.
+	// Number of safety violations detected in the current consensus epoch.
+	ConsensusSafetyViolationCountKey = attribute.Key("consensus.safety.violation_count")
+	// ConsensusSignatureCountKey is the OTel attribute key for consensus.signature_count.
+	// Number of valid cryptographic signatures collected in this round.
+	ConsensusSignatureCountKey = attribute.Key("consensus.signature_count")
+	// ConsensusThresholdAdaptationRateKey is the OTel attribute key for consensus.threshold.adaptation_rate.
+	// Rate at which the consensus threshold is adapted per round, range [0.0, 1.0].
+	ConsensusThresholdAdaptationRateKey = attribute.Key("consensus.threshold.adaptation_rate")
+	// ConsensusThresholdCurrentKey is the OTel attribute key for consensus.threshold.current.
+	// Current consensus threshold value (fraction of replicas required for quorum), range (0.5, 1.0].
+	ConsensusThresholdCurrentKey = attribute.Key("consensus.threshold.current")
+	// ConsensusThresholdFaultToleranceTargetKey is the OTel attribute key for consensus.threshold.fault_tolerance_target.
+	// Target fault tolerance ratio (max fraction of Byzantine faults tolerated), range [0.0, 0.5).
+	ConsensusThresholdFaultToleranceTargetKey = attribute.Key("consensus.threshold.fault_tolerance_target")
+	// ConsensusThresholdNayCountKey is the OTel attribute key for consensus.threshold.nay_count.
+	// Number of negative votes cast.
+	ConsensusThresholdNayCountKey = attribute.Key("consensus.threshold.nay_count")
+	// ConsensusThresholdVoteTypeKey is the OTel attribute key for consensus.threshold.vote_type.
+	// The voting threshold type required for consensus.
+	ConsensusThresholdVoteTypeKey = attribute.Key("consensus.threshold.vote_type")
+	// ConsensusThresholdYeaCountKey is the OTel attribute key for consensus.threshold.yea_count.
+	// Number of affirmative votes cast.
+	ConsensusThresholdYeaCountKey = attribute.Key("consensus.threshold.yea_count")
 	// ConsensusTimeoutMsKey is the OTel attribute key for consensus.timeout_ms.
 	// Timeout in milliseconds for the current consensus round.
 	ConsensusTimeoutMsKey = attribute.Key("consensus.timeout_ms")
+	// ConsensusViewDurationMsKey is the OTel attribute key for consensus.view.duration_ms.
+	// Duration of the current consensus view in milliseconds.
+	ConsensusViewDurationMsKey = attribute.Key("consensus.view.duration_ms")
+	// ConsensusViewChangeBackoffMsKey is the OTel attribute key for consensus.view_change.backoff_ms.
+	// Exponential backoff delay applied before attempting view change.
+	ConsensusViewChangeBackoffMsKey = attribute.Key("consensus.view_change.backoff_ms")
+	// ConsensusViewChangeDurationMsKey is the OTel attribute key for consensus.view_change.duration_ms.
+	// Duration of the view change protocol in milliseconds.
+	ConsensusViewChangeDurationMsKey = attribute.Key("consensus.view_change.duration_ms")
+	// ConsensusViewChangeReasonKey is the OTel attribute key for consensus.view_change.reason.
+	// Reason that triggered the view change.
+	ConsensusViewChangeReasonKey = attribute.Key("consensus.view_change.reason")
 	// ConsensusViewNumberKey is the OTel attribute key for consensus.view_number.
 	// The current view number in the HotStuff protocol (monotonically increasing).
 	ConsensusViewNumberKey = attribute.Key("consensus.view_number")
+	// ConsensusViewTimeoutMsKey is the OTel attribute key for consensus.view_timeout_ms.
+	// Timeout in milliseconds for the current view (Armstrong fault tolerance budget).
+	ConsensusViewTimeoutMsKey = attribute.Key("consensus.view_timeout_ms")
 	// ConsensusVoteCountKey is the OTel attribute key for consensus.vote_count.
 	// Current number of votes collected for this round.
 	ConsensusVoteCountKey = attribute.Key("consensus.vote_count")
 )
 
+// ConsensusBlockHeight returns an attribute KeyValue for consensus.block.height.
+func ConsensusBlockHeight(val int64) attribute.KeyValue {
+	return ConsensusBlockHeightKey.Int64(val)
+}
+
 // ConsensusBlockHash returns an attribute KeyValue for consensus.block_hash.
 func ConsensusBlockHash(val string) attribute.KeyValue {
 	return ConsensusBlockHashKey.String(val)
+}
+
+// ConsensusByzantineDetectedFaults returns an attribute KeyValue for consensus.byzantine.detected_faults.
+func ConsensusByzantineDetectedFaults(val int64) attribute.KeyValue {
+	return ConsensusByzantineDetectedFaultsKey.Int64(val)
+}
+
+// ConsensusByzantineQuorumAdjustments returns an attribute KeyValue for consensus.byzantine.quorum_adjustments.
+func ConsensusByzantineQuorumAdjustments(val int64) attribute.KeyValue {
+	return ConsensusByzantineQuorumAdjustmentsKey.Int64(val)
+}
+
+// ConsensusByzantineRecoveryRound returns an attribute KeyValue for consensus.byzantine.recovery_round.
+func ConsensusByzantineRecoveryRound(val int64) attribute.KeyValue {
+	return ConsensusByzantineRecoveryRoundKey.Int64(val)
+}
+
+// ConsensusByzantineFaults returns an attribute KeyValue for consensus.byzantine_faults.
+func ConsensusByzantineFaults(val int64) attribute.KeyValue {
+	return ConsensusByzantineFaultsKey.Int64(val)
+}
+
+// ConsensusDecisionValue returns an attribute KeyValue for consensus.decision.value.
+func ConsensusDecisionValue(val string) attribute.KeyValue {
+	return ConsensusDecisionValueKey.String(val)
+}
+
+// ConsensusEpochDurationMs returns an attribute KeyValue for consensus.epoch.duration_ms.
+func ConsensusEpochDurationMs(val int64) attribute.KeyValue {
+	return ConsensusEpochDurationMsKey.Int64(val)
+}
+
+// ConsensusEpochFinalizationRound returns an attribute KeyValue for consensus.epoch.finalization.round.
+func ConsensusEpochFinalizationRound(val int64) attribute.KeyValue {
+	return ConsensusEpochFinalizationRoundKey.Int64(val)
+}
+
+// ConsensusEpochFinalizationSignatureCount returns an attribute KeyValue for consensus.epoch.finalization.signature_count.
+func ConsensusEpochFinalizationSignatureCount(val int64) attribute.KeyValue {
+	return ConsensusEpochFinalizationSignatureCountKey.Int64(val)
+}
+
+// ConsensusEpochId returns an attribute KeyValue for consensus.epoch.id.
+func ConsensusEpochId(val int64) attribute.KeyValue {
+	return ConsensusEpochIdKey.Int64(val)
+}
+
+// ConsensusEpochKeyRotationId returns an attribute KeyValue for consensus.epoch.key_rotation_id.
+func ConsensusEpochKeyRotationId(val string) attribute.KeyValue {
+	return ConsensusEpochKeyRotationIdKey.String(val)
+}
+
+// ConsensusEpochKeyRotationMs returns an attribute KeyValue for consensus.epoch.key_rotation_ms.
+func ConsensusEpochKeyRotationMs(val int64) attribute.KeyValue {
+	return ConsensusEpochKeyRotationMsKey.Int64(val)
+}
+
+// ConsensusEpochKeyRotationReason returns an attribute KeyValue for consensus.epoch.key_rotation_reason.
+func ConsensusEpochKeyRotationReason(val string) attribute.KeyValue {
+	return ConsensusEpochKeyRotationReasonKey.String(val)
+}
+
+// ConsensusEpochKeyRotationReasonValues contains the known enum values for consensus.epoch.key_rotation_reason.
+var ConsensusEpochKeyRotationReasonValues = struct {
+	Scheduled string
+	Compromise string
+	MembershipChange string
+}{
+	Scheduled: "scheduled",
+	Compromise: "compromise",
+	MembershipChange: "membership_change",
+}
+
+// ConsensusEpochLeaderChanges returns an attribute KeyValue for consensus.epoch.leader_changes.
+func ConsensusEpochLeaderChanges(val int64) attribute.KeyValue {
+	return ConsensusEpochLeaderChangesKey.Int64(val)
+}
+
+// ConsensusEpochQuorumSnapshotHash returns an attribute KeyValue for consensus.epoch.quorum_snapshot_hash.
+func ConsensusEpochQuorumSnapshotHash(val string) attribute.KeyValue {
+	return ConsensusEpochQuorumSnapshotHashKey.String(val)
+}
+
+// ConsensusEpochQuorumSnapshotRound returns an attribute KeyValue for consensus.epoch.quorum_snapshot_round.
+func ConsensusEpochQuorumSnapshotRound(val int64) attribute.KeyValue {
+	return ConsensusEpochQuorumSnapshotRoundKey.Int64(val)
+}
+
+// ConsensusEpochQuorumSnapshotSize returns an attribute KeyValue for consensus.epoch.quorum_snapshot_size.
+func ConsensusEpochQuorumSnapshotSize(val int64) attribute.KeyValue {
+	return ConsensusEpochQuorumSnapshotSizeKey.Int64(val)
+}
+
+// ConsensusEpochStartRound returns an attribute KeyValue for consensus.epoch.start_round.
+func ConsensusEpochStartRound(val int64) attribute.KeyValue {
+	return ConsensusEpochStartRoundKey.Int64(val)
+}
+
+// ConsensusEpochTransitionFromEpoch returns an attribute KeyValue for consensus.epoch.transition.from_epoch.
+func ConsensusEpochTransitionFromEpoch(val int64) attribute.KeyValue {
+	return ConsensusEpochTransitionFromEpochKey.Int64(val)
+}
+
+// ConsensusEpochTransitionToEpoch returns an attribute KeyValue for consensus.epoch.transition.to_epoch.
+func ConsensusEpochTransitionToEpoch(val int64) attribute.KeyValue {
+	return ConsensusEpochTransitionToEpochKey.Int64(val)
+}
+
+// ConsensusEpochTransitionTrigger returns an attribute KeyValue for consensus.epoch.transition.trigger.
+func ConsensusEpochTransitionTrigger(val string) attribute.KeyValue {
+	return ConsensusEpochTransitionTriggerKey.String(val)
+}
+
+// ConsensusEpochTransitionTriggerValues contains the known enum values for consensus.epoch.transition.trigger.
+var ConsensusEpochTransitionTriggerValues = struct {
+	Timeout string
+	QuorumChange string
+	KeyRotation string
+}{
+	Timeout: "timeout",
+	QuorumChange: "quorum_change",
+	KeyRotation: "key_rotation",
+}
+
+// ConsensusFailureCount returns an attribute KeyValue for consensus.failure.count.
+func ConsensusFailureCount(val int64) attribute.KeyValue {
+	return ConsensusFailureCountKey.Int64(val)
+}
+
+// ConsensusForkDepth returns an attribute KeyValue for consensus.fork.depth.
+func ConsensusForkDepth(val int64) attribute.KeyValue {
+	return ConsensusForkDepthKey.Int64(val)
+}
+
+// ConsensusForkDetected returns an attribute KeyValue for consensus.fork.detected.
+func ConsensusForkDetected(val bool) attribute.KeyValue {
+	return ConsensusForkDetectedKey.Bool(val)
+}
+
+// ConsensusForkResolutionStrategy returns an attribute KeyValue for consensus.fork.resolution_strategy.
+func ConsensusForkResolutionStrategy(val string) attribute.KeyValue {
+	return ConsensusForkResolutionStrategyKey.String(val)
+}
+
+// ConsensusForkResolutionStrategyValues contains the known enum values for consensus.fork.resolution_strategy.
+var ConsensusForkResolutionStrategyValues = struct {
+	LongestChain string
+	HighestVote string
+	EpochBased string
+}{
+	LongestChain: "longest_chain",
+	HighestVote: "highest_vote",
+	EpochBased: "epoch_based",
 }
 
 // ConsensusLatencyMs returns an attribute KeyValue for consensus.latency_ms.
@@ -57,9 +437,167 @@ func ConsensusLeaderId(val string) attribute.KeyValue {
 	return ConsensusLeaderIdKey.String(val)
 }
 
+// ConsensusLeaderRotationCount returns an attribute KeyValue for consensus.leader.rotation_count.
+func ConsensusLeaderRotationCount(val int64) attribute.KeyValue {
+	return ConsensusLeaderRotationCountKey.Int64(val)
+}
+
+// ConsensusLeaderScore returns an attribute KeyValue for consensus.leader.score.
+func ConsensusLeaderScore(val float64) attribute.KeyValue {
+	return ConsensusLeaderScoreKey.Float64(val)
+}
+
+// ConsensusLeaderTenureMs returns an attribute KeyValue for consensus.leader.tenure_ms.
+func ConsensusLeaderTenureMs(val int64) attribute.KeyValue {
+	return ConsensusLeaderTenureMsKey.Int64(val)
+}
+
+// ConsensusLeaderId returns an attribute KeyValue for consensus.leader_id.
+func ConsensusLeaderId(val string) attribute.KeyValue {
+	return ConsensusLeaderIdKey.String(val)
+}
+
+// ConsensusLivenessProofRounds returns an attribute KeyValue for consensus.liveness.proof_rounds.
+func ConsensusLivenessProofRounds(val int64) attribute.KeyValue {
+	return ConsensusLivenessProofRoundsKey.Int64(val)
+}
+
+// ConsensusLivenessTimeoutRatio returns an attribute KeyValue for consensus.liveness.timeout_ratio.
+func ConsensusLivenessTimeoutRatio(val float64) attribute.KeyValue {
+	return ConsensusLivenessTimeoutRatioKey.Float64(val)
+}
+
+// ConsensusNetworkDiameterHops returns an attribute KeyValue for consensus.network.diameter_hops.
+func ConsensusNetworkDiameterHops(val int64) attribute.KeyValue {
+	return ConsensusNetworkDiameterHopsKey.Int64(val)
+}
+
+// ConsensusNetworkNodeDegree returns an attribute KeyValue for consensus.network.node_degree.
+func ConsensusNetworkNodeDegree(val float64) attribute.KeyValue {
+	return ConsensusNetworkNodeDegreeKey.Float64(val)
+}
+
+// ConsensusNetworkPartitionCount returns an attribute KeyValue for consensus.network.partition_count.
+func ConsensusNetworkPartitionCount(val int64) attribute.KeyValue {
+	return ConsensusNetworkPartitionCountKey.Int64(val)
+}
+
+// ConsensusNetworkPartitionDetected returns an attribute KeyValue for consensus.network.partition_detected.
+func ConsensusNetworkPartitionDetected(val bool) attribute.KeyValue {
+	return ConsensusNetworkPartitionDetectedKey.Bool(val)
+}
+
+// ConsensusNetworkRecoveryDurationMs returns an attribute KeyValue for consensus.network.recovery.duration_ms.
+func ConsensusNetworkRecoveryDurationMs(val int64) attribute.KeyValue {
+	return ConsensusNetworkRecoveryDurationMsKey.Int64(val)
+}
+
+// ConsensusNetworkRecoveryNodesRejoined returns an attribute KeyValue for consensus.network.recovery.nodes_rejoined.
+func ConsensusNetworkRecoveryNodesRejoined(val int64) attribute.KeyValue {
+	return ConsensusNetworkRecoveryNodesRejoinedKey.Int64(val)
+}
+
+// ConsensusNetworkRecoveryRoundsMissed returns an attribute KeyValue for consensus.network.recovery.rounds_missed.
+func ConsensusNetworkRecoveryRoundsMissed(val int64) attribute.KeyValue {
+	return ConsensusNetworkRecoveryRoundsMissedKey.Int64(val)
+}
+
+// ConsensusNetworkRecoveryStrategy returns an attribute KeyValue for consensus.network.recovery.strategy.
+func ConsensusNetworkRecoveryStrategy(val string) attribute.KeyValue {
+	return ConsensusNetworkRecoveryStrategyKey.String(val)
+}
+
+// ConsensusNetworkRecoveryStrategyValues contains the known enum values for consensus.network.recovery.strategy.
+var ConsensusNetworkRecoveryStrategyValues = struct {
+	Reconnect string
+	Rejoin string
+	Bootstrap string
+}{
+	Reconnect: "reconnect",
+	Rejoin: "rejoin",
+	Bootstrap: "bootstrap",
+}
+
+// ConsensusNetworkRecoveryMs returns an attribute KeyValue for consensus.network.recovery_ms.
+func ConsensusNetworkRecoveryMs(val int64) attribute.KeyValue {
+	return ConsensusNetworkRecoveryMsKey.Int64(val)
+}
+
+// ConsensusNetworkTopologyType returns an attribute KeyValue for consensus.network.topology_type.
+func ConsensusNetworkTopologyType(val string) attribute.KeyValue {
+	return ConsensusNetworkTopologyTypeKey.String(val)
+}
+
+// ConsensusNetworkTopologyTypeValues contains the known enum values for consensus.network.topology_type.
+var ConsensusNetworkTopologyTypeValues = struct {
+	Ring string
+	Mesh string
+	Star string
+	Bus string
+}{
+	Ring: "ring",
+	Mesh: "mesh",
+	Star: "star",
+	Bus: "bus",
+}
+
 // ConsensusNodeId returns an attribute KeyValue for consensus.node_id.
 func ConsensusNodeId(val string) attribute.KeyValue {
 	return ConsensusNodeIdKey.String(val)
+}
+
+// ConsensusPartitionDetected returns an attribute KeyValue for consensus.partition.detected.
+func ConsensusPartitionDetected(val bool) attribute.KeyValue {
+	return ConsensusPartitionDetectedKey.Bool(val)
+}
+
+// ConsensusPartitionHealStrategy returns an attribute KeyValue for consensus.partition.heal_strategy.
+func ConsensusPartitionHealStrategy(val string) attribute.KeyValue {
+	return ConsensusPartitionHealStrategyKey.String(val)
+}
+
+// ConsensusPartitionHealStrategyValues contains the known enum values for consensus.partition.heal_strategy.
+var ConsensusPartitionHealStrategyValues = struct {
+	MajorityWins string
+	EpochFence string
+	LeaderArbitration string
+	Rollback string
+}{
+	MajorityWins: "majority_wins",
+	EpochFence: "epoch_fence",
+	LeaderArbitration: "leader_arbitration",
+	Rollback: "rollback",
+}
+
+// ConsensusPartitionIsolationMs returns an attribute KeyValue for consensus.partition.isolation_ms.
+func ConsensusPartitionIsolationMs(val int64) attribute.KeyValue {
+	return ConsensusPartitionIsolationMsKey.Int64(val)
+}
+
+// ConsensusPartitionRecoveryMs returns an attribute KeyValue for consensus.partition.recovery_ms.
+func ConsensusPartitionRecoveryMs(val int64) attribute.KeyValue {
+	return ConsensusPartitionRecoveryMsKey.Int64(val)
+}
+
+// ConsensusPartitionSize returns an attribute KeyValue for consensus.partition.size.
+func ConsensusPartitionSize(val int64) attribute.KeyValue {
+	return ConsensusPartitionSizeKey.Int64(val)
+}
+
+// ConsensusPartitionStrategy returns an attribute KeyValue for consensus.partition.strategy.
+func ConsensusPartitionStrategy(val string) attribute.KeyValue {
+	return ConsensusPartitionStrategyKey.String(val)
+}
+
+// ConsensusPartitionStrategyValues contains the known enum values for consensus.partition.strategy.
+var ConsensusPartitionStrategyValues = struct {
+	MajorityWins string
+	EpochBased string
+	Manual string
+}{
+	MajorityWins: "majority_wins",
+	EpochBased: "epoch_based",
+	Manual: "manual",
 }
 
 // ConsensusPhase returns an attribute KeyValue for consensus.phase.
@@ -82,9 +620,88 @@ var ConsensusPhaseValues = struct {
 	ViewChange: "view_change",
 }
 
+// ConsensusQuorumAdmittedCount returns an attribute KeyValue for consensus.quorum.admitted_count.
+func ConsensusQuorumAdmittedCount(val int64) attribute.KeyValue {
+	return ConsensusQuorumAdmittedCountKey.Int64(val)
+}
+
+// ConsensusQuorumCurrentSize returns an attribute KeyValue for consensus.quorum.current_size.
+func ConsensusQuorumCurrentSize(val int64) attribute.KeyValue {
+	return ConsensusQuorumCurrentSizeKey.Int64(val)
+}
+
+// ConsensusQuorumGrowthRate returns an attribute KeyValue for consensus.quorum.growth_rate.
+func ConsensusQuorumGrowthRate(val float64) attribute.KeyValue {
+	return ConsensusQuorumGrowthRateKey.Float64(val)
+}
+
+// ConsensusQuorumHealth returns an attribute KeyValue for consensus.quorum.health.
+func ConsensusQuorumHealth(val string) attribute.KeyValue {
+	return ConsensusQuorumHealthKey.String(val)
+}
+
+// ConsensusQuorumHealthValues contains the known enum values for consensus.quorum.health.
+var ConsensusQuorumHealthValues = struct {
+	Healthy string
+	Degraded string
+	Critical string
+}{
+	Healthy: "healthy",
+	Degraded: "degraded",
+	Critical: "critical",
+}
+
+// ConsensusQuorumShrinkNewSize returns an attribute KeyValue for consensus.quorum.shrink.new_size.
+func ConsensusQuorumShrinkNewSize(val int64) attribute.KeyValue {
+	return ConsensusQuorumShrinkNewSizeKey.Int64(val)
+}
+
+// ConsensusQuorumShrinkReason returns an attribute KeyValue for consensus.quorum.shrink.reason.
+func ConsensusQuorumShrinkReason(val string) attribute.KeyValue {
+	return ConsensusQuorumShrinkReasonKey.String(val)
+}
+
+// ConsensusQuorumShrinkReasonValues contains the known enum values for consensus.quorum.shrink.reason.
+var ConsensusQuorumShrinkReasonValues = struct {
+	NodeFailure string
+	ConfigChange string
+	Rebalance string
+	Decommission string
+}{
+	NodeFailure: "node_failure",
+	ConfigChange: "config_change",
+	Rebalance: "rebalance",
+	Decommission: "decommission",
+}
+
+// ConsensusQuorumShrinkRemovedCount returns an attribute KeyValue for consensus.quorum.shrink.removed_count.
+func ConsensusQuorumShrinkRemovedCount(val int64) attribute.KeyValue {
+	return ConsensusQuorumShrinkRemovedCountKey.Int64(val)
+}
+
+// ConsensusQuorumShrinkSafetyMargin returns an attribute KeyValue for consensus.quorum.shrink.safety_margin.
+func ConsensusQuorumShrinkSafetyMargin(val float64) attribute.KeyValue {
+	return ConsensusQuorumShrinkSafetyMarginKey.Float64(val)
+}
+
+// ConsensusQuorumTargetSize returns an attribute KeyValue for consensus.quorum.target_size.
+func ConsensusQuorumTargetSize(val int64) attribute.KeyValue {
+	return ConsensusQuorumTargetSizeKey.Int64(val)
+}
+
 // ConsensusQuorumSize returns an attribute KeyValue for consensus.quorum_size.
 func ConsensusQuorumSize(val int64) attribute.KeyValue {
 	return ConsensusQuorumSizeKey.Int64(val)
+}
+
+// ConsensusReplicaCount returns an attribute KeyValue for consensus.replica.count.
+func ConsensusReplicaCount(val int64) attribute.KeyValue {
+	return ConsensusReplicaCountKey.Int64(val)
+}
+
+// ConsensusReplicaLagMs returns an attribute KeyValue for consensus.replica.lag_ms.
+func ConsensusReplicaLagMs(val int64) attribute.KeyValue {
+	return ConsensusReplicaLagMsKey.Int64(val)
 }
 
 // ConsensusRoundNum returns an attribute KeyValue for consensus.round_num.
@@ -110,9 +727,110 @@ var ConsensusRoundTypeValues = struct {
 	Learn: "learn",
 }
 
+// ConsensusSafetyCheckIntervalMs returns an attribute KeyValue for consensus.safety.check_interval_ms.
+func ConsensusSafetyCheckIntervalMs(val int64) attribute.KeyValue {
+	return ConsensusSafetyCheckIntervalMsKey.Int64(val)
+}
+
+// ConsensusSafetyQuorumRatio returns an attribute KeyValue for consensus.safety.quorum_ratio.
+func ConsensusSafetyQuorumRatio(val float64) attribute.KeyValue {
+	return ConsensusSafetyQuorumRatioKey.Float64(val)
+}
+
+// ConsensusSafetyThreshold returns an attribute KeyValue for consensus.safety.threshold.
+func ConsensusSafetyThreshold(val float64) attribute.KeyValue {
+	return ConsensusSafetyThresholdKey.Float64(val)
+}
+
+// ConsensusSafetyViolationCount returns an attribute KeyValue for consensus.safety.violation_count.
+func ConsensusSafetyViolationCount(val int64) attribute.KeyValue {
+	return ConsensusSafetyViolationCountKey.Int64(val)
+}
+
+// ConsensusSignatureCount returns an attribute KeyValue for consensus.signature_count.
+func ConsensusSignatureCount(val int64) attribute.KeyValue {
+	return ConsensusSignatureCountKey.Int64(val)
+}
+
+// ConsensusThresholdAdaptationRate returns an attribute KeyValue for consensus.threshold.adaptation_rate.
+func ConsensusThresholdAdaptationRate(val float64) attribute.KeyValue {
+	return ConsensusThresholdAdaptationRateKey.Float64(val)
+}
+
+// ConsensusThresholdCurrent returns an attribute KeyValue for consensus.threshold.current.
+func ConsensusThresholdCurrent(val float64) attribute.KeyValue {
+	return ConsensusThresholdCurrentKey.Float64(val)
+}
+
+// ConsensusThresholdFaultToleranceTarget returns an attribute KeyValue for consensus.threshold.fault_tolerance_target.
+func ConsensusThresholdFaultToleranceTarget(val float64) attribute.KeyValue {
+	return ConsensusThresholdFaultToleranceTargetKey.Float64(val)
+}
+
+// ConsensusThresholdNayCount returns an attribute KeyValue for consensus.threshold.nay_count.
+func ConsensusThresholdNayCount(val int64) attribute.KeyValue {
+	return ConsensusThresholdNayCountKey.Int64(val)
+}
+
+// ConsensusThresholdVoteType returns an attribute KeyValue for consensus.threshold.vote_type.
+func ConsensusThresholdVoteType(val string) attribute.KeyValue {
+	return ConsensusThresholdVoteTypeKey.String(val)
+}
+
+// ConsensusThresholdVoteTypeValues contains the known enum values for consensus.threshold.vote_type.
+var ConsensusThresholdVoteTypeValues = struct {
+	Supermajority string
+	Simple string
+	Unanimous string
+}{
+	Supermajority: "supermajority",
+	Simple: "simple",
+	Unanimous: "unanimous",
+}
+
+// ConsensusThresholdYeaCount returns an attribute KeyValue for consensus.threshold.yea_count.
+func ConsensusThresholdYeaCount(val int64) attribute.KeyValue {
+	return ConsensusThresholdYeaCountKey.Int64(val)
+}
+
 // ConsensusTimeoutMs returns an attribute KeyValue for consensus.timeout_ms.
 func ConsensusTimeoutMs(val int64) attribute.KeyValue {
 	return ConsensusTimeoutMsKey.Int64(val)
+}
+
+// ConsensusViewDurationMs returns an attribute KeyValue for consensus.view.duration_ms.
+func ConsensusViewDurationMs(val int64) attribute.KeyValue {
+	return ConsensusViewDurationMsKey.Int64(val)
+}
+
+// ConsensusViewChangeBackoffMs returns an attribute KeyValue for consensus.view_change.backoff_ms.
+func ConsensusViewChangeBackoffMs(val int64) attribute.KeyValue {
+	return ConsensusViewChangeBackoffMsKey.Int64(val)
+}
+
+// ConsensusViewChangeDurationMs returns an attribute KeyValue for consensus.view_change.duration_ms.
+func ConsensusViewChangeDurationMs(val int64) attribute.KeyValue {
+	return ConsensusViewChangeDurationMsKey.Int64(val)
+}
+
+// ConsensusViewChangeReason returns an attribute KeyValue for consensus.view_change.reason.
+func ConsensusViewChangeReason(val string) attribute.KeyValue {
+	return ConsensusViewChangeReasonKey.String(val)
+}
+
+// ConsensusViewChangeReasonValues contains the known enum values for consensus.view_change.reason.
+var ConsensusViewChangeReasonValues = struct {
+	Timeout string
+	LeaderFailure string
+	NetworkPartition string
+	Manual string
+	Equivocation string
+}{
+	Timeout: "timeout",
+	LeaderFailure: "leader_failure",
+	NetworkPartition: "network_partition",
+	Manual: "manual",
+	Equivocation: "equivocation",
 }
 
 // ConsensusViewNumber returns an attribute KeyValue for consensus.view_number.
@@ -120,37 +838,13 @@ func ConsensusViewNumber(val int64) attribute.KeyValue {
 	return ConsensusViewNumberKey.Int64(val)
 }
 
+// ConsensusViewTimeoutMs returns an attribute KeyValue for consensus.view_timeout_ms.
+func ConsensusViewTimeoutMs(val int64) attribute.KeyValue {
+	return ConsensusViewTimeoutMsKey.Int64(val)
+}
+
 // ConsensusVoteCount returns an attribute KeyValue for consensus.vote_count.
 func ConsensusVoteCount(val int64) attribute.KeyValue {
 	return ConsensusVoteCountKey.Int64(val)
-}
-
-// Wave 9 Iteration 8: BFT Liveness attributes
-
-const (
-	// ConsensusLeaderIDKey is the OTel attribute key for consensus.leader_id.
-	// The node ID of the current consensus leader (iter8 flat key).
-	ConsensusLeaderIDKey = attribute.Key("consensus.leader_id")
-	// ConsensusViewTimeoutMsKey is the OTel attribute key for consensus.view_timeout_ms.
-	// Timeout in milliseconds for the current consensus view.
-	ConsensusViewTimeoutMsKey = attribute.Key("consensus.view_timeout_ms")
-	// ConsensusSignatureCountKey is the OTel attribute key for consensus.signature_count.
-	// Number of cryptographic signatures collected in this round.
-	ConsensusSignatureCountKey = attribute.Key("consensus.signature_count")
-)
-
-// ConsensusLeaderID returns an attribute KeyValue for consensus.leader_id.
-func ConsensusLeaderID(val string) attribute.KeyValue {
-	return ConsensusLeaderIDKey.String(val)
-}
-
-// ConsensusViewTimeoutMs returns an attribute KeyValue for consensus.view_timeout_ms.
-func ConsensusViewTimeoutMs(val int) attribute.KeyValue {
-	return ConsensusViewTimeoutMsKey.Int(val)
-}
-
-// ConsensusSignatureCount returns an attribute KeyValue for consensus.signature_count.
-func ConsensusSignatureCount(val int) attribute.KeyValue {
-	return ConsensusSignatureCountKey.Int(val)
 }
 

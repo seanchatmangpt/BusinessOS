@@ -10,15 +10,123 @@ const (
 	// ProcessMiningActivityKey is the OTel attribute key for process.mining.activity.
 	// Name of the process activity (event class) from the XES log.
 	ProcessMiningActivityKey = attribute.Key("process.mining.activity")
+	// ProcessMiningActivityFrequencyKey is the OTel attribute key for process.mining.activity.frequency.
+	// Relative frequency of this activity in the process log [0.0, 1.0].
+	ProcessMiningActivityFrequencyKey = attribute.Key("process.mining.activity.frequency")
+	// ProcessMiningActivityWaitingMsKey is the OTel attribute key for process.mining.activity.waiting_ms.
+	// Waiting time before an activity was executed in milliseconds.
+	ProcessMiningActivityWaitingMsKey = attribute.Key("process.mining.activity.waiting_ms")
 	// ProcessMiningAlgorithmKey is the OTel attribute key for process.mining.algorithm.
 	// Process discovery algorithm used.
 	ProcessMiningAlgorithmKey = attribute.Key("process.mining.algorithm")
+	// ProcessMiningAlignmentCostKey is the OTel attribute key for process.mining.alignment.cost.
+	// Total alignment cost for token-based or alignment-based conformance checking. Lower is better.
+	ProcessMiningAlignmentCostKey = attribute.Key("process.mining.alignment.cost")
+	// ProcessMiningAlignmentFitnessDeltaKey is the OTel attribute key for process.mining.alignment.fitness_delta.
+	// Change in fitness score compared to the previous alignment computation.
+	ProcessMiningAlignmentFitnessDeltaKey = attribute.Key("process.mining.alignment.fitness_delta")
+	// ProcessMiningAlignmentMoveCountKey is the OTel attribute key for process.mining.alignment.move_count.
+	// Total number of moves (log moves + model moves) in the computed alignment.
+	ProcessMiningAlignmentMoveCountKey = attribute.Key("process.mining.alignment.move_count")
+	// ProcessMiningAlignmentOptimalPathLengthKey is the OTel attribute key for process.mining.alignment.optimal_path_length.
+	// Length of the optimal synchronization path found by the alignment algorithm.
+	ProcessMiningAlignmentOptimalPathLengthKey = attribute.Key("process.mining.alignment.optimal_path_length")
+	// ProcessMiningAnomalyScoreKey is the OTel attribute key for process.mining.anomaly.score.
+	// Anomaly score for the detected process deviation [0.0, 1.0].
+	ProcessMiningAnomalyScoreKey = attribute.Key("process.mining.anomaly.score")
+	// ProcessMiningBottleneckActivityKey is the OTel attribute key for process.mining.bottleneck.activity.
+	// Name of the activity identified as a bottleneck in the process model.
+	ProcessMiningBottleneckActivityKey = attribute.Key("process.mining.bottleneck.activity")
+	// ProcessMiningBottleneckImpactMsKey is the OTel attribute key for process.mining.bottleneck.impact_ms.
+	// Estimated total time impact in milliseconds caused by this bottleneck across all cases.
+	ProcessMiningBottleneckImpactMsKey = attribute.Key("process.mining.bottleneck.impact_ms")
+	// ProcessMiningBottleneckRankKey is the OTel attribute key for process.mining.bottleneck.rank.
+	// Ordinal rank of the bottleneck among all detected bottlenecks (1 = most severe).
+	ProcessMiningBottleneckRankKey = attribute.Key("process.mining.bottleneck.rank")
+	// ProcessMiningBottleneckScoreKey is the OTel attribute key for process.mining.bottleneck.score.
+	// Composite bottleneck severity score for an activity, range [0.0, 1.0]. Higher = more severe.
+	ProcessMiningBottleneckScoreKey = attribute.Key("process.mining.bottleneck.score")
+	// ProcessMiningBottleneckWaitMsKey is the OTel attribute key for process.mining.bottleneck.wait_ms.
+	// Average waiting time in milliseconds at the identified bottleneck activity.
+	ProcessMiningBottleneckWaitMsKey = attribute.Key("process.mining.bottleneck.wait_ms")
+	// ProcessMiningCaseThroughputMsKey is the OTel attribute key for process.mining.case.throughput_ms.
+	// Total throughput time for a case in milliseconds from first to last event.
+	ProcessMiningCaseThroughputMsKey = attribute.Key("process.mining.case.throughput_ms")
+	// ProcessMiningCaseVariantIdKey is the OTel attribute key for process.mining.case.variant_id.
+	// Identifier for the process variant (unique execution path) of this case.
+	ProcessMiningCaseVariantIdKey = attribute.Key("process.mining.case.variant_id")
 	// ProcessMiningCaseCountKey is the OTel attribute key for process.mining.case_count.
 	// Number of process cases (traces) in the event log being analyzed.
 	ProcessMiningCaseCountKey = attribute.Key("process.mining.case_count")
+	// ProcessMiningCaseIdKey is the OTel attribute key for process.mining.case_id.
+	// Identifier of the process case (instance) in the event log.
+	ProcessMiningCaseIdKey = attribute.Key("process.mining.case_id")
+	// ProcessMiningClusterAlgorithmKey is the OTel attribute key for process.mining.cluster.algorithm.
+	// Algorithm used to cluster process mining cases.
+	ProcessMiningClusterAlgorithmKey = attribute.Key("process.mining.cluster.algorithm")
+	// ProcessMiningClusterCaseCountKey is the OTel attribute key for process.mining.cluster.case_count.
+	// Number of cases assigned to this cluster.
+	ProcessMiningClusterCaseCountKey = attribute.Key("process.mining.cluster.case_count")
+	// ProcessMiningClusterIdKey is the OTel attribute key for process.mining.cluster.id.
+	// Identifier for the case cluster produced by the clustering algorithm.
+	ProcessMiningClusterIdKey = attribute.Key("process.mining.cluster.id")
+	// ProcessMiningClusterSilhouetteScoreKey is the OTel attribute key for process.mining.cluster.silhouette_score.
+	// Silhouette score measuring cluster quality, range [-1.0, 1.0].
+	ProcessMiningClusterSilhouetteScoreKey = attribute.Key("process.mining.cluster.silhouette_score")
+	// ProcessMiningComplexityMetricKey is the OTel attribute key for process.mining.complexity.metric.
+	// The complexity metric applied to the process model.
+	ProcessMiningComplexityMetricKey = attribute.Key("process.mining.complexity.metric")
+	// ProcessMiningComplexityScoreKey is the OTel attribute key for process.mining.complexity.score.
+	// Complexity score of the discovered process model.
+	ProcessMiningComplexityScoreKey = attribute.Key("process.mining.complexity.score")
+	// ProcessMiningComplexityVariantCountKey is the OTel attribute key for process.mining.complexity.variant_count.
+	// Number of distinct process variants contributing to complexity.
+	ProcessMiningComplexityVariantCountKey = attribute.Key("process.mining.complexity.variant_count")
+	// ProcessMiningConformanceCaseThresholdKey is the OTel attribute key for process.mining.conformance.case_threshold.
+	// Minimum conformance threshold per case — cases below this are flagged as violations.
+	ProcessMiningConformanceCaseThresholdKey = attribute.Key("process.mining.conformance.case_threshold")
+	// ProcessMiningConformanceDeviationCountKey is the OTel attribute key for process.mining.conformance.deviation_count.
+	// Number of deviating traces in the conformance checking result.
+	ProcessMiningConformanceDeviationCountKey = attribute.Key("process.mining.conformance.deviation_count")
 	// ProcessMiningConformanceDeviationTypeKey is the OTel attribute key for process.mining.conformance.deviation_type.
 	// Type of conformance deviation detected during trace alignment.
 	ProcessMiningConformanceDeviationTypeKey = attribute.Key("process.mining.conformance.deviation_type")
+	// ProcessMiningConformanceRepairCostMsKey is the OTel attribute key for process.mining.conformance.repair_cost_ms.
+	// Computation time for the repair operation in milliseconds.
+	ProcessMiningConformanceRepairCostMsKey = attribute.Key("process.mining.conformance.repair_cost_ms")
+	// ProcessMiningConformanceRepairCountKey is the OTel attribute key for process.mining.conformance.repair_count.
+	// Number of repair operations applied to achieve conformance.
+	ProcessMiningConformanceRepairCountKey = attribute.Key("process.mining.conformance.repair_count")
+	// ProcessMiningConformanceRepairStepsKey is the OTel attribute key for process.mining.conformance.repair_steps.
+	// Number of repair moves needed to align non-conforming traces.
+	ProcessMiningConformanceRepairStepsKey = attribute.Key("process.mining.conformance.repair_steps")
+	// ProcessMiningConformanceRepairTypeKey is the OTel attribute key for process.mining.conformance.repair_type.
+	// Type of conformance repair operation applied to the trace.
+	ProcessMiningConformanceRepairTypeKey = attribute.Key("process.mining.conformance.repair_type")
+	// ProcessMiningConformanceRepairedFitnessKey is the OTel attribute key for process.mining.conformance.repaired_fitness.
+	// Fitness score after repair operations, range [0.0, 1.0].
+	ProcessMiningConformanceRepairedFitnessKey = attribute.Key("process.mining.conformance.repaired_fitness")
+	// ProcessMiningConformanceScoreKey is the OTel attribute key for process.mining.conformance.score.
+	// Overall conformance fitness score measuring how well event traces follow the process model. Range [0.0, 1.0].
+	ProcessMiningConformanceScoreKey = attribute.Key("process.mining.conformance.score")
+	// ProcessMiningConformanceViolationCountKey is the OTel attribute key for process.mining.conformance.violation_count.
+	// Number of cases violating the conformance threshold.
+	ProcessMiningConformanceViolationCountKey = attribute.Key("process.mining.conformance.violation_count")
+	// ProcessMiningConformanceVisualizationTypeKey is the OTel attribute key for process.mining.conformance.visualization_type.
+	// The visualization technique used for conformance checking results.
+	ProcessMiningConformanceVisualizationTypeKey = attribute.Key("process.mining.conformance.visualization_type")
+	// ProcessMiningDecisionConfidenceKey is the OTel attribute key for process.mining.decision.confidence.
+	// Confidence score for the decision outcome prediction [0.0, 1.0].
+	ProcessMiningDecisionConfidenceKey = attribute.Key("process.mining.decision.confidence")
+	// ProcessMiningDecisionOutcomeKey is the OTel attribute key for process.mining.decision.outcome.
+	// The outcome chosen at the decision point.
+	ProcessMiningDecisionOutcomeKey = attribute.Key("process.mining.decision.outcome")
+	// ProcessMiningDecisionPointIdKey is the OTel attribute key for process.mining.decision.point_id.
+	// Identifier of the decision point in the process model.
+	ProcessMiningDecisionPointIdKey = attribute.Key("process.mining.decision.point_id")
+	// ProcessMiningDecisionRuleCountKey is the OTel attribute key for process.mining.decision.rule_count.
+	// Number of decision rules evaluated at the decision point.
+	ProcessMiningDecisionRuleCountKey = attribute.Key("process.mining.decision.rule_count")
 	// ProcessMiningDeviationTypeKey is the OTel attribute key for process.mining.deviation.type.
 	// Type of conformance deviation found during trace alignment.
 	ProcessMiningDeviationTypeKey = attribute.Key("process.mining.deviation.type")
@@ -28,6 +136,60 @@ const (
 	// ProcessMiningDfgNodeCountKey is the OTel attribute key for process.mining.dfg.node_count.
 	// Number of nodes (activities) in the Directly-Follows Graph.
 	ProcessMiningDfgNodeCountKey = attribute.Key("process.mining.dfg.node_count")
+	// ProcessMiningDriftCorrectionDeltaKey is the OTel attribute key for process.mining.drift.correction.delta.
+	// The magnitude of drift correction applied (change in fitness/conformance score).
+	ProcessMiningDriftCorrectionDeltaKey = attribute.Key("process.mining.drift.correction.delta")
+	// ProcessMiningDriftCorrectionDurationMsKey is the OTel attribute key for process.mining.drift.correction.duration_ms.
+	// Time taken (ms) to apply the drift correction.
+	ProcessMiningDriftCorrectionDurationMsKey = attribute.Key("process.mining.drift.correction.duration_ms")
+	// ProcessMiningDriftCorrectionTypeKey is the OTel attribute key for process.mining.drift.correction_type.
+	// The type of correction applied to address the detected process drift.
+	ProcessMiningDriftCorrectionTypeKey = attribute.Key("process.mining.drift.correction_type")
+	// ProcessMiningDriftDetectedKey is the OTel attribute key for process.mining.drift.detected.
+	// Whether concept drift was detected in the current event window.
+	ProcessMiningDriftDetectedKey = attribute.Key("process.mining.drift.detected")
+	// ProcessMiningDriftSeverityKey is the OTel attribute key for process.mining.drift.severity.
+	// Severity classification of the detected concept drift.
+	ProcessMiningDriftSeverityKey = attribute.Key("process.mining.drift.severity")
+	// ProcessMiningEnhancementBaseModelIdKey is the OTel attribute key for process.mining.enhancement.base_model_id.
+	// Identifier of the base process model being enhanced.
+	ProcessMiningEnhancementBaseModelIdKey = attribute.Key("process.mining.enhancement.base_model_id")
+	// ProcessMiningEnhancementCoveragePctKey is the OTel attribute key for process.mining.enhancement.coverage_pct.
+	// Percentage of cases covered by the enhanced model, range [0.0, 100.0].
+	ProcessMiningEnhancementCoveragePctKey = attribute.Key("process.mining.enhancement.coverage_pct")
+	// ProcessMiningEnhancementDurationMsKey is the OTel attribute key for process.mining.enhancement.duration_ms.
+	// Duration in milliseconds of the model enhancement operation.
+	ProcessMiningEnhancementDurationMsKey = attribute.Key("process.mining.enhancement.duration_ms")
+	// ProcessMiningEnhancementImprovementRateKey is the OTel attribute key for process.mining.enhancement.improvement_rate.
+	// Relative improvement rate achieved by the enhancement, range [0.0, 1.0].
+	ProcessMiningEnhancementImprovementRateKey = attribute.Key("process.mining.enhancement.improvement_rate")
+	// ProcessMiningEnhancementModelIdKey is the OTel attribute key for process.mining.enhancement.model_id.
+	// Unique identifier of the base process model being enhanced.
+	ProcessMiningEnhancementModelIdKey = attribute.Key("process.mining.enhancement.model_id")
+	// ProcessMiningEnhancementPerspectiveKey is the OTel attribute key for process.mining.enhancement.perspective.
+	// The perspective from which the process model is being enhanced.
+	ProcessMiningEnhancementPerspectiveKey = attribute.Key("process.mining.enhancement.perspective")
+	// ProcessMiningEnhancementQualityScoreKey is the OTel attribute key for process.mining.enhancement.quality_score.
+	// Quality score of the enhanced process model, range [0.0, 1.0].
+	ProcessMiningEnhancementQualityScoreKey = attribute.Key("process.mining.enhancement.quality_score")
+	// ProcessMiningEnhancementTypeKey is the OTel attribute key for process.mining.enhancement.type.
+	// Type of process model enhancement applied — augmenting a discovered model with additional perspectives.
+	ProcessMiningEnhancementTypeKey = attribute.Key("process.mining.enhancement.type")
+	// ProcessMiningEventAbstractionInputCountKey is the OTel attribute key for process.mining.event.abstraction_input_count.
+	// Number of raw events before abstraction.
+	ProcessMiningEventAbstractionInputCountKey = attribute.Key("process.mining.event.abstraction_input_count")
+	// ProcessMiningEventAbstractionLevelKey is the OTel attribute key for process.mining.event.abstraction_level.
+	// Abstraction level of the process mining event.
+	ProcessMiningEventAbstractionLevelKey = attribute.Key("process.mining.event.abstraction_level")
+	// ProcessMiningEventAbstractionMappingRulesKey is the OTel attribute key for process.mining.event.abstraction_mapping_rules.
+	// Number of mapping rules applied during event abstraction.
+	ProcessMiningEventAbstractionMappingRulesKey = attribute.Key("process.mining.event.abstraction_mapping_rules")
+	// ProcessMiningEventAbstractionOutputCountKey is the OTel attribute key for process.mining.event.abstraction_output_count.
+	// Number of abstracted events after abstraction.
+	ProcessMiningEventAbstractionOutputCountKey = attribute.Key("process.mining.event.abstraction_output_count")
+	// ProcessMiningEventSequenceNumberKey is the OTel attribute key for process.mining.event.sequence_number.
+	// Sequence number of this event within the trace (0-indexed).
+	ProcessMiningEventSequenceNumberKey = attribute.Key("process.mining.event.sequence_number")
 	// ProcessMiningEventCountKey is the OTel attribute key for process.mining.event_count.
 	// Number of events in the process trace.
 	ProcessMiningEventCountKey = attribute.Key("process.mining.event_count")
@@ -37,18 +199,153 @@ const (
 	// ProcessMiningFitnessThresholdKey is the OTel attribute key for process.mining.fitness_threshold.
 	// Minimum fitness score threshold for conformance acceptance [0.0, 1.0].
 	ProcessMiningFitnessThresholdKey = attribute.Key("process.mining.fitness_threshold")
+	// ProcessMiningHierarchyChildCountKey is the OTel attribute key for process.mining.hierarchy.child_count.
+	// Number of child processes under this node in the hierarchy.
+	ProcessMiningHierarchyChildCountKey = attribute.Key("process.mining.hierarchy.child_count")
+	// ProcessMiningHierarchyDepthKey is the OTel attribute key for process.mining.hierarchy.depth.
+	// Depth of the process in the process hierarchy tree.
+	ProcessMiningHierarchyDepthKey = attribute.Key("process.mining.hierarchy.depth")
+	// ProcessMiningHierarchyParentProcessIdKey is the OTel attribute key for process.mining.hierarchy.parent_process_id.
+	// Identifier of the parent process in the hierarchy.
+	ProcessMiningHierarchyParentProcessIdKey = attribute.Key("process.mining.hierarchy.parent_process_id")
+	// ProcessMiningLogIdKey is the OTel attribute key for process.mining.log.id.
+	// Unique identifier of the event log being processed.
+	ProcessMiningLogIdKey = attribute.Key("process.mining.log.id")
+	// ProcessMiningLogSizeKey is the OTel attribute key for process.mining.log.size.
+	// Number of event log entries (events) processed in this mining operation.
+	ProcessMiningLogSizeKey = attribute.Key("process.mining.log.size")
+	// ProcessMiningLogStartTimestampKey is the OTel attribute key for process.mining.log.start_timestamp.
+	// ISO 8601 timestamp of the earliest event in the event log.
+	ProcessMiningLogStartTimestampKey = attribute.Key("process.mining.log.start_timestamp")
 	// ProcessMiningLogPathKey is the OTel attribute key for process.mining.log_path.
 	// File path or identifier of the XES event log being mined.
 	ProcessMiningLogPathKey = attribute.Key("process.mining.log_path")
+	// ProcessMiningModelTypeKey is the OTel attribute key for process.mining.model.type.
+	// The type of process model used for conformance checking.
+	ProcessMiningModelTypeKey = attribute.Key("process.mining.model.type")
+	// ProcessMiningModelTypeKey is the OTel attribute key for process.mining.model_type.
+	// The type of process model used for conformance checking.
+	ProcessMiningModelTypeKey = attribute.Key("process.mining.model_type")
 	// ProcessMiningPetriNetPlaceCountKey is the OTel attribute key for process.mining.petri_net.place_count.
 	// Number of places in the discovered Petri net model.
 	ProcessMiningPetriNetPlaceCountKey = attribute.Key("process.mining.petri_net.place_count")
 	// ProcessMiningPetriNetTransitionCountKey is the OTel attribute key for process.mining.petri_net.transition_count.
 	// Number of transitions in the discovered Petri net model.
 	ProcessMiningPetriNetTransitionCountKey = attribute.Key("process.mining.petri_net.transition_count")
+	// ProcessMiningPredictionConfidenceKey is the OTel attribute key for process.mining.prediction.confidence.
+	// Confidence score of the process outcome prediction, range [0.0, 1.0].
+	ProcessMiningPredictionConfidenceKey = attribute.Key("process.mining.prediction.confidence")
+	// ProcessMiningPredictionHorizonMsKey is the OTel attribute key for process.mining.prediction.horizon_ms.
+	// Time horizon (ms) for which the process outcome prediction is made.
+	ProcessMiningPredictionHorizonMsKey = attribute.Key("process.mining.prediction.horizon_ms")
+	// ProcessMiningPredictionModelTypeKey is the OTel attribute key for process.mining.prediction.model_type.
+	// The type of predictive model used (e.g., lstm, xgboost, conformance_replay).
+	ProcessMiningPredictionModelTypeKey = attribute.Key("process.mining.prediction.model_type")
+	// ProcessMiningReplayComparisonBaselineFitnessKey is the OTel attribute key for process.mining.replay.comparison.baseline_fitness.
+	// Fitness score of the baseline model [0.0, 1.0].
+	ProcessMiningReplayComparisonBaselineFitnessKey = attribute.Key("process.mining.replay.comparison.baseline_fitness")
+	// ProcessMiningReplayComparisonDeltaKey is the OTel attribute key for process.mining.replay.comparison.delta.
+	// Difference (target - baseline) in fitness scores.
+	ProcessMiningReplayComparisonDeltaKey = attribute.Key("process.mining.replay.comparison.delta")
+	// ProcessMiningReplayComparisonTargetFitnessKey is the OTel attribute key for process.mining.replay.comparison.target_fitness.
+	// Fitness score of the target model [0.0, 1.0].
+	ProcessMiningReplayComparisonTargetFitnessKey = attribute.Key("process.mining.replay.comparison.target_fitness")
+	// ProcessMiningReplayComparisonIdKey is the OTel attribute key for process.mining.replay.comparison_id.
+	// Unique identifier for the replay comparison run.
+	ProcessMiningReplayComparisonIdKey = attribute.Key("process.mining.replay.comparison_id")
+	// ProcessMiningReplayConsumedTokensKey is the OTel attribute key for process.mining.replay.consumed_tokens.
+	// Number of tokens consumed during the complete token replay.
+	ProcessMiningReplayConsumedTokensKey = attribute.Key("process.mining.replay.consumed_tokens")
+	// ProcessMiningReplayEnabledTransitionsKey is the OTel attribute key for process.mining.replay.enabled_transitions.
+	// Number of transitions enabled (fireable) during token replay.
+	ProcessMiningReplayEnabledTransitionsKey = attribute.Key("process.mining.replay.enabled_transitions")
+	// ProcessMiningReplayFitnessKey is the OTel attribute key for process.mining.replay.fitness.
+	// Replay fitness score [0.0, 1.0] measuring how well the log fits the discovered model via token replay.
+	ProcessMiningReplayFitnessKey = attribute.Key("process.mining.replay.fitness")
+	// ProcessMiningReplayGeneralizationKey is the OTel attribute key for process.mining.replay.generalization.
+	// Generalization score — measures how well the model generalizes beyond observed traces [0.0, 1.0].
+	ProcessMiningReplayGeneralizationKey = attribute.Key("process.mining.replay.generalization")
+	// ProcessMiningReplayMissingTokensKey is the OTel attribute key for process.mining.replay.missing_tokens.
+	// Number of missing tokens encountered during token replay conformance checking.
+	ProcessMiningReplayMissingTokensKey = attribute.Key("process.mining.replay.missing_tokens")
+	// ProcessMiningReplayPrecisionKey is the OTel attribute key for process.mining.replay.precision.
+	// Precision score of replay conformance check — measures how much of the model behaviour is in the log [0.0, 1.0].
+	ProcessMiningReplayPrecisionKey = attribute.Key("process.mining.replay.precision")
+	// ProcessMiningReplaySimplicityKey is the OTel attribute key for process.mining.replay.simplicity.
+	// Simplicity score — measures the structural simplicity of the discovered model [0.0, 1.0].
+	ProcessMiningReplaySimplicityKey = attribute.Key("process.mining.replay.simplicity")
+	// ProcessMiningReplayTokenCountKey is the OTel attribute key for process.mining.replay.token_count.
+	// Number of tokens produced and consumed during token replay conformance checking.
+	ProcessMiningReplayTokenCountKey = attribute.Key("process.mining.replay.token_count")
+	// ProcessMiningReplayFitnessKey is the OTel attribute key for process.mining.replay_fitness.
+	// Replay fitness score [0.0, 1.0] measuring how well the log fits the discovered model.
+	ProcessMiningReplayFitnessKey = attribute.Key("process.mining.replay_fitness")
+	// ProcessMiningRootCauseConfidenceKey is the OTel attribute key for process.mining.root_cause.confidence.
+	// Confidence score for the root cause classification [0.0, 1.0].
+	ProcessMiningRootCauseConfidenceKey = attribute.Key("process.mining.root_cause.confidence")
+	// ProcessMiningRootCauseIdKey is the OTel attribute key for process.mining.root_cause.id.
+	// Identifier of the root cause detected in the process anomaly.
+	ProcessMiningRootCauseIdKey = attribute.Key("process.mining.root_cause.id")
+	// ProcessMiningRootCauseTypeKey is the OTel attribute key for process.mining.root_cause.type.
+	// Type classification of the detected root cause.
+	ProcessMiningRootCauseTypeKey = attribute.Key("process.mining.root_cause.type")
+	// ProcessMiningSimulationCasesKey is the OTel attribute key for process.mining.simulation.cases.
+	// Number of process cases (traces) generated in the simulation run.
+	ProcessMiningSimulationCasesKey = attribute.Key("process.mining.simulation.cases")
+	// ProcessMiningSimulationDurationMsKey is the OTel attribute key for process.mining.simulation.duration_ms.
+	// Duration of the simulation run in milliseconds.
+	ProcessMiningSimulationDurationMsKey = attribute.Key("process.mining.simulation.duration_ms")
+	// ProcessMiningSimulationNoiseRateKey is the OTel attribute key for process.mining.simulation.noise_rate.
+	// Fraction of simulated traces that include random noise/deviations, range [0.0, 1.0].
+	ProcessMiningSimulationNoiseRateKey = attribute.Key("process.mining.simulation.noise_rate")
+	// ProcessMiningSocialNetworkCentralityMaxKey is the OTel attribute key for process.mining.social_network.centrality_max.
+	// Maximum betweenness centrality score across all nodes in the social network.
+	ProcessMiningSocialNetworkCentralityMaxKey = attribute.Key("process.mining.social_network.centrality_max")
+	// ProcessMiningSocialNetworkDensityKey is the OTel attribute key for process.mining.social_network.density.
+	// Density of the social network graph derived from the process log, range [0.0, 1.0].
+	ProcessMiningSocialNetworkDensityKey = attribute.Key("process.mining.social_network.density")
+	// ProcessMiningSocialNetworkHandoverCountKey is the OTel attribute key for process.mining.social_network.handover_count.
+	// Number of handover-of-work edges in the social network.
+	ProcessMiningSocialNetworkHandoverCountKey = attribute.Key("process.mining.social_network.handover_count")
+	// ProcessMiningSocialNetworkNodeCountKey is the OTel attribute key for process.mining.social_network.node_count.
+	// Number of nodes (resources/roles) in the social network.
+	ProcessMiningSocialNetworkNodeCountKey = attribute.Key("process.mining.social_network.node_count")
+	// ProcessMiningStreamingEventsPerSecondKey is the OTel attribute key for process.mining.streaming.events_per_second.
+	// Current throughput rate of the streaming process mining engine.
+	ProcessMiningStreamingEventsPerSecondKey = attribute.Key("process.mining.streaming.events_per_second")
+	// ProcessMiningStreamingLagMsKey is the OTel attribute key for process.mining.streaming.lag_ms.
+	// Current lag in milliseconds between event stream and mining output.
+	ProcessMiningStreamingLagMsKey = attribute.Key("process.mining.streaming.lag_ms")
+	// ProcessMiningStreamingWindowSizeKey is the OTel attribute key for process.mining.streaming.window_size.
+	// Sliding window size in number of events for streaming process mining.
+	ProcessMiningStreamingWindowSizeKey = attribute.Key("process.mining.streaming.window_size")
+	// ProcessMiningTemporalDriftMsKey is the OTel attribute key for process.mining.temporal.drift_ms.
+	// Temporal drift detected in the process — deviation from expected timing baseline in milliseconds.
+	ProcessMiningTemporalDriftMsKey = attribute.Key("process.mining.temporal.drift_ms")
+	// ProcessMiningTemporalSeasonalityPeriodMsKey is the OTel attribute key for process.mining.temporal.seasonality_period_ms.
+	// Detected seasonality period in the process temporal pattern in milliseconds.
+	ProcessMiningTemporalSeasonalityPeriodMsKey = attribute.Key("process.mining.temporal.seasonality_period_ms")
+	// ProcessMiningTemporalTrendSlopeKey is the OTel attribute key for process.mining.temporal.trend_slope.
+	// Slope of the temporal trend in the process — positive = accelerating, negative = decelerating.
+	ProcessMiningTemporalTrendSlopeKey = attribute.Key("process.mining.temporal.trend_slope")
+	// ProcessMiningThroughputTimeMsKey is the OTel attribute key for process.mining.throughput_time_ms.
+	// Average throughput time (start to completion) across all trace instances, in milliseconds.
+	ProcessMiningThroughputTimeMsKey = attribute.Key("process.mining.throughput_time_ms")
 	// ProcessMiningTraceIdKey is the OTel attribute key for process.mining.trace_id.
 	// Identifier of the process trace from the XES event log.
 	ProcessMiningTraceIdKey = attribute.Key("process.mining.trace_id")
+	// ProcessMiningVariantDeviationScoreKey is the OTel attribute key for process.mining.variant.deviation_score.
+	// Deviation score from the reference model for this variant, range [0.0, 1.0]. Higher = more deviant.
+	ProcessMiningVariantDeviationScoreKey = attribute.Key("process.mining.variant.deviation_score")
+	// ProcessMiningVariantFrequencyKey is the OTel attribute key for process.mining.variant.frequency.
+	// Relative frequency of this variant in the event log, range [0.0, 1.0].
+	ProcessMiningVariantFrequencyKey = attribute.Key("process.mining.variant.frequency")
+	// ProcessMiningVariantIdKey is the OTel attribute key for process.mining.variant.id.
+	// Unique identifier for a process variant (distinct execution trace pattern).
+	ProcessMiningVariantIdKey = attribute.Key("process.mining.variant.id")
+	// ProcessMiningVariantIsOptimalKey is the OTel attribute key for process.mining.variant.is_optimal.
+	// Whether this variant represents the optimal (most efficient) process path.
+	ProcessMiningVariantIsOptimalKey = attribute.Key("process.mining.variant.is_optimal")
 	// ProcessMiningVariantCountKey is the OTel attribute key for process.mining.variant_count.
 	// Number of unique trace variants in the event log.
 	ProcessMiningVariantCountKey = attribute.Key("process.mining.variant_count")
@@ -57,6 +354,16 @@ const (
 // ProcessMiningActivity returns an attribute KeyValue for process.mining.activity.
 func ProcessMiningActivity(val string) attribute.KeyValue {
 	return ProcessMiningActivityKey.String(val)
+}
+
+// ProcessMiningActivityFrequency returns an attribute KeyValue for process.mining.activity.frequency.
+func ProcessMiningActivityFrequency(val float64) attribute.KeyValue {
+	return ProcessMiningActivityFrequencyKey.Float64(val)
+}
+
+// ProcessMiningActivityWaitingMs returns an attribute KeyValue for process.mining.activity.waiting_ms.
+func ProcessMiningActivityWaitingMs(val int64) attribute.KeyValue {
+	return ProcessMiningActivityWaitingMsKey.Int64(val)
 }
 
 // ProcessMiningAlgorithm returns an attribute KeyValue for process.mining.algorithm.
@@ -79,9 +386,143 @@ var ProcessMiningAlgorithmValues = struct {
 	DirectlyFollows: "directly_follows",
 }
 
+// ProcessMiningAlignmentCost returns an attribute KeyValue for process.mining.alignment.cost.
+func ProcessMiningAlignmentCost(val float64) attribute.KeyValue {
+	return ProcessMiningAlignmentCostKey.Float64(val)
+}
+
+// ProcessMiningAlignmentFitnessDelta returns an attribute KeyValue for process.mining.alignment.fitness_delta.
+func ProcessMiningAlignmentFitnessDelta(val float64) attribute.KeyValue {
+	return ProcessMiningAlignmentFitnessDeltaKey.Float64(val)
+}
+
+// ProcessMiningAlignmentMoveCount returns an attribute KeyValue for process.mining.alignment.move_count.
+func ProcessMiningAlignmentMoveCount(val int64) attribute.KeyValue {
+	return ProcessMiningAlignmentMoveCountKey.Int64(val)
+}
+
+// ProcessMiningAlignmentOptimalPathLength returns an attribute KeyValue for process.mining.alignment.optimal_path_length.
+func ProcessMiningAlignmentOptimalPathLength(val int64) attribute.KeyValue {
+	return ProcessMiningAlignmentOptimalPathLengthKey.Int64(val)
+}
+
+// ProcessMiningAnomalyScore returns an attribute KeyValue for process.mining.anomaly.score.
+func ProcessMiningAnomalyScore(val float64) attribute.KeyValue {
+	return ProcessMiningAnomalyScoreKey.Float64(val)
+}
+
+// ProcessMiningBottleneckActivity returns an attribute KeyValue for process.mining.bottleneck.activity.
+func ProcessMiningBottleneckActivity(val string) attribute.KeyValue {
+	return ProcessMiningBottleneckActivityKey.String(val)
+}
+
+// ProcessMiningBottleneckImpactMs returns an attribute KeyValue for process.mining.bottleneck.impact_ms.
+func ProcessMiningBottleneckImpactMs(val int64) attribute.KeyValue {
+	return ProcessMiningBottleneckImpactMsKey.Int64(val)
+}
+
+// ProcessMiningBottleneckRank returns an attribute KeyValue for process.mining.bottleneck.rank.
+func ProcessMiningBottleneckRank(val int64) attribute.KeyValue {
+	return ProcessMiningBottleneckRankKey.Int64(val)
+}
+
+// ProcessMiningBottleneckScore returns an attribute KeyValue for process.mining.bottleneck.score.
+func ProcessMiningBottleneckScore(val float64) attribute.KeyValue {
+	return ProcessMiningBottleneckScoreKey.Float64(val)
+}
+
+// ProcessMiningBottleneckWaitMs returns an attribute KeyValue for process.mining.bottleneck.wait_ms.
+func ProcessMiningBottleneckWaitMs(val int64) attribute.KeyValue {
+	return ProcessMiningBottleneckWaitMsKey.Int64(val)
+}
+
+// ProcessMiningCaseThroughputMs returns an attribute KeyValue for process.mining.case.throughput_ms.
+func ProcessMiningCaseThroughputMs(val int64) attribute.KeyValue {
+	return ProcessMiningCaseThroughputMsKey.Int64(val)
+}
+
+// ProcessMiningCaseVariantId returns an attribute KeyValue for process.mining.case.variant_id.
+func ProcessMiningCaseVariantId(val string) attribute.KeyValue {
+	return ProcessMiningCaseVariantIdKey.String(val)
+}
+
 // ProcessMiningCaseCount returns an attribute KeyValue for process.mining.case_count.
 func ProcessMiningCaseCount(val int64) attribute.KeyValue {
 	return ProcessMiningCaseCountKey.Int64(val)
+}
+
+// ProcessMiningCaseId returns an attribute KeyValue for process.mining.case_id.
+func ProcessMiningCaseId(val string) attribute.KeyValue {
+	return ProcessMiningCaseIdKey.String(val)
+}
+
+// ProcessMiningClusterAlgorithm returns an attribute KeyValue for process.mining.cluster.algorithm.
+func ProcessMiningClusterAlgorithm(val string) attribute.KeyValue {
+	return ProcessMiningClusterAlgorithmKey.String(val)
+}
+
+// ProcessMiningClusterAlgorithmValues contains the known enum values for process.mining.cluster.algorithm.
+var ProcessMiningClusterAlgorithmValues = struct {
+	Kmeans string
+	Dbscan string
+	Hierarchical string
+	Spectral string
+}{
+	Kmeans: "kmeans",
+	Dbscan: "dbscan",
+	Hierarchical: "hierarchical",
+	Spectral: "spectral",
+}
+
+// ProcessMiningClusterCaseCount returns an attribute KeyValue for process.mining.cluster.case_count.
+func ProcessMiningClusterCaseCount(val int64) attribute.KeyValue {
+	return ProcessMiningClusterCaseCountKey.Int64(val)
+}
+
+// ProcessMiningClusterId returns an attribute KeyValue for process.mining.cluster.id.
+func ProcessMiningClusterId(val string) attribute.KeyValue {
+	return ProcessMiningClusterIdKey.String(val)
+}
+
+// ProcessMiningClusterSilhouetteScore returns an attribute KeyValue for process.mining.cluster.silhouette_score.
+func ProcessMiningClusterSilhouetteScore(val float64) attribute.KeyValue {
+	return ProcessMiningClusterSilhouetteScoreKey.Float64(val)
+}
+
+// ProcessMiningComplexityMetric returns an attribute KeyValue for process.mining.complexity.metric.
+func ProcessMiningComplexityMetric(val string) attribute.KeyValue {
+	return ProcessMiningComplexityMetricKey.String(val)
+}
+
+// ProcessMiningComplexityMetricValues contains the known enum values for process.mining.complexity.metric.
+var ProcessMiningComplexityMetricValues = struct {
+	Cyclomatic string
+	Cognitive string
+	Structural string
+}{
+	Cyclomatic: "cyclomatic",
+	Cognitive: "cognitive",
+	Structural: "structural",
+}
+
+// ProcessMiningComplexityScore returns an attribute KeyValue for process.mining.complexity.score.
+func ProcessMiningComplexityScore(val float64) attribute.KeyValue {
+	return ProcessMiningComplexityScoreKey.Float64(val)
+}
+
+// ProcessMiningComplexityVariantCount returns an attribute KeyValue for process.mining.complexity.variant_count.
+func ProcessMiningComplexityVariantCount(val int64) attribute.KeyValue {
+	return ProcessMiningComplexityVariantCountKey.Int64(val)
+}
+
+// ProcessMiningConformanceCaseThreshold returns an attribute KeyValue for process.mining.conformance.case_threshold.
+func ProcessMiningConformanceCaseThreshold(val float64) attribute.KeyValue {
+	return ProcessMiningConformanceCaseThresholdKey.Float64(val)
+}
+
+// ProcessMiningConformanceDeviationCount returns an attribute KeyValue for process.mining.conformance.deviation_count.
+func ProcessMiningConformanceDeviationCount(val int64) attribute.KeyValue {
+	return ProcessMiningConformanceDeviationCountKey.Int64(val)
 }
 
 // ProcessMiningConformanceDeviationType returns an attribute KeyValue for process.mining.conformance.deviation_type.
@@ -100,6 +541,92 @@ var ProcessMiningConformanceDeviationTypeValues = struct {
 	ExtraActivity: "extra_activity",
 	WrongOrder: "wrong_order",
 	LoopViolation: "loop_violation",
+}
+
+// ProcessMiningConformanceRepairCostMs returns an attribute KeyValue for process.mining.conformance.repair_cost_ms.
+func ProcessMiningConformanceRepairCostMs(val int64) attribute.KeyValue {
+	return ProcessMiningConformanceRepairCostMsKey.Int64(val)
+}
+
+// ProcessMiningConformanceRepairCount returns an attribute KeyValue for process.mining.conformance.repair_count.
+func ProcessMiningConformanceRepairCount(val int64) attribute.KeyValue {
+	return ProcessMiningConformanceRepairCountKey.Int64(val)
+}
+
+// ProcessMiningConformanceRepairSteps returns an attribute KeyValue for process.mining.conformance.repair_steps.
+func ProcessMiningConformanceRepairSteps(val int64) attribute.KeyValue {
+	return ProcessMiningConformanceRepairStepsKey.Int64(val)
+}
+
+// ProcessMiningConformanceRepairType returns an attribute KeyValue for process.mining.conformance.repair_type.
+func ProcessMiningConformanceRepairType(val string) attribute.KeyValue {
+	return ProcessMiningConformanceRepairTypeKey.String(val)
+}
+
+// ProcessMiningConformanceRepairTypeValues contains the known enum values for process.mining.conformance.repair_type.
+var ProcessMiningConformanceRepairTypeValues = struct {
+	Insert string
+	Delete string
+	Move string
+	Replace string
+}{
+	Insert: "insert",
+	Delete: "delete",
+	Move: "move",
+	Replace: "replace",
+}
+
+// ProcessMiningConformanceRepairedFitness returns an attribute KeyValue for process.mining.conformance.repaired_fitness.
+func ProcessMiningConformanceRepairedFitness(val float64) attribute.KeyValue {
+	return ProcessMiningConformanceRepairedFitnessKey.Float64(val)
+}
+
+// ProcessMiningConformanceScore returns an attribute KeyValue for process.mining.conformance.score.
+func ProcessMiningConformanceScore(val float64) attribute.KeyValue {
+	return ProcessMiningConformanceScoreKey.Float64(val)
+}
+
+// ProcessMiningConformanceViolationCount returns an attribute KeyValue for process.mining.conformance.violation_count.
+func ProcessMiningConformanceViolationCount(val int64) attribute.KeyValue {
+	return ProcessMiningConformanceViolationCountKey.Int64(val)
+}
+
+// ProcessMiningConformanceVisualizationType returns an attribute KeyValue for process.mining.conformance.visualization_type.
+func ProcessMiningConformanceVisualizationType(val string) attribute.KeyValue {
+	return ProcessMiningConformanceVisualizationTypeKey.String(val)
+}
+
+// ProcessMiningConformanceVisualizationTypeValues contains the known enum values for process.mining.conformance.visualization_type.
+var ProcessMiningConformanceVisualizationTypeValues = struct {
+	TokenReplay string
+	Alignment string
+	Footprint string
+	AntiAlignment string
+}{
+	TokenReplay: "token_replay",
+	Alignment: "alignment",
+	Footprint: "footprint",
+	AntiAlignment: "anti_alignment",
+}
+
+// ProcessMiningDecisionConfidence returns an attribute KeyValue for process.mining.decision.confidence.
+func ProcessMiningDecisionConfidence(val float64) attribute.KeyValue {
+	return ProcessMiningDecisionConfidenceKey.Float64(val)
+}
+
+// ProcessMiningDecisionOutcome returns an attribute KeyValue for process.mining.decision.outcome.
+func ProcessMiningDecisionOutcome(val string) attribute.KeyValue {
+	return ProcessMiningDecisionOutcomeKey.String(val)
+}
+
+// ProcessMiningDecisionPointId returns an attribute KeyValue for process.mining.decision.point_id.
+func ProcessMiningDecisionPointId(val string) attribute.KeyValue {
+	return ProcessMiningDecisionPointIdKey.String(val)
+}
+
+// ProcessMiningDecisionRuleCount returns an attribute KeyValue for process.mining.decision.rule_count.
+func ProcessMiningDecisionRuleCount(val int64) attribute.KeyValue {
+	return ProcessMiningDecisionRuleCountKey.Int64(val)
 }
 
 // ProcessMiningDeviationType returns an attribute KeyValue for process.mining.deviation.type.
@@ -130,6 +657,161 @@ func ProcessMiningDfgNodeCount(val int64) attribute.KeyValue {
 	return ProcessMiningDfgNodeCountKey.Int64(val)
 }
 
+// ProcessMiningDriftCorrectionDelta returns an attribute KeyValue for process.mining.drift.correction.delta.
+func ProcessMiningDriftCorrectionDelta(val float64) attribute.KeyValue {
+	return ProcessMiningDriftCorrectionDeltaKey.Float64(val)
+}
+
+// ProcessMiningDriftCorrectionDurationMs returns an attribute KeyValue for process.mining.drift.correction.duration_ms.
+func ProcessMiningDriftCorrectionDurationMs(val int64) attribute.KeyValue {
+	return ProcessMiningDriftCorrectionDurationMsKey.Int64(val)
+}
+
+// ProcessMiningDriftCorrectionType returns an attribute KeyValue for process.mining.drift.correction_type.
+func ProcessMiningDriftCorrectionType(val string) attribute.KeyValue {
+	return ProcessMiningDriftCorrectionTypeKey.String(val)
+}
+
+// ProcessMiningDriftCorrectionTypeValues contains the known enum values for process.mining.drift.correction_type.
+var ProcessMiningDriftCorrectionTypeValues = struct {
+	Retrain string
+	ThresholdAdjust string
+	ModelSwap string
+	IncrementalUpdate string
+}{
+	Retrain: "retrain",
+	ThresholdAdjust: "threshold_adjust",
+	ModelSwap: "model_swap",
+	IncrementalUpdate: "incremental_update",
+}
+
+// ProcessMiningDriftDetected returns an attribute KeyValue for process.mining.drift.detected.
+func ProcessMiningDriftDetected(val bool) attribute.KeyValue {
+	return ProcessMiningDriftDetectedKey.Bool(val)
+}
+
+// ProcessMiningDriftSeverity returns an attribute KeyValue for process.mining.drift.severity.
+func ProcessMiningDriftSeverity(val string) attribute.KeyValue {
+	return ProcessMiningDriftSeverityKey.String(val)
+}
+
+// ProcessMiningDriftSeverityValues contains the known enum values for process.mining.drift.severity.
+var ProcessMiningDriftSeverityValues = struct {
+	None string
+	Gradual string
+	Sudden string
+	Incremental string
+}{
+	None: "none",
+	Gradual: "gradual",
+	Sudden: "sudden",
+	Incremental: "incremental",
+}
+
+// ProcessMiningEnhancementBaseModelId returns an attribute KeyValue for process.mining.enhancement.base_model_id.
+func ProcessMiningEnhancementBaseModelId(val string) attribute.KeyValue {
+	return ProcessMiningEnhancementBaseModelIdKey.String(val)
+}
+
+// ProcessMiningEnhancementCoveragePct returns an attribute KeyValue for process.mining.enhancement.coverage_pct.
+func ProcessMiningEnhancementCoveragePct(val float64) attribute.KeyValue {
+	return ProcessMiningEnhancementCoveragePctKey.Float64(val)
+}
+
+// ProcessMiningEnhancementDurationMs returns an attribute KeyValue for process.mining.enhancement.duration_ms.
+func ProcessMiningEnhancementDurationMs(val int64) attribute.KeyValue {
+	return ProcessMiningEnhancementDurationMsKey.Int64(val)
+}
+
+// ProcessMiningEnhancementImprovementRate returns an attribute KeyValue for process.mining.enhancement.improvement_rate.
+func ProcessMiningEnhancementImprovementRate(val float64) attribute.KeyValue {
+	return ProcessMiningEnhancementImprovementRateKey.Float64(val)
+}
+
+// ProcessMiningEnhancementModelId returns an attribute KeyValue for process.mining.enhancement.model_id.
+func ProcessMiningEnhancementModelId(val string) attribute.KeyValue {
+	return ProcessMiningEnhancementModelIdKey.String(val)
+}
+
+// ProcessMiningEnhancementPerspective returns an attribute KeyValue for process.mining.enhancement.perspective.
+func ProcessMiningEnhancementPerspective(val string) attribute.KeyValue {
+	return ProcessMiningEnhancementPerspectiveKey.String(val)
+}
+
+// ProcessMiningEnhancementPerspectiveValues contains the known enum values for process.mining.enhancement.perspective.
+var ProcessMiningEnhancementPerspectiveValues = struct {
+	Performance string
+	Conformance string
+	Organizational string
+	Decision string
+}{
+	Performance: "performance",
+	Conformance: "conformance",
+	Organizational: "organizational",
+	Decision: "decision",
+}
+
+// ProcessMiningEnhancementQualityScore returns an attribute KeyValue for process.mining.enhancement.quality_score.
+func ProcessMiningEnhancementQualityScore(val float64) attribute.KeyValue {
+	return ProcessMiningEnhancementQualityScoreKey.Float64(val)
+}
+
+// ProcessMiningEnhancementType returns an attribute KeyValue for process.mining.enhancement.type.
+func ProcessMiningEnhancementType(val string) attribute.KeyValue {
+	return ProcessMiningEnhancementTypeKey.String(val)
+}
+
+// ProcessMiningEnhancementTypeValues contains the known enum values for process.mining.enhancement.type.
+var ProcessMiningEnhancementTypeValues = struct {
+	Performance string
+	Conformance string
+	Organizational string
+	SocialNetwork string
+}{
+	Performance: "performance",
+	Conformance: "conformance",
+	Organizational: "organizational",
+	SocialNetwork: "social_network",
+}
+
+// ProcessMiningEventAbstractionInputCount returns an attribute KeyValue for process.mining.event.abstraction_input_count.
+func ProcessMiningEventAbstractionInputCount(val int64) attribute.KeyValue {
+	return ProcessMiningEventAbstractionInputCountKey.Int64(val)
+}
+
+// ProcessMiningEventAbstractionLevel returns an attribute KeyValue for process.mining.event.abstraction_level.
+func ProcessMiningEventAbstractionLevel(val string) attribute.KeyValue {
+	return ProcessMiningEventAbstractionLevelKey.String(val)
+}
+
+// ProcessMiningEventAbstractionLevelValues contains the known enum values for process.mining.event.abstraction_level.
+var ProcessMiningEventAbstractionLevelValues = struct {
+	Raw string
+	Activity string
+	Case string
+	Process string
+}{
+	Raw: "raw",
+	Activity: "activity",
+	Case: "case",
+	Process: "process",
+}
+
+// ProcessMiningEventAbstractionMappingRules returns an attribute KeyValue for process.mining.event.abstraction_mapping_rules.
+func ProcessMiningEventAbstractionMappingRules(val int64) attribute.KeyValue {
+	return ProcessMiningEventAbstractionMappingRulesKey.Int64(val)
+}
+
+// ProcessMiningEventAbstractionOutputCount returns an attribute KeyValue for process.mining.event.abstraction_output_count.
+func ProcessMiningEventAbstractionOutputCount(val int64) attribute.KeyValue {
+	return ProcessMiningEventAbstractionOutputCountKey.Int64(val)
+}
+
+// ProcessMiningEventSequenceNumber returns an attribute KeyValue for process.mining.event.sequence_number.
+func ProcessMiningEventSequenceNumber(val int64) attribute.KeyValue {
+	return ProcessMiningEventSequenceNumberKey.Int64(val)
+}
+
 // ProcessMiningEventCount returns an attribute KeyValue for process.mining.event_count.
 func ProcessMiningEventCount(val int64) attribute.KeyValue {
 	return ProcessMiningEventCountKey.Int64(val)
@@ -145,9 +827,75 @@ func ProcessMiningFitnessThreshold(val float64) attribute.KeyValue {
 	return ProcessMiningFitnessThresholdKey.Float64(val)
 }
 
+// ProcessMiningHierarchyChildCount returns an attribute KeyValue for process.mining.hierarchy.child_count.
+func ProcessMiningHierarchyChildCount(val int64) attribute.KeyValue {
+	return ProcessMiningHierarchyChildCountKey.Int64(val)
+}
+
+// ProcessMiningHierarchyDepth returns an attribute KeyValue for process.mining.hierarchy.depth.
+func ProcessMiningHierarchyDepth(val int64) attribute.KeyValue {
+	return ProcessMiningHierarchyDepthKey.Int64(val)
+}
+
+// ProcessMiningHierarchyParentProcessId returns an attribute KeyValue for process.mining.hierarchy.parent_process_id.
+func ProcessMiningHierarchyParentProcessId(val string) attribute.KeyValue {
+	return ProcessMiningHierarchyParentProcessIdKey.String(val)
+}
+
+// ProcessMiningLogId returns an attribute KeyValue for process.mining.log.id.
+func ProcessMiningLogId(val string) attribute.KeyValue {
+	return ProcessMiningLogIdKey.String(val)
+}
+
+// ProcessMiningLogSize returns an attribute KeyValue for process.mining.log.size.
+func ProcessMiningLogSize(val int64) attribute.KeyValue {
+	return ProcessMiningLogSizeKey.Int64(val)
+}
+
+// ProcessMiningLogStartTimestamp returns an attribute KeyValue for process.mining.log.start_timestamp.
+func ProcessMiningLogStartTimestamp(val string) attribute.KeyValue {
+	return ProcessMiningLogStartTimestampKey.String(val)
+}
+
 // ProcessMiningLogPath returns an attribute KeyValue for process.mining.log_path.
 func ProcessMiningLogPath(val string) attribute.KeyValue {
 	return ProcessMiningLogPathKey.String(val)
+}
+
+// ProcessMiningModelType returns an attribute KeyValue for process.mining.model.type.
+func ProcessMiningModelType(val string) attribute.KeyValue {
+	return ProcessMiningModelTypeKey.String(val)
+}
+
+// ProcessMiningModelTypeValues contains the known enum values for process.mining.model.type.
+var ProcessMiningModelTypeValues = struct {
+	PetriNet string
+	Bpmn string
+	Dfg string
+	Declare string
+}{
+	PetriNet: "petri_net",
+	Bpmn: "bpmn",
+	Dfg: "dfg",
+	Declare: "declare",
+}
+
+// ProcessMiningModelType returns an attribute KeyValue for process.mining.model_type.
+func ProcessMiningModelType(val string) attribute.KeyValue {
+	return ProcessMiningModelTypeKey.String(val)
+}
+
+// ProcessMiningModelTypeValues contains the known enum values for process.mining.model_type.
+var ProcessMiningModelTypeValues = struct {
+	PetriNet string
+	Bpmn string
+	Declare string
+	Dfg string
+}{
+	PetriNet: "petri_net",
+	Bpmn: "bpmn",
+	Declare: "declare",
+	Dfg: "dfg",
 }
 
 // ProcessMiningPetriNetPlaceCount returns an attribute KeyValue for process.mining.petri_net.place_count.
@@ -160,57 +908,213 @@ func ProcessMiningPetriNetTransitionCount(val int64) attribute.KeyValue {
 	return ProcessMiningPetriNetTransitionCountKey.Int64(val)
 }
 
-// ProcessMiningTraceId returns an attribute KeyValue for process.mining.trace_id.
-func ProcessMiningTraceId(val string) attribute.KeyValue {
-	return ProcessMiningTraceIdKey.String(val)
+// ProcessMiningPredictionConfidence returns an attribute KeyValue for process.mining.prediction.confidence.
+func ProcessMiningPredictionConfidence(val float64) attribute.KeyValue {
+	return ProcessMiningPredictionConfidenceKey.Float64(val)
 }
 
-// ProcessMiningVariantCount returns an attribute KeyValue for process.mining.variant_count.
-func ProcessMiningVariantCount(val int64) attribute.KeyValue {
-	return ProcessMiningVariantCountKey.Int64(val)
+// ProcessMiningPredictionHorizonMs returns an attribute KeyValue for process.mining.prediction.horizon_ms.
+func ProcessMiningPredictionHorizonMs(val int64) attribute.KeyValue {
+	return ProcessMiningPredictionHorizonMsKey.Int64(val)
 }
 
-// Wave 9 iteration 9: Advanced process mining performance and bottleneck attributes.
-const (
-	// ProcessMiningThroughputTimeMsKey is the OTel attribute key for process.mining.throughput_time_ms.
-	// Average end-to-end throughput time across all cases in the event log, in milliseconds.
-	ProcessMiningThroughputTimeMsKey = attribute.Key("process.mining.throughput_time_ms")
-	// ProcessMiningBottleneckActivityKey is the OTel attribute key for process.mining.bottleneck.activity.
-	// Name of the activity identified as the primary bottleneck in the process.
-	ProcessMiningBottleneckActivityKey = attribute.Key("process.mining.bottleneck.activity")
-	// ProcessMiningBottleneckWaitMsKey is the OTel attribute key for process.mining.bottleneck.wait_ms.
-	// Average waiting time at the bottleneck activity, in milliseconds.
-	ProcessMiningBottleneckWaitMsKey = attribute.Key("process.mining.bottleneck.wait_ms")
-	// ProcessMiningLogSizeKey is the OTel attribute key for process.mining.log.size.
-	// Total number of events in the event log being analyzed.
-	ProcessMiningLogSizeKey = attribute.Key("process.mining.log.size")
-	// ProcessMiningReplayFitnessKey is the OTel attribute key for process.mining.replay_fitness.
-	// Token-based replay fitness score [0.0, 1.0] measuring overall log-model alignment.
-	ProcessMiningReplayFitnessKey = attribute.Key("process.mining.replay_fitness")
-)
+// ProcessMiningPredictionModelType returns an attribute KeyValue for process.mining.prediction.model_type.
+func ProcessMiningPredictionModelType(val string) attribute.KeyValue {
+	return ProcessMiningPredictionModelTypeKey.String(val)
+}
+
+// ProcessMiningReplayComparisonBaselineFitness returns an attribute KeyValue for process.mining.replay.comparison.baseline_fitness.
+func ProcessMiningReplayComparisonBaselineFitness(val float64) attribute.KeyValue {
+	return ProcessMiningReplayComparisonBaselineFitnessKey.Float64(val)
+}
+
+// ProcessMiningReplayComparisonDelta returns an attribute KeyValue for process.mining.replay.comparison.delta.
+func ProcessMiningReplayComparisonDelta(val float64) attribute.KeyValue {
+	return ProcessMiningReplayComparisonDeltaKey.Float64(val)
+}
+
+// ProcessMiningReplayComparisonTargetFitness returns an attribute KeyValue for process.mining.replay.comparison.target_fitness.
+func ProcessMiningReplayComparisonTargetFitness(val float64) attribute.KeyValue {
+	return ProcessMiningReplayComparisonTargetFitnessKey.Float64(val)
+}
+
+// ProcessMiningReplayComparisonId returns an attribute KeyValue for process.mining.replay.comparison_id.
+func ProcessMiningReplayComparisonId(val string) attribute.KeyValue {
+	return ProcessMiningReplayComparisonIdKey.String(val)
+}
+
+// ProcessMiningReplayConsumedTokens returns an attribute KeyValue for process.mining.replay.consumed_tokens.
+func ProcessMiningReplayConsumedTokens(val int64) attribute.KeyValue {
+	return ProcessMiningReplayConsumedTokensKey.Int64(val)
+}
+
+// ProcessMiningReplayEnabledTransitions returns an attribute KeyValue for process.mining.replay.enabled_transitions.
+func ProcessMiningReplayEnabledTransitions(val int64) attribute.KeyValue {
+	return ProcessMiningReplayEnabledTransitionsKey.Int64(val)
+}
+
+// ProcessMiningReplayFitness returns an attribute KeyValue for process.mining.replay.fitness.
+func ProcessMiningReplayFitness(val float64) attribute.KeyValue {
+	return ProcessMiningReplayFitnessKey.Float64(val)
+}
+
+// ProcessMiningReplayGeneralization returns an attribute KeyValue for process.mining.replay.generalization.
+func ProcessMiningReplayGeneralization(val float64) attribute.KeyValue {
+	return ProcessMiningReplayGeneralizationKey.Float64(val)
+}
+
+// ProcessMiningReplayMissingTokens returns an attribute KeyValue for process.mining.replay.missing_tokens.
+func ProcessMiningReplayMissingTokens(val int64) attribute.KeyValue {
+	return ProcessMiningReplayMissingTokensKey.Int64(val)
+}
+
+// ProcessMiningReplayPrecision returns an attribute KeyValue for process.mining.replay.precision.
+func ProcessMiningReplayPrecision(val float64) attribute.KeyValue {
+	return ProcessMiningReplayPrecisionKey.Float64(val)
+}
+
+// ProcessMiningReplaySimplicity returns an attribute KeyValue for process.mining.replay.simplicity.
+func ProcessMiningReplaySimplicity(val float64) attribute.KeyValue {
+	return ProcessMiningReplaySimplicityKey.Float64(val)
+}
+
+// ProcessMiningReplayTokenCount returns an attribute KeyValue for process.mining.replay.token_count.
+func ProcessMiningReplayTokenCount(val int64) attribute.KeyValue {
+	return ProcessMiningReplayTokenCountKey.Int64(val)
+}
+
+// ProcessMiningReplayFitness returns an attribute KeyValue for process.mining.replay_fitness.
+func ProcessMiningReplayFitness(val float64) attribute.KeyValue {
+	return ProcessMiningReplayFitnessKey.Float64(val)
+}
+
+// ProcessMiningRootCauseConfidence returns an attribute KeyValue for process.mining.root_cause.confidence.
+func ProcessMiningRootCauseConfidence(val float64) attribute.KeyValue {
+	return ProcessMiningRootCauseConfidenceKey.Float64(val)
+}
+
+// ProcessMiningRootCauseId returns an attribute KeyValue for process.mining.root_cause.id.
+func ProcessMiningRootCauseId(val string) attribute.KeyValue {
+	return ProcessMiningRootCauseIdKey.String(val)
+}
+
+// ProcessMiningRootCauseType returns an attribute KeyValue for process.mining.root_cause.type.
+func ProcessMiningRootCauseType(val string) attribute.KeyValue {
+	return ProcessMiningRootCauseTypeKey.String(val)
+}
+
+// ProcessMiningRootCauseTypeValues contains the known enum values for process.mining.root_cause.type.
+var ProcessMiningRootCauseTypeValues = struct {
+	DataQuality string
+	ModelDrift string
+	ProcessChange string
+	ResourceBottleneck string
+	ComplianceViolation string
+}{
+	DataQuality: "data_quality",
+	ModelDrift: "model_drift",
+	ProcessChange: "process_change",
+	ResourceBottleneck: "resource_bottleneck",
+	ComplianceViolation: "compliance_violation",
+}
+
+// ProcessMiningSimulationCases returns an attribute KeyValue for process.mining.simulation.cases.
+func ProcessMiningSimulationCases(val int64) attribute.KeyValue {
+	return ProcessMiningSimulationCasesKey.Int64(val)
+}
+
+// ProcessMiningSimulationDurationMs returns an attribute KeyValue for process.mining.simulation.duration_ms.
+func ProcessMiningSimulationDurationMs(val int64) attribute.KeyValue {
+	return ProcessMiningSimulationDurationMsKey.Int64(val)
+}
+
+// ProcessMiningSimulationNoiseRate returns an attribute KeyValue for process.mining.simulation.noise_rate.
+func ProcessMiningSimulationNoiseRate(val float64) attribute.KeyValue {
+	return ProcessMiningSimulationNoiseRateKey.Float64(val)
+}
+
+// ProcessMiningSocialNetworkCentralityMax returns an attribute KeyValue for process.mining.social_network.centrality_max.
+func ProcessMiningSocialNetworkCentralityMax(val float64) attribute.KeyValue {
+	return ProcessMiningSocialNetworkCentralityMaxKey.Float64(val)
+}
+
+// ProcessMiningSocialNetworkDensity returns an attribute KeyValue for process.mining.social_network.density.
+func ProcessMiningSocialNetworkDensity(val float64) attribute.KeyValue {
+	return ProcessMiningSocialNetworkDensityKey.Float64(val)
+}
+
+// ProcessMiningSocialNetworkHandoverCount returns an attribute KeyValue for process.mining.social_network.handover_count.
+func ProcessMiningSocialNetworkHandoverCount(val int64) attribute.KeyValue {
+	return ProcessMiningSocialNetworkHandoverCountKey.Int64(val)
+}
+
+// ProcessMiningSocialNetworkNodeCount returns an attribute KeyValue for process.mining.social_network.node_count.
+func ProcessMiningSocialNetworkNodeCount(val int64) attribute.KeyValue {
+	return ProcessMiningSocialNetworkNodeCountKey.Int64(val)
+}
+
+// ProcessMiningStreamingEventsPerSecond returns an attribute KeyValue for process.mining.streaming.events_per_second.
+func ProcessMiningStreamingEventsPerSecond(val float64) attribute.KeyValue {
+	return ProcessMiningStreamingEventsPerSecondKey.Float64(val)
+}
+
+// ProcessMiningStreamingLagMs returns an attribute KeyValue for process.mining.streaming.lag_ms.
+func ProcessMiningStreamingLagMs(val int64) attribute.KeyValue {
+	return ProcessMiningStreamingLagMsKey.Int64(val)
+}
+
+// ProcessMiningStreamingWindowSize returns an attribute KeyValue for process.mining.streaming.window_size.
+func ProcessMiningStreamingWindowSize(val int64) attribute.KeyValue {
+	return ProcessMiningStreamingWindowSizeKey.Int64(val)
+}
+
+// ProcessMiningTemporalDriftMs returns an attribute KeyValue for process.mining.temporal.drift_ms.
+func ProcessMiningTemporalDriftMs(val int64) attribute.KeyValue {
+	return ProcessMiningTemporalDriftMsKey.Int64(val)
+}
+
+// ProcessMiningTemporalSeasonalityPeriodMs returns an attribute KeyValue for process.mining.temporal.seasonality_period_ms.
+func ProcessMiningTemporalSeasonalityPeriodMs(val int64) attribute.KeyValue {
+	return ProcessMiningTemporalSeasonalityPeriodMsKey.Int64(val)
+}
+
+// ProcessMiningTemporalTrendSlope returns an attribute KeyValue for process.mining.temporal.trend_slope.
+func ProcessMiningTemporalTrendSlope(val float64) attribute.KeyValue {
+	return ProcessMiningTemporalTrendSlopeKey.Float64(val)
+}
 
 // ProcessMiningThroughputTimeMs returns an attribute KeyValue for process.mining.throughput_time_ms.
 func ProcessMiningThroughputTimeMs(val int64) attribute.KeyValue {
 	return ProcessMiningThroughputTimeMsKey.Int64(val)
 }
 
-// ProcessMiningBottleneckActivity returns an attribute KeyValue for process.mining.bottleneck.activity.
-func ProcessMiningBottleneckActivity(val string) attribute.KeyValue {
-	return ProcessMiningBottleneckActivityKey.String(val)
+// ProcessMiningTraceId returns an attribute KeyValue for process.mining.trace_id.
+func ProcessMiningTraceId(val string) attribute.KeyValue {
+	return ProcessMiningTraceIdKey.String(val)
 }
 
-// ProcessMiningBottleneckWaitMs returns an attribute KeyValue for process.mining.bottleneck.wait_ms.
-func ProcessMiningBottleneckWaitMs(val int64) attribute.KeyValue {
-	return ProcessMiningBottleneckWaitMsKey.Int64(val)
+// ProcessMiningVariantDeviationScore returns an attribute KeyValue for process.mining.variant.deviation_score.
+func ProcessMiningVariantDeviationScore(val float64) attribute.KeyValue {
+	return ProcessMiningVariantDeviationScoreKey.Float64(val)
 }
 
-// ProcessMiningLogSize returns an attribute KeyValue for process.mining.log.size.
-func ProcessMiningLogSize(val int64) attribute.KeyValue {
-	return ProcessMiningLogSizeKey.Int64(val)
+// ProcessMiningVariantFrequency returns an attribute KeyValue for process.mining.variant.frequency.
+func ProcessMiningVariantFrequency(val float64) attribute.KeyValue {
+	return ProcessMiningVariantFrequencyKey.Float64(val)
 }
 
-// ProcessMiningReplayFitness returns an attribute KeyValue for process.mining.replay_fitness.
-func ProcessMiningReplayFitness(val float64) attribute.KeyValue {
-	return ProcessMiningReplayFitnessKey.Float64(val)
+// ProcessMiningVariantId returns an attribute KeyValue for process.mining.variant.id.
+func ProcessMiningVariantId(val string) attribute.KeyValue {
+	return ProcessMiningVariantIdKey.String(val)
+}
+
+// ProcessMiningVariantIsOptimal returns an attribute KeyValue for process.mining.variant.is_optimal.
+func ProcessMiningVariantIsOptimal(val bool) attribute.KeyValue {
+	return ProcessMiningVariantIsOptimalKey.Bool(val)
+}
+
+// ProcessMiningVariantCount returns an attribute KeyValue for process.mining.variant_count.
+func ProcessMiningVariantCount(val int64) attribute.KeyValue {
+	return ProcessMiningVariantCountKey.Int64(val)
 }
 

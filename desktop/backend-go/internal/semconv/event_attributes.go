@@ -7,26 +7,82 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Event Attributes
 const (
+	// EventCausationIdKey is the OTel attribute key for event.causation_id.
+	// ID of the event that directly caused this event (parent-child causality chain).
+	EventCausationIdKey = attribute.Key("event.causation_id")
 	// EventCorrelationIdKey is the OTel attribute key for event.correlation_id.
-	// Correlation ID linking related events across services.
+	// Correlation ID linking related events across distributed services (trace-level grouping).
 	EventCorrelationIdKey = attribute.Key("event.correlation_id")
+	// EventDeliveryStatusKey is the OTel attribute key for event.delivery.status.
+	// Delivery status of the event in the event bus.
+	EventDeliveryStatusKey = attribute.Key("event.delivery.status")
 	// EventDomainKey is the OTel attribute key for event.domain.
 	// The domain of the structured event.
 	EventDomainKey = attribute.Key("event.domain")
+	// EventHandlerCountKey is the OTel attribute key for event.handler.count.
+	// Number of handlers that received this event.
+	EventHandlerCountKey = attribute.Key("event.handler.count")
 	// EventNameKey is the OTel attribute key for event.name.
 	// The name of the event (e.g., "agent.started", "compliance.violation.detected").
 	EventNameKey = attribute.Key("event.name")
+	// EventReplayKey is the OTel attribute key for event.replay.
+	// Whether this event is a replay of a previously emitted event (idempotency tracking).
+	EventReplayKey = attribute.Key("event.replay")
+	// EventRoutingFilterCountKey is the OTel attribute key for event.routing.filter_count.
+	// Number of routing filters applied to determine event delivery targets.
+	EventRoutingFilterCountKey = attribute.Key("event.routing.filter_count")
+	// EventRoutingStrategyKey is the OTel attribute key for event.routing.strategy.
+	// Routing strategy used to deliver the event to subscribers.
+	EventRoutingStrategyKey = attribute.Key("event.routing.strategy")
+	// EventSchemaVersionKey is the OTel attribute key for event.schema.version.
+	// Schema version of the event payload (for schema evolution tracking).
+	EventSchemaVersionKey = attribute.Key("event.schema.version")
 	// EventSeverityKey is the OTel attribute key for event.severity.
 	// The severity level of the event.
 	EventSeverityKey = attribute.Key("event.severity")
 	// EventSourceKey is the OTel attribute key for event.source.
 	// The source component that emitted the event.
 	EventSourceKey = attribute.Key("event.source")
+	// EventSourceServiceKey is the OTel attribute key for event.source.service.
+	// Service that emitted this event (e.g., osa, businessos, canopy).
+	EventSourceServiceKey = attribute.Key("event.source.service")
+	// EventSubscriberCountKey is the OTel attribute key for event.subscriber.count.
+	// Number of subscribers that received the event.
+	EventSubscriberCountKey = attribute.Key("event.subscriber.count")
+	// EventTargetServiceKey is the OTel attribute key for event.target.service.
+	// Service that is the intended consumer of this event.
+	EventTargetServiceKey = attribute.Key("event.target.service")
+	// EventVersionKey is the OTel attribute key for event.version.
+	// Schema version of the event payload for forward-compatibility tracking.
+	EventVersionKey = attribute.Key("event.version")
 )
+
+// EventCausationId returns an attribute KeyValue for event.causation_id.
+func EventCausationId(val string) attribute.KeyValue {
+	return EventCausationIdKey.String(val)
+}
 
 // EventCorrelationId returns an attribute KeyValue for event.correlation_id.
 func EventCorrelationId(val string) attribute.KeyValue {
 	return EventCorrelationIdKey.String(val)
+}
+
+// EventDeliveryStatus returns an attribute KeyValue for event.delivery.status.
+func EventDeliveryStatus(val string) attribute.KeyValue {
+	return EventDeliveryStatusKey.String(val)
+}
+
+// EventDeliveryStatusValues contains the known enum values for event.delivery.status.
+var EventDeliveryStatusValues = struct {
+	Delivered string
+	Failed string
+	Retrying string
+	Dropped string
+}{
+	Delivered: "delivered",
+	Failed: "failed",
+	Retrying: "retrying",
+	Dropped: "dropped",
 }
 
 // EventDomain returns an attribute KeyValue for event.domain.
@@ -49,9 +105,49 @@ var EventDomainValues = struct {
 	System: "system",
 }
 
+// EventHandlerCount returns an attribute KeyValue for event.handler.count.
+func EventHandlerCount(val int64) attribute.KeyValue {
+	return EventHandlerCountKey.Int64(val)
+}
+
 // EventName returns an attribute KeyValue for event.name.
 func EventName(val string) attribute.KeyValue {
 	return EventNameKey.String(val)
+}
+
+// EventReplay returns an attribute KeyValue for event.replay.
+func EventReplay(val bool) attribute.KeyValue {
+	return EventReplayKey.Bool(val)
+}
+
+// EventRoutingFilterCount returns an attribute KeyValue for event.routing.filter_count.
+func EventRoutingFilterCount(val int64) attribute.KeyValue {
+	return EventRoutingFilterCountKey.Int64(val)
+}
+
+// EventRoutingStrategy returns an attribute KeyValue for event.routing.strategy.
+func EventRoutingStrategy(val string) attribute.KeyValue {
+	return EventRoutingStrategyKey.String(val)
+}
+
+// EventRoutingStrategyValues contains the known enum values for event.routing.strategy.
+var EventRoutingStrategyValues = struct {
+	Broadcast string
+	Unicast string
+	Multicast string
+	TopicBased string
+	ContentBased string
+}{
+	Broadcast: "broadcast",
+	Unicast: "unicast",
+	Multicast: "multicast",
+	TopicBased: "topic_based",
+	ContentBased: "content_based",
+}
+
+// EventSchemaVersion returns an attribute KeyValue for event.schema.version.
+func EventSchemaVersion(val string) attribute.KeyValue {
+	return EventSchemaVersionKey.String(val)
 }
 
 // EventSeverity returns an attribute KeyValue for event.severity.
@@ -79,37 +175,23 @@ func EventSource(val string) attribute.KeyValue {
 	return EventSourceKey.String(val)
 }
 
-// Wave 9 iteration 9: Event correlation, causation, versioning, routing and replay attributes.
-const (
-	// EventCausationIdKey is the OTel attribute key for event.causation_id.
-	// ID of the event that directly caused this event (causal chain tracing).
-	EventCausationIdKey = attribute.Key("event.causation_id")
-	// EventVersionKey is the OTel attribute key for event.version.
-	// Schema version of the event payload.
-	EventVersionKey = attribute.Key("event.version")
-	// EventSourceServiceKey is the OTel attribute key for event.source.service.
-	// Name of the service that emitted the event.
-	EventSourceServiceKey = attribute.Key("event.source.service")
-	// EventTargetServiceKey is the OTel attribute key for event.target.service.
-	// Name of the service that is the intended consumer of the event.
-	EventTargetServiceKey = attribute.Key("event.target.service")
-	// EventReplayKey is the OTel attribute key for event.replay.
-	// Indicates whether this event is being replayed (true) or is fresh (false).
-	EventReplayKey = attribute.Key("event.replay")
-)
-
-// EventCausationId returns an attribute KeyValue for event.causation_id.
-func EventCausationId(val string) attribute.KeyValue { return EventCausationIdKey.String(val) }
-
-// EventVersion returns an attribute KeyValue for event.version.
-func EventVersion(val string) attribute.KeyValue { return EventVersionKey.String(val) }
-
 // EventSourceService returns an attribute KeyValue for event.source.service.
-func EventSourceService(val string) attribute.KeyValue { return EventSourceServiceKey.String(val) }
+func EventSourceService(val string) attribute.KeyValue {
+	return EventSourceServiceKey.String(val)
+}
+
+// EventSubscriberCount returns an attribute KeyValue for event.subscriber.count.
+func EventSubscriberCount(val int64) attribute.KeyValue {
+	return EventSubscriberCountKey.Int64(val)
+}
 
 // EventTargetService returns an attribute KeyValue for event.target.service.
-func EventTargetService(val string) attribute.KeyValue { return EventTargetServiceKey.String(val) }
+func EventTargetService(val string) attribute.KeyValue {
+	return EventTargetServiceKey.String(val)
+}
 
-// EventReplay returns an attribute KeyValue for event.replay.
-func EventReplay(val bool) attribute.KeyValue { return EventReplayKey.Bool(val) }
+// EventVersion returns an attribute KeyValue for event.version.
+func EventVersion(val string) attribute.KeyValue {
+	return EventVersionKey.String(val)
+}
 

@@ -7,15 +7,24 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Workflow Attributes
 const (
+	// WorkflowActiveBranchesKey is the OTel attribute key for workflow.active_branches.
+	// Number of branches currently active in a multi-choice split.
+	WorkflowActiveBranchesKey = attribute.Key("workflow.active_branches")
 	// WorkflowBranchCountKey is the OTel attribute key for workflow.branch_count.
 	// Number of active branches in a parallel split or join pattern.
 	WorkflowBranchCountKey = attribute.Key("workflow.branch_count")
 	// WorkflowCancelReasonKey is the OTel attribute key for workflow.cancel.reason.
 	// Reason for cancellation of the workflow activity or region.
 	WorkflowCancelReasonKey = attribute.Key("workflow.cancel.reason")
+	// WorkflowChoiceConditionKey is the OTel attribute key for workflow.choice.condition.
+	// The evaluated condition expression used to select an XOR branch.
+	WorkflowChoiceConditionKey = attribute.Key("workflow.choice.condition")
 	// WorkflowEngineKey is the OTel attribute key for workflow.engine.
 	// Workflow engine executing the workflow.
 	WorkflowEngineKey = attribute.Key("workflow.engine")
+	// WorkflowFiredBranchesKey is the OTel attribute key for workflow.fired_branches.
+	// Number of branches that have fired/triggered so far.
+	WorkflowFiredBranchesKey = attribute.Key("workflow.fired_branches")
 	// WorkflowIdKey is the OTel attribute key for workflow.id.
 	// Unique identifier for the workflow instance.
 	WorkflowIdKey = attribute.Key("workflow.id")
@@ -31,6 +40,9 @@ const (
 	// WorkflowLoopMaxIterationsKey is the OTel attribute key for workflow.loop.max_iterations.
 	// Maximum allowed iterations for a structured loop (boundedness guarantee).
 	WorkflowLoopMaxIterationsKey = attribute.Key("workflow.loop.max_iterations")
+	// WorkflowMergePolicyKey is the OTel attribute key for workflow.merge.policy.
+	// Policy for merging concurrent branches at a join point.
+	WorkflowMergePolicyKey = attribute.Key("workflow.merge.policy")
 	// WorkflowMilestoneConditionKey is the OTel attribute key for workflow.milestone.condition.
 	// Condition expression that gates milestone execution.
 	WorkflowMilestoneConditionKey = attribute.Key("workflow.milestone.condition")
@@ -43,6 +55,9 @@ const (
 	// WorkflowRequiredBranchesKey is the OTel attribute key for workflow.required_branches.
 	// Number of branches required to complete before a N-out-of-M join activates.
 	WorkflowRequiredBranchesKey = attribute.Key("workflow.required_branches")
+	// WorkflowSplitCountKey is the OTel attribute key for workflow.split.count.
+	// Number of concurrent branches created in a parallel split (WP-2).
+	WorkflowSplitCountKey = attribute.Key("workflow.split.count")
 	// WorkflowStateKey is the OTel attribute key for workflow.state.
 	// Execution state of the workflow instance.
 	WorkflowStateKey = attribute.Key("workflow.state")
@@ -52,6 +67,9 @@ const (
 	// WorkflowStepCountKey is the OTel attribute key for workflow.step_count.
 	// Total number of steps completed so far in the workflow.
 	WorkflowStepCountKey = attribute.Key("workflow.step_count")
+	// WorkflowSyncTimeoutMsKey is the OTel attribute key for workflow.sync.timeout_ms.
+	// Timeout in milliseconds for synchronized merge to complete (Armstrong WvdA bounded).
+	WorkflowSyncTimeoutMsKey = attribute.Key("workflow.sync.timeout_ms")
 	// WorkflowTotalBranchesKey is the OTel attribute key for workflow.total_branches.
 	// Total number of branches in a parallel split pattern (M in N-out-of-M).
 	WorkflowTotalBranchesKey = attribute.Key("workflow.total_branches")
@@ -59,6 +77,11 @@ const (
 	// The type of trigger that initiated the workflow transition.
 	WorkflowTriggerTypeKey = attribute.Key("workflow.trigger_type")
 )
+
+// WorkflowActiveBranches returns an attribute KeyValue for workflow.active_branches.
+func WorkflowActiveBranches(val int64) attribute.KeyValue {
+	return WorkflowActiveBranchesKey.Int64(val)
+}
 
 // WorkflowBranchCount returns an attribute KeyValue for workflow.branch_count.
 func WorkflowBranchCount(val int64) attribute.KeyValue {
@@ -68,6 +91,11 @@ func WorkflowBranchCount(val int64) attribute.KeyValue {
 // WorkflowCancelReason returns an attribute KeyValue for workflow.cancel.reason.
 func WorkflowCancelReason(val string) attribute.KeyValue {
 	return WorkflowCancelReasonKey.String(val)
+}
+
+// WorkflowChoiceCondition returns an attribute KeyValue for workflow.choice.condition.
+func WorkflowChoiceCondition(val string) attribute.KeyValue {
+	return WorkflowChoiceConditionKey.String(val)
 }
 
 // WorkflowEngine returns an attribute KeyValue for workflow.engine.
@@ -84,6 +112,11 @@ var WorkflowEngineValues = struct {
 	Canopy: "canopy",
 	Yawl: "yawl",
 	BusinessOs: "business_os",
+}
+
+// WorkflowFiredBranches returns an attribute KeyValue for workflow.fired_branches.
+func WorkflowFiredBranches(val int64) attribute.KeyValue {
+	return WorkflowFiredBranchesKey.Int64(val)
 }
 
 // WorkflowId returns an attribute KeyValue for workflow.id.
@@ -109,6 +142,22 @@ func WorkflowLoopIteration(val int64) attribute.KeyValue {
 // WorkflowLoopMaxIterations returns an attribute KeyValue for workflow.loop.max_iterations.
 func WorkflowLoopMaxIterations(val int64) attribute.KeyValue {
 	return WorkflowLoopMaxIterationsKey.Int64(val)
+}
+
+// WorkflowMergePolicy returns an attribute KeyValue for workflow.merge.policy.
+func WorkflowMergePolicy(val string) attribute.KeyValue {
+	return WorkflowMergePolicyKey.String(val)
+}
+
+// WorkflowMergePolicyValues contains the known enum values for workflow.merge.policy.
+var WorkflowMergePolicyValues = struct {
+	First string
+	All string
+	Threshold string
+}{
+	First: "first",
+	All: "all",
+	Threshold: "threshold",
 }
 
 // WorkflowMilestoneCondition returns an attribute KeyValue for workflow.milestone.condition.
@@ -150,6 +199,7 @@ var WorkflowPatternValues = struct {
 	MultiInstanceSync string
 	SimpleMerge string
 	MultipleInstance string
+	StructuredSyncMerge string
 }{
 	Sequence: "sequence",
 	ParallelSplit: "parallel_split",
@@ -173,11 +223,17 @@ var WorkflowPatternValues = struct {
 	MultiInstanceSync: "multi_instance_sync",
 	SimpleMerge: "simple_merge",
 	MultipleInstance: "multiple_instance",
+	StructuredSyncMerge: "structured_sync_merge",
 }
 
 // WorkflowRequiredBranches returns an attribute KeyValue for workflow.required_branches.
 func WorkflowRequiredBranches(val int64) attribute.KeyValue {
 	return WorkflowRequiredBranchesKey.Int64(val)
+}
+
+// WorkflowSplitCount returns an attribute KeyValue for workflow.split.count.
+func WorkflowSplitCount(val int64) attribute.KeyValue {
+	return WorkflowSplitCountKey.Int64(val)
 }
 
 // WorkflowState returns an attribute KeyValue for workflow.state.
@@ -212,6 +268,11 @@ func WorkflowStepCount(val int64) attribute.KeyValue {
 	return WorkflowStepCountKey.Int64(val)
 }
 
+// WorkflowSyncTimeoutMs returns an attribute KeyValue for workflow.sync.timeout_ms.
+func WorkflowSyncTimeoutMs(val int64) attribute.KeyValue {
+	return WorkflowSyncTimeoutMsKey.Int64(val)
+}
+
 // WorkflowTotalBranches returns an attribute KeyValue for workflow.total_branches.
 func WorkflowTotalBranches(val int64) attribute.KeyValue {
 	return WorkflowTotalBranchesKey.Int64(val)
@@ -228,75 +289,16 @@ var WorkflowTriggerTypeValues = struct {
 	Event string
 	Signal string
 	Manual string
+	Message string
+	External string
+	Condition string
 }{
 	Timer: "timer",
 	Event: "event",
 	Signal: "signal",
 	Manual: "manual",
-}
-
-// Wave 9 Iteration 8: YAWL Basic Pattern attributes
-
-const (
-	// WorkflowSplitCountKey is the OTel attribute key for workflow.split.count.
-	// Number of branches created by a split gateway.
-	WorkflowSplitCountKey = attribute.Key("workflow.split.count")
-	// WorkflowMergePolicyKey is the OTel attribute key for workflow.merge.policy.
-	// Policy used to merge concurrent branches at a join gateway.
-	WorkflowMergePolicyKey = attribute.Key("workflow.merge.policy")
-	// WorkflowChoiceConditionKey is the OTel attribute key for workflow.choice.condition.
-	// Condition expression evaluated at an exclusive or deferred choice gateway.
-	WorkflowChoiceConditionKey = attribute.Key("workflow.choice.condition")
-)
-
-// WorkflowSplitCount returns an attribute KeyValue for workflow.split.count.
-func WorkflowSplitCount(val int) attribute.KeyValue {
-	return WorkflowSplitCountKey.Int(val)
-}
-
-// WorkflowMergePolicy returns an attribute KeyValue for workflow.merge.policy.
-func WorkflowMergePolicy(val string) attribute.KeyValue {
-	return WorkflowMergePolicyKey.String(val)
-}
-
-// WorkflowChoiceCondition returns an attribute KeyValue for workflow.choice.condition.
-func WorkflowChoiceCondition(val string) attribute.KeyValue {
-	return WorkflowChoiceConditionKey.String(val)
-}
-
-// WorkflowMergePolicyValues contains the known enum values for workflow.merge.policy.
-const (
-	WorkflowMergePolicyFirst     = "first"
-	WorkflowMergePolicyAll       = "all"
-	WorkflowMergePolicyThreshold = "threshold"
-)
-
-// Wave 9 iteration 10: YAWL WP-6/7 parallel split/join tracking
-
-const (
-	// WorkflowActiveBranchesKey is the OTel attribute key for workflow.active_branches.
-	// Number of currently active branches in a parallel split.
-	WorkflowActiveBranchesKey = attribute.Key("workflow.active_branches")
-	// WorkflowFiredBranchesKey is the OTel attribute key for workflow.fired_branches.
-	// Number of branches that have fired (completed) in a parallel split.
-	WorkflowFiredBranchesKey = attribute.Key("workflow.fired_branches")
-	// WorkflowSyncTimeoutMsKey is the OTel attribute key for workflow.sync.timeout_ms.
-	// Maximum time in milliseconds to wait for synchronization at a join gateway (WvdA deadlock freedom).
-	WorkflowSyncTimeoutMsKey = attribute.Key("workflow.sync.timeout_ms")
-)
-
-// WorkflowActiveBranches returns an attribute KeyValue for workflow.active_branches.
-func WorkflowActiveBranches(val int) attribute.KeyValue {
-	return WorkflowActiveBranchesKey.Int(val)
-}
-
-// WorkflowFiredBranches returns an attribute KeyValue for workflow.fired_branches.
-func WorkflowFiredBranches(val int) attribute.KeyValue {
-	return WorkflowFiredBranchesKey.Int(val)
-}
-
-// WorkflowSyncTimeoutMs returns an attribute KeyValue for workflow.sync.timeout_ms.
-func WorkflowSyncTimeoutMs(val int) attribute.KeyValue {
-	return WorkflowSyncTimeoutMsKey.Int(val)
+	Message: "message",
+	External: "external",
+	Condition: "condition",
 }
 

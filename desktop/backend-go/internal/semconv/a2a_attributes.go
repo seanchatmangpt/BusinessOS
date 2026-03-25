@@ -10,24 +10,258 @@ const (
 	// A2aAgentIdKey is the OTel attribute key for a2a.agent.id.
 	// Identifier of the target agent in an A2A call.
 	A2aAgentIdKey = attribute.Key("a2a.agent.id")
+	// A2aAuctionBidCountKey is the OTel attribute key for a2a.auction.bid_count.
+	// Number of bids received in the A2A auction.
+	A2aAuctionBidCountKey = attribute.Key("a2a.auction.bid_count")
+	// A2aAuctionClearingPriceKey is the OTel attribute key for a2a.auction.clearing_price.
+	// Clearing price of the A2A auction in normalized units.
+	A2aAuctionClearingPriceKey = attribute.Key("a2a.auction.clearing_price")
+	// A2aAuctionIdKey is the OTel attribute key for a2a.auction.id.
+	// Unique identifier of the A2A auction used for capability allocation.
+	A2aAuctionIdKey = attribute.Key("a2a.auction.id")
+	// A2aAuctionWinnerIdKey is the OTel attribute key for a2a.auction.winner_id.
+	// Agent identifier of the auction winner.
+	A2aAuctionWinnerIdKey = attribute.Key("a2a.auction.winner_id")
+	// A2aBatchCompressionRatioKey is the OTel attribute key for a2a.batch.compression_ratio.
+	// Compression ratio achieved for the batch, range [0.0, 1.0]. 1.0 = no compression.
+	A2aBatchCompressionRatioKey = attribute.Key("a2a.batch.compression_ratio")
+	// A2aBatchDeliveryPolicyKey is the OTel attribute key for a2a.batch.delivery_policy.
+	// Delivery guarantee policy for the message batch.
+	A2aBatchDeliveryPolicyKey = attribute.Key("a2a.batch.delivery_policy")
+	// A2aBatchIdKey is the OTel attribute key for a2a.batch.id.
+	// Unique identifier for an A2A message batch.
+	A2aBatchIdKey = attribute.Key("a2a.batch.id")
+	// A2aBatchSizeKey is the OTel attribute key for a2a.batch.size.
+	// Number of messages in the batch.
+	A2aBatchSizeKey = attribute.Key("a2a.batch.size")
+	// A2aBidScoreKey is the OTel attribute key for a2a.bid.score.
+	// Composite bid score computed by the auction evaluation strategy, range [0.0, 1.0].
+	A2aBidScoreKey = attribute.Key("a2a.bid.score")
+	// A2aBidStrategyKey is the OTel attribute key for a2a.bid.strategy.
+	// Strategy used to evaluate and rank agent bids for task allocation.
+	A2aBidStrategyKey = attribute.Key("a2a.bid.strategy")
+	// A2aBidWinnerIdKey is the OTel attribute key for a2a.bid.winner_id.
+	// Identifier of the agent that won the bid evaluation.
+	A2aBidWinnerIdKey = attribute.Key("a2a.bid.winner_id")
+	// A2aCapabilityMatchScoreKey is the OTel attribute key for a2a.capability.match_score.
+	// Confidence score for capability matching between requesting and providing agents [0.0, 1.0].
+	A2aCapabilityMatchScoreKey = attribute.Key("a2a.capability.match_score")
 	// A2aCapabilityNameKey is the OTel attribute key for a2a.capability.name.
 	// Name of the capability being advertised or requested in A2A negotiation.
 	A2aCapabilityNameKey = attribute.Key("a2a.capability.name")
+	// A2aCapabilityNegotiationIdKey is the OTel attribute key for a2a.capability.negotiation.id.
+	// Unique identifier for the capability negotiation session.
+	A2aCapabilityNegotiationIdKey = attribute.Key("a2a.capability.negotiation.id")
+	// A2aCapabilityNegotiationOutcomeKey is the OTel attribute key for a2a.capability.negotiation.outcome.
+	// Outcome of the capability negotiation.
+	A2aCapabilityNegotiationOutcomeKey = attribute.Key("a2a.capability.negotiation.outcome")
+	// A2aCapabilityNegotiationRoundsKey is the OTel attribute key for a2a.capability.negotiation.rounds.
+	// Number of rounds in the capability negotiation.
+	A2aCapabilityNegotiationRoundsKey = attribute.Key("a2a.capability.negotiation.rounds")
+	// A2aCapabilityOfferedKey is the OTel attribute key for a2a.capability.offered.
+	// The capability name offered by the target agent.
+	A2aCapabilityOfferedKey = attribute.Key("a2a.capability.offered")
+	// A2aCapabilityRequiredKey is the OTel attribute key for a2a.capability.required.
+	// The capability name being requested by the source agent.
+	A2aCapabilityRequiredKey = attribute.Key("a2a.capability.required")
+	// A2aCapabilityVersionKey is the OTel attribute key for a2a.capability.version.
+	// Version of the agent capability being delegated.
+	A2aCapabilityVersionKey = attribute.Key("a2a.capability.version")
+	// A2aContractAmendmentIdKey is the OTel attribute key for a2a.contract.amendment.id.
+	// Unique identifier for the contract amendment.
+	A2aContractAmendmentIdKey = attribute.Key("a2a.contract.amendment.id")
+	// A2aContractAmendmentReasonKey is the OTel attribute key for a2a.contract.amendment.reason.
+	// Reason for the contract amendment.
+	A2aContractAmendmentReasonKey = attribute.Key("a2a.contract.amendment.reason")
+	// A2aContractAmendmentVersionKey is the OTel attribute key for a2a.contract.amendment.version.
+	// Version number of the amended contract.
+	A2aContractAmendmentVersionKey = attribute.Key("a2a.contract.amendment.version")
+	// A2aContractDisputeIdKey is the OTel attribute key for a2a.contract.dispute.id.
+	// Unique identifier for the A2A contract dispute.
+	A2aContractDisputeIdKey = attribute.Key("a2a.contract.dispute.id")
+	// A2aContractDisputeReasonKey is the OTel attribute key for a2a.contract.dispute.reason.
+	// Reason for the contract dispute.
+	A2aContractDisputeReasonKey = attribute.Key("a2a.contract.dispute.reason")
+	// A2aContractDisputeStatusKey is the OTel attribute key for a2a.contract.dispute.status.
+	// Current status of the contract dispute.
+	A2aContractDisputeStatusKey = attribute.Key("a2a.contract.dispute.status")
+	// A2aContractExecutionProgressPctKey is the OTel attribute key for a2a.contract.execution.progress_pct.
+	// Percentage of contract execution completed, range [0.0, 100.0].
+	A2aContractExecutionProgressPctKey = attribute.Key("a2a.contract.execution.progress_pct")
+	// A2aContractExecutionStatusKey is the OTel attribute key for a2a.contract.execution.status.
+	// The current execution status of the A2A contract.
+	A2aContractExecutionStatusKey = attribute.Key("a2a.contract.execution.status")
+	// A2aContractExpiryMsKey is the OTel attribute key for a2a.contract.expiry_ms.
+	// Unix timestamp (milliseconds) when the contract expires.
+	A2aContractExpiryMsKey = attribute.Key("a2a.contract.expiry_ms")
+	// A2aContractIdKey is the OTel attribute key for a2a.contract.id.
+	// Unique identifier for an A2A service contract.
+	A2aContractIdKey = attribute.Key("a2a.contract.id")
+	// A2aContractTermsHashKey is the OTel attribute key for a2a.contract.terms_hash.
+	// SHA-256 hash of the contract terms for integrity verification.
+	A2aContractTermsHashKey = attribute.Key("a2a.contract.terms_hash")
+	// A2aContractViolationCountKey is the OTel attribute key for a2a.contract.violation_count.
+	// Number of times the contract terms were violated during the contract lifetime.
+	A2aContractViolationCountKey = attribute.Key("a2a.contract.violation_count")
+	// A2aDealCurrencyKey is the OTel attribute key for a2a.deal.currency.
+	// Currency unit for the deal value (ISO 4217 or token unit).
+	A2aDealCurrencyKey = attribute.Key("a2a.deal.currency")
+	// A2aDealExpiryMsKey is the OTel attribute key for a2a.deal.expiry_ms.
+	// Deal expiration time as Unix epoch milliseconds (Armstrong WvdA bounded lifetime).
+	A2aDealExpiryMsKey = attribute.Key("a2a.deal.expiry_ms")
 	// A2aDealIdKey is the OTel attribute key for a2a.deal.id.
 	// Identifier of the deal being created or operated on via A2A.
 	A2aDealIdKey = attribute.Key("a2a.deal.id")
+	// A2aDealStatusKey is the OTel attribute key for a2a.deal.status.
+	// Current status of the A2A deal in its lifecycle.
+	A2aDealStatusKey = attribute.Key("a2a.deal.status")
 	// A2aDealTypeKey is the OTel attribute key for a2a.deal.type.
 	// Type of the A2A deal.
 	A2aDealTypeKey = attribute.Key("a2a.deal.type")
+	// A2aDealValueKey is the OTel attribute key for a2a.deal.value.
+	// Numeric value associated with the deal (e.g., computational cost, token budget).
+	A2aDealValueKey = attribute.Key("a2a.deal.value")
+	// A2aDisputeIdKey is the OTel attribute key for a2a.dispute.id.
+	// Unique identifier for the A2A dispute case.
+	A2aDisputeIdKey = attribute.Key("a2a.dispute.id")
+	// A2aDisputeReasonKey is the OTel attribute key for a2a.dispute.reason.
+	// The reason for the A2A dispute.
+	A2aDisputeReasonKey = attribute.Key("a2a.dispute.reason")
+	// A2aDisputeResolutionMsKey is the OTel attribute key for a2a.dispute.resolution_ms.
+	// Time taken to resolve the dispute in milliseconds.
+	A2aDisputeResolutionMsKey = attribute.Key("a2a.dispute.resolution_ms")
+	// A2aDisputeResolutionStatusKey is the OTel attribute key for a2a.dispute.resolution_status.
+	// Current resolution status of the A2A dispute.
+	A2aDisputeResolutionStatusKey = attribute.Key("a2a.dispute.resolution_status")
+	// A2aEscrowAmountKey is the OTel attribute key for a2a.escrow.amount.
+	// Amount held in escrow for the A2A deal.
+	A2aEscrowAmountKey = attribute.Key("a2a.escrow.amount")
+	// A2aEscrowIdKey is the OTel attribute key for a2a.escrow.id.
+	// Unique identifier for the A2A escrow holding deal payment.
+	A2aEscrowIdKey = attribute.Key("a2a.escrow.id")
+	// A2aEscrowReleaseConditionKey is the OTel attribute key for a2a.escrow.release_condition.
+	// Condition under which the escrow funds are released.
+	A2aEscrowReleaseConditionKey = attribute.Key("a2a.escrow.release_condition")
+	// A2aEscrowReleaseMsKey is the OTel attribute key for a2a.escrow.release_ms.
+	// Time taken to release the escrow in milliseconds.
+	A2aEscrowReleaseMsKey = attribute.Key("a2a.escrow.release_ms")
+	// A2aEscrowReleaseReasonKey is the OTel attribute key for a2a.escrow.release_reason.
+	// The reason the A2A escrow was released.
+	A2aEscrowReleaseReasonKey = attribute.Key("a2a.escrow.release_reason")
+	// A2aEscrowReleasedAmountKey is the OTel attribute key for a2a.escrow.released_amount.
+	// The actual amount released from escrow (may differ from original if penalties applied).
+	A2aEscrowReleasedAmountKey = attribute.Key("a2a.escrow.released_amount")
+	// A2aEscrowStatusKey is the OTel attribute key for a2a.escrow.status.
+	// Current status of the A2A escrow.
+	A2aEscrowStatusKey = attribute.Key("a2a.escrow.status")
+	// A2aMessageEncodingKey is the OTel attribute key for a2a.message.encoding.
+	// Encoding format of the A2A message.
+	A2aMessageEncodingKey = attribute.Key("a2a.message.encoding")
+	// A2aMessageIdKey is the OTel attribute key for a2a.message.id.
+	// Unique identifier for this A2A message, used for deduplication and correlation.
+	A2aMessageIdKey = attribute.Key("a2a.message.id")
+	// A2aMessagePriorityKey is the OTel attribute key for a2a.message.priority.
+	// Priority level of the A2A message.
+	A2aMessagePriorityKey = attribute.Key("a2a.message.priority")
+	// A2aMessageSizeBytesKey is the OTel attribute key for a2a.message.size_bytes.
+	// Size of the A2A message payload in bytes.
+	A2aMessageSizeBytesKey = attribute.Key("a2a.message.size_bytes")
+	// A2aMessageTtlMsKey is the OTel attribute key for a2a.message.ttl_ms.
+	// Time-to-live for the A2A message in milliseconds.
+	A2aMessageTtlMsKey = attribute.Key("a2a.message.ttl_ms")
 	// A2aNegotiationRoundKey is the OTel attribute key for a2a.negotiation.round.
 	// The negotiation round number in a multi-round deal negotiation.
 	A2aNegotiationRoundKey = attribute.Key("a2a.negotiation.round")
+	// A2aNegotiationStateKey is the OTel attribute key for a2a.negotiation.state.
+	// Current state in the A2A negotiation state machine.
+	A2aNegotiationStateKey = attribute.Key("a2a.negotiation.state")
 	// A2aNegotiationStatusKey is the OTel attribute key for a2a.negotiation.status.
 	// Current status of an A2A deal negotiation.
 	A2aNegotiationStatusKey = attribute.Key("a2a.negotiation.status")
+	// A2aNegotiationTimeoutMsKey is the OTel attribute key for a2a.negotiation.timeout_ms.
+	// Maximum time allowed for the negotiation round to complete in milliseconds.
+	A2aNegotiationTimeoutMsKey = attribute.Key("a2a.negotiation.timeout_ms")
 	// A2aOperationKey is the OTel attribute key for a2a.operation.
 	// The A2A operation name being invoked.
 	A2aOperationKey = attribute.Key("a2a.operation")
+	// A2aPenaltyAmountKey is the OTel attribute key for a2a.penalty.amount.
+	// Monetary or credit penalty amount applied to an agent for contract violation.
+	A2aPenaltyAmountKey = attribute.Key("a2a.penalty.amount")
+	// A2aPenaltyCurrencyKey is the OTel attribute key for a2a.penalty.currency.
+	// Currency code for the penalty/reward amount (ISO 4217).
+	A2aPenaltyCurrencyKey = attribute.Key("a2a.penalty.currency")
+	// A2aPenaltyReasonKey is the OTel attribute key for a2a.penalty.reason.
+	// Reason for applying a penalty to an agent in the A2A marketplace.
+	A2aPenaltyReasonKey = attribute.Key("a2a.penalty.reason")
+	// A2aProtocolDeprecatedKey is the OTel attribute key for a2a.protocol.deprecated.
+	// Whether the A2A protocol version in use is deprecated.
+	A2aProtocolDeprecatedKey = attribute.Key("a2a.protocol.deprecated")
+	// A2aProtocolMinVersionKey is the OTel attribute key for a2a.protocol.min_version.
+	// Minimum A2A protocol version supported by the endpoint.
+	A2aProtocolMinVersionKey = attribute.Key("a2a.protocol.min_version")
+	// A2aProtocolNegotiationMsKey is the OTel attribute key for a2a.protocol.negotiation_ms.
+	// Time taken to negotiate the A2A protocol version in milliseconds.
+	A2aProtocolNegotiationMsKey = attribute.Key("a2a.protocol.negotiation_ms")
+	// A2aProtocolVersionKey is the OTel attribute key for a2a.protocol.version.
+	// The A2A protocol version in use for this interaction.
+	A2aProtocolVersionKey = attribute.Key("a2a.protocol.version")
+	// A2aQueueDepthKey is the OTel attribute key for a2a.queue.depth.
+	// Current depth of the A2A request queue for the target agent.
+	A2aQueueDepthKey = attribute.Key("a2a.queue.depth")
+	// A2aReputationCategoryKey is the OTel attribute key for a2a.reputation.category.
+	// Categorical trust level derived from the reputation score.
+	A2aReputationCategoryKey = attribute.Key("a2a.reputation.category")
+	// A2aReputationDecayDeltaKey is the OTel attribute key for a2a.reputation.decay.delta.
+	// The absolute change in reputation score from this decay event (always negative or zero).
+	A2aReputationDecayDeltaKey = attribute.Key("a2a.reputation.decay.delta")
+	// A2aReputationDecayRateKey is the OTel attribute key for a2a.reputation.decay.rate.
+	// The rate at which reputation decays per decay trigger event, range [0.0, 1.0].
+	A2aReputationDecayRateKey = attribute.Key("a2a.reputation.decay.rate")
+	// A2aReputationDecayTriggerKey is the OTel attribute key for a2a.reputation.decay.trigger.
+	// The trigger that caused this reputation decay event.
+	A2aReputationDecayTriggerKey = attribute.Key("a2a.reputation.decay.trigger")
+	// A2aReputationDecayFactorKey is the OTel attribute key for a2a.reputation.decay_factor.
+	// Time-decay factor applied to older interactions in reputation calculation.
+	A2aReputationDecayFactorKey = attribute.Key("a2a.reputation.decay_factor")
+	// A2aReputationHistoryLengthKey is the OTel attribute key for a2a.reputation.history_length.
+	// Number of past interactions used to compute the reputation score.
+	A2aReputationHistoryLengthKey = attribute.Key("a2a.reputation.history_length")
+	// A2aReputationInteractionCountKey is the OTel attribute key for a2a.reputation.interaction_count.
+	// Total number of interactions used to compute the reputation score.
+	A2aReputationInteractionCountKey = attribute.Key("a2a.reputation.interaction_count")
+	// A2aReputationScoreKey is the OTel attribute key for a2a.reputation.score.
+	// Agent reputation score in range [0.0, 1.0] based on historical interactions.
+	A2aReputationScoreKey = attribute.Key("a2a.reputation.score")
+	// A2aRetryCountKey is the OTel attribute key for a2a.retry.count.
+	// Number of retry attempts made for this A2A call before success or final failure.
+	A2aRetryCountKey = attribute.Key("a2a.retry.count")
+	// A2aRewardAmountKey is the OTel attribute key for a2a.reward.amount.
+	// Monetary or credit reward amount granted to an agent for exceeding contract terms.
+	A2aRewardAmountKey = attribute.Key("a2a.reward.amount")
+	// A2aRoutingStrategyKey is the OTel attribute key for a2a.routing.strategy.
+	// The strategy used to route A2A requests to available agents.
+	A2aRoutingStrategyKey = attribute.Key("a2a.routing.strategy")
+	// A2aSlaBreachKey is the OTel attribute key for a2a.sla.breach.
+	// Whether the A2A operation violated its SLA deadline.
+	A2aSlaBreachKey = attribute.Key("a2a.sla.breach")
+	// A2aSlaDeadlineMsKey is the OTel attribute key for a2a.sla.deadline_ms.
+	// SLA deadline in milliseconds from request initiation. Exceeding this is an SLA breach.
+	A2aSlaDeadlineMsKey = attribute.Key("a2a.sla.deadline_ms")
+	// A2aSlaLatencyMsKey is the OTel attribute key for a2a.sla.latency_ms.
+	// Actual observed latency for this A2A operation in milliseconds.
+	A2aSlaLatencyMsKey = attribute.Key("a2a.sla.latency_ms")
+	// A2aSloBreachCountKey is the OTel attribute key for a2a.slo.breach_count.
+	// Number of SLO breaches in evaluation window.
+	A2aSloBreachCountKey = attribute.Key("a2a.slo.breach_count")
+	// A2aSloComplianceRateKey is the OTel attribute key for a2a.slo.compliance_rate.
+	// SLO compliance rate [0.0, 1.0] over evaluation window.
+	A2aSloComplianceRateKey = attribute.Key("a2a.slo.compliance_rate")
+	// A2aSloIdKey is the OTel attribute key for a2a.slo.id.
+	// Identifier for the service level objective being evaluated.
+	A2aSloIdKey = attribute.Key("a2a.slo.id")
+	// A2aSloTargetLatencyMsKey is the OTel attribute key for a2a.slo.target_latency_ms.
+	// Target latency in milliseconds for SLO compliance.
+	A2aSloTargetLatencyMsKey = attribute.Key("a2a.slo.target_latency_ms")
 	// A2aSourceServiceKey is the OTel attribute key for a2a.source.service.
 	// Service initiating the A2A call (sender).
 	A2aSourceServiceKey = attribute.Key("a2a.source.service")
@@ -40,15 +274,27 @@ const (
 	// A2aTaskPriorityKey is the OTel attribute key for a2a.task.priority.
 	// Priority level of a delegated A2A task.
 	A2aTaskPriorityKey = attribute.Key("a2a.task.priority")
-	// A2aNegotiationStateKey is the OTel attribute key for a2a.negotiation.state.
-	// Current state in the A2A negotiation state machine.
-	A2aNegotiationStateKey = attribute.Key("a2a.negotiation.state")
-	// A2aNegotiationTimeoutMsKey is the OTel attribute key for a2a.negotiation.timeout_ms.
-	// Maximum time allowed for the negotiation round to complete in milliseconds.
-	A2aNegotiationTimeoutMsKey = attribute.Key("a2a.negotiation.timeout_ms")
-	// A2aDealValueKey is the OTel attribute key for a2a.deal.value.
-	// Numeric value associated with the deal (e.g., computational cost, token budget).
-	A2aDealValueKey = attribute.Key("a2a.deal.value")
+	// A2aTrustConsensusThresholdKey is the OTel attribute key for a2a.trust.consensus_threshold.
+	// Minimum fraction of peers required to reach trust consensus, range [0.0, 1.0].
+	A2aTrustConsensusThresholdKey = attribute.Key("a2a.trust.consensus_threshold")
+	// A2aTrustDecayFactorKey is the OTel attribute key for a2a.trust.decay_factor.
+	// Exponential decay factor applied to historical trust scores, range (0.0, 1.0].
+	A2aTrustDecayFactorKey = attribute.Key("a2a.trust.decay_factor")
+	// A2aTrustEpochKey is the OTel attribute key for a2a.trust.epoch.
+	// Current trust epoch — increments on membership change or key rotation.
+	A2aTrustEpochKey = attribute.Key("a2a.trust.epoch")
+	// A2aTrustFederationIdKey is the OTel attribute key for a2a.trust.federation_id.
+	// Identifier of the federated trust ring this agent belongs to.
+	A2aTrustFederationIdKey = attribute.Key("a2a.trust.federation_id")
+	// A2aTrustPeerCountKey is the OTel attribute key for a2a.trust.peer_count.
+	// Number of peer agents in the trust federation.
+	A2aTrustPeerCountKey = attribute.Key("a2a.trust.peer_count")
+	// A2aTrustScoreKey is the OTel attribute key for a2a.trust.score.
+	// Trust score assigned to an agent interaction, range [0.0, 1.0]. Higher is more trusted.
+	A2aTrustScoreKey = attribute.Key("a2a.trust.score")
+	// A2aTrustUpdatedAtMsKey is the OTel attribute key for a2a.trust.updated_at_ms.
+	// Unix timestamp (milliseconds) when the trust score was last updated.
+	A2aTrustUpdatedAtMsKey = attribute.Key("a2a.trust.updated_at_ms")
 )
 
 // A2aAgentId returns an attribute KeyValue for a2a.agent.id.
@@ -56,9 +302,254 @@ func A2aAgentId(val string) attribute.KeyValue {
 	return A2aAgentIdKey.String(val)
 }
 
+// A2aAuctionBidCount returns an attribute KeyValue for a2a.auction.bid_count.
+func A2aAuctionBidCount(val int64) attribute.KeyValue {
+	return A2aAuctionBidCountKey.Int64(val)
+}
+
+// A2aAuctionClearingPrice returns an attribute KeyValue for a2a.auction.clearing_price.
+func A2aAuctionClearingPrice(val float64) attribute.KeyValue {
+	return A2aAuctionClearingPriceKey.Float64(val)
+}
+
+// A2aAuctionId returns an attribute KeyValue for a2a.auction.id.
+func A2aAuctionId(val string) attribute.KeyValue {
+	return A2aAuctionIdKey.String(val)
+}
+
+// A2aAuctionWinnerId returns an attribute KeyValue for a2a.auction.winner_id.
+func A2aAuctionWinnerId(val string) attribute.KeyValue {
+	return A2aAuctionWinnerIdKey.String(val)
+}
+
+// A2aBatchCompressionRatio returns an attribute KeyValue for a2a.batch.compression_ratio.
+func A2aBatchCompressionRatio(val float64) attribute.KeyValue {
+	return A2aBatchCompressionRatioKey.Float64(val)
+}
+
+// A2aBatchDeliveryPolicy returns an attribute KeyValue for a2a.batch.delivery_policy.
+func A2aBatchDeliveryPolicy(val string) attribute.KeyValue {
+	return A2aBatchDeliveryPolicyKey.String(val)
+}
+
+// A2aBatchDeliveryPolicyValues contains the known enum values for a2a.batch.delivery_policy.
+var A2aBatchDeliveryPolicyValues = struct {
+	AtMostOnce string
+	AtLeastOnce string
+	ExactlyOnce string
+}{
+	AtMostOnce: "at_most_once",
+	AtLeastOnce: "at_least_once",
+	ExactlyOnce: "exactly_once",
+}
+
+// A2aBatchId returns an attribute KeyValue for a2a.batch.id.
+func A2aBatchId(val string) attribute.KeyValue {
+	return A2aBatchIdKey.String(val)
+}
+
+// A2aBatchSize returns an attribute KeyValue for a2a.batch.size.
+func A2aBatchSize(val int64) attribute.KeyValue {
+	return A2aBatchSizeKey.Int64(val)
+}
+
+// A2aBidScore returns an attribute KeyValue for a2a.bid.score.
+func A2aBidScore(val float64) attribute.KeyValue {
+	return A2aBidScoreKey.Float64(val)
+}
+
+// A2aBidStrategy returns an attribute KeyValue for a2a.bid.strategy.
+func A2aBidStrategy(val string) attribute.KeyValue {
+	return A2aBidStrategyKey.String(val)
+}
+
+// A2aBidStrategyValues contains the known enum values for a2a.bid.strategy.
+var A2aBidStrategyValues = struct {
+	LowestCost string
+	HighestTrust string
+	FastestResponse string
+	Balanced string
+}{
+	LowestCost: "lowest_cost",
+	HighestTrust: "highest_trust",
+	FastestResponse: "fastest_response",
+	Balanced: "balanced",
+}
+
+// A2aBidWinnerId returns an attribute KeyValue for a2a.bid.winner_id.
+func A2aBidWinnerId(val string) attribute.KeyValue {
+	return A2aBidWinnerIdKey.String(val)
+}
+
+// A2aCapabilityMatchScore returns an attribute KeyValue for a2a.capability.match_score.
+func A2aCapabilityMatchScore(val float64) attribute.KeyValue {
+	return A2aCapabilityMatchScoreKey.Float64(val)
+}
+
 // A2aCapabilityName returns an attribute KeyValue for a2a.capability.name.
 func A2aCapabilityName(val string) attribute.KeyValue {
 	return A2aCapabilityNameKey.String(val)
+}
+
+// A2aCapabilityNegotiationId returns an attribute KeyValue for a2a.capability.negotiation.id.
+func A2aCapabilityNegotiationId(val string) attribute.KeyValue {
+	return A2aCapabilityNegotiationIdKey.String(val)
+}
+
+// A2aCapabilityNegotiationOutcome returns an attribute KeyValue for a2a.capability.negotiation.outcome.
+func A2aCapabilityNegotiationOutcome(val string) attribute.KeyValue {
+	return A2aCapabilityNegotiationOutcomeKey.String(val)
+}
+
+// A2aCapabilityNegotiationOutcomeValues contains the known enum values for a2a.capability.negotiation.outcome.
+var A2aCapabilityNegotiationOutcomeValues = struct {
+	Accepted string
+	Rejected string
+	Deferred string
+	Partial string
+}{
+	Accepted: "accepted",
+	Rejected: "rejected",
+	Deferred: "deferred",
+	Partial: "partial",
+}
+
+// A2aCapabilityNegotiationRounds returns an attribute KeyValue for a2a.capability.negotiation.rounds.
+func A2aCapabilityNegotiationRounds(val int64) attribute.KeyValue {
+	return A2aCapabilityNegotiationRoundsKey.Int64(val)
+}
+
+// A2aCapabilityOffered returns an attribute KeyValue for a2a.capability.offered.
+func A2aCapabilityOffered(val string) attribute.KeyValue {
+	return A2aCapabilityOfferedKey.String(val)
+}
+
+// A2aCapabilityRequired returns an attribute KeyValue for a2a.capability.required.
+func A2aCapabilityRequired(val string) attribute.KeyValue {
+	return A2aCapabilityRequiredKey.String(val)
+}
+
+// A2aCapabilityVersion returns an attribute KeyValue for a2a.capability.version.
+func A2aCapabilityVersion(val string) attribute.KeyValue {
+	return A2aCapabilityVersionKey.String(val)
+}
+
+// A2aContractAmendmentId returns an attribute KeyValue for a2a.contract.amendment.id.
+func A2aContractAmendmentId(val string) attribute.KeyValue {
+	return A2aContractAmendmentIdKey.String(val)
+}
+
+// A2aContractAmendmentReason returns an attribute KeyValue for a2a.contract.amendment.reason.
+func A2aContractAmendmentReason(val string) attribute.KeyValue {
+	return A2aContractAmendmentReasonKey.String(val)
+}
+
+// A2aContractAmendmentReasonValues contains the known enum values for a2a.contract.amendment.reason.
+var A2aContractAmendmentReasonValues = struct {
+	ScopeChange string
+	PriceAdjustment string
+	TimelineExtension string
+	QualityRevision string
+}{
+	ScopeChange: "scope_change",
+	PriceAdjustment: "price_adjustment",
+	TimelineExtension: "timeline_extension",
+	QualityRevision: "quality_revision",
+}
+
+// A2aContractAmendmentVersion returns an attribute KeyValue for a2a.contract.amendment.version.
+func A2aContractAmendmentVersion(val int64) attribute.KeyValue {
+	return A2aContractAmendmentVersionKey.Int64(val)
+}
+
+// A2aContractDisputeId returns an attribute KeyValue for a2a.contract.dispute.id.
+func A2aContractDisputeId(val string) attribute.KeyValue {
+	return A2aContractDisputeIdKey.String(val)
+}
+
+// A2aContractDisputeReason returns an attribute KeyValue for a2a.contract.dispute.reason.
+func A2aContractDisputeReason(val string) attribute.KeyValue {
+	return A2aContractDisputeReasonKey.String(val)
+}
+
+// A2aContractDisputeReasonValues contains the known enum values for a2a.contract.dispute.reason.
+var A2aContractDisputeReasonValues = struct {
+	Breach string
+	Ambiguity string
+	ForceMajeure string
+}{
+	Breach: "breach",
+	Ambiguity: "ambiguity",
+	ForceMajeure: "force_majeure",
+}
+
+// A2aContractDisputeStatus returns an attribute KeyValue for a2a.contract.dispute.status.
+func A2aContractDisputeStatus(val string) attribute.KeyValue {
+	return A2aContractDisputeStatusKey.String(val)
+}
+
+// A2aContractDisputeStatusValues contains the known enum values for a2a.contract.dispute.status.
+var A2aContractDisputeStatusValues = struct {
+	Open string
+	Arbitrating string
+	Resolved string
+}{
+	Open: "open",
+	Arbitrating: "arbitrating",
+	Resolved: "resolved",
+}
+
+// A2aContractExecutionProgressPct returns an attribute KeyValue for a2a.contract.execution.progress_pct.
+func A2aContractExecutionProgressPct(val float64) attribute.KeyValue {
+	return A2aContractExecutionProgressPctKey.Float64(val)
+}
+
+// A2aContractExecutionStatus returns an attribute KeyValue for a2a.contract.execution.status.
+func A2aContractExecutionStatus(val string) attribute.KeyValue {
+	return A2aContractExecutionStatusKey.String(val)
+}
+
+// A2aContractExecutionStatusValues contains the known enum values for a2a.contract.execution.status.
+var A2aContractExecutionStatusValues = struct {
+	Running string
+	Completed string
+	Failed string
+	Disputed string
+}{
+	Running: "running",
+	Completed: "completed",
+	Failed: "failed",
+	Disputed: "disputed",
+}
+
+// A2aContractExpiryMs returns an attribute KeyValue for a2a.contract.expiry_ms.
+func A2aContractExpiryMs(val int64) attribute.KeyValue {
+	return A2aContractExpiryMsKey.Int64(val)
+}
+
+// A2aContractId returns an attribute KeyValue for a2a.contract.id.
+func A2aContractId(val string) attribute.KeyValue {
+	return A2aContractIdKey.String(val)
+}
+
+// A2aContractTermsHash returns an attribute KeyValue for a2a.contract.terms_hash.
+func A2aContractTermsHash(val string) attribute.KeyValue {
+	return A2aContractTermsHashKey.String(val)
+}
+
+// A2aContractViolationCount returns an attribute KeyValue for a2a.contract.violation_count.
+func A2aContractViolationCount(val int64) attribute.KeyValue {
+	return A2aContractViolationCountKey.Int64(val)
+}
+
+// A2aDealCurrency returns an attribute KeyValue for a2a.deal.currency.
+func A2aDealCurrency(val string) attribute.KeyValue {
+	return A2aDealCurrencyKey.String(val)
+}
+
+// A2aDealExpiryMs returns an attribute KeyValue for a2a.deal.expiry_ms.
+func A2aDealExpiryMs(val int64) attribute.KeyValue {
+	return A2aDealExpiryMsKey.Int64(val)
 }
 
 // A2aDealId returns an attribute KeyValue for a2a.deal.id.
@@ -66,14 +557,228 @@ func A2aDealId(val string) attribute.KeyValue {
 	return A2aDealIdKey.String(val)
 }
 
+// A2aDealStatus returns an attribute KeyValue for a2a.deal.status.
+func A2aDealStatus(val string) attribute.KeyValue {
+	return A2aDealStatusKey.String(val)
+}
+
+// A2aDealStatusValues contains the known enum values for a2a.deal.status.
+var A2aDealStatusValues = struct {
+	Pending string
+	Active string
+	Completed string
+	Cancelled string
+	Disputed string
+}{
+	Pending: "pending",
+	Active: "active",
+	Completed: "completed",
+	Cancelled: "cancelled",
+	Disputed: "disputed",
+}
+
 // A2aDealType returns an attribute KeyValue for a2a.deal.type.
 func A2aDealType(val string) attribute.KeyValue {
 	return A2aDealTypeKey.String(val)
 }
 
+// A2aDealValue returns an attribute KeyValue for a2a.deal.value.
+func A2aDealValue(val float64) attribute.KeyValue {
+	return A2aDealValueKey.Float64(val)
+}
+
+// A2aDisputeId returns an attribute KeyValue for a2a.dispute.id.
+func A2aDisputeId(val string) attribute.KeyValue {
+	return A2aDisputeIdKey.String(val)
+}
+
+// A2aDisputeReason returns an attribute KeyValue for a2a.dispute.reason.
+func A2aDisputeReason(val string) attribute.KeyValue {
+	return A2aDisputeReasonKey.String(val)
+}
+
+// A2aDisputeReasonValues contains the known enum values for a2a.dispute.reason.
+var A2aDisputeReasonValues = struct {
+	Quality string
+	SlaBreach string
+	Payment string
+	Fraud string
+	Technical string
+}{
+	Quality: "quality",
+	SlaBreach: "sla_breach",
+	Payment: "payment",
+	Fraud: "fraud",
+	Technical: "technical",
+}
+
+// A2aDisputeResolutionMs returns an attribute KeyValue for a2a.dispute.resolution_ms.
+func A2aDisputeResolutionMs(val int64) attribute.KeyValue {
+	return A2aDisputeResolutionMsKey.Int64(val)
+}
+
+// A2aDisputeResolutionStatus returns an attribute KeyValue for a2a.dispute.resolution_status.
+func A2aDisputeResolutionStatus(val string) attribute.KeyValue {
+	return A2aDisputeResolutionStatusKey.String(val)
+}
+
+// A2aDisputeResolutionStatusValues contains the known enum values for a2a.dispute.resolution_status.
+var A2aDisputeResolutionStatusValues = struct {
+	Pending string
+	Resolved string
+	Escalated string
+}{
+	Pending: "pending",
+	Resolved: "resolved",
+	Escalated: "escalated",
+}
+
+// A2aEscrowAmount returns an attribute KeyValue for a2a.escrow.amount.
+func A2aEscrowAmount(val float64) attribute.KeyValue {
+	return A2aEscrowAmountKey.Float64(val)
+}
+
+// A2aEscrowId returns an attribute KeyValue for a2a.escrow.id.
+func A2aEscrowId(val string) attribute.KeyValue {
+	return A2aEscrowIdKey.String(val)
+}
+
+// A2aEscrowReleaseCondition returns an attribute KeyValue for a2a.escrow.release_condition.
+func A2aEscrowReleaseCondition(val string) attribute.KeyValue {
+	return A2aEscrowReleaseConditionKey.String(val)
+}
+
+// A2aEscrowReleaseConditionValues contains the known enum values for a2a.escrow.release_condition.
+var A2aEscrowReleaseConditionValues = struct {
+	Completion string
+	Timeout string
+	Manual string
+	Dispute string
+}{
+	Completion: "completion",
+	Timeout: "timeout",
+	Manual: "manual",
+	Dispute: "dispute",
+}
+
+// A2aEscrowReleaseMs returns an attribute KeyValue for a2a.escrow.release_ms.
+func A2aEscrowReleaseMs(val int64) attribute.KeyValue {
+	return A2aEscrowReleaseMsKey.Int64(val)
+}
+
+// A2aEscrowReleaseReason returns an attribute KeyValue for a2a.escrow.release_reason.
+func A2aEscrowReleaseReason(val string) attribute.KeyValue {
+	return A2aEscrowReleaseReasonKey.String(val)
+}
+
+// A2aEscrowReleaseReasonValues contains the known enum values for a2a.escrow.release_reason.
+var A2aEscrowReleaseReasonValues = struct {
+	Completion string
+	Timeout string
+	Dispute string
+	Manual string
+}{
+	Completion: "completion",
+	Timeout: "timeout",
+	Dispute: "dispute",
+	Manual: "manual",
+}
+
+// A2aEscrowReleasedAmount returns an attribute KeyValue for a2a.escrow.released_amount.
+func A2aEscrowReleasedAmount(val float64) attribute.KeyValue {
+	return A2aEscrowReleasedAmountKey.Float64(val)
+}
+
+// A2aEscrowStatus returns an attribute KeyValue for a2a.escrow.status.
+func A2aEscrowStatus(val string) attribute.KeyValue {
+	return A2aEscrowStatusKey.String(val)
+}
+
+// A2aEscrowStatusValues contains the known enum values for a2a.escrow.status.
+var A2aEscrowStatusValues = struct {
+	Pending string
+	Held string
+	Released string
+	Disputed string
+}{
+	Pending: "pending",
+	Held: "held",
+	Released: "released",
+	Disputed: "disputed",
+}
+
+// A2aMessageEncoding returns an attribute KeyValue for a2a.message.encoding.
+func A2aMessageEncoding(val string) attribute.KeyValue {
+	return A2aMessageEncodingKey.String(val)
+}
+
+// A2aMessageEncodingValues contains the known enum values for a2a.message.encoding.
+var A2aMessageEncodingValues = struct {
+	Json string
+	Msgpack string
+	Protobuf string
+}{
+	Json: "json",
+	Msgpack: "msgpack",
+	Protobuf: "protobuf",
+}
+
+// A2aMessageId returns an attribute KeyValue for a2a.message.id.
+func A2aMessageId(val string) attribute.KeyValue {
+	return A2aMessageIdKey.String(val)
+}
+
+// A2aMessagePriority returns an attribute KeyValue for a2a.message.priority.
+func A2aMessagePriority(val string) attribute.KeyValue {
+	return A2aMessagePriorityKey.String(val)
+}
+
+// A2aMessagePriorityValues contains the known enum values for a2a.message.priority.
+var A2aMessagePriorityValues = struct {
+	Critical string
+	High string
+	Normal string
+	Low string
+}{
+	Critical: "critical",
+	High: "high",
+	Normal: "normal",
+	Low: "low",
+}
+
+// A2aMessageSizeBytes returns an attribute KeyValue for a2a.message.size_bytes.
+func A2aMessageSizeBytes(val int64) attribute.KeyValue {
+	return A2aMessageSizeBytesKey.Int64(val)
+}
+
+// A2aMessageTtlMs returns an attribute KeyValue for a2a.message.ttl_ms.
+func A2aMessageTtlMs(val int64) attribute.KeyValue {
+	return A2aMessageTtlMsKey.Int64(val)
+}
+
 // A2aNegotiationRound returns an attribute KeyValue for a2a.negotiation.round.
 func A2aNegotiationRound(val int64) attribute.KeyValue {
 	return A2aNegotiationRoundKey.Int64(val)
+}
+
+// A2aNegotiationState returns an attribute KeyValue for a2a.negotiation.state.
+func A2aNegotiationState(val string) attribute.KeyValue {
+	return A2aNegotiationStateKey.String(val)
+}
+
+// A2aNegotiationStateValues contains the known enum values for a2a.negotiation.state.
+var A2aNegotiationStateValues = struct {
+	Proposed string
+	Counter string
+	Accepted string
+	Rejected string
+	Expired string
+}{
+	Proposed: "proposed",
+	Counter: "counter",
+	Accepted: "accepted",
+	Rejected: "rejected",
+	Expired: "expired",
 }
 
 // A2aNegotiationStatus returns an attribute KeyValue for a2a.negotiation.status.
@@ -100,9 +805,194 @@ var A2aNegotiationStatusValues = struct {
 	Timeout: "timeout",
 }
 
+// A2aNegotiationTimeoutMs returns an attribute KeyValue for a2a.negotiation.timeout_ms.
+func A2aNegotiationTimeoutMs(val int64) attribute.KeyValue {
+	return A2aNegotiationTimeoutMsKey.Int64(val)
+}
+
 // A2aOperation returns an attribute KeyValue for a2a.operation.
 func A2aOperation(val string) attribute.KeyValue {
 	return A2aOperationKey.String(val)
+}
+
+// A2aPenaltyAmount returns an attribute KeyValue for a2a.penalty.amount.
+func A2aPenaltyAmount(val float64) attribute.KeyValue {
+	return A2aPenaltyAmountKey.Float64(val)
+}
+
+// A2aPenaltyCurrency returns an attribute KeyValue for a2a.penalty.currency.
+func A2aPenaltyCurrency(val string) attribute.KeyValue {
+	return A2aPenaltyCurrencyKey.String(val)
+}
+
+// A2aPenaltyReason returns an attribute KeyValue for a2a.penalty.reason.
+func A2aPenaltyReason(val string) attribute.KeyValue {
+	return A2aPenaltyReasonKey.String(val)
+}
+
+// A2aPenaltyReasonValues contains the known enum values for a2a.penalty.reason.
+var A2aPenaltyReasonValues = struct {
+	SlaViolation string
+	QualityFailure string
+	Timeout string
+	Fraud string
+}{
+	SlaViolation: "sla_violation",
+	QualityFailure: "quality_failure",
+	Timeout: "timeout",
+	Fraud: "fraud",
+}
+
+// A2aProtocolDeprecated returns an attribute KeyValue for a2a.protocol.deprecated.
+func A2aProtocolDeprecated(val bool) attribute.KeyValue {
+	return A2aProtocolDeprecatedKey.Bool(val)
+}
+
+// A2aProtocolMinVersion returns an attribute KeyValue for a2a.protocol.min_version.
+func A2aProtocolMinVersion(val string) attribute.KeyValue {
+	return A2aProtocolMinVersionKey.String(val)
+}
+
+// A2aProtocolNegotiationMs returns an attribute KeyValue for a2a.protocol.negotiation_ms.
+func A2aProtocolNegotiationMs(val int64) attribute.KeyValue {
+	return A2aProtocolNegotiationMsKey.Int64(val)
+}
+
+// A2aProtocolVersion returns an attribute KeyValue for a2a.protocol.version.
+func A2aProtocolVersion(val string) attribute.KeyValue {
+	return A2aProtocolVersionKey.String(val)
+}
+
+// A2aQueueDepth returns an attribute KeyValue for a2a.queue.depth.
+func A2aQueueDepth(val int64) attribute.KeyValue {
+	return A2aQueueDepthKey.Int64(val)
+}
+
+// A2aReputationCategory returns an attribute KeyValue for a2a.reputation.category.
+func A2aReputationCategory(val string) attribute.KeyValue {
+	return A2aReputationCategoryKey.String(val)
+}
+
+// A2aReputationCategoryValues contains the known enum values for a2a.reputation.category.
+var A2aReputationCategoryValues = struct {
+	Trusted string
+	Neutral string
+	Probation string
+	Banned string
+}{
+	Trusted: "trusted",
+	Neutral: "neutral",
+	Probation: "probation",
+	Banned: "banned",
+}
+
+// A2aReputationDecayDelta returns an attribute KeyValue for a2a.reputation.decay.delta.
+func A2aReputationDecayDelta(val float64) attribute.KeyValue {
+	return A2aReputationDecayDeltaKey.Float64(val)
+}
+
+// A2aReputationDecayRate returns an attribute KeyValue for a2a.reputation.decay.rate.
+func A2aReputationDecayRate(val float64) attribute.KeyValue {
+	return A2aReputationDecayRateKey.Float64(val)
+}
+
+// A2aReputationDecayTrigger returns an attribute KeyValue for a2a.reputation.decay.trigger.
+func A2aReputationDecayTrigger(val string) attribute.KeyValue {
+	return A2aReputationDecayTriggerKey.String(val)
+}
+
+// A2aReputationDecayTriggerValues contains the known enum values for a2a.reputation.decay.trigger.
+var A2aReputationDecayTriggerValues = struct {
+	Time string
+	Interaction string
+	Violation string
+}{
+	Time: "time",
+	Interaction: "interaction",
+	Violation: "violation",
+}
+
+// A2aReputationDecayFactor returns an attribute KeyValue for a2a.reputation.decay_factor.
+func A2aReputationDecayFactor(val float64) attribute.KeyValue {
+	return A2aReputationDecayFactorKey.Float64(val)
+}
+
+// A2aReputationHistoryLength returns an attribute KeyValue for a2a.reputation.history_length.
+func A2aReputationHistoryLength(val int64) attribute.KeyValue {
+	return A2aReputationHistoryLengthKey.Int64(val)
+}
+
+// A2aReputationInteractionCount returns an attribute KeyValue for a2a.reputation.interaction_count.
+func A2aReputationInteractionCount(val int64) attribute.KeyValue {
+	return A2aReputationInteractionCountKey.Int64(val)
+}
+
+// A2aReputationScore returns an attribute KeyValue for a2a.reputation.score.
+func A2aReputationScore(val float64) attribute.KeyValue {
+	return A2aReputationScoreKey.Float64(val)
+}
+
+// A2aRetryCount returns an attribute KeyValue for a2a.retry.count.
+func A2aRetryCount(val int64) attribute.KeyValue {
+	return A2aRetryCountKey.Int64(val)
+}
+
+// A2aRewardAmount returns an attribute KeyValue for a2a.reward.amount.
+func A2aRewardAmount(val float64) attribute.KeyValue {
+	return A2aRewardAmountKey.Float64(val)
+}
+
+// A2aRoutingStrategy returns an attribute KeyValue for a2a.routing.strategy.
+func A2aRoutingStrategy(val string) attribute.KeyValue {
+	return A2aRoutingStrategyKey.String(val)
+}
+
+// A2aRoutingStrategyValues contains the known enum values for a2a.routing.strategy.
+var A2aRoutingStrategyValues = struct {
+	BestMatch string
+	RoundRobin string
+	LoadBalanced string
+	PriorityQueue string
+}{
+	BestMatch: "best_match",
+	RoundRobin: "round_robin",
+	LoadBalanced: "load_balanced",
+	PriorityQueue: "priority_queue",
+}
+
+// A2aSlaBreach returns an attribute KeyValue for a2a.sla.breach.
+func A2aSlaBreach(val bool) attribute.KeyValue {
+	return A2aSlaBreachKey.Bool(val)
+}
+
+// A2aSlaDeadlineMs returns an attribute KeyValue for a2a.sla.deadline_ms.
+func A2aSlaDeadlineMs(val int64) attribute.KeyValue {
+	return A2aSlaDeadlineMsKey.Int64(val)
+}
+
+// A2aSlaLatencyMs returns an attribute KeyValue for a2a.sla.latency_ms.
+func A2aSlaLatencyMs(val int64) attribute.KeyValue {
+	return A2aSlaLatencyMsKey.Int64(val)
+}
+
+// A2aSloBreachCount returns an attribute KeyValue for a2a.slo.breach_count.
+func A2aSloBreachCount(val int64) attribute.KeyValue {
+	return A2aSloBreachCountKey.Int64(val)
+}
+
+// A2aSloComplianceRate returns an attribute KeyValue for a2a.slo.compliance_rate.
+func A2aSloComplianceRate(val float64) attribute.KeyValue {
+	return A2aSloComplianceRateKey.Float64(val)
+}
+
+// A2aSloId returns an attribute KeyValue for a2a.slo.id.
+func A2aSloId(val string) attribute.KeyValue {
+	return A2aSloIdKey.String(val)
+}
+
+// A2aSloTargetLatencyMs returns an attribute KeyValue for a2a.slo.target_latency_ms.
+func A2aSloTargetLatencyMs(val int64) attribute.KeyValue {
+	return A2aSloTargetLatencyMsKey.Int64(val)
 }
 
 // A2aSourceService returns an attribute KeyValue for a2a.source.service.
@@ -125,36 +1015,6 @@ func A2aTaskPriority(val string) attribute.KeyValue {
 	return A2aTaskPriorityKey.String(val)
 }
 
-// A2aNegotiationState returns an attribute KeyValue for a2a.negotiation.state.
-func A2aNegotiationState(val string) attribute.KeyValue {
-	return A2aNegotiationStateKey.String(val)
-}
-
-// A2aNegotiationStateValues contains the known enum values for a2a.negotiation.state.
-var A2aNegotiationStateValues = struct {
-	Proposed string
-	Counter  string
-	Accepted string
-	Rejected string
-	Expired  string
-}{
-	Proposed: "proposed",
-	Counter:  "counter",
-	Accepted: "accepted",
-	Rejected: "rejected",
-	Expired:  "expired",
-}
-
-// A2aNegotiationTimeoutMs returns an attribute KeyValue for a2a.negotiation.timeout_ms.
-func A2aNegotiationTimeoutMs(val int64) attribute.KeyValue {
-	return A2aNegotiationTimeoutMsKey.Int64(val)
-}
-
-// A2aDealValue returns an attribute KeyValue for a2a.deal.value.
-func A2aDealValue(val float64) attribute.KeyValue {
-	return A2aDealValueKey.Float64(val)
-}
-
 // A2aTaskPriorityValues contains the known enum values for a2a.task.priority.
 var A2aTaskPriorityValues = struct {
 	Critical string
@@ -168,40 +1028,38 @@ var A2aTaskPriorityValues = struct {
 	Low: "low",
 }
 
-// Wave 9 iteration 9: A2A deal tracking and capability version attributes.
-const (
-	// A2aDealStatusKey is the OTel attribute key for a2a.deal.status.
-	// Lifecycle status of the A2A deal.
-	A2aDealStatusKey = attribute.Key("a2a.deal.status")
-	// A2aDealCurrencyKey is the OTel attribute key for a2a.deal.currency.
-	// Currency code for the deal value (e.g., USD, EUR, tokens).
-	A2aDealCurrencyKey = attribute.Key("a2a.deal.currency")
-	// A2aDealExpiryMsKey is the OTel attribute key for a2a.deal.expiry_ms.
-	// Deal expiry time as milliseconds since epoch.
-	A2aDealExpiryMsKey = attribute.Key("a2a.deal.expiry_ms")
-	// A2aCapabilityVersionKey is the OTel attribute key for a2a.capability.version.
-	// Version string of the advertised capability.
-	A2aCapabilityVersionKey = attribute.Key("a2a.capability.version")
-)
+// A2aTrustConsensusThreshold returns an attribute KeyValue for a2a.trust.consensus_threshold.
+func A2aTrustConsensusThreshold(val float64) attribute.KeyValue {
+	return A2aTrustConsensusThresholdKey.Float64(val)
+}
 
-// A2aDealStatus returns an attribute KeyValue for a2a.deal.status.
-func A2aDealStatus(val string) attribute.KeyValue { return A2aDealStatusKey.String(val) }
+// A2aTrustDecayFactor returns an attribute KeyValue for a2a.trust.decay_factor.
+func A2aTrustDecayFactor(val float64) attribute.KeyValue {
+	return A2aTrustDecayFactorKey.Float64(val)
+}
 
-// A2aDealCurrency returns an attribute KeyValue for a2a.deal.currency.
-func A2aDealCurrency(val string) attribute.KeyValue { return A2aDealCurrencyKey.String(val) }
+// A2aTrustEpoch returns an attribute KeyValue for a2a.trust.epoch.
+func A2aTrustEpoch(val int64) attribute.KeyValue {
+	return A2aTrustEpochKey.Int64(val)
+}
 
-// A2aDealExpiryMs returns an attribute KeyValue for a2a.deal.expiry_ms.
-func A2aDealExpiryMs(val int64) attribute.KeyValue { return A2aDealExpiryMsKey.Int64(val) }
+// A2aTrustFederationId returns an attribute KeyValue for a2a.trust.federation_id.
+func A2aTrustFederationId(val string) attribute.KeyValue {
+	return A2aTrustFederationIdKey.String(val)
+}
 
-// A2aCapabilityVersion returns an attribute KeyValue for a2a.capability.version.
-func A2aCapabilityVersion(val string) attribute.KeyValue { return A2aCapabilityVersionKey.String(val) }
+// A2aTrustPeerCount returns an attribute KeyValue for a2a.trust.peer_count.
+func A2aTrustPeerCount(val int64) attribute.KeyValue {
+	return A2aTrustPeerCountKey.Int64(val)
+}
 
-// A2aDealStatus enum values.
-const (
-	A2aDealStatusPending   = "pending"
-	A2aDealStatusActive    = "active"
-	A2aDealStatusCompleted = "completed"
-	A2aDealStatusCancelled = "cancelled"
-	A2aDealStatusDisputed  = "disputed"
-)
+// A2aTrustScore returns an attribute KeyValue for a2a.trust.score.
+func A2aTrustScore(val float64) attribute.KeyValue {
+	return A2aTrustScoreKey.Float64(val)
+}
+
+// A2aTrustUpdatedAtMs returns an attribute KeyValue for a2a.trust.updated_at_ms.
+func A2aTrustUpdatedAtMs(val int64) attribute.KeyValue {
+	return A2aTrustUpdatedAtMsKey.Int64(val)
+}
 
