@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/cache"
 	"github.com/rhl/businessos-backend/internal/config"
@@ -85,6 +88,12 @@ type Handlers struct {
 	// Signal Theory feedback
 	signalHints          feedback.SignalHintProvider // Homeostatic feedback → prompt corrections
 	subconsciousObserver *subconscious.Observer      // Subconscious observer for async pattern detection
+	// Ontology / RDF bridge
+	bosOntologyService *services.BosOntologyService // bos CLI bridge for RDF operations
+	// Zero-Touch Compliance (Innovation 3)
+	complianceService *services.ComplianceService // Compliance status, audit trail, gap analysis
+	// 2-Phase Commit Transaction Management
+	transactionHandler *BOSTransactionHandler // 2PC transaction coordinator (prepare, commit, abort)
 }
 
 // NewHandlers creates a new Handlers instance
@@ -107,5 +116,16 @@ func NewHandlers(pool *pgxpool.Pool, cfg *config.Config, containerMgr *container
 		notificationTriggers: notifTriggers,
 		osaClient:            osaClient,
 		osaSyncService:       osaSyncService,
+		complianceService:    initComplianceService(),
+		transactionHandler:   NewBOSTransactionHandler(pool, slog.Default()),
 	}
+}
+
+// initComplianceService creates a ComplianceService if OSA_BASE_URL is set.
+func initComplianceService() *services.ComplianceService {
+	osaBaseURL := os.Getenv("OSA_BASE_URL")
+	if osaBaseURL == "" {
+		osaBaseURL = "http://localhost:9089"
+	}
+	return services.NewComplianceService(osaBaseURL, slog.Default())
 }
