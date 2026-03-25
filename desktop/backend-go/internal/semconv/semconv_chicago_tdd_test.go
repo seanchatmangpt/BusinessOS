@@ -4950,3 +4950,101 @@ func TestIter26LLMFinetuneBaseModel(t *testing.T) {
 func TestIter26LLMFinetuneTrainingSteps(t *testing.T) {
 	assert.Equal(t, "llm.finetune.training_steps", LLMFinetuneTrainingSteps)
 }
+
+// ============================================================
+// iter27 — Agent capability catalog, A2A escrow release,
+// PM conformance repair, consensus network recovery,
+// healing checkpoint, LLM batch
+// ============================================================
+
+func TestIter27AgentCapabilityCatalogIDConstant(t *testing.T) {
+	assert.Equal(t, "agent.capability.catalog_id", AgentCapabilityCatalogID)
+}
+
+func TestIter27AgentCapabilityCatalogVersionConstant(t *testing.T) {
+	assert.Equal(t, "agent.capability.catalog_version", AgentCapabilityCatalogVersion)
+}
+
+func TestIter27AgentCapabilityScopeConstant(t *testing.T) {
+	assert.Equal(t, "agent.capability.scope", AgentCapabilityScope)
+}
+
+func TestIter27AgentCapabilityCountConstant(t *testing.T) {
+	assert.Equal(t, "agent.capability.count", AgentCapabilityCount)
+}
+
+func TestIter27AgentCapabilityScopeLocalValue(t *testing.T) {
+	assert.Equal(t, "local", AgentCapabilityScopeValues.Local)
+}
+
+func TestIter27AgentCapabilityScopeClusterValue(t *testing.T) {
+	assert.Equal(t, "cluster", AgentCapabilityScopeValues.Cluster)
+}
+
+func TestIter27AgentCapabilityScopeFederatedValue(t *testing.T) {
+	assert.Equal(t, "federated", AgentCapabilityScopeValues.Federated)
+}
+
+func TestIter27A2AEscrowReleaseReasonConstant(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.release_reason", A2AEscrowReleaseReason)
+}
+
+func TestIter27A2AEscrowReleaseMsConstant(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.release_ms", A2AEscrowReleaseMs)
+}
+
+func TestIter27A2AEscrowReleasedAmountConstant(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.released_amount", A2AEscrowReleasedAmount)
+}
+
+func TestIter27A2AEscrowReleaseReasonCompletionValue(t *testing.T) {
+	assert.Equal(t, "completion", A2AEscrowReleaseReasonValues.Completion)
+}
+
+func TestIter27ProcessMiningConformanceRepairTypeConstant(t *testing.T) {
+	assert.Equal(t, "process.mining.conformance.repair_type", ProcessMiningConformanceRepairType)
+}
+
+func TestIter27ConformanceRepairCostMsConstant(t *testing.T) {
+	assert.Equal(t, "conformance.repair_cost_ms", ConformanceRepairCostMs)
+}
+
+func TestIter27ConformanceRepairCountConstant(t *testing.T) {
+	assert.Equal(t, "conformance.repair_count", ConformanceRepairCount)
+}
+
+func TestIter27ConformanceRepairedFitnessConstant(t *testing.T) {
+	assert.Equal(t, "conformance.repaired_fitness", ConformanceRepairedFitness)
+}
+
+func TestIter27ConsensusNetworkRecoveryDurationMsConstant(t *testing.T) {
+	assert.Equal(t, "consensus.network.recovery.duration_ms", ConsensusNetworkRecoveryDurationMs)
+}
+
+func TestIter27RecoveryStrategyConstant(t *testing.T) {
+	assert.Equal(t, "recovery.strategy", RecoveryStrategy)
+}
+
+func TestIter27RecoveryStrategyReconnectValue(t *testing.T) {
+	assert.Equal(t, "reconnect", RecoveryStrategyValues.Reconnect)
+}
+
+func TestIter27HealingCheckpointIDConstant(t *testing.T) {
+	assert.Equal(t, "healing.checkpoint.id", HealingCheckpointID)
+}
+
+func TestIter27CheckpointSizeBytesConstant(t *testing.T) {
+	assert.Equal(t, "checkpoint.size_bytes", CheckpointSizeBytes)
+}
+
+func TestIter27LLMBatchJobIDConstant(t *testing.T) {
+	assert.Equal(t, "llm.batch.job_id", LLMBatchJobID)
+}
+
+func TestIter27BatchCompletionRateConstant(t *testing.T) {
+	assert.Equal(t, "batch.completion_rate", BatchCompletionRate)
+}
+
+func TestIter27BatchPriorityHighValue(t *testing.T) {
+	assert.Equal(t, "high", BatchPriorityValues.High)
+}
