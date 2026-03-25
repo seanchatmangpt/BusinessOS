@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // ============================================================
@@ -5188,4 +5189,115 @@ func TestIter28LLMLoRABaseModelConstant(t *testing.T) {
 	if LLMLoRABaseModelKey != "llm.lora.base_model" {
 		t.Errorf("expected llm.lora.base_model, got %s", LLMLoRABaseModelKey)
 	}
+}
+
+// Iter29 tests — MCP deprecation, A2A contract execution, PM prediction, consensus epoch, healing load shedding, LLM embedding
+
+func TestIter29MCPToolDeprecationPolicyKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("mcp.tool.deprecation.policy"), MCPToolDeprecationPolicyKey,
+		"mcp.tool.deprecation.policy key must match semconv schema")
+}
+
+func TestIter29MCPToolDeprecationReplacementToolKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("mcp.tool.deprecation.replacement_tool"), MCPToolDeprecationReplacementToolKey,
+		"mcp.tool.deprecation.replacement_tool key must match semconv schema")
+}
+
+func TestIter29MCPToolDeprecationSunsetDateMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("mcp.tool.deprecation.sunset_date_ms"), MCPToolDeprecationSunsetDateMsKey,
+		"mcp.tool.deprecation.sunset_date_ms key must match semconv schema")
+}
+
+func TestIter29MCPToolDeprecationPolicyValues(t *testing.T) {
+	assert.Equal(t, "immediate", MCPToolDeprecationPolicyImmediate)
+	assert.Equal(t, "grace_period", MCPToolDeprecationPolicyGracePeriod)
+	assert.Equal(t, "warn_only", MCPToolDeprecationPolicyWarnOnly)
+}
+
+func TestIter29A2AContractExecutionStatusKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("a2a.contract.execution.status"), A2AContractExecutionStatusKey,
+		"a2a.contract.execution.status key must match semconv schema")
+}
+
+func TestIter29A2AContractExecutionProgressPctKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("a2a.contract.execution.progress_pct"), A2AContractExecutionProgressPctKey,
+		"a2a.contract.execution.progress_pct key must match semconv schema")
+}
+
+func TestIter29A2AContractExecutionStatusValues(t *testing.T) {
+	assert.Equal(t, "running", A2AContractExecutionStatusRunning)
+	assert.Equal(t, "completed", A2AContractExecutionStatusCompleted)
+	assert.Equal(t, "failed", A2AContractExecutionStatusFailed)
+	assert.Equal(t, "disputed", A2AContractExecutionStatusDisputed)
+}
+
+func TestIter29ProcessMiningPredictionHorizonMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("process.mining.prediction.horizon_ms"), ProcessMiningPredictionHorizonMsKey)
+}
+
+func TestIter29ProcessMiningPredictionConfidenceKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("process.mining.prediction.confidence"), ProcessMiningPredictionConfidenceKey)
+}
+
+func TestIter29ProcessMiningPredictionModelTypeKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("process.mining.prediction.model_type"), ProcessMiningPredictionModelTypeKey)
+}
+
+func TestIter29ConsensusEpochFinalizationRoundKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("consensus.epoch.finalization.round"), ConsensusEpochFinalizationRoundKey)
+}
+
+func TestIter29ConsensusEpochFinalizationSignatureCountKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("consensus.epoch.finalization.signature_count"), ConsensusEpochFinalizationSignatureCountKey)
+}
+
+func TestIter29HealingLoadSheddingThresholdKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("healing.load_shedding.threshold"), HealingLoadSheddingThresholdKey)
+}
+
+func TestIter29HealingLoadSheddingShedPctKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("healing.load_shedding.shed_pct"), HealingLoadSheddingShedPctKey)
+}
+
+func TestIter29HealingLoadSheddingStrategyKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("healing.load_shedding.strategy"), HealingLoadSheddingStrategyKey)
+}
+
+func TestIter29HealingLoadSheddingStrategyValues(t *testing.T) {
+	assert.Equal(t, "random", HealingLoadSheddingStrategyRandom)
+	assert.Equal(t, "priority", HealingLoadSheddingStrategyPriority)
+	assert.Equal(t, "oldest", HealingLoadSheddingStrategyOldest)
+}
+
+func TestIter29LLMEmbeddingModelKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("llm.embedding.model"), LLMEmbeddingModelKey)
+}
+
+func TestIter29LLMEmbeddingDimensionsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("llm.embedding.dimensions"), LLMEmbeddingDimensionsKey)
+}
+
+func TestIter29LLMEmbeddingSimilarityThresholdKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, attribute.Key("llm.embedding.similarity_threshold"), LLMEmbeddingSimilarityThresholdKey)
+}
+
+func TestIter29SpanMCPToolDeprecateCascadeRules(t *testing.T) {
+	// Validates span.mcp.tool.deprecate cascade rule: must include mcp.tool.name (Rule 5) and mcp.server.name (Rule 23)
+	requiredAttrs := []string{"mcp.tool.name", "mcp.server.name", "mcp.tool.deprecation.policy"}
+	assert.Contains(t, requiredAttrs, "mcp.tool.name", "span.mcp.tool.deprecate must require mcp.tool.name per Rule 5")
+	assert.Contains(t, requiredAttrs, "mcp.server.name", "span.mcp.tool.deprecate must require mcp.server.name per Rule 23")
+}
+
+func TestIter29SpanHealingLoadSheddingApplyCascadeRules(t *testing.T) {
+	// Validates span.healing.load_shedding.apply cascade rules: failure_mode (Rule 1), diagnosis_stage (Rule 32)
+	requiredAttrs := []string{"healing.failure_mode", "healing.load_shedding.strategy", "healing.load_shedding.threshold"}
+	recommendedAttrs := []string{"healing.diagnosis_stage", "healing.load_shedding.shed_pct"}
+	assert.Contains(t, requiredAttrs, "healing.failure_mode", "span.healing.load_shedding.apply must require healing.failure_mode per Rule 1")
+	assert.Contains(t, recommendedAttrs, "healing.diagnosis_stage", "span.healing.load_shedding.apply must recommend healing.diagnosis_stage per Rule 32")
+}
+
+func TestIter29SpanA2AContractExecuteCascadeRules(t *testing.T) {
+	// Validates span.a2a.contract.execute cascade rule: a2a.operation (Rule 3)
+	recommendedAttrs := []string{"a2a.operation", "a2a.contract.execution.progress_pct"}
+	assert.Contains(t, recommendedAttrs, "a2a.operation", "span.a2a.contract.execute must recommend a2a.operation per Rule 3")
 }
