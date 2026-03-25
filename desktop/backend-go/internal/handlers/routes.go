@@ -37,6 +37,8 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerOSARoutes(api, auth)
 	h.registerOntologyRoutes(api, auth)
 	h.registerComplianceRoutes(api, auth)
+	h.registerTransactionRoutes(api, auth)
+	h.registerBOSProgressRoutes(api)
 }
 
 // registerOntologyRoutes wires /api/ontology routes via bos CLI bridge.
@@ -46,4 +48,20 @@ func (h *Handlers) registerOntologyRoutes(api *gin.RouterGroup, auth gin.Handler
 	}
 	ontologyHandler := NewOntologyHandler(h.bosOntologyService)
 	RegisterOntologyRoutes(api, ontologyHandler, auth)
+}
+
+// registerTransactionRoutes wires /api/bos/tx routes for 2PC transaction management.
+func (h *Handlers) registerTransactionRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	if h.transactionHandler == nil {
+		return // transactions not configured — skip
+	}
+	h.transactionHandler.RegisterRoutes(api)
+}
+
+// registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception
+// from pm4py-rust progress events.
+func (h *Handlers) registerBOSProgressRoutes(api *gin.RouterGroup) {
+	// POST /api/bos/progress — receives progress events from pm4py-rust
+	// This route does NOT require authentication to allow pm4py-rust to POST directly
+	api.POST("/bos/progress", ReceiveExternalProgressEventHandler)
 }
