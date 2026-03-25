@@ -4591,3 +4591,86 @@ func TestLLMStructuredOutputValidationMsAttrName(t *testing.T) {
 		t.Errorf("expected llm.structured_output.validation_ms, got %s", LLMStructuredOutputValidationMs)
 	}
 }
+
+// Iter23: Agent spawn profiling tests
+func TestAgentSpawnParentIdAttrName(t *testing.T) {
+	assert.Equal(t, "agent.spawn.parent_id", AgentSpawnParentId)
+}
+func TestAgentSpawnStrategyAttrName(t *testing.T) {
+	assert.Equal(t, "agent.spawn.strategy", AgentSpawnStrategy)
+}
+func TestAgentSpawnLatencyMsAttrName(t *testing.T) {
+	assert.Equal(t, "agent.spawn.latency_ms", AgentSpawnLatencyMs)
+}
+
+// Iter23: A2A escrow mechanics tests
+func TestA2AEscrowIdAttrName(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.id", A2AEscrowId)
+}
+func TestA2AEscrowAmountAttrName(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.amount", A2AEscrowAmount)
+}
+func TestA2AEscrowReleaseConditionAttrName(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.release_condition", A2AEscrowReleaseCondition)
+}
+func TestA2AEscrowStatusAttrName(t *testing.T) {
+	assert.Equal(t, "a2a.escrow.status", A2AEscrowStatus)
+}
+
+// Iter23: PM bottleneck scoring tests
+func TestProcessMiningBottleneckScoreAttrName(t *testing.T) {
+	assert.Equal(t, "process.mining.bottleneck.score", ProcessMiningBottleneckScore)
+}
+func TestProcessMiningBottleneckRankAttrName(t *testing.T) {
+	assert.Equal(t, "process.mining.bottleneck.rank", ProcessMiningBottleneckRank)
+}
+func TestProcessMiningBottleneckImpactMsAttrName(t *testing.T) {
+	assert.Equal(t, "process.mining.bottleneck.impact_ms", ProcessMiningBottleneckImpactMs)
+}
+
+// Iter23: Consensus epoch key rotation tests
+func TestConsensusEpochKeyRotationIdAttrName(t *testing.T) {
+	assert.Equal(t, "consensus.epoch.key_rotation_id", ConsensusEpochKeyRotationId)
+}
+func TestConsensusEpochKeyRotationReasonAttrName(t *testing.T) {
+	assert.Equal(t, "consensus.epoch.key_rotation_reason", ConsensusEpochKeyRotationReason)
+}
+func TestConsensusEpochKeyRotationMsAttrName(t *testing.T) {
+	assert.Equal(t, "consensus.epoch.key_rotation_ms", ConsensusEpochKeyRotationMs)
+}
+
+// Iter23: Healing quarantine tests
+func TestHealingQuarantineIdAttrName(t *testing.T) {
+	assert.Equal(t, "healing.quarantine.id", HealingQuarantineId)
+}
+func TestHealingQuarantineReasonAttrName(t *testing.T) {
+	assert.Equal(t, "healing.quarantine.reason", HealingQuarantineReason)
+}
+func TestHealingQuarantineDurationMsAttrName(t *testing.T) {
+	assert.Equal(t, "healing.quarantine.duration_ms", HealingQuarantineDurationMs)
+}
+func TestHealingQuarantineActiveAttrName(t *testing.T) {
+	assert.Equal(t, "healing.quarantine.active", HealingQuarantineActive)
+}
+
+// Iter23: LLM function call routing tests
+func TestLLMFunctionCallNameAttrName(t *testing.T) {
+	assert.Equal(t, "llm.function_call.name", LLMFunctionCallName)
+}
+func TestLLMFunctionCallRoutingStrategyAttrName(t *testing.T) {
+	assert.Equal(t, "llm.function_call.routing_strategy", LLMFunctionCallRoutingStrategy)
+}
+func TestLLMFunctionCallLatencyMsAttrName(t *testing.T) {
+	assert.Equal(t, "llm.function_call.latency_ms", LLMFunctionCallLatencyMs)
+}
+
+// Iter23: ChatmanGPT namespace tests
+func TestChatmangptWaveAttrName(t *testing.T) {
+	assert.Equal(t, "chatmangpt.wave", ChatmangptWave)
+}
+func TestChatmangptVersionAttrName(t *testing.T) {
+	assert.Equal(t, "chatmangpt.version", ChatmangptVersion)
+}
+func TestChatmangptDeploymentAttrName(t *testing.T) {
+	assert.Equal(t, "chatmangpt.deployment", ChatmangptDeployment)
+}
