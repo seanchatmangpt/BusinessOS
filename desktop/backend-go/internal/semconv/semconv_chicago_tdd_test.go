@@ -3159,3 +3159,152 @@ func TestBusinessOsIntegrationTypeKeyMatchesSchema(t *testing.T) {
 		t.Errorf("BusinessOsIntegrationTypeKey = %q, want %q", string(BusinessOsIntegrationTypeKey), "business_os.integration.type")
 	}
 }
+
+// ============================================================
+// Wave 9 Iteration 12: Healing MTTR, agent topology, PM streaming,
+// Canopy protocol, LLM safety, event delivery
+// ============================================================
+
+// Healing escalation and repair strategy
+func TestHealingEscalationLevelKeyMatchesSchema(t *testing.T) {
+	if string(HealingEscalationLevelKey) != "healing.escalation.level" {
+		t.Errorf("HealingEscalationLevelKey = %q, want %q", string(HealingEscalationLevelKey), "healing.escalation.level")
+	}
+}
+
+func TestHealingRepairStrategyKeyMatchesSchema(t *testing.T) {
+	if string(HealingRepairStrategyKey) != "healing.repair.strategy" {
+		t.Errorf("HealingRepairStrategyKey = %q, want %q", string(HealingRepairStrategyKey), "healing.repair.strategy")
+	}
+}
+
+func TestHealingAttemptKeyMatchesSchema(t *testing.T) {
+	if string(HealingAttemptKey) != "healing.attempt" {
+		t.Errorf("HealingAttemptKey = %q, want %q", string(HealingAttemptKey), "healing.attempt")
+	}
+}
+
+// Agent topology and coordination
+func TestAgentTopologyTypeKeyMatchesSchema(t *testing.T) {
+	if string(AgentTopologyTypeKey) != "agent.topology.type" {
+		t.Errorf("AgentTopologyTypeKey = %q, want %q", string(AgentTopologyTypeKey), "agent.topology.type")
+	}
+}
+
+func TestAgentTaskStatusKeyMatchesSchema(t *testing.T) {
+	if string(AgentTaskStatusKey) != "agent.task.status" {
+		t.Errorf("AgentTaskStatusKey = %q, want %q", string(AgentTaskStatusKey), "agent.task.status")
+	}
+}
+
+func TestAgentCoordinationLatencyMsKeyMatchesSchema(t *testing.T) {
+	if string(AgentCoordinationLatencyMsKey) != "agent.coordination.latency_ms" {
+		t.Errorf("AgentCoordinationLatencyMsKey = %q, want %q", string(AgentCoordinationLatencyMsKey), "agent.coordination.latency_ms")
+	}
+}
+
+func TestAgentMessageCountKeyMatchesSchema(t *testing.T) {
+	if string(AgentMessageCountKey) != "agent.message.count" {
+		t.Errorf("AgentMessageCountKey = %q, want %q", string(AgentMessageCountKey), "agent.message.count")
+	}
+}
+
+// Process mining streaming and drift detection
+func TestProcessMiningStreamingWindowSizeKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningStreamingWindowSizeKey) != "process_mining.streaming.window_size" {
+		t.Errorf("ProcessMiningStreamingWindowSizeKey = %q, want %q", string(ProcessMiningStreamingWindowSizeKey), "process_mining.streaming.window_size")
+	}
+}
+
+func TestProcessMiningStreamingLagMsKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningStreamingLagMsKey) != "process_mining.streaming.lag_ms" {
+		t.Errorf("ProcessMiningStreamingLagMsKey = %q, want %q", string(ProcessMiningStreamingLagMsKey), "process_mining.streaming.lag_ms")
+	}
+}
+
+func TestProcessMiningDriftDetectedKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningDriftDetectedKey) != "process_mining.drift.detected" {
+		t.Errorf("ProcessMiningDriftDetectedKey = %q, want %q", string(ProcessMiningDriftDetectedKey), "process_mining.drift.detected")
+	}
+}
+
+func TestProcessMiningDriftSeverityKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningDriftSeverityKey) != "process_mining.drift.severity" {
+		t.Errorf("ProcessMiningDriftSeverityKey = %q, want %q", string(ProcessMiningDriftSeverityKey), "process_mining.drift.severity")
+	}
+}
+
+// Canopy protocol and sync
+func TestCanopyProtocolVersionKeyMatchesSchema(t *testing.T) {
+	if string(CanopyProtocolVersionKey) != "canopy.protocol.version" {
+		t.Errorf("CanopyProtocolVersionKey = %q, want %q", string(CanopyProtocolVersionKey), "canopy.protocol.version")
+	}
+}
+
+func TestCanopySyncStrategyKeyMatchesSchema(t *testing.T) {
+	if string(CanopySyncStrategyKey) != "canopy.sync.strategy" {
+		t.Errorf("CanopySyncStrategyKey = %q, want %q", string(CanopySyncStrategyKey), "canopy.sync.strategy")
+	}
+}
+
+func TestCanopyConflictCountKeyMatchesSchema(t *testing.T) {
+	if string(CanopyConflictCountKey) != "canopy.conflict.count" {
+		t.Errorf("CanopyConflictCountKey = %q, want %q", string(CanopyConflictCountKey), "canopy.conflict.count")
+	}
+}
+
+func TestCanopyPeerCountKeyMatchesSchema(t *testing.T) {
+	if string(CanopyPeerCountKey) != "canopy.peer.count" {
+		t.Errorf("CanopyPeerCountKey = %q, want %q", string(CanopyPeerCountKey), "canopy.peer.count")
+	}
+}
+
+// LLM safety and guardrails
+func TestLlmSafetyScoreKeyMatchesSchema(t *testing.T) {
+	if string(LlmSafetyScoreKey) != "llm.safety.score" {
+		t.Errorf("LlmSafetyScoreKey = %q, want %q", string(LlmSafetyScoreKey), "llm.safety.score")
+	}
+}
+
+func TestLlmGuardrailTriggeredKeyMatchesSchema(t *testing.T) {
+	if string(LlmGuardrailTriggeredKey) != "llm.guardrail.triggered" {
+		t.Errorf("LlmGuardrailTriggeredKey = %q, want %q", string(LlmGuardrailTriggeredKey), "llm.guardrail.triggered")
+	}
+}
+
+func TestLlmGuardrailTypeKeyMatchesSchema(t *testing.T) {
+	if string(LlmGuardrailTypeKey) != "llm.guardrail.type" {
+		t.Errorf("LlmGuardrailTypeKey = %q, want %q", string(LlmGuardrailTypeKey), "llm.guardrail.type")
+	}
+}
+
+func TestLlmContextMessagesCountKeyMatchesSchema(t *testing.T) {
+	if string(LlmContextMessagesCountKey) != "llm.context.messages_count" {
+		t.Errorf("LlmContextMessagesCountKey = %q, want %q", string(LlmContextMessagesCountKey), "llm.context.messages_count")
+	}
+}
+
+func TestLlmRetryCountKeyMatchesSchema(t *testing.T) {
+	if string(LlmRetryCountKey) != "llm.retry.count" {
+		t.Errorf("LlmRetryCountKey = %q, want %q", string(LlmRetryCountKey), "llm.retry.count")
+	}
+}
+
+// Event delivery status and handler metadata
+func TestEventDeliveryStatusKeyMatchesSchema(t *testing.T) {
+	if string(EventDeliveryStatusKey) != "event.delivery.status" {
+		t.Errorf("EventDeliveryStatusKey = %q, want %q", string(EventDeliveryStatusKey), "event.delivery.status")
+	}
+}
+
+func TestEventHandlerCountKeyMatchesSchema(t *testing.T) {
+	if string(EventHandlerCountKey) != "event.handler.count" {
+		t.Errorf("EventHandlerCountKey = %q, want %q", string(EventHandlerCountKey), "event.handler.count")
+	}
+}
+
+func TestEventSchemaVersionKeyMatchesSchema(t *testing.T) {
+	if string(EventSchemaVersionKey) != "event.schema.version" {
+		t.Errorf("EventSchemaVersionKey = %q, want %q", string(EventSchemaVersionKey), "event.schema.version")
+	}
+}
