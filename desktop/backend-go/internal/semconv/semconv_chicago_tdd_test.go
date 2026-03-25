@@ -10,6 +10,8 @@ package semconv
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // ============================================================
@@ -4089,4 +4091,98 @@ func TestWorkspaceActivityTypeKeyMatchesSchema(t *testing.T) {
 
 func TestWorkspaceActivityDurationMsKeyMatchesSchema(t *testing.T) {
 	assert.Equal(t, "workspace.activity.duration_ms", string(WorkspaceActivityDurationMsKey))
+}
+
+// ===== ITER18: MCP Transport + A2A Trust Federation + PM Variant + Consensus Safety + Healing Circuit Breaker + LLM Prompt =====
+
+func TestIter18MCPTransportTypeKey(t *testing.T) {
+	assert.Equal(t, "mcp.transport.type", string(MCPTransportTypeKey))
+}
+
+func TestIter18MCPTransportLatencyMsKey(t *testing.T) {
+	assert.Equal(t, "mcp.transport.latency_ms", string(MCPTransportLatencyMsKey))
+}
+
+func TestIter18MCPTransportReconnectCountKey(t *testing.T) {
+	assert.Equal(t, "mcp.transport.reconnect_count", string(MCPTransportReconnectCountKey))
+}
+
+func TestIter18A2ATrustFederationIDKey(t *testing.T) {
+	assert.Equal(t, "a2a.trust.federation_id", string(A2ATrustFederationIDKey))
+}
+
+func TestIter18A2ATrustPeerCountKey(t *testing.T) {
+	assert.Equal(t, "a2a.trust.peer_count", string(A2ATrustPeerCountKey))
+}
+
+func TestIter18A2ATrustConsensusThresholdKey(t *testing.T) {
+	assert.Equal(t, "a2a.trust.consensus_threshold", string(A2ATrustConsensusThresholdKey))
+}
+
+func TestIter18A2ATrustEpochKey(t *testing.T) {
+	assert.Equal(t, "a2a.trust.epoch", string(A2ATrustEpochKey))
+}
+
+func TestIter18PMVariantIDKey(t *testing.T) {
+	assert.Equal(t, "process.mining.variant.id", string(PMVariantIDKey))
+}
+
+func TestIter18PMVariantFrequencyKey(t *testing.T) {
+	assert.Equal(t, "process.mining.variant.frequency", string(PMVariantFrequencyKey))
+}
+
+func TestIter18PMVariantIsOptimalKey(t *testing.T) {
+	assert.Equal(t, "process.mining.variant.is_optimal", string(PMVariantIsOptimalKey))
+}
+
+func TestIter18PMVariantDeviationScoreKey(t *testing.T) {
+	assert.Equal(t, "process.mining.variant.deviation_score", string(PMVariantDeviationScoreKey))
+}
+
+func TestIter18ConsensusSafetyQuorumRatioKey(t *testing.T) {
+	assert.Equal(t, "consensus.safety.quorum_ratio", string(ConsensusSafetyQuorumRatioKey))
+}
+
+func TestIter18ConsensusSafetyViolationCountKey(t *testing.T) {
+	assert.Equal(t, "consensus.safety.violation_count", string(ConsensusSafetyViolationCountKey))
+}
+
+func TestIter18ConsensusSafetyCheckIntervalMsKey(t *testing.T) {
+	assert.Equal(t, "consensus.safety.check_interval_ms", string(ConsensusSafetyCheckIntervalMsKey))
+}
+
+func TestIter18HealingCircuitBreakerStateKey(t *testing.T) {
+	assert.Equal(t, "healing.circuit_breaker.state", string(HealingCircuitBreakerStateKey))
+}
+
+func TestIter18HealingCircuitBreakerFailureCountKey(t *testing.T) {
+	assert.Equal(t, "healing.circuit_breaker.failure_count", string(HealingCircuitBreakerFailureCountKey))
+}
+
+func TestIter18HealingCircuitBreakerResetMsKey(t *testing.T) {
+	assert.Equal(t, "healing.circuit_breaker.reset_ms", string(HealingCircuitBreakerResetMsKey))
+}
+
+func TestIter18HealingCircuitBreakerCallCountKey(t *testing.T) {
+	assert.Equal(t, "healing.circuit_breaker.call_count", string(HealingCircuitBreakerCallCountKey))
+}
+
+func TestIter18LLMPromptTemplateIDKey(t *testing.T) {
+	assert.Equal(t, "llm.prompt.template_id", string(LLMPromptTemplateIDKey))
+}
+
+func TestIter18LLMPromptVersionKey(t *testing.T) {
+	assert.Equal(t, "llm.prompt.version", string(LLMPromptVersionKey))
+}
+
+func TestIter18LLMPromptVariableCountKey(t *testing.T) {
+	assert.Equal(t, "llm.prompt.variable_count", string(LLMPromptVariableCountKey))
+}
+
+func TestIter18LLMPromptRenderedTokensKey(t *testing.T) {
+	assert.Equal(t, "llm.prompt.rendered_tokens", string(LLMPromptRenderedTokensKey))
+}
+
+func TestIter18MCPTransportErrorCountKey(t *testing.T) {
+	assert.Equal(t, "mcp.transport.error_count", string(MCPTransportErrorCountKey))
 }
