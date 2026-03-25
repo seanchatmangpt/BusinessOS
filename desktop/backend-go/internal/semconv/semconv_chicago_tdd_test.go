@@ -3818,3 +3818,169 @@ func TestSignalRetryCountKeyMatchesSchema(t *testing.T) {
 		t.Errorf("SignalRetryCountKey = %q, want %q", string(SignalRetryCountKey), "signal.retry.count")
 	}
 }
+
+// ============================================================
+// Wave 9 Iteration 16: ChatmanGPT Session
+// ============================================================
+
+func TestChatmangptSessionIDKeyMatchesSchema(t *testing.T) {
+	if string(ChatmangptSessionIDKey) != "chatmangpt.session.id" {
+		t.Errorf("ChatmangptSessionIDKey = %q, want %q", string(ChatmangptSessionIDKey), "chatmangpt.session.id")
+	}
+}
+
+func TestChatmangptSessionTokenCountKeyMatchesSchema(t *testing.T) {
+	if string(ChatmangptSessionTokenCountKey) != "chatmangpt.session.token_count" {
+		t.Errorf("ChatmangptSessionTokenCountKey = %q, want %q", string(ChatmangptSessionTokenCountKey), "chatmangpt.session.token_count")
+	}
+}
+
+func TestChatmangptSessionModelSwitchesKeyMatchesSchema(t *testing.T) {
+	if string(ChatmangptSessionModelSwitchesKey) != "chatmangpt.session.model_switches" {
+		t.Errorf("ChatmangptSessionModelSwitchesKey = %q, want %q", string(ChatmangptSessionModelSwitchesKey), "chatmangpt.session.model_switches")
+	}
+}
+
+func TestChatmangptSessionTurnCountKeyMatchesSchema(t *testing.T) {
+	if string(ChatmangptSessionTurnCountKey) != "chatmangpt.session.turn_count" {
+		t.Errorf("ChatmangptSessionTurnCountKey = %q, want %q", string(ChatmangptSessionTurnCountKey), "chatmangpt.session.turn_count")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: A2A Message Routing
+// ============================================================
+
+func TestA2AMessagePriorityKeyMatchesSchema(t *testing.T) {
+	if string(A2AMessagePriorityKey) != "a2a.message.priority" {
+		t.Errorf("A2AMessagePriorityKey = %q, want %q", string(A2AMessagePriorityKey), "a2a.message.priority")
+	}
+}
+
+func TestA2AMessageSizeBytesKeyMatchesSchema(t *testing.T) {
+	if string(A2AMessageSizeBytesKey) != "a2a.message.size_bytes" {
+		t.Errorf("A2AMessageSizeBytesKey = %q, want %q", string(A2AMessageSizeBytesKey), "a2a.message.size_bytes")
+	}
+}
+
+func TestA2AMessageEncodingKeyMatchesSchema(t *testing.T) {
+	if string(A2AMessageEncodingKey) != "a2a.message.encoding" {
+		t.Errorf("A2AMessageEncodingKey = %q, want %q", string(A2AMessageEncodingKey), "a2a.message.encoding")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: Process Mining Decision Mining
+// ============================================================
+
+func TestPMDecisionPointIDKeyMatchesSchema(t *testing.T) {
+	if string(PMDecisionPointIDKey) != "process.mining.decision.point_id" {
+		t.Errorf("PMDecisionPointIDKey = %q, want %q", string(PMDecisionPointIDKey), "process.mining.decision.point_id")
+	}
+}
+
+func TestPMDecisionOutcomeKeyMatchesSchema(t *testing.T) {
+	if string(PMDecisionOutcomeKey) != "process.mining.decision.outcome" {
+		t.Errorf("PMDecisionOutcomeKey = %q, want %q", string(PMDecisionOutcomeKey), "process.mining.decision.outcome")
+	}
+}
+
+func TestPMDecisionConfidenceKeyMatchesSchema(t *testing.T) {
+	if string(PMDecisionConfidenceKey) != "process.mining.decision.confidence" {
+		t.Errorf("PMDecisionConfidenceKey = %q, want %q", string(PMDecisionConfidenceKey), "process.mining.decision.confidence")
+	}
+}
+
+func TestPMDecisionRuleCountKeyMatchesSchema(t *testing.T) {
+	if string(PMDecisionRuleCountKey) != "process.mining.decision.rule_count" {
+		t.Errorf("PMDecisionRuleCountKey = %q, want %q", string(PMDecisionRuleCountKey), "process.mining.decision.rule_count")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: Consensus Leader Rotation
+// ============================================================
+
+func TestConsensusLeaderRotationCountKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusLeaderRotationCountKey) != "consensus.leader.rotation_count" {
+		t.Errorf("ConsensusLeaderRotationCountKey = %q, want %q", string(ConsensusLeaderRotationCountKey), "consensus.leader.rotation_count")
+	}
+}
+
+func TestConsensusLeaderTenureMsKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusLeaderTenureMsKey) != "consensus.leader.tenure_ms" {
+		t.Errorf("ConsensusLeaderTenureMsKey = %q, want %q", string(ConsensusLeaderTenureMsKey), "consensus.leader.tenure_ms")
+	}
+}
+
+func TestConsensusLeaderScoreKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusLeaderScoreKey) != "consensus.leader.score" {
+		t.Errorf("ConsensusLeaderScoreKey = %q, want %q", string(ConsensusLeaderScoreKey), "consensus.leader.score")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: Healing Prediction
+// ============================================================
+
+func TestHealingPredictionHorizonMsKeyMatchesSchema(t *testing.T) {
+	if string(HealingPredictionHorizonMsKey) != "healing.prediction.horizon_ms" {
+		t.Errorf("HealingPredictionHorizonMsKey = %q, want %q", string(HealingPredictionHorizonMsKey), "healing.prediction.horizon_ms")
+	}
+}
+
+func TestHealingPredictionConfidenceKeyMatchesSchema(t *testing.T) {
+	if string(HealingPredictionConfidenceKey) != "healing.prediction.confidence" {
+		t.Errorf("HealingPredictionConfidenceKey = %q, want %q", string(HealingPredictionConfidenceKey), "healing.prediction.confidence")
+	}
+}
+
+func TestHealingPredictionModelKeyMatchesSchema(t *testing.T) {
+	if string(HealingPredictionModelKey) != "healing.prediction.model" {
+		t.Errorf("HealingPredictionModelKey = %q, want %q", string(HealingPredictionModelKey), "healing.prediction.model")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: LLM Streaming
+// ============================================================
+
+func TestLLMStreamingChunkCountKeyMatchesSchema(t *testing.T) {
+	if string(LLMStreamingChunkCountKey) != "llm.streaming.chunk_count" {
+		t.Errorf("LLMStreamingChunkCountKey = %q, want %q", string(LLMStreamingChunkCountKey), "llm.streaming.chunk_count")
+	}
+}
+
+func TestLLMStreamingFirstTokenMsKeyMatchesSchema(t *testing.T) {
+	if string(LLMStreamingFirstTokenMsKey) != "llm.streaming.first_token_ms" {
+		t.Errorf("LLMStreamingFirstTokenMsKey = %q, want %q", string(LLMStreamingFirstTokenMsKey), "llm.streaming.first_token_ms")
+	}
+}
+
+func TestLLMStreamingTokensPerSecondKeyMatchesSchema(t *testing.T) {
+	if string(LLMStreamingTokensPerSecondKey) != "llm.streaming.tokens_per_second" {
+		t.Errorf("LLMStreamingTokensPerSecondKey = %q, want %q", string(LLMStreamingTokensPerSecondKey), "llm.streaming.tokens_per_second")
+	}
+}
+
+// ============================================================
+// Wave 9 Iteration 16: Workspace Context Snapshot
+// ============================================================
+
+func TestWorkspaceContextSnapshotIDKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceContextSnapshotIDKey) != "workspace.context.snapshot_id" {
+		t.Errorf("WorkspaceContextSnapshotIDKey = %q, want %q", string(WorkspaceContextSnapshotIDKey), "workspace.context.snapshot_id")
+	}
+}
+
+func TestWorkspaceContextCompressionRatioKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceContextCompressionRatioKey) != "workspace.context.compression_ratio" {
+		t.Errorf("WorkspaceContextCompressionRatioKey = %q, want %q", string(WorkspaceContextCompressionRatioKey), "workspace.context.compression_ratio")
+	}
+}
+
+func TestWorkspaceContextSizeTokensKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceContextSizeTokensKey) != "workspace.context.size_tokens" {
+		t.Errorf("WorkspaceContextSizeTokensKey = %q, want %q", string(WorkspaceContextSizeTokensKey), "workspace.context.size_tokens")
+	}
+}
