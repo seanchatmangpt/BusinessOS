@@ -4858,3 +4858,95 @@ func TestIter25LLMMultimodalInputSizeBytes(t *testing.T) {
 func TestIter25SpanLLMMultimodalProcess(t *testing.T) {
 	assert.Equal(t, "span.llm.multimodal.process", SpanLLMMultimodalProcess)
 }
+
+func TestIter26MCPServerHealthStatus(t *testing.T) {
+	assert.Equal(t, "mcp.server.health.status", MCPServerHealthStatus)
+}
+
+func TestIter26MCPServerHealthCheckDurationMs(t *testing.T) {
+	assert.Equal(t, "mcp.server.health.check_duration_ms", MCPServerHealthCheckDurationMs)
+}
+
+func TestIter26MCPServerHealthToolCount(t *testing.T) {
+	assert.Equal(t, "mcp.server.health.tool_count", MCPServerHealthToolCount)
+}
+
+func TestIter26MCPServerHealthUptimeMs(t *testing.T) {
+	assert.Equal(t, "mcp.server.health.uptime_ms", MCPServerHealthUptimeMs)
+}
+
+func TestIter26A2ADisputeID(t *testing.T) {
+	assert.Equal(t, "a2a.dispute.id", A2ADisputeID)
+}
+
+func TestIter26A2ADisputeReason(t *testing.T) {
+	assert.Equal(t, "a2a.dispute.reason", A2ADisputeReason)
+}
+
+func TestIter26A2ADisputeResolutionStatus(t *testing.T) {
+	assert.Equal(t, "a2a.dispute.resolution_status", A2ADisputeResolutionStatus)
+}
+
+func TestIter26A2ADisputeResolutionMs(t *testing.T) {
+	assert.Equal(t, "a2a.dispute.resolution_ms", A2ADisputeResolutionMs)
+}
+
+func TestIter26ProcessMiningSocialNetworkDensity(t *testing.T) {
+	assert.Equal(t, "process.mining.social_network.density", ProcessMiningSocialNetworkDensity)
+}
+
+func TestIter26ProcessMiningSocialNetworkNodeCount(t *testing.T) {
+	assert.Equal(t, "process.mining.social_network.node_count", ProcessMiningSocialNetworkNodeCount)
+}
+
+func TestIter26ProcessMiningSocialNetworkHandoverCount(t *testing.T) {
+	assert.Equal(t, "process.mining.social_network.handover_count", ProcessMiningSocialNetworkHandoverCount)
+}
+
+func TestIter26ProcessMiningSocialNetworkCentralityMax(t *testing.T) {
+	assert.Equal(t, "process.mining.social_network.centrality_max", ProcessMiningSocialNetworkCentralityMax)
+}
+
+func TestIter26ConsensusNetworkTopologyType(t *testing.T) {
+	assert.Equal(t, "consensus.network.topology_type", ConsensusNetworkTopologyType)
+}
+
+func TestIter26ConsensusNetworkPartitionCount(t *testing.T) {
+	assert.Equal(t, "consensus.network.partition_count", ConsensusNetworkPartitionCount)
+}
+
+func TestIter26ConsensusNetworkNodeDegree(t *testing.T) {
+	assert.Equal(t, "consensus.network.node_degree", ConsensusNetworkNodeDegree)
+}
+
+func TestIter26ConsensusNetworkDiameterHops(t *testing.T) {
+	assert.Equal(t, "consensus.network.diameter_hops", ConsensusNetworkDiameterHops)
+}
+
+func TestIter26HealingWarmStandbyID(t *testing.T) {
+	assert.Equal(t, "healing.warm_standby.id", HealingWarmStandbyID)
+}
+
+func TestIter26HealingWarmStandbyReadiness(t *testing.T) {
+	assert.Equal(t, "healing.warm_standby.readiness", HealingWarmStandbyReadiness)
+}
+
+func TestIter26HealingWarmStandbyLatencyMs(t *testing.T) {
+	assert.Equal(t, "healing.warm_standby.latency_ms", HealingWarmStandbyLatencyMs)
+}
+
+func TestIter26HealingWarmStandbyReplicaCount(t *testing.T) {
+	assert.Equal(t, "healing.warm_standby.replica_count", HealingWarmStandbyReplicaCount)
+}
+
+func TestIter26LLMFinetuneJobID(t *testing.T) {
+	assert.Equal(t, "llm.finetune.job_id", LLMFinetuneJobID)
+}
+
+func TestIter26LLMFinetuneBaseModel(t *testing.T) {
+	assert.Equal(t, "llm.finetune.base_model", LLMFinetuneBaseModel)
+}
+
+func TestIter26LLMFinetuneTrainingSteps(t *testing.T) {
+	assert.Equal(t, "llm.finetune.training_steps", LLMFinetuneTrainingSteps)
+}
