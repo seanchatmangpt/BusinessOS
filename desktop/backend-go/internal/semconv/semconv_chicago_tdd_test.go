@@ -4674,3 +4674,95 @@ func TestChatmangptVersionAttrName(t *testing.T) {
 func TestChatmangptDeploymentAttrName(t *testing.T) {
 	assert.Equal(t, "chatmangpt.deployment", ChatmangptDeployment)
 }
+
+func TestIter24MCPToolCompositionID(t *testing.T) {
+	assert.Equal(t, "mcp.tool.composition_id", MCPToolCompositionID)
+}
+
+func TestIter24MCPToolCompositionStrategy(t *testing.T) {
+	assert.Equal(t, "mcp.tool.composition_strategy", MCPToolCompositionStrategy)
+}
+
+func TestIter24MCPToolCompositionStepCount(t *testing.T) {
+	assert.Equal(t, "mcp.tool.composition_step_count", MCPToolCompositionStepCount)
+}
+
+func TestIter24MCPToolCompositionLatencyMs(t *testing.T) {
+	assert.Equal(t, "mcp.tool.composition_latency_ms", MCPToolCompositionLatencyMs)
+}
+
+func TestIter24SpanMCPToolCompose(t *testing.T) {
+	assert.Equal(t, "span.mcp.tool.compose", SpanMCPToolCompose)
+}
+
+func TestIter24A2AContractID(t *testing.T) {
+	assert.Equal(t, "a2a.contract.id", A2AContractID)
+}
+
+func TestIter24A2AContractTermsHash(t *testing.T) {
+	assert.Equal(t, "a2a.contract.terms_hash", A2AContractTermsHash)
+}
+
+func TestIter24A2AContractExpiryMs(t *testing.T) {
+	assert.Equal(t, "a2a.contract.expiry_ms", A2AContractExpiryMs)
+}
+
+func TestIter24A2AContractViolationCount(t *testing.T) {
+	assert.Equal(t, "a2a.contract.violation_count", A2AContractViolationCount)
+}
+
+func TestIter24SpanA2AContractNegotiate(t *testing.T) {
+	assert.Equal(t, "span.a2a.contract.negotiate", SpanA2AContractNegotiate)
+}
+
+func TestIter24ProcessMiningClusterID(t *testing.T) {
+	assert.Equal(t, "process.mining.cluster.id", ProcessMiningClusterID)
+}
+
+func TestIter24ProcessMiningClusterAlgorithm(t *testing.T) {
+	assert.Equal(t, "process.mining.cluster.algorithm", ProcessMiningClusterAlgorithm)
+}
+
+func TestIter24ProcessMiningClusterCaseCount(t *testing.T) {
+	assert.Equal(t, "process.mining.cluster.case_count", ProcessMiningClusterCaseCount)
+}
+
+func TestIter24SpanProcessMiningCaseCluster(t *testing.T) {
+	assert.Equal(t, "span.process.mining.case.cluster", SpanProcessMiningCaseCluster)
+}
+
+func TestIter24ConsensusThresholdCurrent(t *testing.T) {
+	assert.Equal(t, "consensus.threshold.current", ConsensusThresholdCurrent)
+}
+
+func TestIter24ConsensusThresholdAdaptationRate(t *testing.T) {
+	assert.Equal(t, "consensus.threshold.adaptation_rate", ConsensusThresholdAdaptationRate)
+}
+
+func TestIter24SpanConsensusThresholdAdapt(t *testing.T) {
+	assert.Equal(t, "span.consensus.threshold.adapt", SpanConsensusThresholdAdapt)
+}
+
+func TestIter24HealingSimulationID(t *testing.T) {
+	assert.Equal(t, "healing.simulation.id", HealingSimulationID)
+}
+
+func TestIter24HealingSimulationFailureModeCount(t *testing.T) {
+	assert.Equal(t, "healing.simulation.failure_mode_count", HealingSimulationFailureModeCount)
+}
+
+func TestIter24HealingSimulationSuccessRate(t *testing.T) {
+	assert.Equal(t, "healing.simulation.success_rate", HealingSimulationSuccessRate)
+}
+
+func TestIter24SpanHealingRecoverySimulate(t *testing.T) {
+	assert.Equal(t, "span.healing.recovery.simulate", SpanHealingRecoverySimulate)
+}
+
+func TestIter24LLMValidationSchemaID(t *testing.T) {
+	assert.Equal(t, "llm.validation.schema_id", LLMValidationSchemaID)
+}
+
+func TestIter24SpanLLMResponseValidate(t *testing.T) {
+	assert.Equal(t, "span.llm.response.validate", SpanLLMResponseValidate)
+}
