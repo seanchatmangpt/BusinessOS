@@ -3308,3 +3308,175 @@ func TestEventSchemaVersionKeyMatchesSchema(t *testing.T) {
 		t.Errorf("EventSchemaVersionKey = %q, want %q", string(EventSchemaVersionKey), "event.schema.version")
 	}
 }
+
+// ============================================================
+// Iter 13: Workspace orchestration
+// ============================================================
+
+func TestWorkspaceOrchestrationPatternKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceOrchestrationPatternKey) != "workspace.orchestration.pattern" {
+		t.Errorf("WorkspaceOrchestrationPatternKey = %q, want %q", string(WorkspaceOrchestrationPatternKey), "workspace.orchestration.pattern")
+	}
+}
+
+func TestWorkspaceTaskQueueDepthKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceTaskQueueDepthKey) != "workspace.task.queue.depth" {
+		t.Errorf("WorkspaceTaskQueueDepthKey = %q, want %q", string(WorkspaceTaskQueueDepthKey), "workspace.task.queue.depth")
+	}
+}
+
+func TestWorkspaceIterationCountKeyMatchesSchema(t *testing.T) {
+	if string(WorkspaceIterationCountKey) != "workspace.iteration.count" {
+		t.Errorf("WorkspaceIterationCountKey = %q, want %q", string(WorkspaceIterationCountKey), "workspace.iteration.count")
+	}
+}
+
+// ============================================================
+// Iter 13: A2A capability matching
+// ============================================================
+
+func TestA2ACapabilityMatchScoreKeyMatchesSchema(t *testing.T) {
+	if string(A2ACapabilityMatchScoreKey) != "a2a.capability.match_score" {
+		t.Errorf("A2ACapabilityMatchScoreKey = %q, want %q", string(A2ACapabilityMatchScoreKey), "a2a.capability.match_score")
+	}
+}
+
+func TestA2ACapabilityRequiredKeyMatchesSchema(t *testing.T) {
+	if string(A2ACapabilityRequiredKey) != "a2a.capability.required" {
+		t.Errorf("A2ACapabilityRequiredKey = %q, want %q", string(A2ACapabilityRequiredKey), "a2a.capability.required")
+	}
+}
+
+func TestA2ACapabilityOfferedKeyMatchesSchema(t *testing.T) {
+	if string(A2ACapabilityOfferedKey) != "a2a.capability.offered" {
+		t.Errorf("A2ACapabilityOfferedKey = %q, want %q", string(A2ACapabilityOfferedKey), "a2a.capability.offered")
+	}
+}
+
+func TestA2ARoutingStrategyKeyMatchesSchema(t *testing.T) {
+	if string(A2ARoutingStrategyKey) != "a2a.routing.strategy" {
+		t.Errorf("A2ARoutingStrategyKey = %q, want %q", string(A2ARoutingStrategyKey), "a2a.routing.strategy")
+	}
+}
+
+func TestA2AQueueDepthKeyMatchesSchema(t *testing.T) {
+	if string(A2AQueueDepthKey) != "a2a.queue.depth" {
+		t.Errorf("A2AQueueDepthKey = %q, want %q", string(A2AQueueDepthKey), "a2a.queue.depth")
+	}
+}
+
+// ============================================================
+// Iter 13: Consensus safety and liveness
+// ============================================================
+
+func TestConsensusSafetyThresholdKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusSafetyThresholdKey) != "consensus.safety.threshold" {
+		t.Errorf("ConsensusSafetyThresholdKey = %q, want %q", string(ConsensusSafetyThresholdKey), "consensus.safety.threshold")
+	}
+}
+
+func TestConsensusLivenessTimeoutRatioKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusLivenessTimeoutRatioKey) != "consensus.liveness.timeout_ratio" {
+		t.Errorf("ConsensusLivenessTimeoutRatioKey = %q, want %q", string(ConsensusLivenessTimeoutRatioKey), "consensus.liveness.timeout_ratio")
+	}
+}
+
+func TestConsensusNetworkPartitionDetectedKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusNetworkPartitionDetectedKey) != "consensus.network.partition_detected" {
+		t.Errorf("ConsensusNetworkPartitionDetectedKey = %q, want %q", string(ConsensusNetworkPartitionDetectedKey), "consensus.network.partition_detected")
+	}
+}
+
+// ============================================================
+// Iter 13: Healing cascade detection
+// ============================================================
+
+func TestHealingCascadeDetectedKeyMatchesSchema(t *testing.T) {
+	if string(HealingCascadeDetectedKey) != "healing.cascade.detected" {
+		t.Errorf("HealingCascadeDetectedKey = %q, want %q", string(HealingCascadeDetectedKey), "healing.cascade.detected")
+	}
+}
+
+func TestHealingCascadeDepthKeyMatchesSchema(t *testing.T) {
+	if string(HealingCascadeDepthKey) != "healing.cascade.depth" {
+		t.Errorf("HealingCascadeDepthKey = %q, want %q", string(HealingCascadeDepthKey), "healing.cascade.depth")
+	}
+}
+
+func TestHealingRootCauseIdKeyMatchesSchema(t *testing.T) {
+	if string(HealingRootCauseIdKey) != "healing.root_cause.id" {
+		t.Errorf("HealingRootCauseIdKey = %q, want %q", string(HealingRootCauseIdKey), "healing.root_cause.id")
+	}
+}
+
+// ============================================================
+// Iter 13: LLM chain-of-thought
+// ============================================================
+
+func TestLlmChainOfThoughtStepsKeyMatchesSchema(t *testing.T) {
+	if string(LlmChainOfThoughtStepsKey) != "llm.chain_of_thought.steps" {
+		t.Errorf("LlmChainOfThoughtStepsKey = %q, want %q", string(LlmChainOfThoughtStepsKey), "llm.chain_of_thought.steps")
+	}
+}
+
+func TestLlmChainOfThoughtEnabledKeyMatchesSchema(t *testing.T) {
+	if string(LlmChainOfThoughtEnabledKey) != "llm.chain_of_thought.enabled" {
+		t.Errorf("LlmChainOfThoughtEnabledKey = %q, want %q", string(LlmChainOfThoughtEnabledKey), "llm.chain_of_thought.enabled")
+	}
+}
+
+func TestLlmToolCallCountKeyMatchesSchema(t *testing.T) {
+	if string(LlmToolCallCountKey) != "llm.tool.call_count" {
+		t.Errorf("LlmToolCallCountKey = %q, want %q", string(LlmToolCallCountKey), "llm.tool.call_count")
+	}
+}
+
+func TestLlmCacheHitKeyMatchesSchema(t *testing.T) {
+	if string(LlmCacheHitKey) != "llm.cache.hit" {
+		t.Errorf("LlmCacheHitKey = %q, want %q", string(LlmCacheHitKey), "llm.cache.hit")
+	}
+}
+
+// ============================================================
+// Iter 13: MCP tool versioning
+// ============================================================
+
+func TestMcpToolVersionKeyMatchesSchema(t *testing.T) {
+	if string(McpToolVersionKey) != "mcp.tool.version" {
+		t.Errorf("McpToolVersionKey = %q, want %q", string(McpToolVersionKey), "mcp.tool.version")
+	}
+}
+
+func TestMcpToolSchemaHashKeyMatchesSchema(t *testing.T) {
+	if string(McpToolSchemaHashKey) != "mcp.tool.schema_hash" {
+		t.Errorf("McpToolSchemaHashKey = %q, want %q", string(McpToolSchemaHashKey), "mcp.tool.schema_hash")
+	}
+}
+
+func TestMcpSessionIdKeyMatchesSchema(t *testing.T) {
+	if string(McpSessionIdKey) != "mcp.session.id" {
+		t.Errorf("McpSessionIdKey = %q, want %q", string(McpSessionIdKey), "mcp.session.id")
+	}
+}
+
+// ============================================================
+// Iter 13: Process mining conformance visualization
+// ============================================================
+
+func TestProcessMiningConformanceVisualizationTypeKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningConformanceVisualizationTypeKey) != "process.mining.conformance.visualization_type" {
+		t.Errorf("ProcessMiningConformanceVisualizationTypeKey = %q, want %q", string(ProcessMiningConformanceVisualizationTypeKey), "process.mining.conformance.visualization_type")
+	}
+}
+
+func TestProcessMiningCaseThroughputMsKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningCaseThroughputMsKey) != "process.mining.case.throughput_ms" {
+		t.Errorf("ProcessMiningCaseThroughputMsKey = %q, want %q", string(ProcessMiningCaseThroughputMsKey), "process.mining.case.throughput_ms")
+	}
+}
+
+func TestProcessMiningActivityWaitingMsKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningActivityWaitingMsKey) != "process.mining.activity.waiting_ms" {
+		t.Errorf("ProcessMiningActivityWaitingMsKey = %q, want %q", string(ProcessMiningActivityWaitingMsKey), "process.mining.activity.waiting_ms")
+	}
+}
