@@ -191,6 +191,12 @@ test-frontend: ## Run SvelteKit frontend tests
 test-backend-verbose: ## Run Go tests with verbose output
 	@cd desktop/backend-go && go test ./... -count=1 -v
 
+.PHONY: weaver-live-check
+weaver-live-check: ## Run semconv tests with Weaver live-check OTEL export
+	@echo ""
+	@printf '$(BOLD)Running Weaver live-check...$(RESET)\n'
+	@cd desktop/backend-go && WEAVER_LIVE_CHECK=true go test ./internal/semconv/... -v -count=1
+
 # =============================================================================
 # Database
 # =============================================================================
