@@ -3984,3 +3984,109 @@ func TestWorkspaceContextSizeTokensKeyMatchesSchema(t *testing.T) {
 		t.Errorf("WorkspaceContextSizeTokensKey = %q, want %q", string(WorkspaceContextSizeTokensKey), "workspace.context.size_tokens")
 	}
 }
+
+// === Wave 9 Iteration 17: MCP Tool Versioning ===
+
+func TestMCPToolVersionKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "mcp.tool.version", string(MCPToolVersionKey))
+}
+
+func TestMCPToolSchemaHashKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "mcp.tool.schema_hash", string(MCPToolSchemaHashKey))
+}
+
+func TestMCPToolDeprecatedKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "mcp.tool.deprecated", string(MCPToolDeprecatedKey))
+}
+
+// === Wave 9 Iteration 17: A2A Capability Negotiation ===
+
+func TestA2ACapNegotiationIDKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "a2a.capability.negotiation.id", string(A2ACapNegotiationIDKey))
+}
+
+func TestA2ACapNegotiationOutcomeKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "a2a.capability.negotiation.outcome", string(A2ACapNegotiationOutcomeKey))
+}
+
+func TestA2ACapNegotiationRoundsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "a2a.capability.negotiation.rounds", string(A2ACapNegotiationRoundsKey))
+}
+
+// === Wave 9 Iteration 17: Process Mining Root Cause ===
+
+func TestPMRootCauseIDKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "process.mining.root_cause.id", string(PMRootCauseIDKey))
+}
+
+func TestPMRootCauseTypeKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "process.mining.root_cause.type", string(PMRootCauseTypeKey))
+}
+
+func TestPMRootCauseConfidenceKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "process.mining.root_cause.confidence", string(PMRootCauseConfidenceKey))
+}
+
+func TestPMAnomalyScoreKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "process.mining.anomaly.score", string(PMAnomalyScoreKey))
+}
+
+// === Wave 9 Iteration 17: Consensus View Change ===
+
+func TestConsensusViewChangeReasonKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "consensus.view_change.reason", string(ConsensusViewChangeReasonKey))
+}
+
+func TestConsensusViewChangeDurationMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "consensus.view_change.duration_ms", string(ConsensusViewChangeDurationMsKey))
+}
+
+func TestConsensusViewChangeBackoffMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "consensus.view_change.backoff_ms", string(ConsensusViewChangeBackoffMsKey))
+}
+
+// === Wave 9 Iteration 17: Healing Playbook ===
+
+func TestHealingPlaybookIDKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "healing.playbook.id", string(HealingPlaybookIDKey))
+}
+
+func TestHealingPlaybookStepCountKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "healing.playbook.step_count", string(HealingPlaybookStepCountKey))
+}
+
+func TestHealingPlaybookExecutionMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "healing.playbook.execution_ms", string(HealingPlaybookExecutionMsKey))
+}
+
+// === Wave 9 Iteration 17: LLM Context Management ===
+
+func TestLLMContextMaxTokensKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "llm.context.max_tokens", string(LLMContextMaxTokensKey))
+}
+
+func TestLLMContextOverflowStrategyKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "llm.context.overflow_strategy", string(LLMContextOverflowStrategyKey))
+}
+
+func TestLLMContextUtilizationKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "llm.context.utilization", string(LLMContextUtilizationKey))
+}
+
+// === Wave 9 Iteration 17: Agent Pipeline + Workspace Activity ===
+
+func TestAgentPipelineIDKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "agent.pipeline.id", string(AgentPipelineIDKey))
+}
+
+func TestAgentPipelineStageKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "agent.pipeline.stage", string(AgentPipelineStageKey))
+}
+
+func TestWorkspaceActivityTypeKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "workspace.activity.type", string(WorkspaceActivityTypeKey))
+}
+
+func TestWorkspaceActivityDurationMsKeyMatchesSchema(t *testing.T) {
+	assert.Equal(t, "workspace.activity.duration_ms", string(WorkspaceActivityDurationMsKey))
+}
