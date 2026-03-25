@@ -3480,3 +3480,169 @@ func TestProcessMiningActivityWaitingMsKeyMatchesSchema(t *testing.T) {
 		t.Errorf("ProcessMiningActivityWaitingMsKey = %q, want %q", string(ProcessMiningActivityWaitingMsKey), "process.mining.activity.waiting_ms")
 	}
 }
+
+// ============================================================
+// Iter 14: A2A trust attributes
+// ============================================================
+
+func TestA2ATrustScoreKeyMatchesSchema(t *testing.T) {
+	if string(A2ATrustScoreKey) != "a2a.trust.score" {
+		t.Errorf("A2ATrustScoreKey = %q, want %q", string(A2ATrustScoreKey), "a2a.trust.score")
+	}
+}
+
+func TestA2AReputationHistoryLengthKeyMatchesSchema(t *testing.T) {
+	if string(A2AReputationHistoryLengthKey) != "a2a.reputation.history_length" {
+		t.Errorf("A2AReputationHistoryLengthKey = %q, want %q", string(A2AReputationHistoryLengthKey), "a2a.reputation.history_length")
+	}
+}
+
+func TestA2ATrustDecayFactorKeyMatchesSchema(t *testing.T) {
+	if string(A2ATrustDecayFactorKey) != "a2a.trust.decay_factor" {
+		t.Errorf("A2ATrustDecayFactorKey = %q, want %q", string(A2ATrustDecayFactorKey), "a2a.trust.decay_factor")
+	}
+}
+
+func TestA2ATrustUpdatedAtMsKeyMatchesSchema(t *testing.T) {
+	if string(A2ATrustUpdatedAtMsKey) != "a2a.trust.updated_at_ms" {
+		t.Errorf("A2ATrustUpdatedAtMsKey = %q, want %q", string(A2ATrustUpdatedAtMsKey), "a2a.trust.updated_at_ms")
+	}
+}
+
+// ============================================================
+// Iter 14: PM simulation attributes
+// ============================================================
+
+func TestProcessMiningSimulationCasesKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningSimulationCasesKey) != "process.mining.simulation.cases" {
+		t.Errorf("ProcessMiningSimulationCasesKey = %q, want %q", string(ProcessMiningSimulationCasesKey), "process.mining.simulation.cases")
+	}
+}
+
+func TestProcessMiningSimulationNoiseRateKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningSimulationNoiseRateKey) != "process.mining.simulation.noise_rate" {
+		t.Errorf("ProcessMiningSimulationNoiseRateKey = %q, want %q", string(ProcessMiningSimulationNoiseRateKey), "process.mining.simulation.noise_rate")
+	}
+}
+
+func TestProcessMiningSimulationDurationMsKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningSimulationDurationMsKey) != "process.mining.simulation.duration_ms" {
+		t.Errorf("ProcessMiningSimulationDurationMsKey = %q, want %q", string(ProcessMiningSimulationDurationMsKey), "process.mining.simulation.duration_ms")
+	}
+}
+
+func TestProcessMiningReplayTokenCountKeyMatchesSchema(t *testing.T) {
+	if string(ProcessMiningReplayTokenCountKey) != "process.mining.replay.token_count" {
+		t.Errorf("ProcessMiningReplayTokenCountKey = %q, want %q", string(ProcessMiningReplayTokenCountKey), "process.mining.replay.token_count")
+	}
+}
+
+// ============================================================
+// Iter 14: Consensus fault tolerance attributes
+// ============================================================
+
+func TestConsensusByzantineFaultsKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusByzantineFaultsKey) != "consensus.byzantine_faults" {
+		t.Errorf("ConsensusByzantineFaultsKey = %q, want %q", string(ConsensusByzantineFaultsKey), "consensus.byzantine_faults")
+	}
+}
+
+func TestConsensusReplicaLagMsKeyMatchesSchema(t *testing.T) {
+	if string(ConsensusReplicaLagMsKey) != "consensus.replica.lag_ms" {
+		t.Errorf("ConsensusReplicaLagMsKey = %q, want %q", string(ConsensusReplicaLagMsKey), "consensus.replica.lag_ms")
+	}
+}
+
+func TestConsensusReplicaCountIter14KeyMatchesSchema(t *testing.T) {
+	if string(ConsensusReplicaCountKey) != "consensus.replica.count" {
+		t.Errorf("ConsensusReplicaCountKey = %q, want %q", string(ConsensusReplicaCountKey), "consensus.replica.count")
+	}
+}
+
+// ============================================================
+// Iter 14: Healing pattern attributes
+// ============================================================
+
+func TestHealingPatternIdKeyMatchesSchema(t *testing.T) {
+	if string(HealingPatternIdKey) != "healing.pattern.id" {
+		t.Errorf("HealingPatternIdKey = %q, want %q", string(HealingPatternIdKey), "healing.pattern.id")
+	}
+}
+
+func TestHealingPatternLibrarySizeKeyMatchesSchema(t *testing.T) {
+	if string(HealingPatternLibrarySizeKey) != "healing.pattern.library_size" {
+		t.Errorf("HealingPatternLibrarySizeKey = %q, want %q", string(HealingPatternLibrarySizeKey), "healing.pattern.library_size")
+	}
+}
+
+func TestHealingPatternMatchConfidenceKeyMatchesSchema(t *testing.T) {
+	if string(HealingPatternMatchConfidenceKey) != "healing.pattern.match_confidence" {
+		t.Errorf("HealingPatternMatchConfidenceKey = %q, want %q", string(HealingPatternMatchConfidenceKey), "healing.pattern.match_confidence")
+	}
+}
+
+// ============================================================
+// Iter 14: LLM token budget attributes
+// ============================================================
+
+func TestLlmTokenPromptCountKeyMatchesSchema(t *testing.T) {
+	if string(LlmTokenPromptCountKey) != "llm.token.prompt_count" {
+		t.Errorf("LlmTokenPromptCountKey = %q, want %q", string(LlmTokenPromptCountKey), "llm.token.prompt_count")
+	}
+}
+
+func TestLlmTokenCompletionCountKeyMatchesSchema(t *testing.T) {
+	if string(LlmTokenCompletionCountKey) != "llm.token.completion_count" {
+		t.Errorf("LlmTokenCompletionCountKey = %q, want %q", string(LlmTokenCompletionCountKey), "llm.token.completion_count")
+	}
+}
+
+func TestLlmTokenBudgetRemainingKeyMatchesSchema(t *testing.T) {
+	if string(LlmTokenBudgetRemainingKey) != "llm.token.budget_remaining" {
+		t.Errorf("LlmTokenBudgetRemainingKey = %q, want %q", string(LlmTokenBudgetRemainingKey), "llm.token.budget_remaining")
+	}
+}
+
+func TestLlmModelVersionKeyMatchesSchema(t *testing.T) {
+	if string(LlmModelVersionKey) != "llm.model.version" {
+		t.Errorf("LlmModelVersionKey = %q, want %q", string(LlmModelVersionKey), "llm.model.version")
+	}
+}
+
+// ============================================================
+// Iter 14: MCP resource attributes
+// ============================================================
+
+func TestMcpResourceUriKeyMatchesSchema(t *testing.T) {
+	if string(McpResourceUriKey) != "mcp.resource.uri" {
+		t.Errorf("McpResourceUriKey = %q, want %q", string(McpResourceUriKey), "mcp.resource.uri")
+	}
+}
+
+func TestMcpResourceMimeTypeKeyMatchesSchema(t *testing.T) {
+	if string(McpResourceMimeTypeKey) != "mcp.resource.mime_type" {
+		t.Errorf("McpResourceMimeTypeKey = %q, want %q", string(McpResourceMimeTypeKey), "mcp.resource.mime_type")
+	}
+}
+
+func TestMcpResourceSizeBytesKeyMatchesSchema(t *testing.T) {
+	if string(McpResourceSizeBytesKey) != "mcp.resource.size_bytes" {
+		t.Errorf("McpResourceSizeBytesKey = %q, want %q", string(McpResourceSizeBytesKey), "mcp.resource.size_bytes")
+	}
+}
+
+// ============================================================
+// Iter 14: Canopy snapshot attributes
+// ============================================================
+
+func TestCanopySnapshotIdKeyMatchesSchema(t *testing.T) {
+	if string(CanopySnapshotIdKey) != "canopy.snapshot.id" {
+		t.Errorf("CanopySnapshotIdKey = %q, want %q", string(CanopySnapshotIdKey), "canopy.snapshot.id")
+	}
+}
+
+func TestCanopySnapshotSizeBytesKeyMatchesSchema(t *testing.T) {
+	if string(CanopySnapshotSizeBytesKey) != "canopy.snapshot.size_bytes" {
+		t.Errorf("CanopySnapshotSizeBytesKey = %q, want %q", string(CanopySnapshotSizeBytesKey), "canopy.snapshot.size_bytes")
+	}
+}
