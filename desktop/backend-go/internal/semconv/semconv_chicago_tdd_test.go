@@ -4280,3 +4280,85 @@ func TestIter19LLMSamplingMaxTokensKey(t *testing.T) {
 func TestIter19LLMSamplingSeedKey(t *testing.T) {
 	assert.Equal(t, "llm.sampling.seed", string(LLMSamplingSeedKey))
 }
+
+// ===== Iter 20: Workspace Sharing + A2A Protocol Versioning + PM Temporal + Consensus Fork + Healing Adaptive + LLM Cache =====
+
+func TestIter20WorkspaceSharingScopeKey(t *testing.T) {
+	assert.Equal(t, "workspace.sharing.scope", string(WorkspaceSharingScopeKey))
+}
+func TestIter20WorkspaceSharingAgentCountKey(t *testing.T) {
+	assert.Equal(t, "workspace.sharing.agent_count", string(WorkspaceSharingAgentCountKey))
+}
+func TestIter20WorkspaceSharingPermissionsKey(t *testing.T) {
+	assert.Equal(t, "workspace.sharing.permissions", string(WorkspaceSharingPermissionsKey))
+}
+func TestIter20WorkspaceSharingScope(t *testing.T) {
+	kv := WorkspaceSharingScope("team")
+	assert.Equal(t, "workspace.sharing.scope", string(kv.Key))
+	assert.Equal(t, "team", kv.Value.AsString())
+}
+func TestIter20A2AProtocolVersionKey(t *testing.T) {
+	assert.Equal(t, "a2a.protocol.version", string(A2AProtocolVersionKey))
+}
+func TestIter20A2AProtocolMinVersionKey(t *testing.T) {
+	assert.Equal(t, "a2a.protocol.min_version", string(A2AProtocolMinVersionKey))
+}
+func TestIter20A2AProtocolDeprecatedKey(t *testing.T) {
+	assert.Equal(t, "a2a.protocol.deprecated", string(A2AProtocolDeprecatedKey))
+}
+func TestIter20A2AProtocolNegotiationMsKey(t *testing.T) {
+	assert.Equal(t, "a2a.protocol.negotiation_ms", string(A2AProtocolNegotiationMsKey))
+}
+func TestIter20A2AProtocolVersion(t *testing.T) {
+	kv := A2AProtocolVersion("1.1")
+	assert.Equal(t, "a2a.protocol.version", string(kv.Key))
+	assert.Equal(t, "1.1", kv.Value.AsString())
+}
+func TestIter20PMTemporalDriftMsKey(t *testing.T) {
+	assert.Equal(t, "process.mining.temporal.drift_ms", string(PMTemporalDriftMsKey))
+}
+func TestIter20PMTemporalSeasonalityPeriodMsKey(t *testing.T) {
+	assert.Equal(t, "process.mining.temporal.seasonality_period_ms", string(PMTemporalSeasonalityPeriodMsKey))
+}
+func TestIter20PMTemporalTrendSlopeKey(t *testing.T) {
+	assert.Equal(t, "process.mining.temporal.trend_slope", string(PMTemporalTrendSlopeKey))
+}
+func TestIter20PMTemporalDriftMs(t *testing.T) {
+	kv := PMTemporalDriftMs(5000)
+	assert.Equal(t, "process.mining.temporal.drift_ms", string(kv.Key))
+	assert.Equal(t, int64(5000), kv.Value.AsInt64())
+}
+func TestIter20ConsensusForkDetectedKey(t *testing.T) {
+	assert.Equal(t, "consensus.fork.detected", string(ConsensusForkDetectedKey))
+}
+func TestIter20ConsensusForkDepthKey(t *testing.T) {
+	assert.Equal(t, "consensus.fork.depth", string(ConsensusForkDepthKey))
+}
+func TestIter20ConsensusForkResolutionStrategyKey(t *testing.T) {
+	assert.Equal(t, "consensus.fork.resolution_strategy", string(ConsensusForkResolutionStrategyKey))
+}
+func TestIter20ConsensusForkDetected(t *testing.T) {
+	kv := ConsensusForkDetected(true)
+	assert.Equal(t, "consensus.fork.detected", string(kv.Key))
+	assert.Equal(t, true, kv.Value.AsBool())
+}
+func TestIter20HealingAdaptiveThresholdCurrentKey(t *testing.T) {
+	assert.Equal(t, "healing.adaptive.threshold_current", string(HealingAdaptiveThresholdCurrentKey))
+}
+func TestIter20HealingAdaptiveLearningRateKey(t *testing.T) {
+	assert.Equal(t, "healing.adaptive.learning_rate", string(HealingAdaptiveLearningRateKey))
+}
+func TestIter20HealingAdaptiveThresholdCurrent(t *testing.T) {
+	kv := HealingAdaptiveThresholdCurrent(0.85)
+	assert.Equal(t, "healing.adaptive.threshold_current", string(kv.Key))
+	assert.InDelta(t, 0.85, kv.Value.AsFloat64(), 0.001)
+}
+func TestIter20LLMCacheHitKey(t *testing.T) {
+	assert.Equal(t, "llm.cache.hit", string(LLMCacheHitKey))
+}
+func TestIter20LLMCacheTTLMsKey(t *testing.T) {
+	assert.Equal(t, "llm.cache.ttl_ms", string(LLMCacheTTLMsKey))
+}
+func TestIter20LLMCacheKeyHashKey(t *testing.T) {
+	assert.Equal(t, "llm.cache.key_hash", string(LLMCacheKeyHashKey))
+}
