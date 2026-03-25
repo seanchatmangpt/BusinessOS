@@ -20,6 +20,9 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	}
 	optionalAuth := middleware.OptionalAuthMiddleware(h.pool) // For dev-friendly routes
 
+	// JWT auth for API-to-API communication (e.g., pm4py-rust to /api/bos/progress)
+	jwtAuth := middleware.JWTAuth(h.cfg.SecretKey)
+
 	h.registerChatRoutes(api, auth)
 	h.registerProjectRoutes(api, auth)
 	h.registerWorkspaceRoutes(api, auth)
@@ -35,4 +38,33 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerIntegrationRoutes(api, auth, optionalAuth)
 	h.registerPlatformRoutes(api, auth)
 	h.registerOSARoutes(api, auth)
+	h.registerOntologyRoutes(api, auth)
+	h.registerComplianceRoutes(api, auth)
+	h.registerTransactionRoutes(api, auth)
+	h.registerBOSProgressRoutes(api, jwtAuth)
+}
+
+// registerOntologyRoutes wires /api/ontology routes via bos CLI bridge.
+func (h *Handlers) registerOntologyRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	if h.bosOntologyService == nil {
+		return // bos not configured — skip
+	}
+	ontologyHandler := NewOntologyHandler(h.bosOntologyService)
+	RegisterOntologyRoutes(api, ontologyHandler, auth)
+}
+
+// registerTransactionRoutes wires /api/bos/tx routes for 2PC transaction management.
+func (h *Handlers) registerTransactionRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	if h.transactionHandler == nil {
+		return // transactions not configured — skip
+	}
+	h.transactionHandler.RegisterRoutes(api)
+}
+
+// registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception
+// from pm4py-rust progress events.
+func (h *Handlers) registerBOSProgressRoutes(api *gin.RouterGroup, jwtAuth gin.HandlerFunc) {
+	// POST /api/bos/progress — receives progress events from pm4py-rust
+	// Requires JWT Bearer token in Authorization header to prevent unauthorized progress injection
+	api.POST("/bos/progress", jwtAuth, ReceiveExternalProgressEventHandler)
 }

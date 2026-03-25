@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"github.com/rhl/businessos-backend/internal/carrier"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
@@ -25,6 +26,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/handlers"
 	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/middleware"
+	"github.com/rhl/businessos-backend/internal/observability"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
 	"github.com/rhl/businessos-backend/internal/services"
@@ -44,6 +46,7 @@ type AppServices struct {
 	instanceID string
 	router     *gin.Engine
 	handlers   *handlers.Handlers
+	tracerProvider *trace.TracerProvider
 
 	// Database
 	pool        *pgxpool.Pool
@@ -314,6 +317,18 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	app.sandboxCleanupService = sandboxCleanupService
 	app.imageWarmerService = imageWarmerService
 
+	// ===== OPENTELEMETRY TRACING =====
+	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if otelEndpoint == "" {
+		otelEndpoint = "localhost:4317" // Default OTLP gRPC receiver
+	}
+	tp, err := observability.InitTracer(ctx, otelEndpoint)
+	if err != nil {
+		slog.Warn("OpenTelemetry initialization failed, continuing without tracing", "error", err)
+	} else {
+		app.tracerProvider = tp
+	}
+
 	// ===== ROUTER + MIDDLEWARE =====
 	router := gin.Default()
 	app.router = router
@@ -322,6 +337,8 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 		c.Request.Body = httpMaxBytesReader(c.Writer, c.Request.Body, 10<<20)
 		c.Next()
 	})
+	// Add OpenTelemetry tracing middleware early in the chain
+	router.Use(observability.TracingMiddleware())
 	router.Use(middleware.CORSMiddleware(cfg))
 	router.Use(middleware.SecurityHeaders(cfg))
 	slog.Info("Security headers enabled (X-Frame-Options, CSP, HSTS, etc.)")
@@ -746,6 +763,57 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	sorxEngine := sorx.NewEngine(app.pool, slog.Default())
 	h.SetSorxEngine(sorxEngine)
 	slog.Info("SORX engine initialized (skill execution for EXECUTE mode)")
+
+	// ===== BOS ONTOLOGY BRIDGE =====
+	{
+		bosPath := os.Getenv("BOS_PATH")
+		if bosPath == "" {
+			// Try default location relative to project root
+			candidates := []string{
+				"bos/target/release/bos",
+				"../bos/target/release/bos",
+				"./bos/target/release/bos",
+			}
+			for _, c := range candidates {
+				if _, err := os.Stat(c); err == nil {
+					bosPath = c
+					break
+				}
+			}
+		}
+		dbURL := os.Getenv("DATABASE_URL")
+		mappingPath := os.Getenv("BOS_MAPPING")
+		if mappingPath == "" {
+			candidates := []string{
+				"ontology-mappings.json",
+				"../ontology-mappings.json",
+			}
+			for _, c := range candidates {
+				if _, err := os.Stat(c); err == nil {
+					mappingPath = c
+					break
+				}
+			}
+		}
+
+		if bosPath != "" && dbURL != "" {
+			if _, err := os.Stat(bosPath); err == nil {
+				bosSvc := services.NewBosOntologyService(bosPath, dbURL, mappingPath)
+				h.SetBosOntologyService(bosSvc)
+				slog.Info("bos ontology service initialized",
+					"bos_path", bosPath,
+					"mapping", mappingPath,
+					"routes", "/api/v1/ontology/*",
+				)
+			} else {
+				slog.Warn("bos binary not found, ontology routes disabled",
+					"bos_path", bosPath,
+				)
+			}
+		} else {
+			slog.Info("bos ontology service not configured (BOS_PATH or DATABASE_URL not set)")
+		}
+	}
 
 	// ===== CARRIER =====
 	var carrierClient *carrier.Client
