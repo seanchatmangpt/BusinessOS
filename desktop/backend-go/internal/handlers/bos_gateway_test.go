@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -286,7 +287,7 @@ func TestStatus_HealthyResponse(t *testing.T) {
 }
 
 func TestStatus_WithExistingRequests(t *testing.T) {
-	handler, router := setupGatewayTest(t)
+	_, router := setupGatewayTest(t)
 
 	// Make some requests first
 	for i := 0; i < 3; i++ {
