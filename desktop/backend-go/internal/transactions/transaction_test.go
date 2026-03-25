@@ -159,7 +159,7 @@ func TestTransaction_AbortParticipantVotedNo(t *testing.T) {
 		TimeoutMS: 30000,
 	}
 
-	prepareResp, err := coordinator.Prepare(ctx, txID, prepareReq)
+	_, err = coordinator.Prepare(ctx, txID, prepareReq)
 	require.NoError(t, err)
 	// In real scenario, this would be Vote.No
 	// For this test, we simulate the abort path:

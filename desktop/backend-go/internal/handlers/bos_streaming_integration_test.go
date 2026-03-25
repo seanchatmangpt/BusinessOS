@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -158,7 +157,7 @@ func TestBOSProgressHandlerConcurrentSessions(t *testing.T) {
 
 	// Verify all sessions received completion signals
 	connected := 0
-	for _, done := range done {
+	for done := range done {
 		if done {
 			connected++
 		}

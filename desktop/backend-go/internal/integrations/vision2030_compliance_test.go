@@ -10,8 +10,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/rhl/businessos-backend/internal/services"
 )
 
 // Vision 2030 End-to-End Compliance & Audit Trail Test
@@ -34,7 +32,6 @@ import (
 //   - Remediation Workflow: Convert gaps into actionable remediation tasks
 
 func TestGetComplianceStatus(t *testing.T) {
-	svc := &services.ComplianceService{}
 	req := httptest.NewRequest("GET", "/api/compliance/status", nil)
 	w := httptest.NewRecorder()
 
@@ -71,7 +68,6 @@ func TestGetComplianceStatus(t *testing.T) {
 	})
 
 	handler.ServeHTTP(w, req)
-	_ = svc
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
