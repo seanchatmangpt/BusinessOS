@@ -1,0 +1,230 @@
+# HIPAA Compliance Framework Configuration
+# Health Insurance Portability and Accountability Act (HIPAA)
+# 45 CFR Parts 160, 162, 164
+# https://www.hhs.gov/hipaa/
+
+framework:
+  name: HIPAA
+  version: "1.0.0"
+  description: "Health Insurance Portability and Accountability Act"
+  regulatory_body: "U.S. Department of Health & Human Services (HHS)"
+  enforcement_agency: "Office for Civil Rights (OCR)"
+  jurisdiction: "United States of America"
+
+covered_entities:
+  - type: "Health Plans"
+    examples:
+      - Health insurance companies
+      - HMOs
+      - Group health plans
+      - Medicare and Medicaid
+
+  - type: "Healthcare Providers"
+    examples:
+      - Hospitals
+      - Clinics
+      - Physicians
+      - Dentists
+      - Psychiatrists
+
+business_associates:
+  - description: "Vendors and contractors handling PHI"
+  - requirement: "Business Associate Agreement (BAA) required"
+  - liability: "Joint liability with covered entity"
+
+phi_categories:
+  - id: "name"
+    example: "Patient full name"
+    identifiable: true
+
+  - id: "address"
+    example: "Street address, city, state, ZIP"
+    identifiable: true
+
+  - id: "dates"
+    example: "Birth date, admission date, discharge date"
+    identifiable: true
+
+  - id: "contact_info"
+    example: "Phone, fax, email addresses"
+    identifiable: true
+
+  - id: "ssn"
+    example: "Social Security number"
+    identifiable: true
+
+  - id: "medical_record_number"
+    example: "Chart or account number"
+    identifiable: true
+
+  - id: "diagnosis"
+    example: "ICD-10 codes, clinical notes"
+    identifiable: false
+
+  - id: "procedure"
+    example: "CPT codes, surgical records"
+    identifiable: false
+
+  - id: "medication"
+    example: "Prescription names, dosages"
+    identifiable: false
+
+privacy_rule:
+  - id: "164.500"
+    name: "Standards for privacy of individually identifiable health information"
+    requirement: "Safeguards for PHI"
+
+  - id: "164.501"
+    name: "Definitions"
+    requirement: "Define PHI, covered entities, business associates"
+
+  - id: "164.502"
+    name: "Applicability"
+    requirement: "Applies to all covered entities and business associates"
+
+  - id: "164.504"
+    name: "Organizational requirements"
+    requirement: "Policies, procedures, workforce training"
+
+security_rule:
+  - id: "164.308"
+    name: "Administrative Safeguards"
+    requirements:
+      - "Security management process"
+      - "Assigned security responsibility"
+      - "Workforce security"
+      - "Information access management"
+      - "Security awareness and training"
+      - "Security incident procedures"
+      - "Contingency planning"
+      - "Business associate contracts"
+
+  - id: "164.310"
+    name: "Physical Safeguards"
+    requirements:
+      - "Facility access controls"
+      - "Workstation use and security"
+      - "Workstation security"
+      - "Device and media controls"
+
+  - id: "164.312"
+    name: "Technical Safeguards"
+    requirements:
+      - "Access controls"
+      - "Audit controls"
+      - "Integrity controls"
+      - "Transmission security"
+
+  - id: "164.314"
+    name: "Organizational Requirements"
+    requirements:
+      - "Business Associate Agreements (BAA)"
+      - "Memoranda of Understanding (MOU)"
+
+breach_notification_rule:
+  - id: "164.400"
+    name: "Notification in the case of breach of unsecured PHI"
+    requirement: "Notify affected individuals and authorities"
+
+  - id: "164.404"
+    name: "Notification to individuals"
+    requirement: "Without unreasonable delay and no later than 60 calendar days"
+
+  - id: "164.406"
+    name: "Notification to media"
+    requirement: "Notify prominent media outlets if 500+ residents affected"
+
+  - id: "164.408"
+    name: "Notification to the Secretary"
+    requirement: "Notify HHS Secretary if 500+ residents affected"
+
+audit_controls:
+  - requirement: "Access logs must be maintained"
+  - requirement: "User identification and authentication"
+  - requirement: "Audit trail for all PHI access"
+  - requirement: "Retention minimum 6 years"
+  - retention_years: 6
+
+encryption_requirements:
+  - requirement: "Encryption at rest for PHI"
+    standard: "AES-256 or equivalent"
+
+  - requirement: "Encryption in transit"
+    standard: "TLS 1.2 or higher"
+
+  - requirement: "Key management"
+    requirement: "Secure key storage and rotation"
+
+evidence_requirements:
+  - type: "security_assessment"
+    frequency: "Annual"
+    retention_days: 2190  # 6 years
+    format: "Risk analysis and security evaluation"
+    tool: "Third-party security assessor"
+
+  - type: "access_logs"
+    frequency: "Continuous"
+    retention_days: 2190  # 6 years
+    format: "Structured audit logs"
+    tool: "Electronic Health Record (EHR) system"
+
+  - type: "phi_inventory"
+    frequency: "Annual"
+    retention_days: 2190  # 6 years
+    format: "Data Asset Inventory"
+    tool: "Data discovery and classification"
+
+  - type: "encryption_verification"
+    frequency: "Annual"
+    retention_days: 2190  # 6 years
+    format: "Encryption audit report"
+    tool: "Vulnerability scanner"
+
+  - type: "breach_notification_logs"
+    frequency: "Per breach"
+    retention_days: 2190  # 6 years
+    format: "Breach assessment and notification records"
+    tool: "Breach management system"
+
+  - type: "baa_documentation"
+    frequency: "Per new vendor"
+    retention_days: 2190  # 6 years
+    format: "Signed Business Associate Agreement"
+    tool: "Contract management system"
+
+enforcement:
+  - authority: "Office for Civil Rights (OCR)"
+    penalties:
+      - violation_type: "Unknowing violation"
+        fine_min: 100
+        fine_max: 50000
+        per: "violation"
+
+      - violation_type: "Negligent violation"
+        fine_min: 1000
+        fine_max: 50000
+        per: "violation"
+
+      - violation_type: "Willful violation (not corrected within 30 days)"
+        fine_min: 10000
+        fine_max: 50000
+        per: "violation"
+
+      - violation_type: "Willful violation (knowing/reckless)"
+        fine_min: 100000
+        fine_max: 1500000
+        per: "violation or calendar year"
+
+  - authority: "State Attorneys General"
+    penalties: "Civil and criminal penalties under state law"
+
+  - authority: "Private right of action"
+    jurisdiction: "Individual data subjects"
+    compensation: "Damages for violations"
+
+assessment:
+  audit_type: "Security Risk Analysis (SRA)"
+  frequency: "At least annually"
+  required_by: "164.308(a)(1)(ii)(A)"
+  documentation: "Risk analysis reports and remediation plans"
+  third_party: "Preferred for credibility"
