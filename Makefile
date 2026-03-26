@@ -12,11 +12,26 @@ BOLD  := \033[1m
 RESET := \033[0m
 GREEN := \033[32m
 CYAN  := \033[36m
+YELLOW := \033[33m
+RED := \033[31m
 
 .PHONY: help
 help: ## Show this help message
 	@printf '$(BOLD)BusinessOS — available targets:$(RESET)\n\n'
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '$(YELLOW)Setup:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^setup|^up|^down|^restart/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Development:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^dev|^build|^rebuild/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Testing:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^test|^weaver/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Logs & Debugging:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^logs|^status|^debug|^profile|^shell/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Database:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^db-/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Data Layer (bos):$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^bos-/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@printf '\n$(YELLOW)Cleanup:$(RESET)\n'
+	@awk 'BEGIN {FS = ":.*##"} /^clean|^urls/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\n'
 
 # =============================================================================
@@ -110,12 +125,20 @@ logs-db: ## Follow postgres logs only
 status: ## Show service health status
 	@docker compose ps
 
+.PHONY: debug
+debug: ## Open a bash shell in the running backend container
+	@docker compose exec backend bash
+
+.PHONY: profile
+profile: ## Show CPU/memory usage of running services
+	@docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
 # =============================================================================
 # Testing
 # =============================================================================
 
 .PHONY: test
-test: test-backend test-frontend ## Run all tests
+test: test-backend test-frontend ## Run all tests (unit + frontend)
 
 .PHONY: test-backend
 test-backend: ## Run Go backend tests

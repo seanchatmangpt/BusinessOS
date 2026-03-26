@@ -23,6 +23,10 @@ export default defineConfig({
     maxThreads: 4,
     // Note: cache.dir removed - Vitest 4 uses Vite's cacheDir automatically
 
+    // Test filtering by path pattern
+    // Usage: npm run test -- --testPathPattern=auth
+    // Usage: npm run test -- --testPathPattern="components/Button"
+
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

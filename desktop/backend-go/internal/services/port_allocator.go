@@ -31,9 +31,9 @@ const (
 // Errors for port allocation
 var (
 	ErrPortsExhausted = errors.New("no available ports in configured range")
-	ErrPortInUse      = errors.New("port is already in use")
-	ErrAppNotFound    = errors.New("app not found or has no allocated port")
-	ErrInvalidConfig  = errors.New("invalid port allocator configuration")
+	ErrPortInUse      = errors.New("port is already in use — check with 'lsof -i :PORT' or 'netstat -tlnp | grep PORT'")
+	ErrAppNotFound    = errors.New("app not found or has no allocated port — check if app was started and port cache is warm")
+	ErrInvalidConfig  = errors.New("invalid port allocator configuration — verify BusinessOS_SANDBOX_PORT_MIN < BusinessOS_SANDBOX_PORT_MAX")
 )
 
 // SandboxPortAllocator manages dynamic port allocation for sandbox containers.
@@ -107,7 +107,9 @@ func (p *SandboxPortAllocator) Allocate(ctx context.Context, appID uuid.UUID) (i
 		}
 	}
 
-	return 0, ErrPortsExhausted
+	return 0, fmt.Errorf("%w: tried all ports %d-%d. See docs/TROUBLESHOOTING.md#port-allocation. "+
+		"Tip: Check if containers are still running with 'docker ps' and release ports with 'docker stop <container>'",
+		ErrPortsExhausted, p.minPort, p.maxPort)
 }
 
 // tryAllocatePort attempts to allocate a specific port to an app.

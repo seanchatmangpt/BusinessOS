@@ -27,12 +27,22 @@ BusinessOS is a self-hosted AI business OS built on the MIOSA four-layer stack. 
 
 ### [How-to Guides](../../docs/diataxis/how-to/) — Solve Problems
 
+**Root how-to guides:**
+
 | Guide | Solves | Complexity |
 |-------|--------|------------|
 | [Add S/N Quality Gates](../../docs/diataxis/how-to/add-quality-gates.md) | Reject low-quality agent output | Intermediate |
 | [Create Client Communications](../../docs/diataxis/how-to/client-communications.md) | Signal-encoded client emails, proposals | Intermediate |
 | [Deploy Multi-OS Fleet](../../docs/diataxis/how-to/multi-os-fleet.md) | Multiple BusinessOS instances | Expert |
 | [Integrate Data Operating Standard](../../docs/diataxis/how-to/data-operating-standard.md) | SDK-backed data operations | Advanced |
+
+**BusinessOS-specific how-to guides:**
+
+| Guide | Solves | Complexity |
+|-------|--------|------------|
+| [Add a New API Endpoint](./how-to/add-api-endpoint.md) | Create REST endpoint with handler, route, and database query | Beginner |
+| [Debug a Frontend Issue](./how-to/debug-frontend-issue.md) | Find and fix rendering, state, or network problems in SvelteKit | Intermediate |
+| [Add a Feature Behind a Feature Flag](./how-to/feature-flag-rollout.md) | Roll out new feature gradually with zero downtime | Intermediate |
 
 ### [Explanation](../../docs/diataxis/explanation/) — Understand the System
 
@@ -126,9 +136,12 @@ BusinessOS enforces SDK-backed data operations:
 
 ### For Developers
 
-1. **Backend**: [Go Backend Guide](../development/BACKEND.md)
-2. **Frontend**: [SvelteKit Guide](../development/FRONTEND.md)
-3. **Data Operations**: [Data Operating Standard Guide](../../docs/diataxis/how-to/data-operating-standard.md)
+1. **Add API Endpoint**: [How-To Guide](./how-to/add-api-endpoint.md)
+2. **Debug Frontend**: [How-To Guide](./how-to/debug-frontend-issue.md)
+3. **Feature Flags**: [How-To Guide](./how-to/feature-flag-rollout.md)
+4. **Backend**: [Go Backend Guide](../development/BACKEND.md)
+5. **Frontend**: [SvelteKit Guide](../development/FRONTEND.md)
+6. **Data Operations**: [Data Operating Standard Guide](../../docs/diataxis/how-to/data-operating-standard.md)
 
 ### For Operators
 
