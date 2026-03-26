@@ -81,7 +81,7 @@ func HintForError(err error) string {
 	if strings.Contains(lower, "connection refused") {
 		return "Connection refused — service not listening on target address:port. " +
 			"Check if server is running and listening on the right port. " +
-			"Tip: verify with 'netstat -an | grep LISTEN' or 'lsof -i'."
+			"Tip: verify with 'lsof -i :PORT' to see what's listening. See docs/TROUBLESHOOTING.md#port-already-in-use"
 	}
 
 	if strings.Contains(lower, "connection reset") {
@@ -94,7 +94,7 @@ func HintForError(err error) string {
 	if errors.Is(err, errors.New("EOF")) || strings.Contains(lower, "unexpected eof") {
 		return "Unexpected EOF — connection closed before reading expected data. " +
 			"Check if sender closed connection prematurely. " +
-			"Tip: add length prefix or delimiter to messages."
+			"Tip: add length prefix or delimiter to messages. See docs/TROUBLESHOOTING.md for integration help."
 	}
 
 	// Invalid JSON/data parsing
