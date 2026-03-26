@@ -1,0 +1,167 @@
+# SOC2 Compliance Framework Configuration
+# Service Organization Control (SOC 2) - American Institute of CPAs (AICPA)
+# https://www.aicpa.org/interestareas/informationsystems/extcomm/soxtrustsvc/
+
+framework:
+  name: SOC2
+  version: "1.0.0"
+  description: "Service Organization Control Type II audit"
+  regulatory_body: "AICPA"
+  audit_frequency: "Annually"
+
+trust_service_categories:
+  - id: "cc"
+    name: "Common Criteria"
+    description: "Applies to all organizations"
+    controls:
+      - cc1.1
+      - cc1.2
+      - cc1.3
+      - cc1.4
+      - cc1.5
+      - cc2.1
+      - cc2.2
+      - cc3.1
+      - cc3.2
+      - cc4.1
+      - cc4.2
+      - cc5.1
+      - cc5.2
+      - cc5.3
+      - cc6.1
+      - cc6.2
+      - cc6.3
+      - cc6.4
+      - cc7.1
+      - cc7.2
+      - cc7.3
+      - cc7.4
+      - cc7.5
+      - cc8.1
+      - cc9.1
+      - cc9.2
+
+  - id: "security"
+    name: "Security (S)"
+    description: "System is protected against unauthorized access"
+    controls:
+      - s1.1
+      - s1.2
+      - s1.3
+      - s2.1
+      - s2.2
+      - s2.3
+
+  - id: "availability"
+    name: "Availability (A)"
+    description: "System is available for operation and use"
+    controls:
+      - a1.1
+      - a1.2
+      - a1.3
+      - a1.4
+
+  - id: "processing_integrity"
+    name: "Processing Integrity (PI)"
+    description: "System data is complete, accurate, timely and authorized"
+    controls:
+      - pi1.1
+      - pi1.2
+      - pi1.3
+      - pi2.1
+      - pi3.1
+
+  - id: "confidentiality"
+    name: "Confidentiality (C)"
+    description: "System protects confidential information"
+    controls:
+      - c1.1
+      - c1.2
+      - c1.3
+      - c1.4
+
+  - id: "integrity"
+    name: "Integrity (I)"
+    description: "System data is accurate and complete"
+    controls:
+      - i1.1
+      - i1.2
+      - i2.1
+      - i2.2
+
+  - id: "privacy"
+    name: "Privacy (P)"
+    description: "Personal information is collected, retained, disclosed per regulations"
+    controls:
+      - p1.1
+      - p2.1
+      - p3.1
+      - p3.2
+      - p4.1
+      - p4.2
+      - p5.1
+      - p5.2
+      - p6.1
+      - p7.1
+      - p8.1
+
+evidence_requirements:
+  - type: "access_logs"
+    frequency: "Daily"
+    retention_days: 365
+    format: "Structured logs (JSON/CSV)"
+    tool: "Elasticsearch/Splunk"
+
+  - type: "encryption_verification"
+    frequency: "Quarterly"
+    retention_days: 365
+    format: "Certificate and key management reports"
+    tool: "HashiCorp Vault"
+
+  - type: "uptime_metrics"
+    frequency: "Continuous"
+    retention_days: 365
+    format: "Metrics dashboard (Prometheus/Datadog)"
+    tool: "Prometheus"
+
+  - type: "audit_trail"
+    frequency: "Continuous"
+    retention_days: 2555  # 7 years
+    format: "Signed audit logs"
+    tool: "CloudTrail/Azure Audit Logs"
+
+  - type: "change_management"
+    frequency: "Per change"
+    retention_days: 2555  # 7 years
+    format: "Change request documentation"
+    tool: "ServiceNow/Jira"
+
+evaluation:
+  assessment_type: "Type II"
+  scope: "All systems and data"
+  frequency: "Annual"
+  report_format: "SOC 2 Attestation Report"
+  auditor_required: true
+
+remediation:
+  escalation_path:
+    - level: "info"
+      action: "log"
+    - level: "warning"
+      action: "notify"
+    - level: "critical"
+      action: "escalate"
+  max_remediation_days: 30
+
+auditor_contacts:
+  - role: "Lead Auditor"
+    name: "TBD"
+    email: "tbd@auditing-firm.com"
+  - role: "Quality Reviewer"
+    name: "TBD"
+    email: "tbd@auditing-firm.com"
+
+attestation:
+  certificate_authority: "AICPA"
+  validity_period: "12 months"
+  renewal_notice_days: 60
