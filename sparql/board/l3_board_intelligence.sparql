@@ -1,0 +1,305 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# L3 SPARQL CONSTRUCT: Board Intelligence Materialization
+# Board Chair Intelligence System — Inference Chain Level 3
+# ═══════════════════════════════════════════════════════════════════════════════
+# Chatman Equation: A = μ(O)
+# Reads ALL L2 bos:OrgHealthIndicator nodes and materializes a single
+# bos:BoardIntelligence node representing the complete organizational picture.
+# This is the intelligence layer — aggregations and risk synthesis that are
+# too complex for humans to compute in real-time.
+#
+# Derivation Level: L3 (third-order: aggregation of all L2 health indicators)
+# TTL: no fixed expiry; re-derived on demand or when L2 is refreshed
+# Boundedness: LIMIT 10000 on L2 scan; GROUP BY aggregation bounded by org size
+#
+# WvdA Soundness:
+#   - Deadlock Freedom: reads only bos:OrgHealthIndicator (L2); never reads L3
+#   - Liveness: LIMIT 10000 + GROUP BY aggregation guarantees termination
+#   - Boundedness: exactly one bos:BoardIntelligence per organization
+#
+# Target: Oxigraph via SPARQL Update
+# Executed by: OptimalSystemAgent.Ontology.InferenceChain.run_level(:l3)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX org:    <http://www.w3.org/ns/org#>
+PREFIX schema: <https://schema.org/>
+PREFIX prov:   <http://www.w3.org/ns/prov#>
+PREFIX bos:    <https://chatmangpt.com/ontology/businessos/>
+PREFIX dcterms:<http://purl.org/dc/terms/>
+
+# ── CONSTRUCT: Single bos:BoardIntelligence node for the organization ────────
+#
+# Output triples (one node per organization):
+#   <intelligence/board/default>  a bos:BoardIntelligence
+#   ... bos:organizationalHealthSummary   xsd:decimal [0.0, 1.0]
+#       formula: AVG(processHealthScore) across all L2 indicators
+#   ... bos:topRisk                       xsd:string
+#       "<dept-label> — <riskLevel> risk: <compliancePosture> compliance"
+#   ... bos:processVelocityTrend          "improving"|"stable"|"degrading"
+#       derived from AVG(cycleTimeDeviation) of source L1 metrics
+#   ... bos:complianceStatus              "compliant"|"at_risk"|"violation"
+#       worst-case across all departments
+#   ... bos:weeklyROIDelta                xsd:decimal
+#       estimated value: healingActionsApplied * 500.0 USD equivalent
+#   ... bos:issuesAutoResolved            xsd:integer (SUM healingActionsApplied)
+#   ... bos:issuesPendingEscalation       xsd:integer (COUNT departments with riskLevel=high|critical)
+#   ... bos:briefingReadyAt              xsd:dateTime (NOW())
+#   ... bos:lastRefreshed               xsd:dateTime
+#   ... bos:derivationLevel             "L3"
+#   ... prov:wasDerivedFrom             all L2 bos:OrgHealthIndicator URIs (bag)
+#   ... prov:generatedAtTime            xsd:dateTime
+
+CONSTRUCT {
+
+  # ── Board Intelligence node (singleton per organization) ──────────────────
+  ?boardIntelligence a bos:BoardIntelligence ;
+    bos:forOrganization ?organization ;
+    rdfs:label "Board Chair Intelligence Briefing" ;
+
+    # Aggregate organizational health (AVG of all L2 health scores)
+    bos:organizationalHealthSummary ?orgHealthSummary ;
+
+    # Highest-risk department summary string for briefing narrative
+    bos:topRisk ?topRiskSummary ;
+
+    # Process velocity trend derived from L1 cycle time deviations
+    # positive AVG deviation = improving; negative = degrading
+    bos:processVelocityTrend ?velocityTrend ;
+
+    # Overall compliance: worst-case across all departments
+    bos:complianceStatus ?overallComplianceStatus ;
+
+    # Estimated ROI from autonomous healing (healing count * $500 equivalent)
+    bos:weeklyROIDelta ?weeklyROIDelta ;
+
+    # Count of autonomically resolved issues this period
+    bos:issuesAutoResolved ?issuesAutoResolved ;
+
+    # Count of departments requiring board-level attention (high + critical risk)
+    bos:issuesPendingEscalation ?issuesPendingEscalation ;
+    bos:structuralIssueCount ?structuralCount ;
+    bos:operationalIssueCount ?operationalCount ;
+    bos:highestConwayScore ?maxConwayScore ;
+    bos:worstQueueStability ?minStability ;
+
+    # When the briefing package is ready for board consumption
+    bos:briefingReadyAt ?now ;
+
+    # Freshness / derivation metadata
+    bos:lastRefreshed ?now ;
+    bos:derivationLevel "L3" ;
+
+    # PROV-O lineage — references the aggregate provenance bundle
+    prov:wasDerivedFrom ?provenanceBundle ;
+    prov:wasGeneratedBy ?activity ;
+    prov:generatedAtTime ?now .
+
+  # ── Provenance bundle (aggregates all L2 indicator URIs) ──────────────────
+  ?provenanceBundle a prov:Collection ;
+    rdfs:label "L2 Health Indicators Bundle" ;
+    prov:hadMember ?healthIndicator ;
+    bos:derivationLevel "L3" .
+
+  # ── Provenance Activity ────────────────────────────────────────────────────
+  ?activity a prov:Activity ;
+    rdfs:label "L3 Board Intelligence Construct" ;
+    prov:startedAtTime ?now ;
+    prov:endedAtTime ?now ;
+    prov:wasAssociatedWith bos:L3BoardIntelligenceConstruct ;
+    prov:used ?provenanceBundle ;
+    bos:derivationLevel "L3" .
+
+}
+WHERE {
+
+  # ── Aggregate all L2 OrgHealthIndicator nodes ─────────────────────────────
+  # CRITICAL: L3 reads only bos:OrgHealthIndicator (L2).
+  # Never reads bos:BoardIntelligence. No circular dependency. (WvdA: deadlock freedom)
+  {
+    SELECT
+      ?organization
+      (AVG(xsd:decimal(?processHealthScore)) AS ?orgHealthSummary)
+      (SUM(xsd:integer(?healingActionsApplied)) AS ?issuesAutoResolved)
+      (SUM(
+        IF(?riskLevel = "high" || ?riskLevel = "critical",
+           "1"^^xsd:integer,
+           "0"^^xsd:integer)
+      ) AS ?issuesPendingEscalation)
+      (AVG(xsd:decimal(?processHealthScore)) AS ?avgHealthForTrend)
+    WHERE {
+      ?healthIndicator a bos:OrgHealthIndicator ;
+        bos:forDepartment ?department ;
+        bos:processHealthScore ?processHealthScore ;
+        bos:healingActionsApplied ?healingActionsApplied ;
+        bos:riskLevel ?riskLevel .
+
+      # Get organization from the department
+      OPTIONAL {
+        ?department org:isPartOf ?rawOrg .
+        BIND(?rawOrg AS ?organization)
+      }
+      # Default org URI when isPartOf not set
+      BIND(
+        COALESCE(?organization, <https://chatmangpt.com/orgs/default>)
+        AS ?organization
+      )
+    }
+    GROUP BY ?organization
+    LIMIT 10000
+  }
+
+  # ── Top-risk department: highest risk level, worst compliance ─────────────
+  # Separate subquery to find the single worst department for the briefing string
+  {
+    SELECT ?organization ?topRiskDeptLabel ?topRiskRiskLevel ?topRiskPosture
+    WHERE {
+      ?healthIndicator a bos:OrgHealthIndicator ;
+        bos:forDepartment ?dept ;
+        bos:riskLevel ?topRiskRiskLevel ;
+        bos:compliancePosture ?topRiskPosture ;
+        bos:processHealthScore ?worstScore .
+
+      OPTIONAL { ?dept rdfs:label ?deptLbl . }
+      BIND(COALESCE(?deptLbl, STR(?dept)) AS ?topRiskDeptLabel)
+
+      # Must belong to same org
+      OPTIONAL { ?dept org:isPartOf ?deptOrg . }
+      BIND(COALESCE(?deptOrg, <https://chatmangpt.com/orgs/default>) AS ?organization)
+    }
+    ORDER BY ASC(?worstScore)
+    LIMIT 1
+  }
+
+  # ── Overall compliance: worst-case across all departments ─────────────────
+  {
+    SELECT ?organization (MIN(?complianceRank) AS ?worstComplianceRank)
+    WHERE {
+      ?healthIndicator a bos:OrgHealthIndicator ;
+        bos:forDepartment ?dept ;
+        bos:compliancePosture ?posture .
+
+      OPTIONAL { ?dept org:isPartOf ?deptOrg . }
+      BIND(COALESCE(?deptOrg, <https://chatmangpt.com/orgs/default>) AS ?organization)
+
+      # Map posture to ordinal for MIN selection
+      BIND(
+        IF(?posture = "violation", "1"^^xsd:integer,
+           IF(?posture = "at_risk", "2"^^xsd:integer,
+              "3"^^xsd:integer))
+        AS ?complianceRank
+      )
+    }
+    GROUP BY ?organization
+    LIMIT 10000
+  }
+
+  # ── Map worst compliance rank back to label ────────────────────────────────
+  BIND(
+    IF(?worstComplianceRank = "1"^^xsd:integer, "violation",
+       IF(?worstComplianceRank = "2"^^xsd:integer, "at_risk",
+          "compliant"))
+    AS ?overallComplianceStatus
+  )
+
+  # ── Process velocity trend ─────────────────────────────────────────────────
+  # L3 infers trend from aggregate health: > 0.75 improving, < 0.60 degrading
+  BIND(
+    IF(?orgHealthSummary >= "0.75"^^xsd:decimal, "improving",
+       IF(?orgHealthSummary >= "0.60"^^xsd:decimal, "stable",
+          "degrading"))
+    AS ?velocityTrend
+  )
+
+  # ── ROI delta: $500 equivalent per autonomous healing action ──────────────
+  BIND(
+    xsd:decimal(?issuesAutoResolved) * "500.0"^^xsd:decimal
+    AS ?weeklyROIDelta
+  )
+
+  # ── Top risk narrative string ──────────────────────────────────────────────
+  BIND(
+    CONCAT(
+      COALESCE(?topRiskDeptLabel, "Unknown Department"),
+      " — ",
+      COALESCE(?topRiskRiskLevel, "unknown"),
+      " risk: ",
+      COALESCE(?topRiskPosture, "unknown"),
+      " compliance posture"
+    ) AS ?topRiskSummary
+  )
+
+  # ── Timestamp ─────────────────────────────────────────────────────────────
+  BIND(NOW() AS ?now)
+
+  # ── IRI construction ──────────────────────────────────────────────────────
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/intelligence/board/l3/",
+               ENCODE_FOR_URI(STR(?organization))))
+    AS ?boardIntelligence
+  )
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/prov/l3/bundle/",
+               ENCODE_FOR_URI(STR(?organization))))
+    AS ?provenanceBundle
+  )
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/prov/l3/activity/",
+               ENCODE_FOR_URI(STR(?organization)),
+               "/", STR(NOW())))
+    AS ?activity
+  )
+
+  # Structural issues — Conway violations requiring board decision
+  {
+    SELECT (COUNT(?m) AS ?structuralCount)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:conwayViolation true .
+    }
+  }
+
+  # Operational issues — Little's Law queue violations (auto-healed)
+  {
+    SELECT (COUNT(?m) AS ?operationalCount)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:queueStabilityRatio ?ratio .
+      FILTER(?ratio > 1.3)
+    }
+  }
+
+  # Worst Conway score across all departments
+  {
+    SELECT (MAX(?score) AS ?maxConwayScore)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:conwayScore ?score .
+    }
+  }
+
+  # Most unstable queue stability ratio
+  {
+    SELECT (MIN(?ratio) AS ?minStability)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:queueStabilityRatio ?ratio .
+    }
+  }
+
+  # ── Individual health indicator reference (for prov:hadMember) ───────────
+  # Re-select health indicators for provenance bundle membership
+  ?healthIndicator a bos:OrgHealthIndicator ;
+    bos:forDepartment ?hDept .
+
+  OPTIONAL { ?hDept org:isPartOf ?hOrg . }
+  FILTER(COALESCE(?hOrg, <https://chatmangpt.com/orgs/default>) = ?organization)
+
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END L3_BOARD_INTELLIGENCE
+# ═══════════════════════════════════════════════════════════════════════════════

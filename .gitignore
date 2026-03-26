@@ -127,3 +127,5 @@ osa
 
 # Internal/private docs (never commit)
 .internal/
+# Test output
+bos/core/DISTRIBUTED_TEST_RESULTS.txt

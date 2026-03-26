@@ -8,3 +8,7 @@ pub mod search;
 pub mod validate;
 pub mod pm4py;
 pub mod commands;
+pub mod healthcare;
+pub mod fibo;
+pub mod compliance;
+pub mod mesh;
