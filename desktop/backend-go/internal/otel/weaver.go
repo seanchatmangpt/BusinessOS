@@ -25,59 +25,73 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
 const (
-	// DefaultOTLPEndpoint is the default OTLP HTTP endpoint for the Weaver receiver.
-	DefaultOTLPEndpoint = "localhost:4318"
+	// DefaultOTLPEndpoint is host:port for OTLP gRPC (Weaver --otlp-grpc-port).
+	DefaultOTLPEndpoint = "localhost:4317"
 
 	// EnvWeaverLiveCheck enables Weaver live-check when set to "true".
 	EnvWeaverLiveCheck = "WEAVER_LIVE_CHECK"
 
-	// EnvWeaverOTLPEndpoint overrides the default OTLP endpoint.
+	// EnvWeaverOTLPEndpoint overrides the default OTLP endpoint (http://host:port or host:port).
 	EnvWeaverOTLPEndpoint = "WEAVER_OTLP_ENDPOINT"
 
 	// defaultShutdownTimeout is the maximum time to wait for span flush on shutdown.
 	defaultShutdownTimeout = 10 * time.Second
 )
 
+// normalizeGRPCEndpoint strips schemes and paths so otlptracegrpc gets "host:port".
+func normalizeGRPCEndpoint(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return DefaultOTLPEndpoint
+	}
+	raw = strings.TrimPrefix(raw, "http://")
+	raw = strings.TrimPrefix(raw, "https://")
+	// Drop any trailing path (e.g. rare misconfig)
+	if i := strings.IndexByte(raw, '/'); i >= 0 {
+		raw = raw[:i]
+	}
+	return raw
+}
+
 // SetupWeaverLiveCheck configures OTEL to export spans to the Weaver live-check
-// OTLP receiver. It creates a TracerProvider with the "businessos" service
+// OTLP gRPC receiver. It creates a TracerProvider with the "businessos" service
 // resource and sets it as the global provider.
 //
 // Call the returned shutdown function in TestMain's deferred cleanup to flush
 // any pending spans before the test binary exits.
-//
-// The endpoint defaults to localhost:4318 (OTLP HTTP) but can be overridden
-// via the WEAVER_OTLP_ENDPOINT environment variable. Note: unlike gRPC OTLP
-// on port 4317, the HTTP exporter uses port 4318 by default.
 func SetupWeaverLiveCheck(ctx context.Context) (func(context.Context) error, error) {
-	endpoint := os.Getenv(EnvWeaverOTLPEndpoint)
-	if endpoint == "" {
-		endpoint = DefaultOTLPEndpoint
-	}
+	endpoint := normalizeGRPCEndpoint(os.Getenv(EnvWeaverOTLPEndpoint))
 
-	exporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint(endpoint),
-		otlptracehttp.WithInsecure(),
+	exporter, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("weaver: create OTLP HTTP exporter: %w", err)
+		return nil, fmt.Errorf("weaver: create OTLP gRPC exporter: %w", err)
 	}
 
-	res := resource.NewWithAttributes(
-		semconv.SchemaURL,
+	attrs := []attribute.KeyValue{
 		semconv.ServiceName("businessos"),
 		semconv.ServiceVersion("1.0.0"),
+		semconv.ServiceNamespace("chatmangpt"),
 		semconv.DeploymentEnvironment("weaver-live-check"),
-	)
+	}
+	if cid := strings.TrimSpace(os.Getenv("CHATMANGPT_CORRELATION_ID")); cid != "" {
+		attrs = append(attrs, attribute.String("chatmangpt.run.correlation_id", cid))
+	}
+	res := resource.NewWithAttributes(semconv.SchemaURL, attrs...)
 
 	tp := tracesdk.NewTracerProvider(
 		tracesdk.WithBatcher(exporter),

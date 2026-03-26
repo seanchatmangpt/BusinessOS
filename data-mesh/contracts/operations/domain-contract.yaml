@@ -1,0 +1,278 @@
+---
+# ========================================================================
+# Operations Domain Data Mesh Contract
+# ========================================================================
+# Version: 1.0.0
+# Owner: Chief Operating Officer (COO)
+# Created: 2026-03-25
+# ========================================================================
+
+domain:
+  name: Operations
+  owner: "Chief Operating Officer (COO)"
+  contact_email: "coo@businessos.example.com"
+  contact_phone: "+1-555-OPS"
+  department: "Operations"
+  business_unit: "Enterprise Operations"
+  cost_center: "2001"
+
+governance:
+  data_steward: "Operations Data Steward"
+  data_steward_email: "data-steward.operations@businessos.example.com"
+  technical_owner: "Operations Systems Lead"
+  technical_owner_email: "ops-engineering@businessos.example.com"
+  security_owner: "Chief Information Security Officer"
+  compliance_frameworks:
+    - SOC2 Type II
+    - GDPR
+    - ISO 27001
+  audit_frequency: "Quarterly"
+  last_audit_date: "2026-03-15"
+  next_audit_date: "2026-06-15"
+
+entities:
+  - name: "Project"
+    identifier: "operations.projects.v1"
+    description: "Operational projects and initiatives tracking"
+    record_count: 2847
+    growth_rate: "25% quarterly"
+    business_criticality: "HIGH"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/operations/projects"
+        format: "JSON-HAL"
+        rate_limit: 500
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 1000ms"
+      database:
+        host: "ops-db.db.example.com"
+        port: 5432
+        database: "operations"
+        table: "projects"
+        replication_lag: "< 30s"
+    key_fields:
+      - project_id: "Unique project identifier"
+      - name: "Project name"
+      - status: "planning | in_progress | completed | on_hold | cancelled"
+      - start_date: "Project start date"
+      - end_date: "Project completion date"
+      - budget_allocation: "Allocated budget in USD"
+      - owner_id: "Project owner employee"
+    lineage:
+      source_system: "Microsoft Project"
+      sync_frequency: "Daily"
+      records_synced: 2847
+
+  - name: "Process"
+    identifier: "operations.processes.v1"
+    description: "Operational process definitions and execution logs"
+    record_count: 15320
+    growth_rate: "18% quarterly"
+    business_criticality: "HIGH"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/operations/processes"
+        format: "JSON-HAL"
+        rate_limit: 2000
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - process_id: "Unique process identifier"
+      - process_name: "Process description"
+      - process_type: "workflow | manual | automated | hybrid"
+      - status: "active | archived | draft"
+      - owner_department: "Department responsible"
+    lineage:
+      source_system: "YAWL v6 (Java 25)"
+      sync_frequency: "Real-time"
+      records_synced: 15320
+
+  - name: "Resource"
+    identifier: "operations.resources.v1"
+    description: "Equipment, facilities, and resource allocation"
+    record_count: 4521
+    growth_rate: "8% quarterly"
+    business_criticality: "MEDIUM"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/operations/resources"
+        format: "JSON-HAL"
+        rate_limit: 1000
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - resource_id: "Unique resource identifier"
+      - resource_type: "equipment | facility | software_license | vehicle"
+      - status: "available | in_use | maintenance | retired"
+      - location: "Physical or logical location"
+      - cost_per_unit: "Cost in USD"
+    lineage:
+      source_system: "AssetTech Management"
+      sync_frequency: "Weekly"
+      records_synced: 4521
+
+  - name: "KPI"
+    identifier: "operations.kpis.v1"
+    description: "Key Performance Indicators and operational metrics"
+    record_count: 8934
+    growth_rate: "30% quarterly"
+    business_criticality: "CRITICAL"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/operations/kpis"
+        format: "JSON-HAL"
+        rate_limit: 5000
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - kpi_id: "Unique KPI identifier"
+      - kpi_name: "KPI description"
+      - metric_value: "Current metric value"
+      - target_value: "Target value"
+      - measurement_unit: "Unit of measurement"
+      - last_updated: "When metric was last updated"
+    lineage:
+      source_system: "Tableau + multiple operational systems"
+      sync_frequency: "Real-time"
+      records_synced: 8934
+
+quality_metrics:
+  projects:
+    timeliness:
+      expected_value: "< 1 day"
+      actual_value: "4 hours"
+      status: "PASSING"
+    completeness:
+      expected_value: "98%"
+      actual_value: "99.2%"
+      status: "PASSING"
+    overall_score: 0.95
+
+  processes:
+    timeliness:
+      expected_value: "< 1 minute"
+      actual_value: "5 seconds"
+      status: "PASSING"
+    accuracy:
+      expected_value: "99%"
+      actual_value: "99.8%"
+      status: "PASSING"
+    overall_score: 0.97
+
+  resources:
+    accuracy:
+      expected_value: "99.9%"
+      actual_value: "99.7%"
+      status: "PASSING"
+    overall_score: 0.93
+
+  kpis:
+    timeliness:
+      expected_value: "< 5 minutes"
+      actual_value: "30 seconds"
+      status: "PASSING"
+    accuracy:
+      expected_value: "99.5%"
+      actual_value: "99.9%"
+      status: "PASSING"
+    overall_score: 0.98
+
+access_control:
+  operations_team:
+    roles:
+      - Operations Manager
+      - Process Manager
+      - Resource Manager
+    permissions:
+      projects: "READ, WRITE"
+      processes: "READ, WRITE"
+      resources: "READ"
+      kpis: "READ"
+    constraints:
+      time_window: "24/7"
+      volume_limit: "unlimited"
+
+  finance_team:
+    roles:
+      - Finance Analyst
+    permissions:
+      projects: "READ (budget info only)"
+      resources: "READ (cost info only)"
+      kpis: "READ (financial KPIs only)"
+    constraints:
+      fields: "exclude operational details"
+
+  analytics_team:
+    roles:
+      - Data Analyst
+    permissions:
+      processes: "READ (aggregated)"
+      kpis: "READ (aggregated)"
+    constraints:
+      volume_limit: "1000 per query"
+
+usage_policies:
+  export_policy:
+    rules:
+      - role: "Operations Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - format: "CSV, JSON, Excel"
+          - audit_logging: "required"
+
+  retention_policy:
+    projects:
+      retention_period: "3 years"
+    processes:
+      retention_period: "2 years"
+    resources:
+      retention_period: "5 years"
+    kpis:
+      retention_period: "3 years"
+
+  audit_policy:
+    logging_level: "INFO"
+    log_retention: "2 years"
+
+service_level_agreements:
+  projects:
+    availability: 99%
+    max_latency: "1 day"
+    rto_minutes: 60
+    rpo_minutes: 60
+    support_tier: "Business hours Level-2"
+
+  processes:
+    availability: 99.5%
+    max_latency: "1 minute"
+    rto_minutes: 30
+    rpo_minutes: 5
+    support_tier: "24/7 Level-2"
+
+  resources:
+    availability: 98%
+    max_latency: "1 week"
+    support_tier: "Business hours Level-1"
+
+  kpis:
+    availability: 99.9%
+    max_latency: "5 minutes"
+    rto_minutes: 15
+    rpo_minutes: 1
+    support_tier: "24/7 Level-2"
+
+monitoring_and_alerting:
+  metrics:
+    - name: "project_schedule_variance"
+      threshold: 10  # percent
+      alert_severity: "warning"
+    - name: "kpi_calculation_freshness_minutes"
+      threshold: 5
+      alert_severity: "critical"
+    - name: "resource_utilization_percent"
+      threshold: 85
+      alert_severity: "info"
+
+versioning:
+  contract_version: "1.0.0"
+  created_date: "2026-03-25"
+  next_review_date: "2026-06-25"
+  review_frequency: "Quarterly"

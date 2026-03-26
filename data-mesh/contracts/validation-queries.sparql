@@ -1,0 +1,532 @@
+################################################################################
+# Data Mesh Contract Validation SPARQL Queries
+# Purpose: Validate contract quality, policy compliance, and lineage integrity
+# Format: SPARQL 1.1 for RDF datasets (Oxigraph/Virtuoso compatible)
+# ========================================================================
+
+################################################################################
+# QUERY 1: Data Quality Check (DQV Compliance)
+# Purpose: Validate that all datasets meet quality SLAs
+# Returns: Dataset name, quality score, status, failures
+# SLA Threshold: minimum overall_score >= 0.90
+################################################################################
+
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX dqv: <http://www.w3.org/ns/dqv#>
+PREFIX ex: <http://businessos.example.com/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?domain ?dataset_name ?dataset_id ?quality_score ?overall_status
+       ?timeliness_value ?timeliness_expected ?timeliness_status
+       ?accuracy_value ?accuracy_expected ?accuracy_status
+       ?completeness_value ?completeness_expected ?completeness_status
+       ?issues
+
+WHERE {
+  # Find all datasets in catalogs
+  ?catalog a dcat:Catalog ;
+           dcat:dataset ?dataset ;
+           dct:title ?catalog_title .
+
+  BIND(REPLACE(STR(?catalog_title), " Domain Data Mesh Catalog", "") AS ?domain)
+
+  ?dataset a dcat:Dataset ;
+           dct:title ?dataset_name ;
+           dct:identifier ?dataset_id ;
+           dqv:hasQualityMeasurement ?assessment .
+
+  ?assessment a dqv:QualityAssessment ;
+              ex:overallQualityScore ?quality_score .
+
+  # Extract quality metrics
+  OPTIONAL {
+    ?assessment dqv:hasQualityMeasurement ?timeliness .
+    ?timeliness a dqv:Metric ;
+                dct:title ?timeliness_title ;
+                dqv:actualValue ?timeliness_value ;
+                dqv:expectedValue ?timeliness_expected ;
+                ex:status ?timeliness_status .
+    FILTER(CONTAINS(?timeliness_title, "Timeliness") ||
+           CONTAINS(?timeliness_title, "Freshness"))
+  }
+
+  OPTIONAL {
+    ?assessment dqv:hasQualityMeasurement ?accuracy .
+    ?accuracy a dqv:Metric ;
+              dct:title ?accuracy_title ;
+              dqv:actualValue ?accuracy_value ;
+              dqv:expectedValue ?accuracy_expected ;
+              ex:status ?accuracy_status .
+    FILTER(CONTAINS(?accuracy_title, "Accuracy"))
+  }
+
+  OPTIONAL {
+    ?assessment dqv:hasQualityMeasurement ?completeness .
+    ?completeness a dqv:Metric ;
+                  dct:title ?completeness_title ;
+                  dqv:actualValue ?completeness_value ;
+                  dqv:expectedValue ?completeness_expected ;
+                  ex:status ?completeness_status .
+    FILTER(CONTAINS(?completeness_title, "Completeness"))
+  }
+
+  # Determine overall status
+  BIND(IF(?quality_score >= 0.90, "PASSING",
+       IF(?quality_score >= 0.80, "WARNING", "FAILING")) AS ?overall_status)
+
+  # Identify issues
+  BIND(
+    CONCAT(
+      IF(?quality_score < 0.90, "Low quality score. ", ""),
+      IF(?timeliness_status != "PASSING", "Timeliness issue. ", ""),
+      IF(?accuracy_status != "PASSING", "Accuracy issue. ", ""),
+      IF(?completeness_status != "PASSING", "Completeness issue. ", "")
+    ) AS ?issues
+  )
+}
+
+ORDER BY ?domain ?overall_status DESC(?quality_score)
+
+################################################################################
+# QUERY 1 EXPLANATION:
+# - Finds all datasets across all domains
+# - Retrieves quality assessment metrics (timeliness, accuracy, completeness)
+# - Compares actual vs expected values
+# - Flags datasets below 0.90 quality score threshold
+# - Returns detailed metric breakdown for investigation
+#
+# USAGE: Run weekly to monitor quality metrics
+# ALERT: Failing datasets should trigger incident response
+################################################################################
+
+
+################################################################################
+# QUERY 2: Policy Compliance Check (ODRL Validation)
+# Purpose: Validate access policies match RBAC matrix and compliance rules
+# Returns: Policy name, violations, unauthorized permissions, constraints
+# Rule: All access must have explicit constraints and audit logging
+################################################################################
+
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX odrl: <http://www.w3.org/ns/odrl/2/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://businessos.example.com/>
+
+SELECT ?domain ?dataset_name ?policy_title ?permission_type
+       ?assignee_name ?action ?target ?constraint_type ?constraint_value
+       ?has_audit_logging ?compliance_status
+
+WHERE {
+  # Find all datasets with access policies
+  ?catalog a dcat:Catalog ;
+           dcat:dataset ?dataset ;
+           dct:title ?catalog_title .
+
+  BIND(REPLACE(STR(?catalog_title), " Domain Data Mesh Catalog", "") AS ?domain)
+
+  ?dataset a dcat:Dataset ;
+           dct:title ?dataset_name ;
+           odrl:hasPolicy ?policy .
+
+  ?policy a odrl:Set ;
+          dct:title ?policy_title ;
+          odrl:permission|odrl:prohibition ?rule .
+
+  # Extract rule details
+  ?rule a [odrl:Permission|odrl:Prohibition] ;
+        odrl:action ?action ;
+        odrl:target ?target ;
+        odrl:assignee ?assignee .
+
+  ?assignee foaf:name ?assignee_name .
+
+  # Check for constraints (safety mechanism)
+  OPTIONAL {
+    ?rule odrl:constraint ?constraint .
+    ?constraint odrl:leftOperand ?constraint_type ;
+                odrl:rightOperand ?constraint_value .
+  }
+
+  # Check for audit logging obligation
+  OPTIONAL {
+    ?policy odrl:obligation ?obligation .
+    ?obligation odrl:action odrl:Log .
+    BIND("YES" AS ?has_audit_logging)
+  }
+  BIND(IF(BOUND(?has_audit_logging), "YES", "NO") AS ?has_audit_logging)
+
+  # Determine compliance status
+  BIND(
+    IF(
+      ?has_audit_logging = "YES" && BOUND(?constraint_type),
+      "COMPLIANT",
+      "NON_COMPLIANT"
+    ) AS ?compliance_status
+  )
+
+  # Include all permission types for visibility
+  BIND(IF(isURI(?rule) && STRSTARTS(STR(?rule),
+           CONCAT(STR(ex), ".*Permission")),
+          "PERMISSION",
+          "PROHIBITION") AS ?permission_type)
+}
+
+ORDER BY ?domain ?compliance_status ?assignee_name
+
+################################################################################
+# QUERY 2 EXPLANATION:
+# - Validates ODRL policies exist for all datasets
+# - Checks permissions/prohibitions have explicit constraints
+# - Verifies audit logging obligations present
+# - Identifies non-compliant policies (missing constraints or audit)
+# - Maps roles to specific permissions and targets
+#
+# USAGE: Run monthly for access control audit
+# CRITICAL: Non-compliant policies require immediate remediation
+# CONSTRAINT EXAMPLES:
+#   - timeInterval: working-hours only
+#   - count: max 1000 records per query
+#   - territory: assigned territory only
+################################################################################
+
+
+################################################################################
+# QUERY 3: Data Lineage & Provenance Verification (PROV-O)
+# Purpose: Validate data lineage, source integrity, and audit trail
+# Returns: Dataset name, source system, ETL process, sync status, freshness
+# Requirement: All datasets must have documented source and sync process
+################################################################################
+
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX ex: <http://businessos.example.com/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?domain ?dataset_name ?dataset_id
+       ?source_system ?source_version
+       ?sync_process ?sync_frequency
+       ?last_sync_time ?freshness_minutes
+       ?records_processed ?records_success ?sync_error_rate
+       ?lineage_completeness ?lineage_status
+
+WHERE {
+  # Find all datasets
+  ?catalog a dcat:Catalog ;
+           dcat:dataset ?dataset ;
+           dct:title ?catalog_title .
+
+  BIND(REPLACE(STR(?catalog_title), " Domain Data Mesh Catalog", "") AS ?domain)
+
+  ?dataset a dcat:Dataset ;
+           dct:title ?dataset_name ;
+           dct:identifier ?dataset_id ;
+           prov:hadPrimarySource ?source ;
+           prov:wasGeneratedBy ?process .
+
+  # Extract source system info
+  ?source a prov:Entity ;
+          dct:title ?source_system ;
+          ex:version ?source_version .
+
+  # Extract ETL process info
+  ?process a prov:Activity ;
+           dct:title ?sync_process ;
+           ex:syncMethod|dct:description ?sync_frequency ;
+           ex:recordsProcessed ?records_processed ;
+           ex:recordsSuccess ?records_success .
+
+  # Get last sync timestamp
+  OPTIONAL {
+    ?process prov:startedAtTime ?last_sync_time .
+  }
+
+  OPTIONAL {
+    ?process prov:endedAtTime ?end_time .
+  }
+
+  # Calculate freshness
+  BIND(
+    IF(BOUND(?last_sync_time),
+       ROUND((?end_time - ?last_sync_time) / 60),
+       999) AS ?freshness_minutes
+  )
+
+  # Calculate error rate
+  BIND(
+    IF(?records_processed > 0,
+       ROUND(((?records_processed - ?records_success) / ?records_processed) * 100, 2),
+       0) AS ?sync_error_rate
+  )
+
+  # Determine lineage completeness
+  BIND(
+    IF(BOUND(?source_system) && BOUND(?sync_process) && BOUND(?last_sync_time),
+       "COMPLETE",
+       "INCOMPLETE") AS ?lineage_completeness
+  )
+
+  # Determine status
+  BIND(
+    IF(
+      ?sync_error_rate <= 1.0 && ?lineage_completeness = "COMPLETE",
+      "HEALTHY",
+      IF(?sync_error_rate > 5.0,
+         "CRITICAL",
+         "WARNING")
+    ) AS ?lineage_status
+  )
+}
+
+ORDER BY ?domain ?lineage_status ?sync_error_rate DESC
+
+################################################################################
+# QUERY 3 EXPLANATION:
+# - Traces data lineage from source system to mesh
+# - Verifies ETL process has documented start/end times
+# - Calculates data freshness (minutes since last sync)
+# - Computes sync error rate (failed records / total)
+# - Flags incomplete lineage documentation
+#
+# USAGE: Run daily to monitor data pipeline health
+# ALERT CONDITIONS:
+#   - sync_error_rate > 1.0% triggers investigation
+#   - lineage_completeness = INCOMPLETE requires documentation
+#   - freshness_minutes > SLA max_latency triggers alert
+#
+# HEALTH STATUS:
+#   - HEALTHY: error < 1%, complete lineage, recent sync
+#   - WARNING: error 1-5%, or stale data
+#   - CRITICAL: error > 5%, or missing lineage
+################################################################################
+
+
+################################################################################
+# QUERY 4: Cross-Domain Integration Validation (BONUS)
+# Purpose: Validate A2A integration contracts between domains
+# Returns: Source domain, target domain, integration status, SLA compliance
+# Rule: All cross-domain access must have defined contracts with SLAs
+################################################################################
+
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX odrl: <http://www.w3.org/ns/odrl/2/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX ex: <http://businessos.example.com/>
+
+SELECT ?source_domain ?target_domain ?integration_protocol
+       ?endpoint ?sync_frequency ?max_response_time
+       ?rate_limit ?contract_version
+       ?availability_sla ?integration_status
+
+WHERE {
+  # Find cross-domain integration contracts
+  ?catalog1 a dcat:Catalog ;
+            dcat:dataset ?source_dataset ;
+            dct:title ?source_catalog .
+
+  ?catalog2 a dcat:Catalog ;
+            dcat:dataset ?target_dataset ;
+            dct:title ?target_catalog .
+
+  BIND(REPLACE(STR(?source_catalog), " Domain Data Mesh Catalog", "") AS ?source_domain)
+  BIND(REPLACE(STR(?target_catalog), " Domain Data Mesh Catalog", "") AS ?target_domain)
+
+  # Find integration permission
+  ?source_dataset a dcat:Dataset ;
+                  odrl:hasPolicy ?policy .
+
+  ?policy a odrl:Set ;
+          odrl:permission ?permission .
+
+  ?permission a odrl:Permission ;
+              odrl:assignee ?assignee ;
+              odrl:target ?target_dataset ;
+              ex:integrationProtocol ?integration_protocol .
+
+  # Extract contract details
+  OPTIONAL { ?permission ex:apiEndpoint ?endpoint . }
+  OPTIONAL { ?permission ex:maxConcurrentRequests ?rate_limit . }
+  OPTIONAL { ?permission ex:responseSLA ?max_response_time . }
+
+  # Extract SLA
+  OPTIONAL {
+    ?target_dataset ex:slaTargets ?sla .
+    ?sla ex:availability ?availability_sla .
+  }
+
+  # Get contract version
+  OPTIONAL { ?permission dct:version ?contract_version . }
+
+  # Get sync frequency from source
+  OPTIONAL {
+    ?source_dataset prov:wasGeneratedBy ?process .
+    ?process ex:syncFrequency|ex:frequency ?sync_frequency .
+  }
+
+  # Determine integration status
+  BIND(
+    IF(BOUND(?availability_sla) && BOUND(?endpoint),
+       "CONFIGURED",
+       IF(BOUND(?permission),
+          "PARTIAL",
+          "MISSING")) AS ?integration_status
+  )
+}
+
+ORDER BY ?source_domain ?target_domain
+
+################################################################################
+# QUERY 4 EXPLANATION:
+# - Maps all cross-domain data sharing agreements
+# - Validates integration contracts have:
+#   * Defined protocol (MCP, REST, etc)
+#   * Endpoint and rate limits
+#   * Associated SLA (availability, latency)
+# - Identifies missing or incomplete contracts
+#
+# USAGE: Run quarterly to audit integration landscape
+# CRITICAL: Any integration without SLA requires immediate remediation
+################################################################################
+
+
+################################################################################
+# QUERY 5: Compliance Framework Coverage Check (BONUS)
+# Purpose: Ensure all domains cover required compliance frameworks
+# Returns: Domain, compliance framework, coverage, gaps
+# Requirement: All domains must explicitly declare relevant frameworks
+################################################################################
+
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX ex: <http://businessos.example.com/>
+
+SELECT ?domain ?required_framework ?declared ?coverage_status ?gap_risk
+
+WHERE {
+  # All domains must exist
+  ?catalog a dcat:Catalog ;
+           dct:title ?catalog_title .
+
+  BIND(REPLACE(STR(?catalog_title), " Domain Data Mesh Catalog", "") AS ?domain)
+
+  # Required frameworks for all domains
+  VALUES ?required_framework {
+    "SOC2 Type II"
+    "GDPR"
+  }
+
+  # Add domain-specific required frameworks
+  BIND(
+    IF(?domain = "Finance", TRUE, FALSE) AS ?needs_sox
+  )
+
+  BIND(
+    IF(?domain = "Marketing", TRUE, FALSE) AS ?needs_ccpa
+  )
+
+  BIND(
+    IF(?domain = "HR", TRUE, FALSE) AS ?needs_hipaa
+  )
+
+  # Check if domain declares compliance
+  OPTIONAL {
+    ?catalog ex:complianceFrameworks ?framework .
+    FILTER(CONTAINS(?framework, ?required_framework))
+    BIND("DECLARED" AS ?declared)
+  }
+
+  BIND(IF(BOUND(?declared), "DECLARED", "MISSING") AS ?declared)
+
+  # Determine coverage status
+  BIND(
+    IF(?declared = "DECLARED", "COMPLIANT", "NON_COMPLIANT") AS ?coverage_status
+  )
+
+  # Assess risk
+  BIND(
+    IF(?coverage_status = "NON_COMPLIANT",
+       IF(?required_framework = "SOC2 Type II", "CRITICAL", "HIGH"),
+       "LOW") AS ?gap_risk
+  )
+}
+
+ORDER BY ?domain ?gap_risk DESC
+
+################################################################################
+# QUERY 5 EXPLANATION:
+# - Validates each domain declares compliance with required frameworks
+# - Minimum: SOC2 Type II + GDPR for all domains
+# - Additional: SOX (Finance), CCPA (Marketing), HIPAA (HR, benefits)
+# - Flags domains with missing compliance declarations
+#
+# USAGE: Run quarterly for compliance audit
+# CRITICAL: Missing SOC2 or GDPR declarations block production deployment
+################################################################################
+
+
+################################################################################
+# EXECUTION GUIDE FOR OXIGRAPH / VIRTUOSO
+################################################################################
+
+# Load contracts as RDF:
+# 1. Convert YAML contracts to RDF/Turtle:
+#    $ python3 convert_yaml_to_ttl.py finance/domain-contract.yaml > finance.ttl
+#
+# 2. Load into triplestore:
+#    $ obsr load ./finance.ttl --format turtle
+#    $ obsr load ./operations.ttl --format turtle
+#    $ obsr load ./marketing.ttl --format turtle
+#    $ obsr load ./sales.ttl --format turtle
+#    $ obsr load ./hr.ttl --format turtle
+#
+# 3. Run validation queries:
+#    $ obsr query validation-queries.sparql --query "Data Quality Check"
+#
+# 4. Export results:
+#    $ obsr export results.json --format json
+
+################################################################################
+# INTEGRATION WITH CI/CD PIPELINE
+################################################################################
+
+# Add to .github/workflows/data-mesh-validation.yml:
+#
+# - name: Validate Data Mesh Contracts
+#   run: |
+#     python3 scripts/convert_yaml_to_ttl.py
+#     obsr load *.ttl --format turtle
+#     obsr query validation-queries.sparql \
+#       --output junit-xml \
+#       > test-results.xml
+#
+# - name: Check Quality SLA Compliance
+#   run: |
+#     if grep -q "FAILING" test-results.xml; then
+#       echo "Quality SLA violation detected"
+#       exit 1
+#     fi
+#
+# - name: Audit Policy Compliance
+#   run: |
+#     if grep -q "NON_COMPLIANT" test-results.xml; then
+#       echo "Policy compliance violation detected"
+#       exit 1
+#     fi
+
+################################################################################
+# MONTHLY VALIDATION CHECKLIST
+################################################################################
+
+# Every month, run all 5 queries and:
+# [ ] Quality metrics: all datasets >= 0.90 score
+# [ ] Policy compliance: 100% of policies marked COMPLIANT
+# [ ] Lineage health: all datasets status = HEALTHY
+# [ ] Integration contracts: all cross-domain integrations have SLAs
+# [ ] Compliance coverage: all domains declare required frameworks
+# [ ] Review and update contracts with findings
+# [ ] Schedule remediation for any non-compliant items
+
+################################################################################

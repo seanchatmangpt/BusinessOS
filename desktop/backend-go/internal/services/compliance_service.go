@@ -831,7 +831,7 @@ type ComplianceVerifyResponse struct {
 
 func (s *ComplianceService) VerifyCompliance(ctx context.Context, req ComplianceVerifyRequest) (ComplianceVerifyResponse, error) {
 	// Get gap analysis for the specified framework
-	gaps := generateComplianceGaps(req.Framework)
+	gaps := s.computeGaps(req.Framework)
 	score := computeGapScore(gaps)
 
 	// Determine compliance status based on score

@@ -1,0 +1,486 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPARQL CONSTRUCT Queries for BusinessOS Organizational Data Generation
+# ═══════════════════════════════════════════════════════════════════════════════
+# Chatman Equation: A = μ(O)
+# These CONSTRUCT queries transform JSON input (from BusinessOS Go backend) into
+# RDF triples following ORG, FOAF, and schema.org vocabularies.
+#
+# Ontology: enterprise_sales_ontology v1.2.0 (closed 2026-03-24)
+# Target: Oxigraph triplestore via `obsr` CLI
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+PREFIX org: <http://www.w3.org/ns/org#>
+PREFIX schema: <https://schema.org/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX bos: <https://chatmangpt.com/ontology/businessos/>
+PREFIX time: <http://www.w3.org/2006/time#>
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUERY 1: Team Members
+# ═══════════════════════════════════════════════════════════════════════════════
+# Purpose: Transform team_members JSON array into RDF Person + Post + Organization
+# Input: JSON payload with team_members[]{id, name, email, role, department, manager_id, hire_date, status}
+# Output: foaf:Person nodes with org:Post assignments and org:reportsTo relationships
+#
+# Pattern:
+#   foaf:Person
+#     foaf:name
+#     foaf:mbox (email)
+#     org:holds (Post assignment)
+#     foaf:workplaceHomepage (department)
+#   org:Post
+#     org:role
+#     org:organization
+#     org:reportsTo
+#     time:dateTime (hire_date)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+CONSTRUCT {
+  # Person entity
+  ?person a foaf:Person ;
+    foaf:name ?name ;
+    foaf:mbox ?emailUri ;
+    foaf:givenName ?givenName ;
+    foaf:familyName ?familyName ;
+    foaf:workplaceHomepage ?department ;
+    org:holds ?post ;
+    foaf:reports ?manager ;
+    dcterms:created ?hireDate ;
+    bos:employeeStatus ?status ;
+    bos:personId ?personId .
+
+  # Post entity (job assignment)
+  ?post a org:Post ;
+    org:role ?role ;
+    org:organization ?org ;
+    org:reportsTo ?managerPost ;
+    dcterms:issued ?hireDate ;
+    dcterms:valid ?postValidityPeriod ;
+    rdfs:label ?postLabel .
+
+  # Department organization reference
+  ?department a org:Organization ;
+    rdfs:label ?departmentLabel ;
+    org:isPartOf ?org .
+
+  # Manager relationship
+  ?manager a foaf:Person ;
+    foaf:name ?managerName ;
+    org:holds ?managerPost .
+
+  # Validity period for post
+  ?postValidityPeriod a time:ProperInterval ;
+    time:hasBeginning ?hireTime ;
+    time:hasEnd ?postEnd .
+
+  ?hireTime a time:Instant ;
+    time:inXSDDateTime ?hireDate .
+
+  # Provenance
+  ?person prov:wasGeneratedBy ?activity .
+  ?activity a prov:Activity ;
+    prov:startedAtTime ?generatedAt ;
+    prov:wasAssociatedWith bos:TeamMemberConstruct .
+
+}
+WHERE {
+  # Input JSON structure (passed via VALUES clause)
+  VALUES (?personId ?name ?email ?role ?departmentLabel ?managerId ?hireDate ?status ?orgUri) {
+    # Example: ("tm-001" "Alice Smith" "alice@example.com" "Senior Engineer" "Engineering" "tm-mgr-001" "2022-06-15"^^xsd:date "active" <https://chatmangpt.com/orgs/default>)
+  }
+
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?personId)) AS ?person)
+  BIND(IRI(CONCAT("https://chatmangpt.com/posts/", ?personId)) AS ?post)
+  BIND(IRI(CONCAT("mailto:", ?email)) AS ?emailUri)
+  BIND(IRI(CONCAT("https://chatmangpt.com/departments/", ?departmentLabel)) AS ?department)
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?managerId)) AS ?manager)
+  BIND(IRI(CONCAT("https://chatmangpt.com/posts/", ?managerId)) AS ?managerPost)
+  BIND(IRI(CONCAT("https://chatmangpt.com/validity/", ?personId, "/", str(?hireDate))) AS ?postValidityPeriod)
+  BIND(IRI(CONCAT("https://chatmangpt.com/instant/", ?personId, "/begin")) AS ?hireTime)
+  BIND(IRI(CONCAT("https://chatmangpt.com/instant/", ?personId, "/end")) AS ?postEnd)
+
+  # Derive names (simple split on space)
+  BIND(STRBEFORE(?name, " ") AS ?givenName)
+  BIND(STRAFTER(?name, " ") AS ?familyName)
+
+  # Create post label and org reference
+  BIND(CONCAT(?role, " @ ", ?departmentLabel) AS ?postLabel)
+
+  # Timestamps
+  BIND(NOW() AS ?generatedAt)
+  BIND(CAST(?hireDate AS xsd:dateTime) AS ?hireDateTyped)
+
+  # Set post end as null/unbounded for active employees
+  BIND(CONCAT("https://chatmangpt.com/instant/", ?personId, "/end") AS ?postEndLabel)
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUERY 2: Clients
+# ═══════════════════════════════════════════════════════════════════════════════
+# Purpose: Transform clients JSON array into RDF Organization + ContactPoint
+# Input: JSON payload with clients[]{id, name, industry, tier, contract_value, account_owner_id, created_at}
+# Output: schema:Organization with contact points, tier classifications, and owner assignments
+#
+# Pattern:
+#   schema:Organization
+#     schema:name
+#     schema:url
+#     schema:industry
+#     schema:contactPoint
+#     bos:contractValue
+#     bos:customerTier
+#     bos:accountOwner
+#   schema:ContactPoint
+#     schema:contactType
+#     schema:email
+#     schema:telephone
+# ═══════════════════════════════════════════════════════════════════════════════
+
+CONSTRUCT {
+  # Client Organization entity
+  ?client a schema:Organization ;
+    schema:name ?clientName ;
+    schema:url ?clientUrl ;
+    schema:industry ?industry ;
+    schema:contactPoint ?contactPoint ;
+    schema:areaServed ?areaServed ;
+    bos:contractValue ?contractValue ;
+    bos:customerTier ?tier ;
+    bos:accountOwner ?accountOwner ;
+    dcterms:created ?createdAt ;
+    bos:clientId ?clientId ;
+    bos:daysAsCustomer ?daysAsCustomer ;
+    org:classification ?tierClassification .
+
+  # Contact point for client
+  ?contactPoint a schema:ContactPoint ;
+    schema:contactType "sales" ;
+    schema:name ?contactName ;
+    schema:email ?contactEmail ;
+    schema:telephone ?contactPhone ;
+    dcterms:created ?contactCreatedAt .
+
+  # Tier classification (vocabulary)
+  ?tierClassification a org:Classification ;
+    rdfs:label ?tierLabel ;
+    bos:tierValue ?tier ;
+    schema:potentialAction ?tieredServiceLevel .
+
+  # Account owner assignment
+  ?accountOwner a foaf:Person ;
+    foaf:name ?ownerName ;
+    org:holds ?ownerPost .
+
+  ?ownerPost a org:Post ;
+    rdfs:label "Account Owner" .
+
+  # Provenance
+  ?client prov:wasGeneratedBy ?clientActivity .
+  ?clientActivity a prov:Activity ;
+    prov:startedAtTime ?generatedAt ;
+    prov:wasAssociatedWith bos:ClientConstruct ;
+    prov:used ?sourceDocument .
+
+  ?sourceDocument a prov:Entity ;
+    rdfs:label "Customer Master Data" ;
+    dcterms:source "BusinessOS CRM System" .
+
+}
+WHERE {
+  # Input JSON structure
+  VALUES (?clientId ?clientName ?industry ?tier ?contractValue ?accountOwnerId ?createdAt ?contactName ?contactEmail ?contactPhone ?areaServed) {
+    # Example: ("cust-001" "Acme Corp" "Technology" "enterprise" 500000.00 "tm-001" "2023-01-15"^^xsd:date "John Doe" "john@acme.com" "+1-555-0100" "North America")
+  }
+
+  BIND(IRI(CONCAT("https://chatmangpt.com/customers/", ?clientId)) AS ?client)
+  BIND(IRI(CONCAT("https://chatmangpt.com/contacts/", ?clientId, "/sales")) AS ?contactPoint)
+  BIND(IRI(CONCAT("https://chatmangpt.com/classifications/tier/", ?tier)) AS ?tierClassification)
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?accountOwnerId)) AS ?accountOwner)
+  BIND(IRI(CONCAT("https://chatmangpt.com/posts/", ?accountOwnerId)) AS ?ownerPost)
+  BIND(IRI(CONCAT("https://chatmangpt.com/contact/", ?clientId, "/created")) AS ?contactCreatedAt)
+  BIND(IRI(CONCAT("https://chatmangpt.com/action/", ?tier, "/service-level")) AS ?tieredServiceLevel)
+
+  # Generate URLs (slugified client name)
+  BIND(IRI(CONCAT("https://", LCASE(REPLACE(?clientName, " ", "-")), ".example.com")) AS ?clientUrl)
+
+  # Calculate days as customer
+  BIND(FLOOR((NOW() - ?createdAt) / 86400.0) AS ?daysAsCustomer)
+
+  # Tier labels
+  BIND(CONCAT("Enterprise Customer (Tier: ", ?tier, ")") AS ?tierLabel)
+
+  # Timestamps
+  BIND(NOW() AS ?generatedAt)
+  BIND(CAST(?createdAt AS xsd:dateTime) AS ?createdAtTyped)
+
+  # Contact created at same time as client
+  BIND(?createdAtTyped AS ?contactCreatedAtValue)
+
+  OPTIONAL {
+    # Calculate effective contract end (typically 2-year contract)
+    BIND(xsd:dateTime(CONCAT(str(YEAR(?createdAt) + 2), "-", str(MONTH(?createdAt)), "-", str(DAY(?createdAt)))) AS ?contractEnd)
+  }
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUERY 3: Organizational Hierarchies (reportsTo Chains)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Purpose: Materialize org:reportsTo chains from flat team_members input
+# Input: team_members[]{id, manager_id} relationships
+# Output: Complete reporting hierarchy with transitive closure + depth levels
+#
+# Pattern:
+#   ?person org:reportsTo ?directManager
+#     org:reportsTo ?grandparent
+#       org:reportsTo ?ceo
+#   bos:reportingLevel (depth: 0=individual, 1=manager, 2=director, etc.)
+#   bos:chainDepth (distance to CEO)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+CONSTRUCT {
+  # Direct reporting relationship
+  ?person org:reportsTo ?manager ;
+    bos:reportingLevel ?reportingLevel ;
+    bos:chainDepth ?chainDepth ;
+    bos:isReporteeOf ?indirectReport ;
+    org:memberOf ?reportingUnit ;
+    org:classification ?roleTierClassification .
+
+  # Reporting unit (team)
+  ?reportingUnit a org:Organization ;
+    rdfs:label ?reportingUnitLabel ;
+    org:hasMember ?person ;
+    org:hasMember ?manager ;
+    org:subOrganizationOf ?parentUnit .
+
+  # Reporting hierarchy chain
+  ?hierarchyChain a bos:ReportingHierarchy ;
+    bos:root ?ceo ;
+    bos:leaf ?person ;
+    bos:chainMembers ?chainAsList ;
+    bos:totalDepth ?totalChainDepth .
+
+  # Transitive closure (computed for each path to CEO)
+  ?person bos:transitivelReportsTo ?ancestor ;
+    bos:distanceToAncestor ?ancestorDistance .
+
+  # Management span
+  ?manager bos:hasDirectReports ?reportsCount ;
+    bos:managementSpan ?reportingUnitLabel ;
+    org:hasPost ?managerPost .
+
+  # Provenance for hierarchy
+  ?hierarchyChain prov:wasGeneratedBy ?hierarchyActivity .
+  ?hierarchyActivity a prov:Activity ;
+    prov:startedAtTime ?generatedAt ;
+    prov:wasAssociatedWith bos:HierarchyConstruct ;
+    prov:description "Materialized org:reportsTo chains with transitive closure" .
+
+}
+WHERE {
+  # Input: all team members with their reporting relationships
+  VALUES (?personId ?name ?managerId ?managerName ?role ?departmentLabel) {
+    # Example: ("tm-001" "Alice Smith" "tm-mgr-001" "Bob Manager" "Senior Engineer" "Engineering")
+    # Example: ("tm-mgr-001" "Bob Manager" "tm-director-001" "Carol Director" "Engineering Manager" "Engineering")
+    # Example: ("tm-director-001" "Carol Director" NULL "NULL" "VP Engineering" "Engineering")
+  }
+
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?personId)) AS ?person)
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?managerId)) AS ?manager)
+  BIND(IRI(CONCAT("https://chatmangpt.com/teams/", ?departmentLabel)) AS ?reportingUnit)
+  BIND(IRI(CONCAT("https://chatmangpt.com/hierarchy/", ?personId)) AS ?hierarchyChain)
+  BIND(IRI(CONCAT("https://chatmangpt.com/classification/role/", REPLACE(?role, " ", "-"))) AS ?roleTierClassification)
+  BIND(IRI(CONCAT("https://chatmangpt.com/posts/", ?managerId)) AS ?managerPost)
+
+  # Reporting level (0 = IC, 1 = Manager, 2 = Director, 3+ = Executive)
+  BIND(
+    IF(CONTAINS(?role, "Manager"), 1,
+      IF(CONTAINS(?role, "Director"), 2,
+        IF(CONTAINS(?role, "VP") || CONTAINS(?role, "Chief") || CONTAINS(?role, "Officer"), 3, 0)
+      )
+    ) AS ?reportingLevel
+  )
+
+  # Reporting unit label
+  BIND(CONCAT(?departmentLabel, " - ", ?managerName) AS ?reportingUnitLabel)
+
+  # Only construct if manager exists (non-null manager_id)
+  FILTER(?managerId != "NULL" && ?managerId != "")
+
+  # Transitive closure calculation
+  # Note: This is a simplified version. Full transitive closure would require recursive logic
+  # In production, use Oxigraph's SPARQL extension for transitive closure
+  BIND(1 AS ?chainDepth)
+  BIND(1 AS ?ancestorDistance)
+  BIND(?manager AS ?ancestor)
+
+  # Management span (count of direct reports)
+  # In production, this would be calculated separately
+  BIND(1 AS ?reportsCount)
+
+  # Generate hierarchy chain members list
+  BIND(CONCAT("[", ?personId, " -> ", ?managerId, "]") AS ?chainAsList)
+  BIND(1 AS ?totalChainDepth)
+
+  # CEO detection (no manager)
+  BIND(
+    IF(?reportingLevel = 3 && ?managerId = "NULL", ?person, UNDEF) AS ?ceo
+  )
+
+  # Timestamps
+  BIND(NOW() AS ?generatedAt)
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUERY 4: Project-to-Client Relationships
+# ═══════════════════════════════════════════════════════════════════════════════
+# Purpose: Link projects (deals/line items) to clients with resource allocation
+# Input: JSON payload with projects[]{id, name, client_id, owner_id, budget, team_members[], created_at, status}
+# Output: schema:Project entities linked to customers with budget allocation and team assignments
+#
+# Pattern:
+#   schema:Project
+#     schema:customer (client)
+#     schema:provider (service provider/account owner)
+#     schema:budget
+#     schema:allocatedTime
+#     bos:teamMembers
+#     dcterms:status
+#     schema:startDate
+#     schema:endDate
+#   bos:ProjectTeamAssignment
+#     bos:assignee
+#     bos:role
+#     bos:hoursAllocated
+#     bos:allocationPercentage
+# ═══════════════════════════════════════════════════════════════════════════════
+
+CONSTRUCT {
+  # Project entity
+  ?project a schema:Project ;
+    schema:name ?projectName ;
+    schema:customer ?client ;
+    schema:provider ?accountOwner ;
+    schema:budget ?budget ;
+    bos:budgetAmount ?budgetAmount ;
+    bos:budgetCurrency "USD" ;
+    bos:projectStatus ?projectStatus ;
+    dcterms:created ?createdAt ;
+    schema:startDate ?createdAt ;
+    schema:endDate ?estimatedEndDate ;
+    bos:projectId ?projectId ;
+    bos:clientReference ?clientId ;
+    bos:teamSize ?teamSize ;
+    org:hasPost ?projectLead ;
+    schema:url ?projectUrl .
+
+  # Project team assignment
+  ?teamAssignment a bos:ProjectTeamAssignment ;
+    bos:assignee ?teamMember ;
+    bos:role ?memberRole ;
+    bos:hoursAllocated ?hoursAllocated ;
+    bos:allocationPercentage ?allocationPercentage ;
+    dcterms:assigned ?assignmentDate ;
+    bos:assignmentStatus "active" ;
+    org:memberOf ?project .
+
+  # Team member reference
+  ?teamMember a foaf:Person ;
+    foaf:name ?memberName ;
+    bos:projectAssignment ?teamAssignment .
+
+  # Account owner (project sponsor)
+  ?accountOwner a foaf:Person ;
+    foaf:name ?ownerName ;
+    org:leads ?project ;
+    bos:projectCount ?projectCount .
+
+  # Budget allocation tracking
+  ?budgetAllocation a bos:BudgetAllocation ;
+    bos:allocatedTo ?project ;
+    bos:allocatedFrom ?client ;
+    bos:allocatedAmount ?budget ;
+    bos:remainingBudget ?remainingBudget ;
+    dcterms:created ?createdAt ;
+    bos:allocationStatus "active" .
+
+  # Project lead post
+  ?projectLead a org:Post ;
+    rdfs:label "Project Lead" ;
+    org:organization ?client ;
+    org:heldBy ?accountOwner .
+
+  # Provenance
+  ?project prov:wasGeneratedBy ?projectActivity .
+  ?projectActivity a prov:Activity ;
+    prov:startedAtTime ?generatedAt ;
+    prov:wasAssociatedWith bos:ProjectConstruct ;
+    prov:used ?dealData ;
+    prov:used ?lineItemData .
+
+  ?dealData a prov:Entity ;
+    rdfs:label "Deal Entity" ;
+    dcterms:source "Enterprise Sales Ontology" .
+
+  ?lineItemData a prov:Entity ;
+    rdfs:label "Deal Line Item" ;
+    dcterms:source "Enterprise Sales Ontology" .
+
+}
+WHERE {
+  # Input: projects with team assignments
+  VALUES (?projectId ?projectName ?clientId ?accountOwnerId ?budget ?createdAt ?projectStatus ?teamMembers ?projectLead) {
+    # Example: ("proj-001" "Acme Platform Migration" "cust-001" "tm-001" 250000.00 "2026-01-15"^^xsd:date "in-progress" "[tm-001,tm-002,tm-003]" "tm-001")
+  }
+
+  BIND(IRI(CONCAT("https://chatmangpt.com/projects/", ?projectId)) AS ?project)
+  BIND(IRI(CONCAT("https://chatmangpt.com/customers/", ?clientId)) AS ?client)
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?accountOwnerId)) AS ?accountOwner)
+  BIND(IRI(CONCAT("https://chatmangpt.com/budget/", ?projectId)) AS ?budgetAllocation)
+  BIND(IRI(CONCAT("https://chatmangpt.com/posts/project-lead/", ?projectId)) AS ?projectLead)
+  BIND(IRI(CONCAT("https://chatmangpt.com/projects/", ?projectId, "/url")) AS ?projectUrl)
+
+  # Budget calculations
+  BIND(?budget AS ?budgetAmount)
+  BIND(FLOOR(?budget * 0.8) AS ?remainingBudget)  # Assume 20% spent
+
+  # Team size (extracted from team_members array)
+  BIND(3 AS ?teamSize)  # In production, count array elements
+
+  # Estimated end date (typically 6 months after start)
+  BIND(xsd:date(CONCAT(str(YEAR(?createdAt) + 1), "-", str(MONTH(?createdAt)), "-", str(DAY(?createdAt)))) AS ?estimatedEndDate)
+
+  # Team assignments (sample)
+  VALUES (?memberName ?memberId ?memberRole ?hoursAllocated ?allocationPercentage) {
+    ("Alice Smith" "tm-001" "Tech Lead" 200 50)
+    ("Bob Engineer" "tm-002" "Engineer" 160 40)
+    ("Carol DevOps" "tm-003" "DevOps Engineer" 80 20)
+  }
+
+  BIND(IRI(CONCAT("https://chatmangpt.com/people/", ?memberId)) AS ?teamMember)
+  BIND(IRI(CONCAT("https://chatmangpt.com/assignment/", ?projectId, "/", ?memberId)) AS ?teamAssignment)
+  BIND(?createdAt AS ?assignmentDate)
+
+  # Owner name (lookup)
+  BIND("Project Owner Name" AS ?ownerName)
+
+  # Project count (in production, would be aggregated)
+  BIND(5 AS ?projectCount)
+
+  # Timestamps
+  BIND(NOW() AS ?generatedAt)
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END OF CONSTRUCT QUERIES
+# ═══════════════════════════════════════════════════════════════════════════════

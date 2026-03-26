@@ -1,0 +1,226 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# L2 SPARQL CONSTRUCT: Org Health Indicator Materialization
+# Board Chair Intelligence System — Inference Chain Level 2
+# ═══════════════════════════════════════════════════════════════════════════════
+# Chatman Equation: A = μ(O)
+# Reads L1 bos:ProcessMetric nodes and materializes bos:OrgHealthIndicator
+# per department. Higher-order synthesis: conformance + utilization → health score,
+# compliance posture classification, and deviation indexing.
+#
+# Derivation Level: L2 (second-order inference from L1 metrics)
+# TTL: 90 minutes from materialization time
+# Boundedness: LIMIT 10000 on L1 metric scan
+#
+# WvdA Soundness:
+#   - Deadlock Freedom: reads only L1 (bos:ProcessMetric); never reads L2/L3
+#   - Liveness: LIMIT 10000 prevents unbounded scan
+#   - Boundedness: one bos:OrgHealthIndicator per department
+#
+# Target: Oxigraph via SPARQL Update
+# Executed by: OptimalSystemAgent.Ontology.InferenceChain.run_level(:l2)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX org:    <http://www.w3.org/ns/org#>
+PREFIX schema: <https://schema.org/>
+PREFIX prov:   <http://www.w3.org/ns/prov#>
+PREFIX bos:    <https://chatmangpt.com/ontology/businessos/>
+PREFIX dcterms:<http://purl.org/dc/terms/>
+
+# ── CONSTRUCT: Materialize bos:OrgHealthIndicator per department ─────────────
+#
+# Output triples per department (sourced from L1 bos:ProcessMetric):
+#   <health/dept-X>  a bos:OrgHealthIndicator
+#   <health/dept-X>  bos:forDepartment             <departments/dept-X>
+#   <health/dept-X>  bos:processHealthScore         xsd:decimal [0.0, 1.0]
+#     formula: 0.6 * conformanceFitness + 0.4 * utilizationRate
+#   <health/dept-X>  bos:compliancePosture          "compliant"|"at_risk"|"violation"
+#     "compliant"  ← conformanceFitness >= 0.85
+#     "at_risk"    ← conformanceFitness >= 0.65
+#     "violation"  ← conformanceFitness < 0.65
+#   <health/dept-X>  bos:deviationIndex             xsd:integer (count: fitness < 0.80)
+#   <health/dept-X>  bos:healingActionsApplied       xsd:integer
+#   <health/dept-X>  bos:riskLevel                  "low"|"medium"|"high"|"critical"
+#     "low"        ← processHealthScore >= 0.80
+#     "medium"     ← processHealthScore >= 0.60
+#     "high"       ← processHealthScore >= 0.40
+#     "critical"   ← processHealthScore < 0.40
+#   <health/dept-X>  bos:lastRefreshed              xsd:dateTime
+#   <health/dept-X>  bos:expiresAt                  xsd:dateTime (+90 min)
+#   <health/dept-X>  bos:derivationLevel            "L2"
+#   <health/dept-X>  prov:wasDerivedFrom            <L1 ProcessMetric URI>
+#   <health/dept-X>  prov:generatedAtTime           xsd:dateTime
+
+CONSTRUCT {
+
+  # ── Org Health Indicator entity ────────────────────────────────────────────
+  ?healthIndicator a bos:OrgHealthIndicator ;
+    bos:forDepartment ?department ;
+    rdfs:label ?healthLabel ;
+
+    # Composite health score: weighted average of process conformance + utilization
+    bos:processHealthScore ?processHealthScore ;
+
+    # Compliance posture: categorical classification
+    bos:compliancePosture ?compliancePosture ;
+
+    # Count of processes with fitness below 0.80 threshold
+    bos:deviationIndex ?deviationIndex ;
+
+    # Count of OSA autonomous healing actions applied this measurement period
+    bos:healingActionsApplied ?healingActionsApplied ;
+
+    # Risk classification from health score
+    bos:riskLevel ?riskLevel ;
+    bos:conwayViolationCount ?conwayCount ;
+    bos:littlesLawStabilityIndex ?stabilityIndex ;
+    bos:queueGrowthRisk ?queueRisk ;
+
+    # Freshness / cache management
+    bos:lastRefreshed ?now ;
+    bos:expiresAt ?expiresAt ;
+    bos:derivationLevel "L2" ;
+
+    # PROV-O lineage — points back to L1 ProcessMetric URI
+    prov:wasDerivedFrom ?sourceMetric ;
+    prov:wasGeneratedBy ?activity ;
+    prov:generatedAtTime ?now .
+
+  # ── Provenance Activity ────────────────────────────────────────────────────
+  ?activity a prov:Activity ;
+    rdfs:label "L2 Org Health Indicator Construct" ;
+    prov:startedAtTime ?now ;
+    prov:endedAtTime ?now ;
+    prov:wasAssociatedWith bos:L2OrgHealthConstruct ;
+    prov:used ?sourceMetric ;
+    bos:derivationLevel "L2" .
+
+}
+WHERE {
+
+  # ── Read L1 ProcessMetric nodes (bounded to 10000) ────────────────────────
+  # CRITICAL: L2 reads only bos:ProcessMetric — never reads bos:OrgHealthIndicator
+  # or bos:BoardIntelligence. No circular dependency. (WvdA: deadlock freedom)
+  {
+    SELECT ?sourceMetric ?department
+           ?conformanceFitness ?utilizationRate
+           ?healingActionsApplied
+    WHERE {
+      ?sourceMetric a bos:ProcessMetric ;
+        bos:forDepartment ?department ;
+        bos:conformanceFitness ?conformanceFitness ;
+        bos:utilizationRate ?utilizationRate .
+
+      # Healing actions from OSA autonomic healing log (optional; default 0)
+      OPTIONAL {
+        ?sourceMetric bos:healingActionsApplied ?rawHealingCount .
+      }
+      BIND(COALESCE(?rawHealingCount, "0"^^xsd:integer) AS ?healingActionsApplied)
+    }
+    LIMIT 10000
+  }
+
+  # ── Weighted health score: 60% conformance + 40% utilization ─────────────
+  BIND(
+    xsd:decimal(
+      (xsd:decimal(?conformanceFitness) * "0.6"^^xsd:decimal) +
+      (xsd:decimal(?utilizationRate) * "0.4"^^xsd:decimal)
+    ) AS ?processHealthScore
+  )
+
+  # ── Compliance posture classification ─────────────────────────────────────
+  BIND(
+    IF(xsd:decimal(?conformanceFitness) >= "0.85"^^xsd:decimal,
+      "compliant",
+      IF(xsd:decimal(?conformanceFitness) >= "0.65"^^xsd:decimal,
+        "at_risk",
+        "violation"
+      )
+    ) AS ?compliancePosture
+  )
+
+  # ── Deviation index: 1 if this department's fitness is below 0.80 ─────────
+  # Per-department contribution; board-level aggregation occurs in L3
+  BIND(
+    IF(xsd:decimal(?conformanceFitness) < "0.80"^^xsd:decimal,
+      "1"^^xsd:integer,
+      "0"^^xsd:integer
+    ) AS ?deviationIndex
+  )
+
+  # ── Risk level classification from composite health score ─────────────────
+  BIND(
+    IF(?processHealthScore >= "0.80"^^xsd:decimal,
+      "low",
+      IF(?processHealthScore >= "0.60"^^xsd:decimal,
+        "medium",
+        IF(?processHealthScore >= "0.40"^^xsd:decimal,
+          "high",
+          "critical"
+        )
+      )
+    ) AS ?riskLevel
+  )
+
+  # Conway violation count — departments with structural bottlenecks
+  {
+    SELECT (COUNT(?m) AS ?conwayCount)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:conwayViolation true .
+    }
+  }
+
+  # Little's Law stability index — average queue stability
+  {
+    SELECT (AVG(?ratio) AS ?stabilityIndex)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:queueStabilityRatio ?ratio .
+    }
+  }
+
+  # Queue growth risk — departments with WIP > 1.5x predicted
+  {
+    SELECT (COUNT(?m) AS ?queueRisk)
+    WHERE {
+      ?m a bos:ProcessMetric ;
+         bos:wipCount ?wip ;
+         bos:littlesLawWip ?predicted .
+      FILTER(?wip > 1.5 * ?predicted)
+    }
+  }
+
+  # ── Timestamp arithmetic ──────────────────────────────────────────────────
+  BIND(NOW() AS ?now)
+  # expiresAt = now + 90 minutes
+  BIND(xsd:dateTime(?now) + "PT90M"^^xsd:duration AS ?expiresAt)
+
+  # ── IRI construction ──────────────────────────────────────────────────────
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/health/org/l2/",
+               ENCODE_FOR_URI(STR(?department))))
+    AS ?healthIndicator
+  )
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/prov/l2/activity/",
+               ENCODE_FOR_URI(STR(?department)),
+               "/", STR(NOW())))
+    AS ?activity
+  )
+
+  # Department label for rdfs:label on indicator
+  OPTIONAL { ?department rdfs:label ?deptLabel . }
+  BIND(
+    CONCAT("L2 Org Health — ", COALESCE(?deptLabel, STR(?department)))
+    AS ?healthLabel
+  )
+
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END L2_ORG_HEALTH
+# ═══════════════════════════════════════════════════════════════════════════════

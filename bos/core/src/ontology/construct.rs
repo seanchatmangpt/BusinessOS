@@ -2,7 +2,12 @@
 //!
 //! Transforms `TableMapping` definitions into executable SPARQL CONSTRUCT
 //! queries that produce RDF triples from relational data patterns.
+//! All generated queries include PROV-O triples for complete provenance tracking:
+//! - prov:wasGeneratedBy (entity -> activity)
+//! - prov:wasDerivedFrom (entity -> source data)
+//! - prov:generatedAtTime (ISO8601 timestamp)
 
+use chrono::{SecondsFormat, Utc};
 use crate::ontology::mapping::{PropertyMapping, ResolvedPrefixes, TableMapping};
 
 /// Generate a SPARQL CONSTRUCT query for a table mapping.
@@ -51,6 +56,15 @@ pub fn generate_construct_query(
         activity_var = activity_var
     );
 
+    // Source URI for PROV-O: wasDerivedFrom
+    let source_var = format!("source_uri");
+    let source_bind = format!(
+        "BIND(IRI(CONCAT(\"http://businessos.dev/source/{table}/\", ENCODE_FOR_URI(STR(?{pk_var})))) AS ?{source_var})",
+        table = table,
+        pk_var = pk_var,
+        source_var = source_var
+    );
+
     // PROV-O: prov:wasGeneratedBy
     let prov_was_gen = prefixes.resolve("prov:wasGeneratedBy");
     construct_triples.push(format!(
@@ -58,6 +72,25 @@ pub fn generate_construct_query(
         subject_var = subject_var,
         prov_was_gen = prov_was_gen,
         activity_var = activity_var
+    ));
+
+    // PROV-O: prov:wasDerivedFrom
+    let prov_was_derived = prefixes.resolve("prov:wasDerivedFrom");
+    construct_triples.push(format!(
+        "  ?{subject_var} <{prov_was_derived}> ?{source_var} .",
+        subject_var = subject_var,
+        prov_was_derived = prov_was_derived,
+        source_var = source_var
+    ));
+
+    // PROV-O: prov:generatedAtTime (ISO8601 timestamp)
+    let prov_gen_time = prefixes.resolve("prov:generatedAtTime");
+    let timestamp = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
+    construct_triples.push(format!(
+        "  ?{subject_var} <{prov_gen_time}> \"{timestamp}\"^^xsd:dateTime .",
+        subject_var = subject_var,
+        prov_gen_time = prov_gen_time,
+        timestamp = timestamp
     ));
 
     // Property triples
@@ -76,12 +109,14 @@ pub fn generate_construct_query(
         where_clauses.push(build_where_clause(prop, &var_name));
     }
 
-    // WHERE clause: primary key variable, subject bind, activity bind, property clauses
+    // WHERE clause: primary key variable, subject bind, activity bind, source bind, property clauses
     let mut where_block = Vec::new();
     where_block.push(format!("  # Subject URI bind"));
     where_block.push(format!("  {}", subject_bind));
     where_block.push(format!("  # Activity URI bind (PROV-O)"));
     where_block.push(format!("  {}", activity_bind));
+    where_block.push(format!("  # Source URI bind (PROV-O: wasDerivedFrom)"));
+    where_block.push(format!("  {}", source_bind));
     where_block.push(format!(""));
 
     for wc in &where_clauses {

@@ -1,0 +1,133 @@
+# Schema Migration Manifest
+# This file tracks all database migrations for BusinessOS
+# Version numbers: 001, 002, 003, ... (immutable once committed)
+# Checksums prevent accidental file modifications
+
+version: "1.0"
+last_updated: "2026-03-26"
+
+# Migrations are applied in order
+# Each migration must have:
+#   - version: sequential number (001, 002, 003...)
+#   - name: descriptive title
+#   - checksum: SHA256 of up.sql file (prevents accidental edits)
+#   - description: what changed
+#   - breaking: boolean (true if breaking change)
+#   - dependencies: list of migrations this depends on (usually all prior ones)
+
+migrations:
+  - version: "001"
+    name: "initialize_schema"
+    filename: "001_initialize_schema.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Create initial schema: users, workspaces, auth tables"
+    timestamp: "2026-03-01T10:00:00Z"
+    breaking: false
+    dependencies: []
+
+  - version: "002"
+    name: "add_audit_tables"
+    filename: "002_add_audit_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add audit_log, change_history tables for compliance"
+    timestamp: "2026-03-02T10:00:00Z"
+    breaking: false
+    dependencies: ["001"]
+
+  - version: "003"
+    name: "create_schema_migrations_table"
+    filename: "003_create_schema_migrations_table.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Create schema_migrations table to track applied migrations"
+    timestamp: "2026-03-03T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "002"]
+
+  - version: "004"
+    name: "add_agent_tables"
+    filename: "004_add_agent_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add agents, agent_config, agent_invocations tables"
+    timestamp: "2026-03-04T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "002", "003"]
+
+  - version: "005"
+    name: "add_workflow_tables"
+    filename: "005_add_workflow_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add workflows, workflow_steps, workflow_execution tables"
+    timestamp: "2026-03-05T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "003"]
+
+  - version: "006"
+    name: "add_encryption_at_rest"
+    filename: "006_add_encryption_at_rest.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add encryption_key_id to sensitive columns"
+    timestamp: "2026-03-06T10:00:00Z"
+    breaking: true
+    dependencies: ["001", "002", "003", "004"]
+
+  - version: "007"
+    name: "add_cache_tables"
+    filename: "007_add_cache_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add redis_cache_entries, cache_invalidation_log tables"
+    timestamp: "2026-03-07T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "003"]
+
+  - version: "008"
+    name: "add_process_mining_tables"
+    filename: "008_add_process_mining_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add event_logs, process_instances, process_conformance tables"
+    timestamp: "2026-03-08T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "003", "005"]
+
+  - version: "009"
+    name: "add_mcp_a2a_tables"
+    filename: "009_add_mcp_a2a_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add mcp_agents, a2a_messages, mcp_subscriptions tables"
+    timestamp: "2026-03-09T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "003", "004"]
+
+  - version: "010"
+    name: "add_governance_tables"
+    filename: "010_add_governance_tables.sql"
+    checksum: "TO_BE_COMPUTED"
+    description: "Add compliance_rules, policy_decisions, governance_audit tables"
+    timestamp: "2026-03-10T10:00:00Z"
+    breaking: false
+    dependencies: ["001", "002", "003"]
+
+# Rollback strategy:
+# - Each migration has a corresponding rollback_NNN.sql file
+# - Rollbacks must be idempotent (safe to run multiple times)
+# - Rollbacks run in REVERSE order (010, 009, 008, ... 001)
+# - Data loss: rollbacks are destructive, always backup before rolling back
+
+# Migration best practices:
+# 1. One logical change per migration
+# 2. Always write down.sql before running up.sql
+# 3. Test rollback in staging before production
+# 4. Never modify a migration after it's been applied to production
+# 5. Large schema changes: break into smaller migrations
+# 6. Data migrations: always include data backup steps
+
+# Performance implications:
+# - CREATE INDEX CONCURRENTLY: can run without blocking
+# - ALTER TABLE: blocks writes during lock phase (use low-traffic window)
+# - DROP INDEX: fast, can run anytime
+# - CONSTRAINT changes: may lock table, schedule maintenance window
+
+# Monitoring:
+# - Check schema_migrations table: SELECT * FROM schema_migrations ORDER BY applied_at
+# - Monitor locks during migration: SELECT * FROM pg_locks WHERE NOT granted
+# - Check slow queries: pg_stat_statements
+# - Rollback monitoring: DELETE FROM schema_migrations WHERE version = 'NNN'

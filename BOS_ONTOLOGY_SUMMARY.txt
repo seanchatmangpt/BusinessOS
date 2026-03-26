@@ -1,0 +1,238 @@
+================================================================================
+BOS CLI ONTOLOGY AUDIT SUMMARY
+================================================================================
+Date: 2026-03-25
+Scope: /Users/sac/chatmangpt/BusinessOS/bos/ (complete Rust codebase)
+
+================================================================================
+CURRENTLY USED (7 ontologies)
+================================================================================
+
+1. RDF (Resource Description Framework)
+   Namespace: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+   Used in: construct.rs, rdf/store.rs, all tests
+   Purpose: Base semantic web model (subject-predicate-object triples)
+   Evidence: rdf:type predicate generation
+
+2. RDFS (RDF Schema)
+   Namespace: http://www.w3.org/2000/01/rdf-schema#
+   Used in: PREFIX declarations in tests
+   Purpose: Type system and class hierarchies
+
+3. XSD (XML Schema Datatypes)
+   Namespace: http://www.w3.org/2001/XMLSchema#
+   Used in: construct.rs (datatypes), infer.rs (column type mapping)
+   Purpose: Typed literals (string, integer, decimal, boolean, dateTime, date)
+   PostgreSQL → XSD mappings: integer→xsd:integer, timestamp→xsd:dateTime, etc.
+
+4. PROV-O (W3C Provenance Ontology)
+   Namespace: http://www.w3.org/ns/prov#
+   Used in: construct.rs (complete tracking), tests (assertions)
+   Purpose: Data lineage and transformation history
+   Predicates: prov:wasGeneratedBy, prov:wasDerivedFrom, prov:generatedAtTime
+
+5. Schema.org (Google/Yahoo/Microsoft vocabulary)
+   Namespace: http://schema.org/
+   Used in: infer.rs (conventions), all tests
+   Purpose: Domain-independent common types and properties
+   Table mappings: projects→schema:Project, orders→schema:Order, invoices→schema:Invoice
+   Column mappings: name→schema:name, email→foaf:mbox, price→schema:price (13+ total)
+
+6. FOAF (Friend of a Friend)
+   Namespace: http://xmlns.com/foaf/0.1/
+   Used in: infer.rs (user/person mapping), column conventions
+   Purpose: Social graph and person/organization identities
+   Classes: foaf:Person (users/employees)
+   Properties: foaf:mbox (email)
+
+7. Custom BusinessOS Vocabulary
+   Namespace: http://businessos.dev/
+   Used in: construct.rs, infer.rs, all tests
+   Purpose: Local entity identifiers
+   URI patterns:
+     - Entities: http://businessos.dev/id/{table}/{pk_value}
+     - Activities: http://businessos.dev/activity/{table}/{pk_value}
+     - Sources: http://businessos.dev/source/{table}/{pk_value}
+     - Enums: http://businessos.dev/enum/{table}/{value}
+
+================================================================================
+BUILT-IN INFERENCE (8 ontologies auto-detected but NOT YET EXECUTED)
+================================================================================
+
+1. BPMN (Business Process Model and Notation)
+   Auto-maps: tasks table → bpmn:Task
+   Status: REFERENCED but NOT EXECUTED
+
+2. ORG (W3C Organization Ontology)
+   Namespace: http://www.w3.org/ns/org#
+   Auto-maps:
+     - team_members/members → org:Member
+     - organizations → org:Organization
+     - employees → org:FormalOrganization
+   Status: REFERENCED but NOT EXECUTED
+
+3. SKOS (Simple Knowledge Organization System)
+   Namespace: http://www.w3.org/2004/02/skos/core#
+   Auto-maps: contexts → skos:Concept
+   Status: REFERENCED but NOT EXECUTED
+
+4-8. Other inferred mappings in pipeline (prov, schema, foaf already listed above)
+
+================================================================================
+ONTOLOGY REGISTRY SYSTEM (Extensible YAML)
+================================================================================
+
+Location: bos/core/src/ontology/registry.rs (lines 1-491)
+
+Features:
+- Load ontology configs from YAML files
+- Namespace declarations for SPARQL
+- Dependency graph validation (circular dependency detection)
+- Framework support tracking:
+  * Compliance: SOC2, HIPAA, GDPR, SOX
+  * Domains: Commerce, Operations, People, Finance, Analytics
+  * Extended: FIBO, Healthcare, Research
+- Hot-reload capability
+- Validation rules (entity count min/max, etc.)
+
+Status: ✅ PRODUCTION READY
+Can load ANY ontology at runtime via YAML config
+
+================================================================================
+MISSING (9 ontologies that SHOULD be integrated)
+================================================================================
+
+PRIORITY 1: ESSENTIAL (Weeks 1-2)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. OWL (Web Ontology Language)
+   Namespace: http://www.w3.org/2002/07/owl#
+   Why needed: Class restrictions, property cardinality, inverse relations
+   Use case: "Deal must have exactly 1 seller" (schema enforcement)
+   Compliance: Enterprise schema validation
+   Integration point: bos/core/src/ontology/execute.rs
+
+2. SHACL (Shapes Constraint Language)
+   Namespace: http://www.w3.org/ns/shacl#
+   Why needed: Validation rules for RDF data quality
+   Use case: "Email must match pattern ^[^@]+@[^@]+\.[^@]+$"
+   Compliance: SOC2 data validation
+   Integration point: NEW module bos/core/src/ontology/shacl_validator.rs
+
+3. FIBO (Financial Industry Business Ontology)
+   Namespace: https://spec.edmcouncil.org/fibo/ontology/
+   Why needed: Deal, payment, party semantics
+   Use case: Deal structures with FIBO:Deal, FIBO:Party, FIBO:Instrument
+   Status: ✅ Referenced in registry.rs line 107, but UNUSED
+   Priority: CRITICAL for Vision 2030 A2A deals
+   Integration point: NEW module bos/core/src/ontology/fibo_mapper.rs
+
+PRIORITY 2: RECOMMENDED (Weeks 3-4)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4. DCAT (Data Catalog Vocabulary)
+   Namespace: http://www.w3.org/ns/dcat#
+   Why needed: Dataset/table metadata discovery
+   Use case: Tables as dcat:Dataset with dcat:distribution + dcat:theme
+   Compliance: Data governance, lineage
+   Integration point: bos/core/src/ontology/mapping.rs
+
+5. ODRL (Open Digital Rights Language)
+   Namespace: http://www.w3.org/ns/odrl/2/
+   Why needed: Access control policies on RDF resources
+   Use case: "User X can only view triples with odrl:hasPolicy"
+   Compliance: SOC2 access control
+   Integration point: NEW module bos/core/src/ontology/odrl_validator.rs
+
+PRIORITY 3: FUTURE (Q2 2026+)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6. P-Plan (Process Execution Ontology)
+   Namespace: http://purl.org/net/p-plan#
+   Why needed: Distinguish template vs execution (prompt vs agent output)
+   Use case: p-plan:Step (abstract) vs p-plan:Activity (execution)
+   Context: OSA agent lifecycle tracing
+
+7. WoT TD (W3C Web of Things Thing Description)
+   Namespace: https://www.w3.org/2022/wot/td/v1.1
+   Why needed: Agent capability declarations
+   Use case: "Agent X exposes POST /invoke endpoint with schema Y"
+   Context: OSA agent discovery
+
+8. SOSA/SSN (Sensor, Observation, Sample, and Actuator)
+   Namespaces:
+     - SOSA: http://www.w3.org/ns/sosa/
+     - SSN: http://www.w3.org/ns/ssn/
+   Why needed: Sensor data semantics (agent heartbeats, metrics)
+   Use case: sosa:Observation (latency) → sosa:hasResult
+   Context: Future agent observability
+
+9. DQV (Data Quality Vocabulary)
+   Namespace: http://www.w3.org/ns/dqv#
+   Why needed: Quality metrics on data (completeness, accuracy, timeliness)
+   Use case: "Deal table has 95% email_valid rate per dqv:Dimension"
+   Compliance: Data quality reporting
+
+================================================================================
+COMMANDS EXPOSED IN CLI
+================================================================================
+
+bos ontology construct
+  Maps: Table definitions → SPARQL CONSTRUCT queries
+  Input: --mapping (JSON file with TableMapping config)
+  Output: .obsr/queries/ directory with .rq files
+  File: bos/cli/src/nouns/ontology.rs:150-167
+
+bos ontology export
+  Maps: Mapping config → Turtle RDF file
+  Input: --mapping + --output
+  Output: Single .ttl file with all CONSTRUCT queries
+  File: bos/cli/src/nouns/ontology.rs:169-203
+
+bos ontology execute
+  Maps: PostgreSQL tables → RDF triples via SPARQL CONSTRUCT
+  Input: --mapping + --database + optional --table
+  Output: N-Triples serialization
+  File: bos/cli/src/nouns/ontology.rs:205-242
+
+bos ontology infer
+  Maps: ODCS DataModel → Mapping config (auto-detect)
+  Input: --workspace (optional) + --output + optional --confidence
+  Output: Generated MappingConfig JSON
+  File: bos/cli/src/nouns/ontology.rs:244-288
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+IMMEDIATE (Weeks 1-2):
+  1. Integrate SHACL for SOC2 data validation
+  2. Integrate OWL for schema constraints
+  3. Integrate FIBO for A2A deal structures
+
+SHORT-TERM (Weeks 3-4):
+  4. Integrate DCAT for data governance
+  5. Integrate ODRL for access control
+
+LONG-TERM (Q2 2026+):
+  6-9. P-Plan, WoT TD, SOSA/SSN, DQV as needed
+
+================================================================================
+STRATEGY ASSESSMENT
+================================================================================
+
+Current approach: PRAGMATIC (not comprehensive)
+- Only W3C essentials (RDF, RDFS, XSD, PROV-O) + domain commons (Schema.org, FOAF)
+- Extensible via YAML registry (can load ANY ontology at runtime)
+- Smart inference (auto-detect from table/column names)
+
+Maturity: PRODUCTION READY
+- Registry system is solid
+- PROV-O tracking is complete
+- Inference conventions are well-designed
+
+Gap: Enterprise compliance (OWL, SHACL, DCAT, FIBO, ODRL, DQV)
+- Needed for SOC2, data governance, financial modeling
+- Can be phased in without breaking existing code
+
+================================================================================
