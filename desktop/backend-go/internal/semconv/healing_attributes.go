@@ -103,6 +103,9 @@ const (
 	// HealingConfidenceKey is the OTel attribute key for healing.confidence.
 	// Confidence score for the failure mode classification, in range [0.0, 1.0].
 	HealingConfidenceKey = attribute.Key("healing.confidence")
+	// HealingDiagnosisModeKey is the OTel attribute key for healing.diagnosis.mode.
+	// The diagnosis mode or strategy used in the healing classify operation.
+	HealingDiagnosisModeKey = attribute.Key("healing.diagnosis.mode")
 	// HealingDiagnosisStageKey is the OTel attribute key for healing.diagnosis_stage.
 	// The current stage of the healing diagnosis pipeline.
 	HealingDiagnosisStageKey = attribute.Key("healing.diagnosis_stage")
@@ -130,6 +133,9 @@ const (
 	// HealingFingerprintKey is the OTel attribute key for healing.fingerprint.
 	// Process fingerprint hash for identifying similar failure patterns.
 	HealingFingerprintKey = attribute.Key("healing.fingerprint")
+	// HealingFixResultKey is the OTel attribute key for healing.fix.result.
+	// The outcome result of the healing fix operation.
+	HealingFixResultKey = attribute.Key("healing.fix.result")
 	// HealingInterventionDurationMsKey is the OTel attribute key for healing.intervention.duration_ms.
 	// Duration of the healing intervention in milliseconds.
 	HealingInterventionDurationMsKey = attribute.Key("healing.intervention.duration_ms")
@@ -289,6 +295,18 @@ const (
 	// HealingTimeoutMsKey is the OTel attribute key for healing.timeout_ms.
 	// Maximum time budget for the healing operation in milliseconds (WvdA deadlock freedom).
 	HealingTimeoutMsKey = attribute.Key("healing.timeout_ms")
+	// HealingVerificationExecutionTimeMsKey is the OTel attribute key for healing.verification.execution_time_ms.
+	// Execution time in milliseconds for the healing verification operation.
+	HealingVerificationExecutionTimeMsKey = attribute.Key("healing.verification.execution_time_ms")
+	// HealingVerificationFailedTestsKey is the OTel attribute key for healing.verification.failed_tests.
+	// Number of tests that failed during healing verification.
+	HealingVerificationFailedTestsKey = attribute.Key("healing.verification.failed_tests")
+	// HealingVerificationPassedTestsKey is the OTel attribute key for healing.verification.passed_tests.
+	// Number of tests that passed during healing verification.
+	HealingVerificationPassedTestsKey = attribute.Key("healing.verification.passed_tests")
+	// HealingVerificationStatusKey is the OTel attribute key for healing.verification.status.
+	// Overall verification status for the healing operation.
+	HealingVerificationStatusKey = attribute.Key("healing.verification.status")
 	// HealingWarmStandbyIdKey is the OTel attribute key for healing.warm_standby.id.
 	// Unique identifier for the warm standby replica.
 	HealingWarmStandbyIdKey = attribute.Key("healing.warm_standby.id")
@@ -528,6 +546,11 @@ func HealingConfidence(val float64) attribute.KeyValue {
 	return HealingConfidenceKey.Float64(val)
 }
 
+// HealingDiagnosisMode returns an attribute KeyValue for healing.diagnosis.mode.
+func HealingDiagnosisMode(val string) attribute.KeyValue {
+	return HealingDiagnosisModeKey.String(val)
+}
+
 // HealingDiagnosisStage returns an attribute KeyValue for healing.diagnosis_stage.
 func HealingDiagnosisStage(val string) attribute.KeyValue {
 	return HealingDiagnosisStageKey.String(val)
@@ -629,6 +652,22 @@ var HealingFailureModeValues = struct {
 // HealingFingerprint returns an attribute KeyValue for healing.fingerprint.
 func HealingFingerprint(val string) attribute.KeyValue {
 	return HealingFingerprintKey.String(val)
+}
+
+// HealingFixResult returns an attribute KeyValue for healing.fix.result.
+func HealingFixResult(val string) attribute.KeyValue {
+	return HealingFixResultKey.String(val)
+}
+
+// HealingFixResultValues contains the known enum values for healing.fix.result.
+var HealingFixResultValues = struct {
+	Success string
+	Partial string
+	Failed string
+}{
+	Success: "success",
+	Partial: "partial",
+	Failed: "failed",
 }
 
 // HealingInterventionDurationMs returns an attribute KeyValue for healing.intervention.duration_ms.
@@ -994,6 +1033,37 @@ func HealingSurgeThresholdMultiplier(val float64) attribute.KeyValue {
 // HealingTimeoutMs returns an attribute KeyValue for healing.timeout_ms.
 func HealingTimeoutMs(val int64) attribute.KeyValue {
 	return HealingTimeoutMsKey.Int64(val)
+}
+
+// HealingVerificationExecutionTimeMs returns an attribute KeyValue for healing.verification.execution_time_ms.
+func HealingVerificationExecutionTimeMs(val int64) attribute.KeyValue {
+	return HealingVerificationExecutionTimeMsKey.Int64(val)
+}
+
+// HealingVerificationFailedTests returns an attribute KeyValue for healing.verification.failed_tests.
+func HealingVerificationFailedTests(val int64) attribute.KeyValue {
+	return HealingVerificationFailedTestsKey.Int64(val)
+}
+
+// HealingVerificationPassedTests returns an attribute KeyValue for healing.verification.passed_tests.
+func HealingVerificationPassedTests(val int64) attribute.KeyValue {
+	return HealingVerificationPassedTestsKey.Int64(val)
+}
+
+// HealingVerificationStatus returns an attribute KeyValue for healing.verification.status.
+func HealingVerificationStatus(val string) attribute.KeyValue {
+	return HealingVerificationStatusKey.String(val)
+}
+
+// HealingVerificationStatusValues contains the known enum values for healing.verification.status.
+var HealingVerificationStatusValues = struct {
+	Pass string
+	Fail string
+	Inconclusive string
+}{
+	Pass: "pass",
+	Fail: "fail",
+	Inconclusive: "inconclusive",
 }
 
 // HealingWarmStandbyId returns an attribute KeyValue for healing.warm_standby.id.
