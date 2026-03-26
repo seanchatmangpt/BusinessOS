@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Data" prefix="data" uri="http://www.xes-standard.org/data.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="doc_001"/>
+    <event>
+      <string key="concept:name" value="create_document"/>
+      <date key="time:timestamp" value="2024-01-01T09:00:00.000Z"/>
+      <string key="data:doc_version" value="v1"/>
+      <string key="data:doc_content" value="Initial content"/>
+    </event>
+    <event>
+      <string key="concept:name" value="revise_document"/>
+      <date key="time:timestamp" value="2024-01-01T10:00:00.000Z"/>
+      <string key="data:doc_version" value="v2"/>
+      <string key="data:doc_content" value="Revised content"/>
+    </event>
+    <event>
+      <string key="concept:name" value="revise_document"/>
+      <date key="time:timestamp" value="2024-01-02T09:00:00.000Z"/>
+      <string key="data:doc_version" value="v3"/>
+      <string key="data:doc_content" value="Final content"/>
+    </event>
+  </trace>
+</log>

@@ -19,6 +19,9 @@ const (
 	// ProcessMiningInductiveTreeDepthKey is the OTel attribute key for process.mining.inductive.tree_depth.
 	// Maximum depth of inductive miner tree.
 	ProcessMiningInductiveTreeDepthKey = attribute.Key("process.mining.inductive.tree_depth")
+	// ProcessExecutableNameKey is the OTel attribute key for process.executable.name.
+	// Name of the executable process.
+	ProcessExecutableNameKey = attribute.Key("process.executable.name")
 	// ProcessMiningActivityKey is the OTel attribute key for process.mining.activity.
 	// Name of the process activity (event class) from the XES log.
 	ProcessMiningActivityKey = attribute.Key("process.mining.activity")
@@ -355,6 +358,9 @@ const (
 	// ProcessMiningVariantCountKey is the OTel attribute key for process.mining.variant_count.
 	// Number of unique trace variants in the event log.
 	ProcessMiningVariantCountKey = attribute.Key("process.mining.variant_count")
+	// ProcessPidKey is the OTel attribute key for process.pid.
+	// Process ID of the service.
+	ProcessPidKey = attribute.Key("process.pid")
 )
 
 // ProcessMiningInductiveAlgorithm returns an attribute KeyValue for process.mining.inductive.algorithm.
@@ -399,6 +405,11 @@ var ProcessMiningInductiveSplitTypeValues = struct {
 // ProcessMiningInductiveTreeDepth returns an attribute KeyValue for process.mining.inductive.tree_depth.
 func ProcessMiningInductiveTreeDepth(val int64) attribute.KeyValue {
 	return ProcessMiningInductiveTreeDepthKey.Int64(val)
+}
+
+// ProcessExecutableName returns an attribute KeyValue for process.executable.name.
+func ProcessExecutableName(val string) attribute.KeyValue {
+	return ProcessExecutableNameKey.String(val)
 }
 
 // ProcessMiningActivity returns an attribute KeyValue for process.mining.activity.
@@ -1143,5 +1154,10 @@ func ProcessMiningVariantIsOptimal(val bool) attribute.KeyValue {
 // ProcessMiningVariantCount returns an attribute KeyValue for process.mining.variant_count.
 func ProcessMiningVariantCount(val int64) attribute.KeyValue {
 	return ProcessMiningVariantCountKey.Int64(val)
+}
+
+// ProcessPid returns an attribute KeyValue for process.pid.
+func ProcessPid(val int64) attribute.KeyValue {
+	return ProcessPidKey.Int64(val)
 }
 

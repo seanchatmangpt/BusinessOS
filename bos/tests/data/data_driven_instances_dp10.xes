@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Data" prefix="data" uri="http://www.xes-standard.org/data.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="batch_001"/>
+    <event>
+      <string key="concept:name" value="receive_batch"/>
+      <date key="time:timestamp" value="2024-01-01T08:00:00.000Z"/>
+      <string key="data:batch_size" value="3"/>
+      <string key="data:items" value="[item_a, item_b, item_c]"/>
+    </event>
+    <event>
+      <string key="concept:name" value="create_instance"/>
+      <date key="time:timestamp" value="2024-01-01T08:05:00.000Z"/>
+      <string key="data:instance_id" value="case_item_a"/>
+      <string key="data:trigger_data" value="item_a"/>
+    </event>
+    <event>
+      <string key="concept:name" value="create_instance"/>
+      <date key="time:timestamp" value="2024-01-01T08:06:00.000Z"/>
+      <string key="data:instance_id" value="case_item_b"/>
+      <string key="data:trigger_data" value="item_b"/>
+    </event>
+    <event>
+      <string key="concept:name" value="create_instance"/>
+      <date key="time:timestamp" value="2024-01-01T08:07:00.000Z"/>
+      <string key="data:instance_id" value="case_item_c"/>
+      <string key="data:trigger_data" value="item_c"/>
+    </event>
+  </trace>
+</log>
