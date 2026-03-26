@@ -85,6 +85,37 @@ test(orchestration): add mode classification edge cases
 
 See [CLAUDE.md](CLAUDE.md) for full coding conventions.
 
+## Debugging Tests
+
+**Tests failing?** See the comprehensive debugging guide: [docs/DEBUGGING_TESTS.md](../../docs/DEBUGGING_TESTS.md)
+
+Quick reference:
+
+```bash
+# Run single test with verbose output
+go test ./internal/package -run TestName -v
+
+# Run tests serially (catches race conditions)
+go test -p 1 ./...
+
+# Profile memory/goroutines
+go test -memprofile=mem.prof ./...
+go tool pprof mem.prof
+```
+
+**Common test failures:**
+- **API timeout/connection refused** → Is localhost:8001 running? (`make dev`)
+- **Test passes alone, fails in parallel** → Missing synchronization (channels, WaitGroup)
+- **Flaky test (passes sometimes)** → Likely timing issue, run with `-race` flag
+- **Out of memory/too many goroutines** → Missing cleanup in defer statements
+
+See [DEBUGGING_TESTS.md](../../docs/DEBUGGING_TESTS.md) for:
+- Test failure flowchart
+- Debugging strategies by failure type
+- How to capture verbose output
+- How to run single test with backtrace
+- Performance profiling tips
+
 ## Agent Dispatch Workflow
 
 If you're dispatching Claude Code agents (Sprint 1+):
