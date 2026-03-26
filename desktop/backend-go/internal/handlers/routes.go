@@ -41,6 +41,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerOntologyRoutes(api, auth)
 	h.registerComplianceRoutes(api, auth)
 	h.registerTransactionRoutes(api, auth)
+	h.registerMeshRoutes(api, auth)
 	h.registerBOSProgressRoutes(api, jwtAuth)
 }
 
@@ -59,6 +60,12 @@ func (h *Handlers) registerTransactionRoutes(api *gin.RouterGroup, auth gin.Hand
 		return // transactions not configured — skip
 	}
 	h.transactionHandler.RegisterRoutes(api)
+}
+
+// registerMeshRoutes wires /api/mesh routes for data mesh federation.
+func (h *Handlers) registerMeshRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	meshHandler := NewDataMeshHandler("http://localhost:3030", nil)
+	RegisterDataMeshRoutes(api, meshHandler, auth)
 }
 
 // registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception
