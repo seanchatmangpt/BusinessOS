@@ -8,3 +8,8 @@ export { default as MyTasksWidget } from "./MyTasksWidget.svelte";
 export { default as RecentActivityWidget } from "./RecentActivityWidget.svelte";
 export { default as AnalyticsSidepanel } from "./AnalyticsSidepanel.svelte";
 export { default as SignalHealthWidget } from "./SignalHealthWidget.svelte";
+export { default as ProcessMapViewer } from "./ProcessMapViewer.svelte";
+export { default as ConformanceScoreWidget } from "./ConformanceScoreWidget.svelte";
+export { default as VariantDistributionWidget } from "./VariantDistributionWidget.svelte";
+export { default as BottleneckHeatmapWidget } from "./BottleneckHeatmapWidget.svelte";
+export { default as CycleTimeTrendWidget } from "./CycleTimeTrendWidget.svelte";

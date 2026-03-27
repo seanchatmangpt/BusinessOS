@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"fmt"
 	"runtime"
 	"sync"
@@ -114,7 +113,7 @@ func TestConnectionPoolReuse(t *testing.T) {
 	}
 
 	t.Run("pool_reuse_rate_high_concurrency", func(t *testing.T) {
-		poolSize := 50
+		_ = 50 // poolSize
 		concurrency := 100
 		requestsPerWorker := 100
 
@@ -430,7 +429,7 @@ func TestConcurrentRequestHandling(t *testing.T) {
 		t.Run(fmt.Sprintf("concurrent_%d_users", concurrency), func(t *testing.T) {
 			latencies := NewLatencyCollector()
 			successCount := int64(0)
-			errorCount := int64(0)
+			_ = int64(0) // errorCount
 			requestsPerUser := 100
 
 			var wg sync.WaitGroup

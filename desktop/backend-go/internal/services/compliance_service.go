@@ -811,3 +811,61 @@ func (s *ComplianceService) sendComplianceNotification(ctx context.Context, rule
 
 	return nil
 }
+
+// VerifyCompliance performs JTBD compliance verification and returns span attributes.
+// This is used for Wave 12 scenario 3 instrumentation.
+type ComplianceVerifyRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	Framework   string `json:"framework"`
+}
+
+type ComplianceVerifyResponse struct {
+	Status              string                 `json:"status"`
+	Framework           string                 `json:"framework"`
+	FindingsCount       int                    `json:"findings_count"`
+	RemediationProgress float64                `json:"remediation_progress"`
+	LastAuditDate       string                 `json:"last_audit_date"`
+	Gaps                []ComplianceGap        `json:"gaps"`
+	ComplianceStatus    map[string]interface{} `json:"compliance_status"`
+}
+
+func (s *ComplianceService) VerifyCompliance(ctx context.Context, req ComplianceVerifyRequest) (ComplianceVerifyResponse, error) {
+	// Get gap analysis for the specified framework
+	gaps := s.computeGaps(req.Framework)
+	score := computeGapScore(gaps)
+
+	// Determine compliance status based on score
+	status := "partial"
+	if score >= 0.95 {
+		status = "compliant"
+	} else if score < 0.5 {
+		status = "non_compliant"
+	}
+
+	// Calculate remediation progress
+	remediationProgress := 0.0
+	if len(gaps) > 0 {
+		resolved := 0
+		for _, gap := range gaps {
+			if gap.Status == "resolved" {
+				resolved++
+			}
+		}
+		remediationProgress = float64(resolved) / float64(len(gaps))
+	}
+
+	return ComplianceVerifyResponse{
+		Status:              status,
+		Framework:           req.Framework,
+		FindingsCount:       len(gaps),
+		RemediationProgress: remediationProgress,
+		LastAuditDate:       time.Now().Format(time.RFC3339),
+		Gaps:                gaps,
+		ComplianceStatus: map[string]interface{}{
+			"score":             score,
+			"status":            status,
+			"checked_at":        time.Now(),
+			"workspace_id":      req.WorkspaceID,
+		},
+	}, nil
+}

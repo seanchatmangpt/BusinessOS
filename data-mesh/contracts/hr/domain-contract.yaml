@@ -1,0 +1,598 @@
+---
+# ========================================================================
+# Human Resources (HR) Domain Data Mesh Contract
+# ========================================================================
+# Version: 1.0.0
+# Owner: Chief Human Resources Officer (CHRO)
+# Created: 2026-03-25
+# ========================================================================
+
+domain:
+  name: Human Resources
+  owner: "Chief Human Resources Officer (CHRO)"
+  contact_email: "chro@businessos.example.com"
+  contact_phone: "+1-555-HR"
+  department: "Human Resources"
+  business_unit: "People Operations"
+  cost_center: "5001"
+
+governance:
+  data_steward: "HR Data Steward"
+  data_steward_email: "data-steward.hr@businessos.example.com"
+  technical_owner: "HR Systems Administrator"
+  technical_owner_email: "hris-admin@businessos.example.com"
+  security_owner: "Chief Information Security Officer"
+  privacy_officer: "Chief Privacy Officer"
+  compliance_frameworks:
+    - GDPR
+    - CCPA
+    - SOC2 Type II
+    - FMLA
+    - ADA
+    - FERPA (if applicable)
+    - HIPAA (if benefits included)
+  audit_frequency: "Quarterly"
+  pii_classification: "HIGHEST (sensitive employee data, protected health info)"
+
+entities:
+  - name: "Employee"
+    identifier: "hr.employees.v1"
+    description: "Employee master records and employment data"
+    record_count: 3847
+    growth_rate: "8% annually"
+    business_criticality: "CRITICAL"
+    pii_fields:
+      - first_name
+      - last_name
+      - email
+      - phone
+      - address
+      - ssn
+      - date_of_birth
+      - emergency_contacts
+      - health_info
+      - salary_info
+    pii_handling: "Encrypted at rest (AES-256), encrypted in transit (TLS 1.3), masked in logs"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/hr/employees"
+        format: "JSON-HAL"
+        rate_limit: 100
+        authentication: "OAuth2-RBAC (strict)"
+        pii_redaction: true
+        requires_justification: true
+      database:
+        host: "hr-db.db.example.com"
+        port: 5432
+        database: "hr_secure"
+        schema: "employees"
+        table: "employees"
+        encryption: "end-to-end"
+        replication_lag: "< 30s"
+        backup_encryption: "separate key"
+    key_fields:
+      - employee_id: "Unique employee identifier"
+      - first_name: "Employee first name"
+      - last_name: "Employee last name"
+      - email: "Corporate email"
+      - phone: "Work phone number"
+      - department_id: "Assigned department"
+      - manager_id: "Reporting manager"
+      - job_title: "Job title"
+      - employment_status: "active | on_leave | suspended | terminated"
+      - hire_date: "Employment start date"
+      - termination_date: "Employment end date"
+      - date_of_birth: "Birth date (GDPR)"
+      - address: "Home address (GDPR)"
+      - salary_band: "Compensation level"
+    lineage:
+      source_system: "SuccessFactors HR"
+      sync_frequency: "Daily (batch)"
+      records_synced: 3847
+      change_tracking: "All changes via Workday audit log"
+      gdpr_consent: "Explicit opt-in required for processing"
+
+  - name: "Compensation"
+    identifier: "hr.compensation.v1"
+    description: "Salary, benefits, and compensation data"
+    record_count: 3847
+    growth_rate: "5% annually"
+    business_criticality: "CRITICAL"
+    pii_fields:
+      - salary
+      - bonus
+      - stock_options
+      - benefits_enrollment
+      - bank_account_info
+    pii_handling: "Encrypted + access audit, restricted to Finance + HR"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/hr/compensation"
+        format: "JSON-HAL"
+        rate_limit: 50
+        authentication: "OAuth2-RBAC (very strict)"
+        requires_justification: true
+        audit_logging: "all access"
+    key_fields:
+      - compensation_id: "Unique compensation record"
+      - employee_id: "Related employee"
+      - salary_amount: "Annual salary in USD"
+      - bonus_percentage: "Bonus target percentage"
+      - bonus_amount: "Actual bonus"
+      - stock_options_granted: "Stock options count"
+      - benefits_total_cost: "Total benefits cost"
+      - currency: "Compensation currency"
+      - effective_date: "When compensation became effective"
+    lineage:
+      source_system: "Workday"
+      sync_frequency: "Weekly"
+      records_synced: 3847
+
+  - name: "Leave"
+    identifier: "hr.leave.v1"
+    description: "Time off, leave requests, and absence tracking"
+    record_count: 18430
+    growth_rate: "10% annually"
+    business_criticality: "HIGH"
+    pii_fields:
+      - employee_id
+      - reason_for_leave
+      - medical_certification
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/hr/leave"
+        format: "JSON-HAL"
+        rate_limit: 500
+        authentication: "OAuth2-RBAC"
+        pii_redaction: true
+    key_fields:
+      - leave_id: "Unique leave request ID"
+      - employee_id: "Employee taking leave"
+      - leave_type: "vacation | sick | personal | parental | sabbatical | unpaid"
+      - start_date: "Leave start date"
+      - end_date: "Leave end date"
+      - duration_days: "Number of days"
+      - status: "requested | approved | denied | cancelled"
+      - approver_id: "Manager who approved"
+      - reason: "Reason for leave"
+    lineage:
+      source_system: "SuccessFactors Time Off Management"
+      sync_frequency: "Real-time"
+      records_synced: 18430
+      regulation_compliance: "FMLA tracking for US employees"
+
+  - name: "Performance"
+    identifier: "hr.performance.v1"
+    description: "Performance reviews and ratings"
+    record_count: 5234
+    growth_rate: "12% annually"
+    business_criticality: "MEDIUM"
+    pii_fields:
+      - employee_id
+      - performance_notes
+      - review_comments
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/hr/performance"
+        format: "JSON-HAL"
+        rate_limit: 200
+        authentication: "OAuth2-RBAC"
+        pii_redaction: true
+    key_fields:
+      - review_id: "Unique review ID"
+      - employee_id: "Employee reviewed"
+      - reviewer_id: "Manager providing review"
+      - review_period: "Period being reviewed"
+      - overall_rating: "1-5 scale or A-F grade"
+      - competency_ratings: "Competency-specific ratings"
+      - review_date: "Date review conducted"
+      - feedback_summary: "Review comments"
+    lineage:
+      source_system: "SuccessFactors Performance Management"
+      sync_frequency: "Upon completion"
+      records_synced: 5234
+
+  - name: "Training"
+    identifier: "hr.training.v1"
+    description: "Training programs, courses, and professional development"
+    record_count: 12847
+    growth_rate: "20% annually"
+    business_criticality: "MEDIUM"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/hr/training"
+        format: "JSON-HAL"
+        rate_limit: 500
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - training_id: "Unique training ID"
+      - employee_id: "Employee enrolled"
+      - course_name: "Training course name"
+      - course_type: "onboarding | compliance | technical | leadership | other"
+      - provider: "Training provider"
+      - enrollment_date: "Date enrolled"
+      - completion_date: "Date completed"
+      - status: "enrolled | in_progress | completed | failed"
+      - certification_earned: "Certification achieved"
+    lineage:
+      source_system: "LinkedIn Learning + Cornerstone OnDemand"
+      sync_frequency: "Daily"
+      records_synced: 12847
+
+quality_metrics:
+  employees:
+    accuracy:
+      expected_value: "99.9%"
+      actual_value: "99.85%"
+      measured_fields: "email, phone, department assignment"
+      validation_rules: "No duplicate SSNs, valid email format"
+      status: "PASSING"
+    completeness:
+      expected_value: "100%"
+      actual_value: "99.9%"
+      required_fields: "employee_id, email, department_id, hire_date"
+      status: "PASSING"
+    timeliness:
+      expected_value: "< 1 day"
+      actual_value: "8 hours"
+      measurement_method: "HRIS update to sync"
+      status: "PASSING"
+    consistency:
+      expected_value: "100%"
+      actual_value: "99.95%"
+      validation_rules: "No orphaned records, valid department assignments"
+      status: "PASSING"
+    overall_score: 0.98
+
+  compensation:
+    accuracy:
+      expected_value: "99.99%"
+      actual_value: "99.98%"
+      measured_fields: "salary, bonus, stock grants"
+      validation_rules: "amount > 0, no salary < minimum wage"
+      status: "PASSING"
+    completeness:
+      expected_value: "95%"
+      actual_value: "96.8%"
+      required_fields: "employee_id, salary_amount, effective_date"
+      status: "PASSING"
+    timeliness:
+      expected_value: "< 1 week"
+      actual_value: "3 days"
+      status: "PASSING"
+    confidentiality:
+      expected_value: "100% encryption"
+      actual_value: "100%"
+      encryption_algo: "AES-256-GCM"
+      status: "PASSING"
+    overall_score: 0.99
+
+  leave:
+    accuracy:
+      expected_value: "98%"
+      actual_value: "98.5%"
+      measured_fields: "duration calculation, entitlement deduction"
+      status: "PASSING"
+    completeness:
+      expected_value: "99%"
+      actual_value: "99.7%"
+      status: "PASSING"
+    timeliness:
+      expected_value: "< 10 minutes"
+      actual_value: "2 minutes"
+      status: "PASSING"
+    compliance:
+      expected_value: "100% FMLA rules"
+      actual_value: "100%"
+      status: "PASSING"
+    overall_score: 0.96
+
+  performance:
+    completeness:
+      expected_value: "95%"
+      actual_value: "97.2%"
+      status: "PASSING"
+    timeliness:
+      expected_value: "< 2 weeks"
+      actual_value: "10 days"
+      status: "PASSING"
+    overall_score: 0.94
+
+  training:
+    accuracy:
+      expected_value: "98%"
+      actual_value: "99.1%"
+      status: "PASSING"
+    completeness:
+      expected_value: "95%"
+      actual_value: "96.5%"
+      status: "PASSING"
+    overall_score: 0.93
+
+access_control:
+  hr_team:
+    roles:
+      - CHRO
+      - HR Manager
+      - HR Administrator
+      - Recruiter
+    permissions:
+      employees: "READ, WRITE"
+      compensation: "READ (own records + manager direct reports)"
+      leave: "READ, WRITE (approve leave)"
+      performance: "READ, WRITE"
+      training: "READ, WRITE"
+    constraints:
+      time_window: "24/7"
+      compensation_access: "masked for non-HR"
+      audit_logging: "all changes"
+
+  managers:
+    roles:
+      - Department Manager
+      - Team Lead
+    permissions:
+      employees: "READ (own team only, PII masked)"
+      compensation: "READ (salary band only, not individual salaries)"
+      leave: "READ, WRITE (approve/deny own team leaves)"
+      performance: "READ, WRITE (own team reviews)"
+      training: "READ (own team training)"
+    constraints:
+      team_scoping: "strict (own team only)"
+      pii_masking: "personal details masked"
+      salary_visibility: "band only, not actual amounts"
+
+  employees:
+    roles:
+      - Any Employee
+    permissions:
+      employees: "READ (own record only, limited fields)"
+      compensation: "READ (own record only)"
+      leave: "READ, WRITE (own leave requests)"
+      performance: "READ (own reviews only)"
+      training: "READ (own training history)"
+    constraints:
+      self_service_only: true
+      view_own_record_only: true
+      no_manager_visibility: "manager can't modify own scores"
+
+  finance_team:
+    roles:
+      - Finance Manager
+      - Payroll Administrator
+    permissions:
+      employees: "READ (basic info, no PII)"
+      compensation: "READ (salary, benefits cost totals only)"
+    constraints:
+      pii_masking: "all personal details"
+      aggregated_data_only: "no individual records"
+
+  executives:
+    roles:
+      - Chief Executive Officer
+      - Chief Financial Officer
+    permissions:
+      employees: "READ (aggregated HR metrics only)"
+      compensation: "READ (aggregated totals, no individuals)"
+      performance: "READ (aggregated ratings only)"
+    constraints:
+      aggregated_only: true
+      no_pii: true
+      dashboard_access_only: true
+
+  external_integrations:
+    payroll_provider:
+      integration_type: "API"
+      protocol: "secure-soap"
+      permissions:
+        employees: "READ (payroll fields only)"
+        compensation: "READ (salary, tax data)"
+      constraints:
+        contract_requirement: "DPA (Data Processing Agreement)"
+        encryption: "required"
+        audit_trail: "all payroll transmissions"
+
+    benefits_provider:
+      integration_type: "API"
+      protocol: "SFTP + encryption"
+      permissions:
+        employees: "READ (benefits-relevant fields)"
+        compensation: "READ (benefits enrollment)"
+      constraints:
+        hipaa_compliance: "required"
+        encryption: "end-to-end"
+
+usage_policies:
+  export_policy:
+    rules:
+      - role: "HR Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - format: "encrypted CSV only (no email)"
+          - destination: "HR shared drive only"
+          - approval: "CHRO approval for external export"
+          - audit_logging: "mandatory"
+
+      - role: "Managers"
+        action: "Export"
+        allowed: false
+        reason: "Cannot export employee data"
+
+      - role: "Finance"
+        action: "Export"
+        allowed: true
+        constraints:
+          - data: "aggregated payroll only"
+          - pii: "strictly excluded"
+
+      - role: "Employees"
+        action: "Export"
+        allowed: true
+        constraints:
+          - data: "own record only"
+          - format: "PDF/CSV"
+
+  retention_policy:
+    employees:
+      retention_period: "7 years after termination"
+      reason: "Legal/tax requirements"
+      archival_encrypted: true
+    compensation:
+      retention_period: "7 years"
+      reason: "Tax audit + legal"
+    leave:
+      retention_period: "3 years"
+      reason: "FMLA compliance"
+      accrual_tracking: "6 years for compliance"
+    performance:
+      retention_period: "3 years"
+      reason: "Dispute resolution"
+    training:
+      retention_period: "3 years"
+      reason: "Compliance verification"
+
+  data_minimization:
+    rules:
+      - collect_only_necessary: "true"
+      - ssn_masking: "display last 4 only"
+      - salary_visibility: "restrict to need-to-know"
+      - health_info_segregation: "separate database if benefits included"
+
+  gdpr_policy:
+    description: "GDPR compliance for EU employees"
+    rules:
+      - data_subject_rights: "all rights honored (access, deletion, portability)"
+      - response_time: "30 days"
+      - right_to_deletion: "upon request, except legal holds"
+      - data_portability: "standard format provided"
+      - dpia_required: "for any new processing"
+      - consent_tracking: "explicit consent documented"
+
+  ccpa_policy:
+    description: "CCPA compliance for California employees"
+    rules:
+      - opt_out_rights: "honored within 45 days"
+      - sale_of_data: "only with written consent"
+      - do_not_track: "respected if signaled"
+
+  encryption_policy:
+    pii_at_rest:
+      algorithm: "AES-256-GCM"
+      key_rotation: "Annual"
+      key_storage: "HSM (Hardware Security Module)"
+    in_transit:
+      protocol: "TLS 1.3 minimum"
+      certificate_pinning: "required"
+    key_management:
+      provider: "AWS KMS"
+      backup_encryption: "separate key"
+
+  audit_policy:
+    logging_level: "DEBUG (HR data)"
+    log_retention: "7 years"
+    log_fields: "user_id, action, timestamp, record_id, field_changed, old_value, new_value"
+    immutable_logs: "write-once, append-only"
+    change_tracking: "all modifications"
+    access_logging: "all data access"
+    escalation_rules:
+      - compensation_change: "always logged"
+      - termination: "flagged for audit"
+      - bulk_exports: "flagged for audit"
+
+  dpia_requirements:
+    description: "Data Protection Impact Assessment"
+    triggered_by:
+      - large_scale_processing: true
+      - sensitive_data: true
+      - systematic_monitoring: true
+    annual_review: true
+    contact: "privacy-officer@businessos.example.com"
+
+service_level_agreements:
+  employees:
+    availability: 99.9%
+    max_latency: "1 day"
+    rto_minutes: 60
+    rpo_minutes: 60
+    support_tier: "Business hours Level-2"
+    backup_frequency: "Daily encrypted"
+    disaster_recovery: "Geographically separate region"
+    encryption_compliance: "100%"
+
+  compensation:
+    availability: 99.95%
+    max_latency: "< 1 week"
+    rto_minutes: 30
+    rpo_minutes: 5
+    support_tier: "24/7 Level-3 (payroll critical)"
+    backup_frequency: "Hourly encrypted"
+    sox_compliance: "audit trail maintained"
+
+  leave:
+    availability: 99.5%
+    max_latency: "10 minutes"
+    rto_minutes: 30
+    rpo_minutes: 5
+    support_tier: "24/7 Level-2"
+    fmla_compliance: "100% accuracy required"
+
+  performance:
+    availability: 99%
+    max_latency: "1 day"
+    rto_minutes: 120
+    rpo_minutes: 60
+    support_tier: "Business hours Level-2"
+
+  training:
+    availability: 98%
+    max_latency: "1 day"
+    rto_minutes: 240
+    rpo_minutes: 240
+    support_tier: "Business hours Level-1"
+
+monitoring_and_alerting:
+  metrics:
+    - name: "pii_encryption_compliance_percent"
+      threshold: 100
+      alert_severity: "critical"
+    - name: "audit_log_completeness_percent"
+      threshold: 100
+      alert_severity: "critical"
+    - name: "employee_data_access_attempts_unauthorized"
+      threshold: 0
+      alert_severity: "critical"
+    - name: "gdpr_request_response_time_days"
+      threshold: 30
+      alert_severity: "warning"
+    - name: "fmla_compliance_violations"
+      threshold: 0
+      alert_severity: "critical"
+
+  alert_channels:
+    - type: "slack"
+      channel: "#hr-security-alerts"
+    - type: "email"
+      recipients: ["chro@businessos.example.com", "privacy-officer@businessos.example.com"]
+    - type: "pagerduty"
+      service: "HR Data Security"
+
+security_requirements:
+  access_justification: "Required for all HR data access"
+  mfa_required: true
+  session_timeout_minutes: 15
+  ip_whitelist: "corporate network only"
+  dlp_scanning: "all data exports"
+  background_checks: "required for HR team"
+  nda_required: "signed by all HR team"
+  annual_privacy_training: "mandatory"
+
+versioning:
+  contract_version: "1.0.0"
+  created_date: "2026-03-25"
+  last_privacy_review: "2026-03-25"
+  next_review_date: "2026-06-25"
+  next_dpia_review: "2027-03-25"
+  review_frequency: "Quarterly"
+  privacy_review_frequency: "Monthly"
+  compliance_review_frequency: "Monthly (GDPR/FMLA)"

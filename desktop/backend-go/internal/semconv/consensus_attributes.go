@@ -136,6 +136,9 @@ const (
 	// ConsensusNetworkTopologyTypeKey is the OTel attribute key for consensus.network.topology_type.
 	// The topology type of the consensus network.
 	ConsensusNetworkTopologyTypeKey = attribute.Key("consensus.network.topology_type")
+	// ConsensusNodeKey is the OTel attribute key for consensus.node.
+	// Node identifier for the consensus round (hostname, cluster node, etc).
+	ConsensusNodeKey = attribute.Key("consensus.node")
 	// ConsensusNodeIdKey is the OTel attribute key for consensus.node_id.
 	// Identifier of the consensus node.
 	ConsensusNodeIdKey = attribute.Key("consensus.node_id")
@@ -247,6 +250,12 @@ const (
 	// ConsensusTimeoutMsKey is the OTel attribute key for consensus.timeout_ms.
 	// Timeout in milliseconds for the current consensus round.
 	ConsensusTimeoutMsKey = attribute.Key("consensus.timeout_ms")
+	// ConsensusTimestampKey is the OTel attribute key for consensus.timestamp.
+	// Timestamp when the consensus round occurred (ISO 8601 format).
+	ConsensusTimestampKey = attribute.Key("consensus.timestamp")
+	// ConsensusVersionKey is the OTel attribute key for consensus.version.
+	// Version of the consensus protocol/implementation being executed.
+	ConsensusVersionKey = attribute.Key("consensus.version")
 	// ConsensusViewDurationMsKey is the OTel attribute key for consensus.view.duration_ms.
 	// Duration of the current consensus view in milliseconds.
 	ConsensusViewDurationMsKey = attribute.Key("consensus.view.duration_ms")
@@ -542,6 +551,11 @@ var ConsensusNetworkTopologyTypeValues = struct {
 	Bus: "bus",
 }
 
+// ConsensusNode returns an attribute KeyValue for consensus.node.
+func ConsensusNode(val string) attribute.KeyValue {
+	return ConsensusNodeKey.String(val)
+}
+
 // ConsensusNodeId returns an attribute KeyValue for consensus.node_id.
 func ConsensusNodeId(val string) attribute.KeyValue {
 	return ConsensusNodeIdKey.String(val)
@@ -834,6 +848,16 @@ func ConsensusThresholdYeaCount(val int64) attribute.KeyValue {
 // ConsensusTimeoutMs returns an attribute KeyValue for consensus.timeout_ms.
 func ConsensusTimeoutMs(val int64) attribute.KeyValue {
 	return ConsensusTimeoutMsKey.Int64(val)
+}
+
+// ConsensusTimestamp returns an attribute KeyValue for consensus.timestamp.
+func ConsensusTimestamp(val string) attribute.KeyValue {
+	return ConsensusTimestampKey.String(val)
+}
+
+// ConsensusVersion returns an attribute KeyValue for consensus.version.
+func ConsensusVersion(val string) attribute.KeyValue {
+	return ConsensusVersionKey.String(val)
 }
 
 // ConsensusViewDurationMs returns an attribute KeyValue for consensus.view.duration_ms.

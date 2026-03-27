@@ -1,0 +1,169 @@
+PREFIX : <http://compliance.org/gdpr/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# GDPR Article Compliance with Data Subject Rights
+# Generates RDF triples for GDPR articles, implementation status, and data subject rights
+# https://gdpr-info.eu/
+
+CONSTRUCT {
+  ?article a :GDPRArticle ;
+    :article_number ?article_num ;
+    :article_title ?article_title ;
+    :compliance_status ?compliance_status ;
+    :implementation_status ?implementation_status ;
+    :dpia_required ?dpia_required ;
+    :last_assessed ?assessment_date ;
+    :data_subject_right ?dsr ;
+    :evidence ?evidence .
+
+  ?dsr a :DataSubjectRight ;
+    :right_name ?right_name ;
+    rdfs:comment ?right_description ;
+    :implementation_status ?dsr_status ;
+    :response_deadline_days ?deadline .
+
+  ?evidence a :Evidence ;
+    :evidence_type ?evidence_type ;
+    prov:wasGeneratedBy ?article ;
+    :verified_at ?verified_date ;
+    :confidence_score ?confidence .
+}
+WHERE {
+  BIND(NOW() as ?assessment_date)
+  BIND(NOW() as ?verified_date)
+
+  # Article 5 - Principles
+  {
+    BIND(5 as ?article_num)
+    BIND("Principles relating to processing of personal data" as ?article_title)
+    BIND("compliant" as ?compliance_status)
+    BIND("implemented" as ?implementation_status)
+    BIND(false as ?dpia_required)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/article/", STR(?article_num))) as ?article)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/evidence/article-", STR(?article_num), "-001")) as ?evidence)
+    BIND("Policy documentation" as ?evidence_type)
+    BIND(0.98 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-lawfulness")) as ?dsr)
+      BIND("Lawfulness" as ?right_name)
+      BIND("Processing must be lawful and transparent" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(0 as ?deadline)
+    }
+    UNION
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-fairness")) as ?dsr)
+      BIND("Fairness" as ?right_name)
+      BIND("Processing must be fair and not deceptive" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(0 as ?deadline)
+    }
+  }
+  UNION
+  # Article 7 - Consent
+  {
+    BIND(7 as ?article_num)
+    BIND("Conditions for consent" as ?article_title)
+    BIND("compliant" as ?compliance_status)
+    BIND("implemented" as ?implementation_status)
+    BIND(false as ?dpia_required)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/article/", STR(?article_num))) as ?article)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/evidence/article-", STR(?article_num), "-001")) as ?evidence)
+    BIND("Consent records" as ?evidence_type)
+    BIND(0.97 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-explicit")) as ?dsr)
+      BIND("Explicit Consent" as ?right_name)
+      BIND("Consent must be freely given, specific, informed and unambiguous" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(0 as ?deadline)
+    }
+    UNION
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-withdrawal")) as ?dsr)
+      BIND("Withdrawal" as ?right_name)
+      BIND("Data subjects can withdraw consent anytime" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(0 as ?deadline)
+    }
+  }
+  UNION
+  # Article 12 - Right of Access, Rectification, Erasure
+  {
+    BIND(12 as ?article_num)
+    BIND("Transparent information and modalities for the exercise of rights" as ?article_title)
+    BIND("partial" as ?compliance_status)
+    BIND("in_progress" as ?implementation_status)
+    BIND(false as ?dpia_required)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/article/", STR(?article_num))) as ?article)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/evidence/article-", STR(?article_num), "-001")) as ?evidence)
+    BIND("Subject access request procedure" as ?evidence_type)
+    BIND(0.85 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-access")) as ?dsr)
+      BIND("Right of Access" as ?right_name)
+      BIND("Data subjects can request all personal data held" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(30 as ?deadline)
+    }
+    UNION
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-rectification")) as ?dsr)
+      BIND("Right of Rectification" as ?right_name)
+      BIND("Data subjects can request correction of inaccurate data" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(30 as ?deadline)
+    }
+    UNION
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-erasure")) as ?dsr)
+      BIND("Right to Erasure" as ?right_name)
+      BIND("Data subjects can request deletion of personal data (right to be forgotten)" as ?right_description)
+      BIND("in_progress" as ?dsr_status)
+      BIND(30 as ?deadline)
+    }
+  }
+  UNION
+  # Article 28 - Data Processing Agreement
+  {
+    BIND(28 as ?article_num)
+    BIND("Processor" as ?article_title)
+    BIND("compliant" as ?compliance_status)
+    BIND("implemented" as ?implementation_status)
+    BIND(false as ?dpia_required)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/article/", STR(?article_num))) as ?article)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/evidence/article-", STR(?article_num), "-001")) as ?evidence)
+    BIND("Signed DPA agreements" as ?evidence_type)
+    BIND(0.99 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-dpa")) as ?dsr)
+      BIND("Data Processing Agreement" as ?right_name)
+      BIND("All processors must have a signed DPA in place" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(0 as ?deadline)
+    }
+  }
+  UNION
+  # Article 33 - Breach Notification
+  {
+    BIND(33 as ?article_num)
+    BIND("Communication of a personal data breach to the supervisory authority" as ?article_title)
+    BIND("compliant" as ?compliance_status)
+    BIND("implemented" as ?implementation_status)
+    BIND(true as ?dpia_required)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/article/", STR(?article_num))) as ?article)
+    BIND(URI(CONCAT("http://compliance.org/gdpr/evidence/article-", STR(?article_num), "-001")) as ?evidence)
+    BIND("Breach notification procedure" as ?evidence_type)
+    BIND(0.96 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/gdpr/right/", STR(?article_num), "-notification")) as ?dsr)
+      BIND("Breach Notification" as ?right_name)
+      BIND("Breaches must be reported to authorities within 72 hours" as ?right_description)
+      BIND("implemented" as ?dsr_status)
+      BIND(3 as ?deadline)
+    }
+  }
+}

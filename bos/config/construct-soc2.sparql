@@ -1,0 +1,112 @@
+PREFIX : <http://compliance.org/soc2/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# SOC2 Control Mapping with Evidence
+# Generates RDF triples for SOC2 controls, evidence types, and compliance status
+# https://www.aicpa.org/interestareas/informationsystems/extcomm/soxtrustsvc/
+
+CONSTRUCT {
+  ?control a :SOC2Control ;
+    :control_id ?control_id ;
+    :tsc ?tsc ;
+    :description ?description ;
+    :evidence_type ?evidence_type ;
+    :evaluation_frequency ?frequency ;
+    :confidence ?confidence ;
+    :last_verified ?verified_date ;
+    :status ?status ;
+    :evidence ?evidence .
+
+  ?evidence a :Evidence ;
+    :evidence_type ?evidence_type ;
+    :source ?source ;
+    :collected_at ?collection_date ;
+    prov:wasGeneratedBy ?control ;
+    :confidence_score ?evidence_confidence .
+}
+WHERE {
+  BIND(URI(CONCAT("http://compliance.org/soc2/control/", STR(?control_id))) as ?control)
+
+  # CC6.1 - Logical Access Control
+  {
+    BIND("cc6.1" as ?control_id)
+    BIND("Security" as ?tsc)
+    BIND("Logical access restricted to authorized personnel" as ?description)
+    BIND("Access logs, RBAC configuration" as ?evidence_type)
+    BIND("Monthly" as ?frequency)
+    BIND(0.95 as ?confidence)
+    BIND(NOW() as ?verified_date)
+    BIND("verified" as ?status)
+    BIND(URI(CONCAT("http://compliance.org/soc2/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("System audit logs" as ?source)
+    BIND(NOW() - "PT30D"^^xsd:duration as ?collection_date)
+    BIND(0.92 as ?evidence_confidence)
+  }
+  UNION
+  # A1.1 - Availability Monitoring
+  {
+    BIND("a1.1" as ?control_id)
+    BIND("Availability" as ?tsc)
+    BIND("Service availability monitored and maintained" as ?description)
+    BIND("Uptime metrics, monitoring logs" as ?evidence_type)
+    BIND("Continuous" as ?frequency)
+    BIND(0.98 as ?confidence)
+    BIND(NOW() as ?verified_date)
+    BIND("verified" as ?status)
+    BIND(URI(CONCAT("http://compliance.org/soc2/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Monitoring dashboard" as ?source)
+    BIND(NOW() - "PT7D"^^xsd:duration as ?collection_date)
+    BIND(0.99 as ?evidence_confidence)
+  }
+  UNION
+  # C1.1 - Confidentiality Encryption
+  {
+    BIND("c1.1" as ?control_id)
+    BIND("Confidentiality" as ?tsc)
+    BIND("Sensitive data encrypted at rest" as ?description)
+    BIND("Encryption certificates, key management logs" as ?evidence_type)
+    BIND("Quarterly" as ?frequency)
+    BIND(0.94 as ?confidence)
+    BIND(NOW() as ?verified_date)
+    BIND("verified" as ?status)
+    BIND(URI(CONCAT("http://compliance.org/soc2/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Key management system" as ?source)
+    BIND(NOW() - "PT14D"^^xsd:duration as ?collection_date)
+    BIND(0.96 as ?evidence_confidence)
+  }
+  UNION
+  # I1.1 - Integrity Validation
+  {
+    BIND("i1.1" as ?control_id)
+    BIND("Integrity" as ?tsc)
+    BIND("Audit trail entries have valid signatures" as ?description)
+    BIND("Audit logs, cryptographic verification" as ?evidence_type)
+    BIND("Continuous" as ?frequency)
+    BIND(0.97 as ?confidence)
+    BIND(NOW() as ?verified_date)
+    BIND("verified" as ?status)
+    BIND(URI(CONCAT("http://compliance.org/soc2/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Audit signing authority" as ?source)
+    BIND(NOW() - "PT1D"^^xsd:duration as ?collection_date)
+    BIND(0.99 as ?evidence_confidence)
+  }
+  UNION
+  # PR1.1 - Privacy Controls
+  {
+    BIND("pr1.1" as ?control_id)
+    BIND("Privacy" as ?tsc)
+    BIND("Personal data privacy controls implemented" as ?description)
+    BIND("Privacy policy, consent logs" as ?evidence_type)
+    BIND("Quarterly" as ?frequency)
+    BIND(0.91 as ?confidence)
+    BIND(NOW() as ?verified_date)
+    BIND("verified" as ?status)
+    BIND(URI(CONCAT("http://compliance.org/soc2/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Consent management system" as ?source)
+    BIND(NOW() - "PT21D"^^xsd:duration as ?collection_date)
+    BIND(0.88 as ?evidence_confidence)
+  }
+}

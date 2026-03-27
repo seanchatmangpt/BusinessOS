@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Object" prefix="obj" uri="http://www.xes-standard.org/object.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="purchase_001"/>
+    <event>
+      <string key="concept:name" value="split_order"/>
+      <date key="time:timestamp" value="2024-01-01T09:00:00.000Z"/>
+      <string key="obj:parent_object_id" value="ord_001"/>
+      <string key="obj:parent_type" value="order"/>
+      <string key="obj:child_object_id" value="shipment_001"/>
+      <string key="obj:child_type" value="shipment"/>
+    </event>
+    <event>
+      <string key="concept:name" value="split_order"/>
+      <date key="time:timestamp" value="2024-01-01T09:05:00.000Z"/>
+      <string key="obj:parent_object_id" value="ord_001"/>
+      <string key="obj:parent_type" value="order"/>
+      <string key="obj:child_object_id" value="shipment_002"/>
+      <string key="obj:child_type" value="shipment"/>
+    </event>
+    <event>
+      <string key="concept:name" value="split_order"/>
+      <date key="time:timestamp" value="2024-01-01T09:10:00.000Z"/>
+      <string key="obj:parent_object_id" value="ord_001"/>
+      <string key="obj:parent_type" value="order"/>
+      <string key="obj:child_object_id" value="invoice_001"/>
+      <string key="obj:child_type" value="invoice"/>
+    </event>
+  </trace>
+</log>

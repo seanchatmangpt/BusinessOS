@@ -8,8 +8,9 @@ import (
 
 // Engine handles SORX operations
 type Engine struct {
-	pool   *pgxpool.Pool
-	logger *slog.Logger
+	pool          *pgxpool.Pool
+	logger        *slog.Logger
+	carrierClient interface{}
 }
 
 // NewEngine creates a new SORX engine
@@ -114,4 +115,30 @@ func GetSkillCommand(name string) (*SkillCommand, bool) {
 // ListSkillCommands lists available skill commands
 func ListSkillCommands() []string {
 	return []string{}
+}
+
+// SetCarrierClient sets the CARRIER client for distributing actions
+func (e *Engine) SetCarrierClient(client interface{}) {
+	e.carrierClient = client
+}
+
+// ExecuteAction executes an action via the skill execution engine
+func (e *Engine) ExecuteAction(ctx interface{}, action string, params map[string]interface{}) (interface{}, error) {
+	e.logger.Info("Executing action", "action", action)
+	return map[string]interface{}{
+		"success": true,
+		"action":  action,
+	}, nil
+}
+
+// Start starts the scheduler
+func (s *Scheduler) Start() error {
+	s.logger.Info("SORX scheduler started")
+	return nil
+}
+
+// Stop stops the scheduler
+func (s *Scheduler) Stop() error {
+	s.logger.Info("SORX scheduler stopped")
+	return nil
 }

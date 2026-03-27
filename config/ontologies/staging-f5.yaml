@@ -1,0 +1,243 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# STAGING FORTUNE 5 ONTOLOGY CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Full Fortune 5 configuration for staging environment.
+# Includes all compliance frameworks (SOC2, HIPAA, GDPR, SOX) and data mesh domains.
+# Used for end-to-end testing and pre-production validation.
+#
+# Environment: staging
+# Created: 2026-03-25
+# Purpose: Pre-production testing with full compliance stack
+
+apiVersion: "ontology.chatmangpt.com/v1"
+kind: "OntologyConfig"
+
+metadata:
+  name: "staging-f5"
+  environment: "staging"
+  version: "1.0.0"
+  description: "Full Fortune 5 ontology configuration for staging environment"
+  created_at: "2026-03-25T00:00:00Z"
+  updated_at: "2026-03-25T00:00:00Z"
+
+spec:
+  # All frameworks enabled for comprehensive testing
+  frameworks:
+    compliance:
+      soc2: true
+      hipaa: true
+      gdpr: true
+      sox: true
+    domains:
+      commerce: true
+      operations: true
+      people: true
+      finance: true
+      analytics: true
+    extended:
+      fibo: false
+      healthcare: false
+      research: false
+
+  # Complete ontology set for staging
+  ontologies:
+    # ──────────────────────────────────────────────────────────────────────
+    # Compliance Ontologies
+    # ──────────────────────────────────────────────────────────────────────
+
+    # SOC2 Type II compliance
+    - name: soc2_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/soc2/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "soc2"
+      frameworks:
+        - soc2
+      dependencies: []
+      description: "SOC2 Type II trust service criteria (CC, A, C, I)"
+
+    # HIPAA privacy and security
+    - name: hipaa_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/hipaa/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "hipaa"
+      frameworks:
+        - hipaa
+      dependencies: []
+      description: "HIPAA Privacy Rule, Security Rule, Breach Notification Rule"
+
+    # GDPR data protection
+    - name: gdpr_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/gdpr/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "gdpr"
+      frameworks:
+        - gdpr
+      dependencies: []
+      description: "GDPR articles: consent, rights, processing, DPA"
+
+    # SOX financial reporting
+    - name: sox_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/sox/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "sox"
+      frameworks:
+        - sox
+      dependencies: []
+      description: "SOX Section 302/404 internal control assessment"
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Data Mesh Domain Ontologies
+    # ──────────────────────────────────────────────────────────────────────
+
+    # Commerce domain
+    - name: sales_ontology
+      iri: "https://ontology.chatmangpt.com/sales/v1"
+      version: "1.2.0"
+      required: true
+      enabled: true
+      alias: "sales"
+      frameworks:
+        - commerce
+        - soc2
+      dependencies: []
+      description: "Sales and customer management domain model"
+      validation:
+        entity_count_min: 4
+        relationship_count_min: 3
+
+    # Operations domain
+    - name: operations_ontology
+      iri: "https://ontology.chatmangpt.com/operations/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "ops"
+      frameworks:
+        - operations
+        - soc2
+      dependencies: []
+      description: "Business process and operations domain model"
+      validation:
+        entity_count_min: 5
+        relationship_count_min: 5
+
+    # People/HR domain
+    - name: people_ontology
+      iri: "https://ontology.chatmangpt.com/people/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "people"
+      frameworks:
+        - people
+        - gdpr
+      dependencies: []
+      description: "Human resources and employee management domain"
+
+    # Finance domain
+    - name: finance_ontology
+      iri: "https://ontology.chatmangpt.com/finance/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "finance"
+      frameworks:
+        - finance
+        - sox
+      dependencies: []
+      description: "Financial accounting and reporting domain"
+
+    # Analytics domain
+    - name: analytics_ontology
+      iri: "https://ontology.chatmangpt.com/analytics/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "analytics"
+      frameworks:
+        - analytics
+      dependencies:
+        - sales_ontology
+        - operations_ontology
+        - finance_ontology
+      description: "Data analytics metrics and business intelligence"
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Cross-Cutting Ontologies
+    # ──────────────────────────────────────────────────────────────────────
+
+    # Governance and audit trail
+    - name: governance_ontology
+      iri: "https://ontology.chatmangpt.com/governance/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "governance"
+      frameworks:
+        - soc2
+        - gdpr
+        - hipaa
+        - sox
+      dependencies: []
+      description: "Governance policies, audit trails, access control"
+
+    # Signal theory for artifact generation
+    - name: signal_ontology
+      iri: "https://ontology.chatmangpt.com/signal/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "signal"
+      frameworks: []
+      dependencies: []
+      description: "Signal Theory S=(M,G,T,F,W) for encoding and synthesis"
+
+  # SPARQL namespace declarations
+  namespaces:
+    soc2: "https://ontology.chatmangpt.com/compliance/soc2/v1"
+    hipaa: "https://ontology.chatmangpt.com/compliance/hipaa/v1"
+    gdpr: "https://ontology.chatmangpt.com/compliance/gdpr/v1"
+    sox: "https://ontology.chatmangpt.com/compliance/sox/v1"
+    sales: "https://ontology.chatmangpt.com/sales/v1"
+    ops: "https://ontology.chatmangpt.com/operations/v1"
+    people: "https://ontology.chatmangpt.com/people/v1"
+    finance: "https://ontology.chatmangpt.com/finance/v1"
+    analytics: "https://ontology.chatmangpt.com/analytics/v1"
+    governance: "https://ontology.chatmangpt.com/governance/v1"
+    signal: "https://ontology.chatmangpt.com/signal/v1"
+    xsd: "http://www.w3.org/2001/XMLSchema#"
+    rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+    owl: "http://www.w3.org/2002/07/owl#"
+
+  # Environment overrides for staging
+  environments:
+    staging:
+      enabled_ontologies:
+        - soc2_ontology
+        - hipaa_ontology
+        - gdpr_ontology
+        - sox_ontology
+        - sales_ontology
+        - operations_ontology
+        - people_ontology
+        - finance_ontology
+        - analytics_ontology
+        - governance_ontology
+        - signal_ontology
+
+  # Strict validation for staging
+  validation:
+    strict: true
+    on_missing_required: "error"
+    on_version_mismatch: "warn"
+    on_circular_dependency: "error"

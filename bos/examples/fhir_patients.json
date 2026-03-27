@@ -1,0 +1,296 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "timestamp": "2026-03-25T15:30:00Z",
+  "total": 3,
+  "entry": [
+    {
+      "fullUrl": "http://chatmangpt.io/fhir/Patient/pat-001",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "pat-001",
+        "identifier": [
+          {
+            "system": "http://hospital.example.org/mrn",
+            "value": "MRN-2026-001"
+          },
+          {
+            "system": "http://ssn.example.org",
+            "value": "123-45-6789"
+          }
+        ],
+        "active": true,
+        "name": [
+          {
+            "use": "official",
+            "family": "Chatman",
+            "given": [
+              "Alice",
+              "Marie"
+            ]
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "555-0123",
+            "use": "mobile"
+          },
+          {
+            "system": "email",
+            "value": "alice.chatman@example.org",
+            "use": "work"
+          }
+        ],
+        "gender": "female",
+        "birthDate": "1985-03-15",
+        "address": [
+          {
+            "use": "home",
+            "type": "postal",
+            "text": "115 E Del Mar Blvd, Unit 405, Pasadena, CA 91105",
+            "line": [
+              "115 E Del Mar Blvd, Unit 405"
+            ],
+            "city": "Pasadena",
+            "state": "CA",
+            "postalCode": "91105",
+            "country": "USA"
+          }
+        ],
+        "maritalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+              "code": "M",
+              "display": "Married"
+            }
+          ]
+        },
+        "contact": [
+          {
+            "relationship": [
+              {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+                    "code": "EP",
+                    "display": "Emergency contact person"
+                  }
+                ]
+              }
+            ],
+            "name": {
+              "use": "official",
+              "family": "Chatman",
+              "given": ["Robert"]
+            },
+            "telecom": [
+              {
+                "system": "phone",
+                "value": "555-0124",
+                "use": "mobile"
+              }
+            ]
+          }
+        ],
+        "communication": [
+          {
+            "language": {
+              "coding": [
+                {
+                  "system": "urn:ietf:bcp:47",
+                  "code": "en",
+                  "display": "English"
+                }
+              ]
+            },
+            "preferred": true
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://chatmangpt.io/fhir/Observation/obs-001",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-001",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs",
+                "display": "Vital Signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8480-6",
+              "display": "Systolic blood pressure"
+            }
+          ],
+          "text": "Systolic Blood Pressure"
+        },
+        "subject": {
+          "reference": "Patient/pat-001",
+          "display": "Alice Chatman"
+        },
+        "performer": [
+          {
+            "reference": "Practitioner/prac-001",
+            "display": "Dr. Sarah Johnson"
+          }
+        ],
+        "effectiveDateTime": "2026-03-25T14:30:00Z",
+        "issued": "2026-03-25T14:35:00Z",
+        "valueQuantity": {
+          "value": 130,
+          "unit": "mmHg",
+          "system": "http://unitsofmeasure.org",
+          "code": "mm[Hg]"
+        },
+        "interpretation": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationInterpretation",
+                "code": "H",
+                "display": "High"
+              }
+            ]
+          }
+        ],
+        "referenceRange": [
+          {
+            "low": {
+              "value": 90,
+              "unit": "mmHg"
+            },
+            "high": {
+              "value": 120,
+              "unit": "mmHg"
+            },
+            "type": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/referencerange-meaning",
+                  "code": "normal",
+                  "display": "Normal Range"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "http://chatmangpt.io/fhir/MedicationRequest/medrq-001",
+      "resource": {
+        "resourceType": "MedicationRequest",
+        "id": "medrq-001",
+        "status": "active",
+        "intent": "order",
+        "medicationCodeableConcept": {
+          "coding": [
+            {
+              "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
+              "code": "617312",
+              "display": "Lisinopril 10 MG Oral Tablet"
+            }
+          ],
+          "text": "Lisinopril"
+        },
+        "subject": {
+          "reference": "Patient/pat-001",
+          "display": "Alice Chatman"
+        },
+        "authoredOn": "2026-03-20T10:00:00Z",
+        "requester": {
+          "reference": "Practitioner/prac-001",
+          "display": "Dr. Sarah Johnson"
+        },
+        "reasonCode": [
+          {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "38341003",
+                "display": "Hypertension"
+              }
+            ]
+          }
+        ],
+        "dosageInstruction": [
+          {
+            "sequence": 1,
+            "text": "Take once daily",
+            "timing": {
+              "repeat": {
+                "frequency": 1,
+                "period": 1,
+                "periodUnit": "d"
+              }
+            },
+            "doseAndRate": [
+              {
+                "doseQuantity": {
+                  "value": 10,
+                  "unit": "mg",
+                  "system": "http://unitsofmeasure.org",
+                  "code": "mg"
+                }
+              }
+            ]
+          }
+        ],
+        "dispenseRequest": {
+          "quantity": {
+            "value": 30,
+            "unit": "tablets",
+            "system": "http://unitsofmeasure.org",
+            "code": "{tablets}"
+          },
+          "expectedSupplyDuration": {
+            "value": 30,
+            "unit": "days",
+            "system": "http://unitsofmeasure.org",
+            "code": "d"
+          }
+        },
+        "substitution": {
+          "allowedBoolean": true,
+          "reason": {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-SubstanceAdminSubstitutionReason",
+                "code": "E",
+                "display": "Equivalent"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "compliance": {
+      "hipaa": true,
+      "fhir_version": "R4",
+      "phi_elements": [
+        "name",
+        "mrn",
+        "ssn",
+        "date_of_birth",
+        "contact_information"
+      ],
+      "encryption": "AES-256",
+      "audit_enabled": true
+    }
+  }
+}

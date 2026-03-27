@@ -1,0 +1,207 @@
+# GDPR Compliance Framework Configuration
+# General Data Protection Regulation (GDPR) - EU Regulation 2016/679
+# https://gdpr-info.eu/
+
+framework:
+  name: GDPR
+  version: "1.0.0"
+  description: "EU General Data Protection Regulation"
+  regulatory_body: "European Commission"
+  jurisdiction: "European Union"
+  enforcement_agency: "Data Protection Authorities (DPAs)"
+
+principles:
+  - id: "lawfulness"
+    name: "Lawfulness, fairness, and transparency"
+    articles: [5, 6, 13, 14]
+    article_5_section: "a"
+    description: "Processing must be lawful and transparent"
+
+  - id: "purpose_limitation"
+    name: "Purpose limitation"
+    articles: [5, 6]
+    article_5_section: "b"
+    description: "Data collected for specific purpose, not repurposed"
+
+  - id: "data_minimization"
+    name: "Data minimization"
+    articles: [5]
+    article_5_section: "c"
+    description: "Only collect data actually needed (minimization principle)"
+
+  - id: "accuracy"
+    name: "Accuracy"
+    articles: [5, 16]
+    article_5_section: "d"
+    description: "Personal data must be accurate and kept updated"
+
+  - id: "storage_limitation"
+    name: "Storage limitation"
+    articles: [5, 17]
+    article_5_section: "e"
+    description: "Data retention limited to necessary period"
+
+  - id: "integrity_confidentiality"
+    name: "Integrity and confidentiality"
+    articles: [5, 32]
+    article_5_section: "f"
+    description: "Data protected by appropriate security measures"
+
+data_subject_rights:
+  - id: "right_of_access"
+    article: 15
+    description: "Right to access personal data"
+    response_deadline_days: 30
+
+  - id: "right_of_rectification"
+    article: 16
+    description: "Right to correct inaccurate data"
+    response_deadline_days: 30
+
+  - id: "right_to_erasure"
+    article: 17
+    description: "Right to be forgotten / erasure"
+    response_deadline_days: 30
+
+  - id: "right_to_restrict"
+    article: 18
+    description: "Right to restrict processing"
+    response_deadline_days: 30
+
+  - id: "right_to_data_portability"
+    article: 20
+    description: "Right to data portability (machine-readable format)"
+    response_deadline_days: 30
+
+  - id: "right_to_object"
+    article: 21
+    description: "Right to object to processing"
+    response_deadline_days: 30
+
+  - id: "rights_related_automated_decision"
+    article: 22
+    description: "Rights related to automated decision making"
+    response_deadline_days: 30
+
+consent_requirements:
+  - id: "explicit_consent"
+    article: 7
+    description: "Consent must be freely given, specific, informed, unambiguous"
+    withdrawal_allowed: true
+    documentation_required: true
+
+  - id: "consent_by_default"
+    article: 7
+    description: "Opt-in model (not opt-out)"
+    pre_ticked_boxes_allowed: false
+
+  - id: "consent_records"
+    article: 7
+    description: "Maintain records of consent"
+    record_retention_days: 2555  # 7 years
+
+breach_notification:
+  - id: "notification_authority"
+    article: 33
+    description: "Notify supervisory authority"
+    deadline_hours: 72
+
+  - id: "notification_data_subjects"
+    article: 34
+    description: "Notify data subjects if high risk"
+    without_undue_delay: true
+
+  - id: "breach_assessment"
+    article: 33
+    description: "Assess whether notification required"
+    criteria: "Risk to rights and freedoms"
+
+data_processing_agreement:
+  - id: "dpa_with_processor"
+    article: 28
+    description: "Signed DPA required with all processors"
+    mandatory: true
+
+  - id: "dpa_with_subprocessor"
+    article: 28
+    description: "Signed DPA required with sub-processors"
+    mandatory: true
+
+  - id: "processor_liability"
+    article: 28
+    description: "Processor liable for damages"
+
+data_residency:
+  - id: "eu_data_residency"
+    article: 44-49
+    description: "EU resident data preferably stored in EU"
+    exemption: "Adequacy Decision or Standard Contractual Clauses"
+
+evidence_requirements:
+  - type: "consent_records"
+    frequency: "Per collection"
+    retention_days: 2555
+    format: "Digital consent logs"
+    example: "Cookie consent timestamps, email verification"
+
+  - type: "dpia_documentation"
+    frequency: "Per high-risk processing"
+    retention_days: 2555
+    format: "Data Protection Impact Assessment"
+    example: "Risk analysis, mitigation measures"
+
+  - type: "privacy_policy"
+    frequency: "Continuous"
+    retention_days: 2555
+    format: "Published on website"
+    example: "https://example.com/privacy"
+
+  - type: "breach_notification_logs"
+    frequency: "Per breach"
+    retention_days: 2555
+    format: "Signed breach records"
+    example: "Breach assessment, notification timestamps"
+
+  - type: "access_request_records"
+    frequency: "Per request"
+    retention_days: 2555
+    format: "Subject access request fulfillment"
+    example: "Request date, data provided, verification sent"
+
+  - type: "audit_trail"
+    frequency: "Continuous"
+    retention_days: 2555
+    format: "Immutable audit logs"
+    example: "Data access logs, modification logs"
+
+enforcement:
+  - authority: "Data Protection Authority (DPA)"
+    jurisdiction: "Member State"
+    penalties:
+      - tier: "Administrative fines"
+        amount_percent: "4%"
+        basis: "Global annual turnover"
+        violations: "Most serious violations"
+
+      - tier: "Administrative fines"
+        amount_percent: "2%"
+        basis: "Global annual turnover"
+        violations: "General violations"
+
+  - authority: "Private right of action"
+    jurisdiction: "Individual data subjects"
+    compensation: "Damages for non-material harm"
+
+dpia_triggers:
+  - description: "Large scale processing"
+  - description: "Automated decision making with legal effect"
+  - description: "Systematic monitoring"
+  - description: "Biometric data processing"
+  - description: "Genetic data processing"
+  - description: "Data concerning criminal convictions"
+
+assessment:
+  audit_type: "Internal compliance audit"
+  frequency: "Annually"
+  documentation: "Compliance checklist and DPIA records"
+  external_audit: "As required by DPA"

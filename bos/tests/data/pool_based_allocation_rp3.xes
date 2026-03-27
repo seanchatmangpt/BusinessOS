@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Organizational" prefix="org" uri="http://www.xes-standard.org/org.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+    <string key="org:resource" value="resource"/>
+    <string key="org:pool" value="pool"/>
+  </global>
+  <!-- Pool: support_agents contains [agent1, agent2, agent3] -->
+  <trace>
+    <string key="concept:name" value="req_001"/>
+    <event>
+      <string key="concept:name" value="create_request"/>
+      <date key="time:timestamp" value="2024-01-01T08:00:00.000Z"/>
+      <string key="org:resource" value="customer"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+    <event>
+      <string key="concept:name" value="assign_from_pool"/>
+      <date key="time:timestamp" value="2024-01-01T08:05:00.000Z"/>
+      <string key="org:resource" value="agent1"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+    <event>
+      <string key="concept:name" value="handle_request"/>
+      <date key="time:timestamp" value="2024-01-01T08:10:00.000Z"/>
+      <string key="org:resource" value="agent1"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+  </trace>
+  <trace>
+    <string key="concept:name" value="req_002"/>
+    <event>
+      <string key="concept:name" value="create_request"/>
+      <date key="time:timestamp" value="2024-01-01T08:15:00.000Z"/>
+      <string key="org:resource" value="customer"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+    <event>
+      <string key="concept:name" value="assign_from_pool"/>
+      <date key="time:timestamp" value="2024-01-01T08:20:00.000Z"/>
+      <string key="org:resource" value="agent2"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+    <event>
+      <string key="concept:name" value="handle_request"/>
+      <date key="time:timestamp" value="2024-01-01T08:25:00.000Z"/>
+      <string key="org:resource" value="agent2"/>
+      <string key="org:pool" value="support_agents"/>
+    </event>
+  </trace>
+</log>

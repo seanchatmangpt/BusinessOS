@@ -1,0 +1,208 @@
+PREFIX : <http://compliance.org/sox/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+# SOX Control Verification with Audit Trail
+# Generates RDF triples for SOX controls, financial data protection, and 7-year retention
+# https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=&dateb=&owner=exclude&count=100
+
+CONSTRUCT {
+  ?control a :SOXControl ;
+    :control_id ?control_id ;
+    :control_title ?control_title ;
+    :it_general_control ?itgc ;
+    :financial_data_protected ?fin_protected ;
+    :change_management_enforced ?change_mgmt ;
+    :audit_trail_complete ?audit_complete ;
+    :last_verified ?verified_date ;
+    :compliance_status ?compliance_status ;
+    :retention_policy ?retention ;
+    :audit_trail ?audit_trail ;
+    :evidence ?evidence .
+
+  ?audit_trail a :AuditTrail ;
+    :change_id ?change_id ;
+    :change_type ?change_type ;
+    :made_by ?made_by ;
+    :approved_by ?approved_by ;
+    :change_timestamp ?change_time ;
+    :approval_timestamp ?approval_time ;
+    :segregation_of_duties_verified ?sod_verified ;
+    :production_environment ?is_production ;
+    :retention_until ?retention_until ;
+    prov:wasGeneratedBy ?control .
+
+  ?evidence a :Evidence ;
+    :evidence_type ?evidence_type ;
+    prov:wasGeneratedBy ?control ;
+    :verified_at ?verified_date ;
+    :confidence_score ?confidence .
+}
+WHERE {
+  BIND(NOW() as ?verified_date)
+  BIND("2555"^^xsd:integer as ?retention_policy)  # 7 years
+
+  # IC1.1 - Change Management - Segregation of Duties
+  {
+    BIND("ic1.1" as ?control_id)
+    BIND("Change Management - Segregation of Duties" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(true as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Change management logs and approval records" as ?evidence_type)
+    BIND(0.98 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-001")) as ?audit_trail)
+      BIND("CHG-2026-0001" as ?change_id)
+      BIND("database_schema_migration" as ?change_type)
+      BIND("dev_engineer_alice" as ?made_by)
+      BIND("approved_by_bob" as ?approved_by)
+      BIND(NOW() - "PT5D"^^xsd:duration as ?change_time)
+      BIND(NOW() - "PT4D"^^xsd:duration as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+  UNION
+  # SA1.1 - System Availability - 99.9% Uptime SLA
+  {
+    BIND("sa1.1" as ?control_id)
+    BIND("System Availability - 99.9% Uptime SLA" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(false as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("System monitoring and uptime metrics" as ?evidence_type)
+    BIND(0.99 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-002")) as ?audit_trail)
+      BIND("UP-2026-0001" as ?change_id)
+      BIND("uptime_verification" as ?change_type)
+      BIND("monitoring_system" as ?made_by)
+      BIND("sysadmin_carol" as ?approved_by)
+      BIND(NOW() - "PT1D"^^xsd:duration as ?change_time)
+      BIND(NOW() as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+  UNION
+  # AL1.1 - Access Logging - 7-Year Retention
+  {
+    BIND("al1.1" as ?control_id)
+    BIND("Access Logging - 7-Year Retention" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(true as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Access logs with 7-year archive" as ?evidence_type)
+    BIND(0.97 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-003")) as ?audit_trail)
+      BIND("ACC-2026-0001" as ?change_id)
+      BIND("financial_database_access" as ?change_type)
+      BIND("finance_user_dave" as ?made_by)
+      BIND("audit_log_system" as ?approved_by)
+      BIND(NOW() - "PT2H"^^xsd:duration as ?change_time)
+      BIND(NOW() - "PT1H"^^xsd:duration as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+  UNION
+  # CM1.1 - Configuration Management - Production Changes
+  {
+    BIND("cm1.1" as ?control_id)
+    BIND("Configuration Management - Production Changes" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(true as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Change request and deployment documentation" as ?evidence_type)
+    BIND(0.96 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-004")) as ?audit_trail)
+      BIND("CFG-2026-0001" as ?change_id)
+      BIND("web_server_configuration_update" as ?change_type)
+      BIND("ops_engineer_eve" as ?made_by)
+      BIND("change_mgmt_board" as ?approved_by)
+      BIND(NOW() - "PT12H"^^xsd:duration as ?change_time)
+      BIND(NOW() - "PT6H"^^xsd:duration as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+  UNION
+  # FDI1.1 - Financial Data Integrity - Checksums
+  {
+    BIND("fdi1.1" as ?control_id)
+    BIND("Financial Data Integrity - Checksums" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(false as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("Cryptographic hash verification logs" as ?evidence_type)
+    BIND(0.99 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-005")) as ?audit_trail)
+      BIND("INT-2026-0001" as ?change_id)
+      BIND("financial_record_verification" as ?change_type)
+      BIND("integrity_check_system" as ?made_by)
+      BIND("audit_system" as ?approved_by)
+      BIND(NOW() - "PT30M"^^xsd:duration as ?change_time)
+      BIND(NOW() - "PT25M"^^xsd:duration as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+  UNION
+  # ITG1.1 - IT General Controls - Access Control
+  {
+    BIND("itg1.1" as ?control_id)
+    BIND("IT General Controls - Access Control" as ?control_title)
+    BIND(true as ?itgc)
+    BIND(true as ?fin_protected)
+    BIND(true as ?change_mgmt)
+    BIND(true as ?audit_complete)
+    BIND("verified" as ?compliance_status)
+    BIND(URI(CONCAT("http://compliance.org/sox/control/", STR(?control_id))) as ?control)
+    BIND(URI(CONCAT("http://compliance.org/sox/evidence/", STR(?control_id), "-001")) as ?evidence)
+    BIND("User provisioning and access control policies" as ?evidence_type)
+    BIND(0.95 as ?confidence)
+    {
+      BIND(URI(CONCAT("http://compliance.org/sox/audit/", STR(?control_id), "-006")) as ?audit_trail)
+      BIND("IAM-2026-0001" as ?change_id)
+      BIND("user_access_provision" as ?change_type)
+      BIND("iam_admin_frank" as ?made_by)
+      BIND("it_director" as ?approved_by)
+      BIND(NOW() - "PT3D"^^xsd:duration as ?change_time)
+      BIND(NOW() - "PT2D"^^xsd:duration as ?approval_time)
+      BIND(true as ?sod_verified)
+      BIND(true as ?is_production)
+      BIND(NOW() + "P2555D"^^xsd:duration as ?retention_until)
+    }
+  }
+}

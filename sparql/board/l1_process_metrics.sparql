@@ -1,0 +1,224 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# L1 SPARQL CONSTRUCT: Process Metrics Materialization
+# Board Chair Intelligence System — Inference Chain Level 1
+# ═══════════════════════════════════════════════════════════════════════════════
+# Chatman Equation: A = μ(O)
+# Reads L0 facts (org structure, event log data, team assignments) from Oxigraph
+# and materializes bos:ProcessMetric nodes per department/team.
+#
+# Derivation Level: L1 (first-order inference from raw L0 facts)
+# TTL: 45 minutes from materialization time
+# Boundedness: LIMIT 10000 enforced on source scan
+#
+# WvdA Soundness:
+#   - Deadlock Freedom: No circular queries; L1 never reads L2/L3
+#   - Liveness: LIMIT 10000 prevents unbounded scan
+#   - Boundedness: One bos:ProcessMetric per department (bounded by org size)
+#
+# Target: Oxigraph via SPARQL Update (INSERT { CONSTRUCT results } WHERE {...})
+# Executed by: OptimalSystemAgent.Ontology.InferenceChain.run_level(:l1)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+PREFIX rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs:   <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:    <http://www.w3.org/2001/XMLSchema#>
+PREFIX foaf:   <http://xmlns.com/foaf/0.1/>
+PREFIX org:    <http://www.w3.org/ns/org#>
+PREFIX schema: <https://schema.org/>
+PREFIX prov:   <http://www.w3.org/ns/prov#>
+PREFIX bos:    <https://chatmangpt.com/ontology/businessos/>
+PREFIX dcterms:<http://purl.org/dc/terms/>
+
+# ── CONSTRUCT: Materialize bos:ProcessMetric for each department ─────────────
+#
+# Output triples per department:
+#   <metric/dept-X>  a bos:ProcessMetric
+#   <metric/dept-X>  bos:forDepartment  <departments/dept-X>
+#   <metric/dept-X>  bos:cycleTimeAvg               xsd:decimal (hours)
+#   <metric/dept-X>  bos:cycleTimeDeviation          xsd:decimal (delta from last period)
+#   <metric/dept-X>  bos:utilizationRate             xsd:decimal [0.0, 1.0]
+#   <metric/dept-X>  bos:bottleneckActivity          xsd:string
+#   <metric/dept-X>  bos:conformanceFitness          xsd:decimal [0.0, 1.0]
+#   <metric/dept-X>  bos:lastRefreshed               xsd:dateTime
+#   <metric/dept-X>  bos:expiresAt                   xsd:dateTime (+45 min)
+#   <metric/dept-X>  bos:derivationLevel             "L1"
+#   <metric/dept-X>  prov:wasDerivedFrom             <source L0 department URI>
+#   <metric/dept-X>  prov:generatedAtTime            xsd:dateTime
+#   <prov/l1/act-X>  a prov:Activity
+#   <prov/l1/act-X>  prov:wasAssociatedWith          bos:L1ProcessMetricsConstruct
+
+CONSTRUCT {
+
+  # ── Process Metric entity ──────────────────────────────────────────────────
+  ?metric a bos:ProcessMetric ;
+    bos:forDepartment ?department ;
+    rdfs:label ?metricLabel ;
+
+    # Process flow measurements (derived from event log aggregates if present,
+    # otherwise estimated from team headcount and assignment data)
+    bos:cycleTimeAvg ?cycleTimeAvg ;
+    bos:cycleTimeDeviation ?cycleTimeDeviation ;
+    bos:utilizationRate ?utilizationRate ;
+    bos:bottleneckActivity ?bottleneckActivity ;
+    bos:conformanceFitness ?conformanceFitness ;
+    bos:arrivalRate ?arrivalRate ;
+    bos:wipCount ?wipCount ;
+    bos:littlesLawWip ?littlesLawWip ;
+    bos:queueStabilityRatio ?stabilityRatio ;
+    bos:internalCycleTime ?internalTime ;
+    bos:boundaryHandoffTime ?boundaryTime ;
+    bos:conwayScore ?conwayScore ;
+    bos:conwayViolation ?conwayViolation ;
+
+    # Freshness / cache management
+    bos:lastRefreshed ?now ;
+    bos:expiresAt ?expiresAt ;
+    bos:derivationLevel "L1" ;
+
+    # PROV-O lineage
+    prov:wasDerivedFrom ?department ;
+    prov:wasGeneratedBy ?activity ;
+    prov:generatedAtTime ?now .
+
+  # ── Provenance Activity ────────────────────────────────────────────────────
+  ?activity a prov:Activity ;
+    rdfs:label "L1 Process Metrics Construct" ;
+    prov:startedAtTime ?now ;
+    prov:endedAtTime ?now ;
+    prov:wasAssociatedWith bos:L1ProcessMetricsConstruct ;
+    prov:used ?department ;
+    bos:derivationLevel "L1" .
+
+  # ── Source (L0) entity reference for full lineage chain ───────────────────
+  ?department prov:wasUsedBy ?activity .
+
+}
+FROM <http://businessos.local/l0>
+WHERE {
+
+  # ── Scan L0 department facts (bounded to 10000) ───────────────────────────
+  {
+    SELECT ?department ?departmentLabel
+           ?cycleTimeAvg ?cycleTimeDeviation
+           ?utilizationRate ?bottleneckActivity ?conformanceFitness
+    WHERE {
+      ?department a org:Organization ;
+        rdfs:label ?departmentLabel .
+
+      # Utilization: ratio of active posts to total capacity
+      # Sourced from org:Post assignments in L0
+      OPTIONAL {
+        SELECT ?department (COUNT(?post) AS ?activePosts)
+        WHERE {
+          ?post a org:Post ;
+            org:organization ?department .
+        }
+        GROUP BY ?department
+      }
+
+      # Event log conformance fitness — sourced from pm4py-rust export
+      # bos:eventLogFitness materialised by pm4py-rust → bos pipeline
+      OPTIONAL {
+        ?department bos:eventLogFitness ?rawFitness .
+      }
+
+      # Cycle time average from process mining export (hours)
+      OPTIONAL {
+        ?department bos:avgCycleTimeHours ?rawCycleTime .
+      }
+
+      # Cycle time deviation from last measurement period
+      OPTIONAL {
+        ?department bos:cycleTimeDeviationHours ?rawDeviation .
+      }
+
+      # Bottleneck activity from process mining conformance check
+      OPTIONAL {
+        ?department bos:bottleneckActivityName ?rawBottleneck .
+      }
+
+      # Defaults when L0 event log data is absent
+      BIND(COALESCE(?rawCycleTime, "8.0"^^xsd:decimal) AS ?cycleTimeAvg)
+      BIND(COALESCE(?rawDeviation, "0.0"^^xsd:decimal) AS ?cycleTimeDeviation)
+      BIND(COALESCE(?rawFitness, "0.75"^^xsd:decimal) AS ?conformanceFitness)
+      BIND(COALESCE(?rawBottleneck, "approval_gate") AS ?bottleneckActivity)
+
+      # Utilization: clamp to [0.0, 1.0]; default 0.7 when no post data
+      BIND(
+        IF(BOUND(?activePosts),
+          IF(?activePosts > 20,
+            "1.0"^^xsd:decimal,
+            xsd:decimal(CONCAT("0.", STR(?activePosts * 5)))
+          ),
+          "0.70"^^xsd:decimal
+        ) AS ?utilizationRate
+      )
+    }
+    LIMIT 10000
+  }
+
+  # Little's Law metrics — from L0 case facts
+  {
+    SELECT ?dept (COUNT(?case) AS ?wipCount) (COUNT(?recentCase) AS ?arrivalCount)
+    WHERE {
+      ?case a bos:Case ;
+            bos:department ?dept ;
+            bos:status "active" .
+      OPTIONAL {
+        ?recentCase a bos:Case ;
+                    bos:department ?dept ;
+                    dcterms:created ?createTime .
+        FILTER(?createTime > NOW() - "PT24H"^^xsd:duration)
+      }
+    }
+    GROUP BY ?dept
+  }
+  BIND(xsd:float(?arrivalCount) AS ?arrivalRate)
+  BIND(xsd:float(?wipCount) AS ?actualWip)
+  BIND(?arrivalRate * (?cycleTimeAvg / 24.0) AS ?littlesLawWip)
+  BIND(IF(?littlesLawWip > 0.0, ?actualWip / ?littlesLawWip, 1.0) AS ?stabilityRatio)
+
+  # Conway metrics — internal vs boundary handoff time
+  {
+    SELECT ?dept (AVG(?internalSec) AS ?avgInternalSec)
+    WHERE {
+      ?handoff a bos:ProcessHandoff ;
+               bos:sourceDepartment ?dept ;
+               bos:targetDepartment ?dept ;
+               bos:durationSeconds ?internalSec .
+    }
+    GROUP BY ?dept
+  }
+  BIND(xsd:float(COALESCE(?avgInternalSec, 0.0)) AS ?internalTime)
+  BIND(?cycleTimeAvg - ?internalTime AS ?boundaryTime)
+  BIND(IF(?cycleTimeAvg > 0.0, ?boundaryTime / ?cycleTimeAvg, 0.0) AS ?conwayScore)
+  BIND(IF(?conwayScore > 0.4, true, false) AS ?conwayViolation)
+
+  # ── Timestamp arithmetic ──────────────────────────────────────────────────
+  BIND(NOW() AS ?now)
+  # expiresAt = now + 45 minutes = now + PT45M
+  # SPARQL 1.1 duration arithmetic: xsd:dateTime + xsd:duration
+  BIND(xsd:dateTime(?now) + "PT45M"^^xsd:duration AS ?expiresAt)
+
+  # ── IRI construction ──────────────────────────────────────────────────────
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/metrics/process/l1/",
+               ENCODE_FOR_URI(STR(?department))))
+    AS ?metric
+  )
+  BIND(
+    IRI(CONCAT("https://chatmangpt.com/prov/l1/activity/",
+               ENCODE_FOR_URI(STR(?department)),
+               "/", STR(NOW())))
+    AS ?activity
+  )
+  BIND(
+    CONCAT("L1 Process Metric — ", ?departmentLabel)
+    AS ?metricLabel
+  )
+
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END L1_PROCESS_METRICS
+# ═══════════════════════════════════════════════════════════════════════════════

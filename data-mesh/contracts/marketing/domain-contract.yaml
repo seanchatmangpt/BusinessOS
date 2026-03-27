@@ -1,0 +1,441 @@
+---
+# ========================================================================
+# Marketing Domain Data Mesh Contract
+# ========================================================================
+# Version: 1.0.0
+# Owner: Chief Marketing Officer (CMO)
+# Created: 2026-03-25
+# ========================================================================
+
+domain:
+  name: Marketing
+  owner: "Chief Marketing Officer (CMO)"
+  contact_email: "cmo@businessos.example.com"
+  contact_phone: "+1-555-MARKETING"
+  department: "Marketing & Growth"
+  business_unit: "Revenue Generation"
+  cost_center: "3001"
+
+governance:
+  data_steward: "Marketing Data Steward"
+  data_steward_email: "data-steward.marketing@businessos.example.com"
+  technical_owner: "Marketing Technology Lead"
+  technical_owner_email: "martech@businessos.example.com"
+  security_owner: "Chief Information Security Officer"
+  compliance_frameworks:
+    - GDPR
+    - CCPA
+    - SOC2 Type II
+    - CAN-SPAM
+  audit_frequency: "Quarterly"
+  pii_classification: "HIGH (customer emails, behavior data)"
+
+entities:
+  - name: "Campaign"
+    identifier: "marketing.campaigns.v1"
+    description: "Marketing campaign definitions and execution"
+    record_count: 847
+    growth_rate: "40% quarterly"
+    business_criticality: "HIGH"
+    pii_fields:
+      - target_audience_segment
+      - personalization_data
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/marketing/campaigns"
+        format: "JSON-HAL"
+        rate_limit: 500
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 800ms"
+      database:
+        host: "marketing-db.db.example.com"
+        port: 5432
+        database: "marketing"
+        table: "campaigns"
+        replication_lag: "< 15s"
+    key_fields:
+      - campaign_id: "Unique campaign identifier"
+      - campaign_name: "Campaign description"
+      - channel: "email | social | paid_search | organic | direct"
+      - status: "planning | active | paused | completed | archived"
+      - budget: "Campaign budget in USD"
+      - start_date: "Campaign start date"
+      - end_date: "Campaign end date"
+      - target_audience: "Audience segment"
+    lineage:
+      source_system: "HubSpot"
+      sync_frequency: "Real-time"
+      records_synced: 847
+
+  - name: "Lead"
+    identifier: "marketing.leads.v1"
+    description: "Marketing leads and prospect data"
+    record_count: 342156
+    growth_rate: "35% quarterly"
+    business_criticality: "CRITICAL"
+    pii_fields:
+      - email
+      - phone
+      - name
+      - company
+      - ip_address
+    pii_handling: "Encrypted at rest, masked in logs"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/marketing/leads"
+        format: "JSON-HAL"
+        rate_limit: 5000
+        authentication: "OAuth2-RBAC + scoped to assigned territory"
+        pii_redaction: true
+      database:
+        host: "marketing-replica.db.example.com"
+        port: 5432
+        database: "marketing"
+        table: "leads"
+        replication_lag: "< 10s"
+    key_fields:
+      - lead_id: "Unique lead identifier"
+      - email: "Lead email address"
+      - first_name: "Lead first name"
+      - last_name: "Lead last name"
+      - company_name: "Company name"
+      - source: "lead source attribution"
+      - lead_score: "Lead quality score (0-100)"
+      - status: "new | qualified | contacted | lost | converted"
+      - created_date: "When lead was created"
+    lineage:
+      source_system: "HubSpot + multiple marketing platforms"
+      sync_frequency: "Real-time (per lead capture)"
+      records_synced: 342156
+      compliance_sync: "GDPR-compliant with consent tracking"
+
+  - name: "Engagement"
+    identifier: "marketing.engagement.v1"
+    description: "Customer engagement events and interactions"
+    record_count: 8754320
+    growth_rate: "50% quarterly"
+    business_criticality: "HIGH"
+    pii_fields:
+      - user_id
+      - email_address
+      - ip_address
+      - behavior_data
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/marketing/engagement"
+        format: "JSON-STREAM (server-sent events)"
+        rate_limit: 10000
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 100ms"
+    key_fields:
+      - engagement_id: "Unique engagement event"
+      - user_id: "User identifier"
+      - event_type: "page_view | click | form_submit | email_open | video_play"
+      - timestamp: "When interaction occurred"
+      - page_url: "URL visited"
+      - referrer: "How user arrived"
+      - device_type: "desktop | mobile | tablet"
+    lineage:
+      source_system: "Segment + Google Analytics"
+      sync_frequency: "Real-time (per event)"
+      records_synced: 8754320
+      event_streaming: "Kafka topic: marketing.engagement.events"
+
+  - name: "Content"
+    identifier: "marketing.content.v1"
+    description: "Marketing content assets and metadata"
+    record_count: 12450
+    growth_rate: "20% quarterly"
+    business_criticality: "MEDIUM"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/marketing/content"
+        format: "JSON-HAL"
+        rate_limit: 1000
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - content_id: "Unique content identifier"
+      - title: "Content title"
+      - content_type: "blog | whitepaper | case_study | video | infographic"
+      - status: "draft | published | archived"
+      - created_date: "Publication date"
+      - author: "Content creator"
+      - tags: "Content categorization"
+      - performance_score: "Engagement metric (0-100)"
+    lineage:
+      source_system: "Contentful CMS + HubSpot"
+      sync_frequency: "Every 6 hours"
+      records_synced: 12450
+
+quality_metrics:
+  campaigns:
+    timeliness:
+      expected_value: "< 5 minutes"
+      actual_value: "45 seconds"
+      status: "PASSING"
+    completeness:
+      expected_value: "95%"
+      actual_value: "98.5%"
+      status: "PASSING"
+    overall_score: 0.93
+
+  leads:
+    timeliness:
+      expected_value: "< 1 minute"
+      actual_value: "12 seconds"
+      measurement_method: "Lead capture to sync"
+      status: "PASSING"
+    accuracy:
+      expected_value: "98%"
+      actual_value: "97.8%"
+      measured_fields: "email, phone, company (validation against sources)"
+      status: "PASSING"
+    completeness:
+      expected_value: "90%"
+      actual_value: "94.2%"
+      measured_fields: "email (required), phone, company (optional)"
+      status: "PASSING"
+    validity:
+      expected_value: "99%"
+      actual_value: "99.1%"
+      validation_rules: "Valid email format, no spam patterns"
+      status: "PASSING"
+    duplicate_detection:
+      expected_value: "< 1% duplicates"
+      actual_value: "0.3% duplicates"
+      detection_method: "Email + name matching"
+      status: "PASSING"
+    overall_score: 0.92
+
+  engagement:
+    timeliness:
+      expected_value: "< 500ms"
+      actual_value: "120ms"
+      status: "PASSING"
+    accuracy:
+      expected_value: "99.5%"
+      actual_value: "99.4%"
+      status: "PASSING"
+    deduplication:
+      expected_value: "< 0.1% duplicates"
+      actual_value: "0.05%"
+      status: "PASSING"
+    overall_score: 0.97
+
+  content:
+    accuracy:
+      expected_value: "99%"
+      actual_value: "99.5%"
+      status: "PASSING"
+    completeness:
+      expected_value: "95%"
+      actual_value: "96.8%"
+      status: "PASSING"
+    overall_score: 0.94
+
+access_control:
+  marketing_team:
+    roles:
+      - Marketing Manager
+      - Marketing Specialist
+      - Content Manager
+    permissions:
+      campaigns: "READ, WRITE, DELETE"
+      leads: "READ (own territory)"
+      engagement: "READ (aggregated)"
+      content: "READ, WRITE, DELETE"
+    constraints:
+      time_window: "24/7"
+      territory: "assigned territory only"
+      volume_limit: "unlimited for own data"
+
+  sales_team:
+    roles:
+      - Sales Manager
+      - Sales Representative
+    permissions:
+      leads: "READ (assigned leads only)"
+      campaigns: "READ (awareness campaigns only)"
+      engagement: "READ (lead-specific only)"
+    constraints:
+      fields: "exclude internal marketing scores"
+      lead_age_limit: "leads < 6 months old"
+
+  analytics_team:
+    roles:
+      - Marketing Analyst
+      - Data Analyst
+    permissions:
+      campaigns: "READ (aggregated)"
+      leads: "READ (aggregated, anonymized)"
+      engagement: "READ (aggregated)"
+      content: "READ"
+    constraints:
+      pii_masking: "required (PII fields removed)"
+      volume_limit: "1000 records per query"
+
+  external_partners:
+    marketing_agencies:
+      integration_type: "A2A"
+      protocol: "MCP/JSON-RPC"
+      permissions:
+        campaigns: "READ (assigned campaigns)"
+        content: "READ, WRITE"
+      constraints:
+        data_classification: "CONFIDENTIAL"
+        contract_requirement: "DPA (Data Processing Agreement)"
+        retention_period: "3 years after engagement ends"
+
+  gdpr_compliance:
+    data_subject_rights:
+      access: "Upon request (within 30 days)"
+      deletion: "Upon request (within 30 days)"
+      export: "Upon request, portable format"
+      rectification: "Upon request"
+      opt_out: "Automatic suppression lists"
+
+usage_policies:
+  export_policy:
+    rules:
+      - role: "Marketing Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - format: "CSV, JSON"
+          - pii_included: false
+          - encryption: "TLS 1.3"
+
+      - role: "Sales Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - records: "assigned leads only"
+          - fields: "exclude marketing scores"
+          - frequency: "max 2 times per day"
+
+      - role: "Analytics Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - data: "aggregated only"
+          - pii_redaction: "required"
+
+  retention_policy:
+    campaigns:
+      retention_period: "3 years"
+      reason: "Campaign performance analysis"
+    leads:
+      retention_period: "2 years after last interaction"
+      reason: "Lead lifecycle management"
+      deletion_rule: "Auto-delete if no engagement for 2 years"
+    engagement:
+      retention_period: "1 year"
+      reason: "Session-based analytics"
+      archival: "After 6 months to cold storage"
+    content:
+      retention_period: "Indefinite"
+      reason: "Content evergreen value"
+
+  gdpr_policy:
+    description: "GDPR and privacy compliance"
+    rules:
+      - consent_tracking: "required before email capture"
+      - double_opt_in: "required for email lists"
+      - unsubscribe_link: "required in all emails"
+      - data_retention: "max 2 years without engagement"
+      - data_subject_requests: "30-day SLA"
+      - vendor_compliance: "all partners must be GDPR-compliant"
+
+  ccpa_policy:
+    description: "CCPA privacy compliance (California)"
+    rules:
+      - opt_out_rights: "honored within 45 days"
+      - sale_of_data: "only with explicit opt-in"
+      - data_inventory: "maintained and updated"
+      - consumer_requests: "30-day SLA"
+
+  encryption_policy:
+    in_transit:
+      protocol: "TLS 1.3"
+    at_rest:
+      algorithm: "AES-256-GCM"
+      pii_fields: "encrypted"
+      key_rotation: "Annual"
+
+  data_minimization:
+    rules:
+      - collect_only_necessary: "true"
+      - retention_enforcement: "automatic deletion after retention period"
+      - pseudonymization: "for analytics datasets"
+
+service_level_agreements:
+  campaigns:
+    availability: 99%
+    max_latency: "5 minutes"
+    rto_minutes: 60
+    rpo_minutes: 15
+    support_tier: "Business hours Level-2"
+
+  leads:
+    availability: 99.9%
+    max_latency: "1 minute"
+    rto_minutes: 30
+    rpo_minutes: 1
+    support_tier: "24/7 Level-3"
+
+  engagement:
+    availability: 99.5%
+    max_latency: "500ms"
+    rto_minutes: 15
+    rpo_minutes: 1
+    support_tier: "24/7 Level-2"
+
+  content:
+    availability: 99%
+    max_latency: "6 hours"
+    rto_minutes: 120
+    rpo_minutes: 60
+    support_tier: "Business hours Level-2"
+
+monitoring_and_alerting:
+  metrics:
+    - name: "lead_capture_latency_seconds"
+      threshold: 60
+      alert_severity: "warning"
+    - name: "lead_duplication_rate_percent"
+      threshold: 1.0
+      alert_severity: "critical"
+    - name: "engagement_event_loss_rate"
+      threshold: 0.1
+      alert_severity: "critical"
+    - name: "gdpr_deletion_compliance_percent"
+      threshold: 100
+      alert_severity: "critical"
+    - name: "consent_tracking_coverage_percent"
+      threshold: 100
+      alert_severity: "critical"
+
+  alert_channels:
+    - type: "slack"
+      channel: "#marketing-data-alerts"
+    - type: "email"
+      recipients: ["martech@businessos.example.com", "cmo@businessos.example.com"]
+
+data_sharing_agreements:
+  with_sales:
+    frequency: "Real-time"
+    data_shared: "Qualified leads"
+    quality_sla: "99% accuracy"
+    renewal_date: "2026-09-25"
+
+  with_customer_success:
+    frequency: "Daily"
+    data_shared: "Customer engagement metrics"
+    quality_sla: "95% completeness"
+
+versioning:
+  contract_version: "1.0.0"
+  created_date: "2026-03-25"
+  next_review_date: "2026-06-25"
+  review_frequency: "Quarterly"
+  compliance_review_frequency: "Monthly (GDPR/CCPA)"

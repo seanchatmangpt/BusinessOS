@@ -12,7 +12,12 @@ export type WidgetType =
   | "tasks"
   | "activity"
   | "metric"
-  | "signal";
+  | "signal"
+  | "process_map"
+  | "conformance_score"
+  | "variant_distribution"
+  | "bottleneck_heatmap"
+  | "cycle_time_trend";
 
 export type WidgetSize = "small" | "medium" | "large";
 
@@ -78,6 +83,21 @@ export interface SeededAnalytics {
     topActivityType: string;
     weeklyData: number[];
   };
+}
+
+// ── Process Mining KPI domain ─────────────────────────────────────────────────
+
+export interface ProcessMiningKPIData {
+  conformanceFitness: number;
+  conformancePrecision: number;
+  isConformant: boolean;
+  variantCount: number;
+  topVariants: Array<{ label: string; count: number; percentage: number }>;
+  bottleneckActivities: Array<{ activity: string; frequency: number }>;
+  activityFrequencies: Record<string, number>;
+  eventCount: number;
+  traceCount: number;
+  fetchedAt: string;
 }
 
 // ── Data domain ───────────────────────────────────────────────────────────────
