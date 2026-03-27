@@ -8,6 +8,8 @@ use pm4py::{EventLog, Trace, Event};
 use chrono::{DateTime, Utc};
 use std::path::Path;
 
+use crate::yawl::YawlConnector;
+
 // Re-export key pm4py types
 pub use pm4py::{
     discovery::{AlphaMiner, InductiveMiner, HeuristicMiner, TreeMiner},
@@ -117,6 +119,47 @@ impl ProcessMiningEngine {
         })
     }
 
+    /// Load an XES event log from a raw XML string.
+    ///
+    /// Writes the string to a temporary file and delegates to the standard
+    /// `XESReader`, reusing all existing parsing/security logic.
+    pub fn load_xes_string(&self, xes_xml: &str) -> Result<EventLog> {
+        use std::io::Write as _;
+
+        // Write to a uniquely-named temp file so concurrent calls don't collide.
+        let path = std::env::temp_dir().join(format!(
+            "bos-yawl-{}.xes",
+            uuid_hex()
+        ));
+
+        {
+            let mut f = std::fs::File::create(&path)?;
+            f.write_all(xes_xml.as_bytes())?;
+        }
+
+        let result = self.load_log(&path);
+
+        // Best-effort cleanup — ignore errors so we do not mask the real result.
+        let _ = std::fs::remove_file(&path);
+
+        result
+    }
+
+    /// Discover a process model by fetching an XES log from a running YAWL engine.
+    ///
+    /// 1. Calls `yawl.fetch_xes_log(spec_id)` to get the raw XES XML.
+    /// 2. Parses the XES into an in-memory event log.
+    /// 3. Runs the Alpha Miner and returns the discovery result.
+    pub async fn discover_from_yawl(
+        &self,
+        spec_id: &str,
+        yawl: &YawlConnector,
+    ) -> Result<ProcessDiscoveryResult, Box<dyn std::error::Error>> {
+        let xes_xml = yawl.fetch_xes_log(spec_id).await?;
+        let log = self.load_xes_string(&xes_xml)?;
+        Ok(self.discover_alpha(&log)?)
+    }
+
     /// Create an event log from workspace data
     pub fn create_log_from_events(&self, events: Vec<ProcessEvent>) -> EventLog {
         let mut log = EventLog::new();
@@ -166,6 +209,25 @@ impl Default for ProcessMiningEngine {
     }
 }
 
+/// Generate a short hex string suitable for unique temp-file names.
+fn uuid_hex() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    // Combine thread id hash + nanoseconds for a lightweight unique token.
+    let tid = format!("{:?}", std::thread::current().id());
+    let h = {
+        use std::hash::{Hash, Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        tid.hash(&mut hasher);
+        nanos.hash(&mut hasher);
+        hasher.finish()
+    };
+    format!("{:016x}", h)
+}
+
 /// Process event for creating event logs
 #[derive(Debug, Clone)]
 pub struct ProcessEvent {
@@ -207,8 +269,11 @@ mod tests {
 
         let log = engine.create_log_from_events(events);
         assert_eq!(log.traces.len(), 2);
-        assert_eq!(log.traces[0].events.len(), 2);
-        assert_eq!(log.traces[1].events.len(), 1);
+
+        // HashMap iteration order is non-deterministic, so sort lengths before asserting.
+        let mut lengths: Vec<usize> = log.traces.iter().map(|t| t.events.len()).collect();
+        lengths.sort_unstable();
+        assert_eq!(lengths, vec![1, 2], "Expected traces with 1 and 2 events");
     }
 
     #[test]
