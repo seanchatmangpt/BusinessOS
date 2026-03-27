@@ -12,7 +12,12 @@
 		MyTasksWidget,
 		RecentActivityWidget,
 		AnalyticsSidepanel,
-		SignalHealthWidget
+		SignalHealthWidget,
+		ProcessMapViewer,
+		ConformanceScoreWidget,
+		VariantDistributionWidget,
+		BottleneckHeatmapWidget,
+		CycleTimeTrendWidget
 	} from '$lib/components/dashboard';
 	import { NotificationDropdown } from '$lib/components/notifications';
 
@@ -440,6 +445,32 @@
 												</div>
 											{:else if widget.type === 'signal'}
 												<SignalHealthWidget />
+											{:else if widget.type === 'process_map'}
+												<ProcessMapViewer
+													petriNet={null}
+													activityFrequencies={{}}
+													bottleneckActivities={[]}
+												/>
+											{:else if widget.type === 'conformance_score'}
+												<ConformanceScoreWidget
+													data={data.processMiningKPI}
+													loading={data.isProcessMiningKPILoading}
+												/>
+											{:else if widget.type === 'variant_distribution'}
+												<VariantDistributionWidget
+													data={data.processMiningKPI}
+													loading={data.isProcessMiningKPILoading}
+												/>
+											{:else if widget.type === 'bottleneck_heatmap'}
+												<BottleneckHeatmapWidget
+													data={data.processMiningKPI}
+													loading={data.isProcessMiningKPILoading}
+												/>
+											{:else if widget.type === 'cycle_time_trend'}
+												<CycleTimeTrendWidget
+													data={data.processMiningKPI}
+													loading={data.isProcessMiningKPILoading}
+												/>
 											{/if}
 										</div>
 									{/if}
