@@ -76,6 +76,46 @@ export const widgetAnalytics: Record<WidgetType, WidgetAnalyticsEntry> = {
       { label: "Feedback Loop", value: "Active" },
     ],
   },
+  process_map: {
+    title: "Process Map Analytics",
+    stats: [
+      { label: "Places", value: "—" },
+      { label: "Transitions", value: "—" },
+      { label: "Bottlenecks", value: "—" },
+    ],
+  },
+  conformance_score: {
+    title: "Conformance Score Analytics",
+    stats: [
+      { label: "Fitness", value: "—" },
+      { label: "Precision", value: "—" },
+      { label: "Conformant", value: "—" },
+    ],
+  },
+  variant_distribution: {
+    title: "Variant Distribution Analytics",
+    stats: [
+      { label: "Total Variants", value: "—" },
+      { label: "Top Variant %", value: "—" },
+      { label: "Trace Count", value: "—" },
+    ],
+  },
+  bottleneck_heatmap: {
+    title: "Bottleneck Heatmap Analytics",
+    stats: [
+      { label: "Bottlenecks Found", value: "—" },
+      { label: "Top Activity", value: "—" },
+      { label: "Event Count", value: "—" },
+    ],
+  },
+  cycle_time_trend: {
+    title: "Cycle Time Trend Analytics",
+    stats: [
+      { label: "Total Cases", value: "—" },
+      { label: "Total Events", value: "—" },
+      { label: "Variants", value: "—" },
+    ],
+  },
 };
 
 // ── Default seeded analytics data ─────────────────────────────────────────────
