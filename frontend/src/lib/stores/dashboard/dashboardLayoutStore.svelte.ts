@@ -76,6 +76,36 @@ export const availableWidgets: {
     description: "Signal theory system status",
     icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
   },
+  {
+    type: "process_map",
+    title: "Process Map",
+    description: "Petri net process visualization",
+    icon: "M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18",
+  },
+  {
+    type: "conformance_score",
+    title: "Conformance Score",
+    description: "Process model fitness and precision metrics",
+    icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z",
+  },
+  {
+    type: "variant_distribution",
+    title: "Variant Distribution",
+    description: "Top process path variants by frequency",
+    icon: "M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z",
+  },
+  {
+    type: "bottleneck_heatmap",
+    title: "Bottleneck Heatmap",
+    description: "Activity frequency and bottleneck detection",
+    icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+  },
+  {
+    type: "cycle_time_trend",
+    title: "Cycle Time Trend",
+    description: "Average case duration distribution",
+    icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  },
 ];
 
 /** Widget types that may only exist once on the dashboard at a time. */
@@ -84,6 +114,7 @@ export const uniqueWidgetTypes: WidgetType[] = [
   "quick-actions",
   "activity",
   "signal",
+  "process_map",
 ];
 
 /** Widget types that can have multiple instances (differ by config). */

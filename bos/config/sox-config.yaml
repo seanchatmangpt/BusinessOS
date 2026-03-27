@@ -1,0 +1,212 @@
+# SOX Compliance Framework Configuration
+# Sarbanes-Oxley Act of 2002 (15 U.S.C. § 7201 et seq.)
+# https://www.sec.gov/cgi-bin/browse-edgar
+
+framework:
+  name: SOX
+  version: "1.0.0"
+  description: "Sarbanes-Oxley Act Compliance"
+  regulatory_body: "U.S. Securities and Exchange Commission (SEC)"
+  enforcement_agency: "Public Company Accounting Oversight Board (PCAOB)"
+  jurisdiction: "United States of America"
+  applicable_to: "Public companies and foreign private issuers"
+
+section_302:
+  id: "302"
+  title: "Corporate Responsibility for Financial Reports"
+  requirement: "CEO/CFO certification of financial reports"
+  penalties:
+    criminal: true
+    imprisonment_years: 20
+    fines_dollars: 5000000
+
+section_404:
+  id: "404"
+  title: "Management Assessment of Internal Controls"
+  requirement: "Annual assessment of effectiveness of internal control structure"
+  scope:
+    - Financial reporting
+    - Prevention and detection of fraud
+    - Compliance with applicable laws and regulations
+  auditor_attestation: true
+
+section_906:
+  id: "906"
+  title: "Criminal Penalties for Falsification of Financial Reports"
+  requirement: "Criminal penalties for falsification"
+  penalties:
+    imprisonment_years: 20
+    fines_dollars: 5000000
+
+it_general_controls:
+  - id: "ic1.1"
+    name: "Change Management - Segregation of Duties"
+    requirement: "Development and production must be segregated"
+    details:
+      - "No one person can develop AND approve changes to production"
+      - "Change control board must review and approve"
+      - "Testing must be separate from production"
+      - "Emergency changes must be documented post-approval"
+
+  - id: "ic1.2"
+    name: "Change Management - Documentation"
+    requirement: "All changes to production must be documented"
+    details:
+      - "Change request form with business justification"
+      - "Impact assessment"
+      - "Approval trail"
+      - "Testing results"
+      - "Rollback plan"
+
+  - id: "ic1.3"
+    name: "Access Control"
+    requirement: "Restrict access to financial systems and data"
+    details:
+      - "Role-based access control (RBAC)"
+      - "Least privilege principle"
+      - "Annual access reviews"
+      - "Segregation of duties in financial processes"
+
+  - id: "ic1.4"
+    name: "System Availability"
+    requirement: "Financial systems must maintain minimum uptime SLA"
+    details:
+      - "Target: 99.9% uptime"
+      - "Disaster recovery procedures"
+      - "Business continuity planning"
+      - "Regular backup testing"
+
+  - id: "ic1.5"
+    name: "Audit Logging"
+    requirement: "Comprehensive audit logging of all access and changes"
+    details:
+      - "Who (user ID)"
+      - "What (action performed)"
+      - "When (timestamp)"
+      - "Where (system/location)"
+      - "Why (reason/justification)"
+
+financial_data_controls:
+  - id: "fdi1.1"
+    name: "Financial Data Integrity"
+    requirement: "Cryptographic controls to ensure data integrity"
+    details:
+      - "Checksums/hashes for critical financial records"
+      - "Digital signatures for important documents"
+      - "Integrity verification on retrieval"
+      - "Unauthorized modification detection"
+
+  - id: "fdi1.2"
+    name: "Financial Data Accuracy"
+    requirement: "Controls to ensure accuracy of financial data"
+    details:
+      - "Input validation and edits"
+      - "Automated reconciliation procedures"
+      - "Exception reports for anomalies"
+      - "Management review and approval"
+
+  - id: "fdi1.3"
+    name: "Financial System Configuration"
+    requirement: "Secure configuration and hardening"
+    details:
+      - "Remove unnecessary services"
+      - "Apply security patches promptly"
+      - "Disable default accounts"
+      - "Configure firewalls and network segmentation"
+
+record_retention:
+  - description: "Financial records retention"
+    retention_period: "7 years"
+    retention_days: 2555
+    applicable_records:
+      - "General ledger and journal entries"
+      - "Bank statements and reconciliations"
+      - "Accounts receivable and payable records"
+      - "Payroll records"
+      - "Tax returns and supporting documentation"
+      - "Audit workpapers"
+
+  - description: "IT control evidence"
+    retention_period: "7 years"
+    retention_days: 2555
+    applicable_records:
+      - "Access logs"
+      - "Change management records"
+      - "System configuration"
+      - "Backup and recovery testing"
+      - "Security patches and updates"
+
+  - description: "Internal control documentation"
+    retention_period: "7 years"
+    retention_days: 2555
+    applicable_records:
+      - "Risk assessments"
+      - "Internal control procedures"
+      - "Control testing results"
+      - "Control effectiveness evaluations"
+      - "Remediation tracking"
+
+audit_evidence:
+  - type: "access_logs"
+    frequency: "Daily"
+    retention_days: 2555  # 7 years
+    format: "Immutable log files"
+    tool: "SIEM or centralized logging system"
+
+  - type: "change_management_records"
+    frequency: "Per change"
+    retention_days: 2555  # 7 years
+    format: "Change control documentation"
+    tool: "Change management system"
+
+  - type: "system_configuration"
+    frequency: "Post-deployment"
+    retention_days: 2555  # 7 years
+    format: "Configuration baseline"
+    tool: "Configuration management database (CMDB)"
+
+  - type: "audit_trail"
+    frequency: "Continuous"
+    retention_days: 2555  # 7 years
+    format: "Database transaction logs"
+    tool: "Database audit tools"
+
+  - type: "testing_results"
+    frequency: "Per change"
+    retention_days: 2555  # 7 years
+    format: "Test case results and evidence"
+    tool: "Test management system"
+
+  - type: "internal_audit_reports"
+    frequency: "Annual"
+    retention_days: 2555  # 7 years
+    format: "Audit report with testing results"
+    tool: "Internal audit department"
+
+enforcement:
+  - authority: "Public Company Accounting Oversight Board (PCAOB)"
+    jurisdiction: "Auditor oversight and enforcement"
+    penalties: "Auditor sanctions and firm penalties"
+
+  - authority: "Securities and Exchange Commission (SEC)"
+    jurisdiction: "Company financial reporting compliance"
+    penalties:
+      - "Cease and desist orders"
+      - "Civil penalties"
+      - "Officer and director bars"
+
+  - authority: "U.S. Department of Justice (DOJ)"
+    jurisdiction: "Criminal prosecution"
+    penalties:
+      - "Section 302: up to 20 years imprisonment"
+      - "Section 906: up to 20 years imprisonment and $5M fines"
+
+assessment:
+  audit_type: "Management certification and independent audit"
+  frequency: "Annually"
+  required_by: "Section 404"
+  scope: "All material financial reporting controls"
+  auditor_required: true
+  report_format: "Form 10-K (Management Report on Internal Control)"
+  auditor_attestation_required: true
+  management_responsibility: "Establish and maintain adequate internal controls"

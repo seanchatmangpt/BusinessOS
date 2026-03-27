@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Data" prefix="data" uri="http://www.xes-standard.org/data.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="account_001"/>
+    <event>
+      <string key="concept:name" value="read_balance"/>
+      <date key="time:timestamp" value="2024-01-01T10:00:00.000Z"/>
+      <string key="data:account" value="ACC_001"/>
+      <string key="data:balance" value="1000"/>
+    </event>
+    <event>
+      <string key="concept:name" value="acquire_lock"/>
+      <date key="time:timestamp" value="2024-01-01T10:01:00.000Z"/>
+      <string key="data:lock_status" value="locked"/>
+    </event>
+    <event>
+      <string key="concept:name" value="update_balance"/>
+      <date key="time:timestamp" value="2024-01-01T10:02:00.000Z"/>
+      <string key="data:balance" value="950"/>
+    </event>
+    <event>
+      <string key="concept:name" value="release_lock"/>
+      <date key="time:timestamp" value="2024-01-01T10:03:00.000Z"/>
+      <string key="data:lock_status" value="unlocked"/>
+    </event>
+  </trace>
+</log>

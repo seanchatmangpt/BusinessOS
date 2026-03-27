@@ -43,8 +43,12 @@ func (h *Handlers) registerComplianceRoutes(api *gin.RouterGroup, auth gin.Handl
 		compliance.POST("/evidence/collect", complianceH.CollectEvidence)
 		compliance.GET("/gap-analysis", complianceH.GetGapAnalysis)
 		compliance.POST("/remediation", complianceH.CreateRemediation)
+		compliance.POST("/verify", complianceH.VerifyCompliance)
 	}
 	slog.Info("Compliance routes registered at /api/compliance/*")
+
+	// Register Compliance REST API routes (Agent 27: Compliance REST API)
+	h.registerComplianceAPIRoutes(api, auth)
 }
 
 // GetComplianceStatus handles GET /api/compliance/status.
@@ -191,4 +195,29 @@ func (h *ComplianceHandler) CreateRemediation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, task)
+}
+
+// VerifyCompliance handles POST /api/compliance/verify.
+// JTBD Wave 12 scenario 3 compliance verification endpoint.
+// Body: {"workspace_id": "...", "framework": "soc2"}
+// Returns compliance status, findings count, and remediation progress.
+func (h *ComplianceHandler) VerifyCompliance(c *gin.Context) {
+	var req services.ComplianceVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.RespondInvalidRequest(c, h.logger, err)
+		return
+	}
+
+	if req.WorkspaceID == "" || req.Framework == "" {
+		utils.RespondBadRequest(c, h.logger, "workspace_id and framework are required")
+		return
+	}
+
+	result, err := h.complianceService.VerifyCompliance(c.Request.Context(), req)
+	if err != nil {
+		utils.RespondInternalError(c, h.logger, "verify compliance", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }

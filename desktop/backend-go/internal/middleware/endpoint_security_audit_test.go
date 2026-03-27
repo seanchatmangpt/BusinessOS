@@ -154,9 +154,10 @@ func TestEndpointSecurityAudit_PublicEndpointsDoNotRequireAuth(t *testing.T) {
 
 		// Create mock pool (in real scenario, would use actual pgxpool)
 		var pool interface{}
+		_ = pool
 
-		middleware := OptionalAuthMiddleware(pool.(*struct{})) // This would fail in reality, but demonstrates intent
 		// Note: This test is illustrative. Real test would need a mock pool.
+		// OptionalAuthMiddleware requires a proper pgxpool instance.
 
 		// ASSERT: OptionalAuth should allow request to proceed without user in context
 		// (The actual assertion depends on pool implementation)
@@ -275,8 +276,14 @@ func TestEndpointSecurityAudit_TokenStandardization(t *testing.T) {
 		token := generateValidJWT(secretKey, "user123", "user@example.com")
 
 		// ASSERT: Token has correct format (three dot-separated parts for JWT)
-		parts := jwt.Split(token, ".")
-		assert.Len(t, parts, 3, "JWT must have 3 parts separated by dots: header.payload.signature")
+		// Count dots in token instead of using jwt.Split
+		dotCount := 0
+		for _, ch := range token {
+			if ch == '.' {
+				dotCount++
+			}
+		}
+		assert.Equal(t, 2, dotCount, "JWT must have 3 parts separated by 2 dots: header.payload.signature")
 
 		// ASSERT: Token can be parsed and claims retrieved
 		c, _ := setupJWTTestContext("GET", "Bearer "+token)

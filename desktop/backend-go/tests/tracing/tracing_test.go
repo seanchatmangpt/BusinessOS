@@ -1,7 +1,6 @@
 package tracing_test
 
 import (
-	"context"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ type Trace struct {
 	ParentID  string
 	Flags     string
 	StartTime time.Time
+	Spans     []*Span
 }
 
 // Span represents an individual span in a trace
@@ -317,10 +317,6 @@ func generateID(length int) string {
 	return string(result)
 }
 
-// Add Spans field to Trace struct for reconstruction test
-type TraceWithSpans struct {
-	TraceID string
-	Spans   []*Span
-}
-
-func (t *Trace) Spans([]*Span) {}
+// ============================================================================
+// Helper Types
+// ============================================================================

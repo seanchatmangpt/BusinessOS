@@ -13,6 +13,7 @@ import type {
   DashboardProjectRow,
   DashboardTaskRow,
   DashboardActivityRow,
+  ProcessMiningKPIData,
 } from "./types";
 
 function createDashboardDataStore() {
@@ -26,6 +27,10 @@ function createDashboardDataStore() {
   let projects = $state<DashboardProjectRow[]>([]);
   let tasks = $state<DashboardTaskRow[]>([]);
   let activities = $state<DashboardActivityRow[]>([]);
+
+  // ── Process Mining KPI ───────────────────────────────────────────────────────
+  let processMiningKPI = $state<ProcessMiningKPIData | null>(null);
+  let isProcessMiningKPILoading = $state(false);
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
@@ -136,6 +141,26 @@ function createDashboardDataStore() {
     }
   }
 
+  // ── Process Mining KPI fetch ─────────────────────────────────────────────────
+
+  async function loadProcessMiningKPI(eventLog?: unknown): Promise<void> {
+    isProcessMiningKPILoading = true;
+    try {
+      const resp = await fetch("/api/pm4py/dashboard-kpi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_log: eventLog ?? { traces: [] } }),
+      });
+      if (resp.ok) {
+        processMiningKPI = (await resp.json()) as ProcessMiningKPIData;
+      }
+    } catch {
+      // Silently fail — pm4py not running is expected in dev
+    } finally {
+      isProcessMiningKPILoading = false;
+    }
+  }
+
   // ── Energy ────────────────────────────────────────────────────────────────────
 
   function handleEnergySet(level: number): void {
@@ -195,6 +220,20 @@ function createDashboardDataStore() {
       activities = v;
     },
 
+    get processMiningKPI() {
+      return processMiningKPI;
+    },
+    set processMiningKPI(v: ProcessMiningKPIData | null) {
+      processMiningKPI = v;
+    },
+
+    get isProcessMiningKPILoading() {
+      return isProcessMiningKPILoading;
+    },
+    set isProcessMiningKPILoading(v: boolean) {
+      isProcessMiningKPILoading = v;
+    },
+
     loadDashboard,
     handleFocusToggle,
     handleFocusAdd,
@@ -202,6 +241,7 @@ function createDashboardDataStore() {
     handleFocusEdit,
     handleTaskToggle,
     handleEnergySet,
+    loadProcessMiningKPI,
   };
 }
 

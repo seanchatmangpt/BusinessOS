@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Data" prefix="data" uri="http://www.xes-standard.org/data.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="lineage_001"/>
+    <event>
+      <string key="concept:name" value="extract_data"/>
+      <date key="time:timestamp" value="2024-01-01T08:00:00.000Z"/>
+      <string key="data:data_id" value="d_001"/>
+      <string key="data:source" value="database"/>
+    </event>
+    <event>
+      <string key="concept:name" value="transform_data"/>
+      <date key="time:timestamp" value="2024-01-01T08:10:00.000Z"/>
+      <string key="data:data_id" value="d_002"/>
+      <string key="data:derived_from" value="d_001"/>
+      <string key="data:transformation" value="normalize"/>
+    </event>
+    <event>
+      <string key="concept:name" value="aggregate_data"/>
+      <date key="time:timestamp" value="2024-01-01T08:20:00.000Z"/>
+      <string key="data:data_id" value="d_003"/>
+      <string key="data:derived_from" value="d_002"/>
+      <string key="data:transformation" value="aggregate"/>
+    </event>
+  </trace>
+</log>

@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
+	"github.com/rhl/businessos-backend/internal/integrations/pm4py_rust"
 	"github.com/rhl/businessos-backend/internal/middleware"
 )
 
@@ -41,7 +44,10 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerOntologyRoutes(api, auth)
 	h.registerComplianceRoutes(api, auth)
 	h.registerTransactionRoutes(api, auth)
+	h.registerMeshRoutes(api, auth)
 	h.registerBOSProgressRoutes(api, jwtAuth)
+	h.registerBoardRoutes(api)
+	h.registerPM4PyDashboardRoutes(api)
 }
 
 // registerOntologyRoutes wires /api/ontology routes via bos CLI bridge.
@@ -59,6 +65,32 @@ func (h *Handlers) registerTransactionRoutes(api *gin.RouterGroup, auth gin.Hand
 		return // transactions not configured — skip
 	}
 	h.transactionHandler.RegisterRoutes(api)
+}
+
+// registerMeshRoutes wires /api/mesh routes for data mesh federation.
+func (h *Handlers) registerMeshRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	meshHandler := NewDataMeshHandler("http://localhost:3030", nil)
+	RegisterDataMeshRoutes(api, meshHandler, auth)
+}
+
+// registerBoardRoutes wires /api/board routes for Board Chair Intelligence.
+// Unauthenticated by design at the handler level — callers may add middleware via the api group.
+func (h *Handlers) registerBoardRoutes(api *gin.RouterGroup) {
+	boardHandler := NewBoardHandler()
+	RegisterBoardRoutes(api, boardHandler)
+}
+
+// registerPM4PyDashboardRoutes wires POST /api/pm4py/dashboard-kpi.
+// The pm4py-rust base URL is read from the PM4PY_RUST_URL environment variable
+// (default: http://localhost:8090), consistent with the bos gateway pattern.
+func (h *Handlers) registerPM4PyDashboardRoutes(api *gin.RouterGroup) {
+	baseURL := os.Getenv("PM4PY_RUST_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8090"
+	}
+	pm4pyClient := pm4py_rust.NewClient(baseURL)
+	dashHandler := NewPM4PyDashboardHandler(pm4pyClient)
+	api.POST("/pm4py/dashboard-kpi", dashHandler.GetDashboardKPI)
 }
 
 // registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception

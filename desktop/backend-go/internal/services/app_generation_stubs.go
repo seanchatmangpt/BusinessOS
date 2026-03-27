@@ -134,14 +134,19 @@ type AgenticRAGService struct {
 	cache          *RAGCacheService
 }
 
-// NewAgenticRAGService creates a new agentic RAG service
+// NewAgenticRAGService creates a new agentic RAG service.
+// Note: bootstrap.go passes different parameters; those are legacy.
+// The modern signature uses QueryExpansionService and RAGCacheService.
 func NewAgenticRAGService(
-	queryExpansion *QueryExpansionService,
-	cache *RAGCacheService,
+	pool *pgxpool.Pool,
+	hybridSearch *HybridSearchService,
+	reranker *ReRankerService,
+	embedding *EmbeddingService,
+	learning *LearningService,
 ) *AgenticRAGService {
 	return &AgenticRAGService{
-		queryExpansion: queryExpansion,
-		cache:          cache,
+		queryExpansion: nil, // Populated by SetQueryExpansion
+		cache:          nil, // Populated by SetCache
 	}
 }
 
@@ -153,4 +158,14 @@ func (s *AgenticRAGService) ProcessQuery(ctx context.Context, req AgenticRAGRequ
 		Confidence:  0.5,
 		GeneratedAt: time.Now(),
 	}, nil
+}
+
+// SetCache sets the RAG cache service
+func (s *AgenticRAGService) SetCache(cache *RAGCacheService) {
+	s.cache = cache
+}
+
+// SetQueryExpansion sets the query expansion service
+func (s *AgenticRAGService) SetQueryExpansion(queryExpansion *QueryExpansionService) {
+	s.queryExpansion = queryExpansion
 }

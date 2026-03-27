@@ -1,0 +1,202 @@
+package rdf
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/rhl/businessos-backend/internal/config"
+)
+
+// Client provides RDF operations against an Oxigraph triplestore.
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	timeout    time.Duration
+	logger     *slog.Logger
+}
+
+// NewClient creates a new RDF client.
+// If cfg is nil, uses environment variable OXIGRAPH_URL or defaults to http://localhost:8890.
+func NewClient(cfg *config.Config) *Client {
+	baseURL := os.Getenv("OXIGRAPH_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8890"
+	}
+
+	return &Client{
+		baseURL: strings.TrimSuffix(baseURL, "/"),
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		},
+		timeout: 30 * time.Second,
+		logger:  slog.Default(),
+	}
+}
+
+// LoadOntology loads a Turtle ontology into Oxigraph.
+// file: path to .ttl file
+// Returns error if the operation fails.
+func (c *Client) LoadOntology(ctx context.Context, file string) error {
+	c.logger.InfoContext(ctx, "loading ontology", slog.String("file", file))
+
+	content, err := os.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("read file failed: %w", err)
+	}
+
+	return c.loadTurtle(ctx, content)
+}
+
+// LoadTurtleData loads Turtle data (bytes) into Oxigraph.
+func (c *Client) LoadTurtleData(ctx context.Context, data []byte) error {
+	return c.loadTurtle(ctx, data)
+}
+
+// loadTurtle POSTs Turtle data to Oxigraph /store endpoint.
+func (c *Client) loadTurtle(ctx context.Context, data []byte) error {
+	url := fmt.Sprintf("%s/store", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(string(data)))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "text/turtle")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Success: 200 OK or 204 No Content
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	// Error response
+	body, _ := io.ReadAll(resp.Body)
+	return fmt.Errorf("oxigraph returned HTTP %d: %s", resp.StatusCode, string(body))
+}
+
+// LoadData inserts RDF data via SPARQL INSERT query.
+// query: SPARQL INSERT DATA query
+// Returns error if the operation fails.
+func (c *Client) LoadData(ctx context.Context, query string) error {
+	c.logger.DebugContext(ctx, "executing sparql insert", slog.String("query_len", fmt.Sprintf("%d bytes", len(query))))
+
+	return c.executeSPARQL(ctx, query)
+}
+
+// QuerySPARQL executes a SELECT or CONSTRUCT query.
+// Returns query results as string (JSON or XML depending on Oxigraph response).
+func (c *Client) QuerySPARQL(ctx context.Context, query string) (string, error) {
+	c.logger.DebugContext(ctx, "executing sparql query", slog.String("query_len", fmt.Sprintf("%d bytes", len(query))))
+
+	url := fmt.Sprintf("%s/query", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(query))
+	if err != nil {
+		return "", fmt.Errorf("create request failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/sparql-query")
+	req.Header.Set("Accept", "application/sparql-results+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response failed: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("oxigraph returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	return string(body), nil
+}
+
+// executeSPARQL sends a SPARQL query to the /query endpoint.
+// Supports both SELECT and INSERT queries.
+func (c *Client) executeSPARQL(ctx context.Context, query string) error {
+	url := fmt.Sprintf("%s/query", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(query))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/sparql-query")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	// Success: 200 OK or 204 No Content
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
+	// Error response
+	return fmt.Errorf("oxigraph returned HTTP %d: %s", resp.StatusCode, string(body))
+}
+
+// Health checks if Oxigraph is responding.
+func (c *Client) Health(ctx context.Context) error {
+	url := fmt.Sprintf("%s/query", c.baseURL)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader("SELECT ?s WHERE { ?s ?p ?o . } LIMIT 1"))
+	if err != nil {
+		return fmt.Errorf("create request failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/sparql-query")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("oxigraph unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("oxigraph returned HTTP %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// GetBaseURL returns the configured Oxigraph base URL.
+func (c *Client) GetBaseURL() string {
+	return c.baseURL
+}
+
+// SetTimeout updates the client timeout duration.
+func (c *Client) SetTimeout(d time.Duration) {
+	c.timeout = d
+	c.httpClient.Timeout = d
+}
+
+// SetLogger updates the logger instance.
+func (c *Client) SetLogger(logger *slog.Logger) {
+	c.logger = logger
+}

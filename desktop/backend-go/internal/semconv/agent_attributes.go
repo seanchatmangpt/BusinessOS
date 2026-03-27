@@ -85,6 +85,9 @@ const (
 	// AgentMessageCountKey is the OTel attribute key for agent.message.count.
 	// Number of messages exchanged by this agent during the current operation.
 	AgentMessageCountKey = attribute.Key("agent.message.count")
+	// AgentNodeKey is the OTel attribute key for agent.node.
+	// Node identifier for the agent (hostname, cluster node, etc).
+	AgentNodeKey = attribute.Key("agent.node")
 	// AgentOrchestratorIdKey is the OTel attribute key for agent.orchestrator.id.
 	// Identifier of the orchestrating agent supervising this agent (Armstrong supervision tree).
 	AgentOrchestratorIdKey = attribute.Key("agent.orchestrator.id")
@@ -130,12 +133,18 @@ const (
 	// AgentTaskStatusKey is the OTel attribute key for agent.task.status.
 	// The current execution status of the agent task.
 	AgentTaskStatusKey = attribute.Key("agent.task.status")
+	// AgentTimestampKey is the OTel attribute key for agent.timestamp.
+	// Timestamp when the agent decision was made (ISO 8601 format).
+	AgentTimestampKey = attribute.Key("agent.timestamp")
 	// AgentTokenCountKey is the OTel attribute key for agent.token_count.
 	// Total token count for the agent inference.
 	AgentTokenCountKey = attribute.Key("agent.token_count")
 	// AgentTopologyTypeKey is the OTel attribute key for agent.topology.type.
 	// The coordination topology of agents in this multi-agent system.
 	AgentTopologyTypeKey = attribute.Key("agent.topology.type")
+	// AgentVersionKey is the OTel attribute key for agent.version.
+	// Version of the agent code/model being executed.
+	AgentVersionKey = attribute.Key("agent.version")
 	// AgentWorkflowCheckpointIdKey is the OTel attribute key for agent.workflow.checkpoint_id.
 	// Unique identifier for the workflow checkpoint.
 	AgentWorkflowCheckpointIdKey = attribute.Key("agent.workflow.checkpoint_id")
@@ -342,6 +351,11 @@ func AgentMessageCount(val int64) attribute.KeyValue {
 	return AgentMessageCountKey.Int64(val)
 }
 
+// AgentNode returns an attribute KeyValue for agent.node.
+func AgentNode(val string) attribute.KeyValue {
+	return AgentNodeKey.String(val)
+}
+
 // AgentOrchestratorId returns an attribute KeyValue for agent.orchestrator.id.
 func AgentOrchestratorId(val string) attribute.KeyValue {
 	return AgentOrchestratorIdKey.String(val)
@@ -467,6 +481,11 @@ var AgentTaskStatusValues = struct {
 	Cancelled: "cancelled",
 }
 
+// AgentTimestamp returns an attribute KeyValue for agent.timestamp.
+func AgentTimestamp(val string) attribute.KeyValue {
+	return AgentTimestampKey.String(val)
+}
+
 // AgentTokenCount returns an attribute KeyValue for agent.token_count.
 func AgentTokenCount(val int64) attribute.KeyValue {
 	return AgentTokenCountKey.Int64(val)
@@ -490,6 +509,11 @@ var AgentTopologyTypeValues = struct {
 	Hierarchical: "hierarchical",
 	Mesh: "mesh",
 	Star: "star",
+}
+
+// AgentVersion returns an attribute KeyValue for agent.version.
+func AgentVersion(val string) attribute.KeyValue {
+	return AgentVersionKey.String(val)
 }
 
 // AgentWorkflowCheckpointId returns an attribute KeyValue for agent.workflow.checkpoint_id.

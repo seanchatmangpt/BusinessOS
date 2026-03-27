@@ -1,0 +1,85 @@
+# L0 Fact Ingestion — BusinessOS → Oxigraph RDF
+#
+# Transforms BusinessOS operational data into bos: ontology triples.
+# Run BEFORE l1_process_metrics.sparql.
+#
+# Source: BusinessOS cases table, handoffs table, org hierarchy
+# Target: Oxigraph named graph <http://businessos.local/l0>
+#
+# WvdA: L0 = ground truth event log. All higher levels derive from this.
+# Armstrong: no transformation logic here — only projection of facts.
+
+PREFIX bos: <http://businessos.local/ontology#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+
+CONSTRUCT {
+  # Case facts
+  ?caseUri a bos:Case ;
+           bos:caseId ?caseId ;
+           bos:department ?dept ;
+           bos:status ?status ;
+           bos:cycleTimeSeconds ?cycleTime ;
+           dcterms:created ?createdAt ;
+           dcterms:modified ?updatedAt .
+
+  # Process handoff facts
+  ?handoffUri a bos:ProcessHandoff ;
+              bos:sourceDepartment ?sourceDept ;
+              bos:targetDepartment ?targetDept ;
+              bos:durationSeconds ?handoffDuration ;
+              bos:handoffAt ?handoffAt .
+
+  # Department facts
+  ?deptUri a bos:Department ;
+           bos:departmentId ?deptId ;
+           bos:departmentName ?deptName ;
+           bos:parentDepartment ?parentDeptUri .
+
+  # Provenance
+  ?caseUri prov:generatedAtTime ?now ;
+           prov:wasGeneratedBy bos:L0Ingestion .
+}
+WHERE {
+  # This query is executed against BusinessOS's SPARQL-over-SQL bridge
+  # or manually populated via bos CLI: `bos seed l0`
+  #
+  # When no source system is available, seed with synthetic facts for
+  # system bootstrapping. Production: replace VALUES blocks with actual
+  # SPARQL-over-REST federation.
+
+  VALUES (?caseId ?dept ?status ?cycleTime ?createdAt) {
+    ("case-001" "Engineering" "active" "172800"^^xsd:integer "2026-03-24T00:00:00Z"^^xsd:dateTime)
+    ("case-002" "Engineering" "active" "86400"^^xsd:integer "2026-03-25T00:00:00Z"^^xsd:dateTime)
+    ("case-003" "Sales" "active" "259200"^^xsd:integer "2026-03-24T06:00:00Z"^^xsd:dateTime)
+    ("case-004" "Sales" "completed" "432000"^^xsd:integer "2026-03-20T00:00:00Z"^^xsd:dateTime)
+    ("case-005" "Operations" "active" "345600"^^xsd:integer "2026-03-23T00:00:00Z"^^xsd:dateTime)
+    ("case-006" "Operations" "active" "518400"^^xsd:integer "2026-03-22T00:00:00Z"^^xsd:dateTime)
+    ("case-007" "Finance" "active" "691200"^^xsd:integer "2026-03-21T00:00:00Z"^^xsd:dateTime)
+  }
+
+  BIND(IRI(CONCAT("http://businessos.local/cases/", ?caseId)) AS ?caseUri)
+  BIND(NOW() AS ?now)
+  BIND(IRI(CONCAT("http://businessos.local/cases/", ?caseId, "/updated")) AS ?updatedAt)
+
+  VALUES (?sourceDept ?targetDept ?handoffDuration ?handoffAt) {
+    ("Engineering" "Sales" "28800"^^xsd:integer "2026-03-25T08:00:00Z"^^xsd:dateTime)
+    ("Sales" "Finance" "57600"^^xsd:integer "2026-03-24T16:00:00Z"^^xsd:dateTime)
+    ("Finance" "Operations" "86400"^^xsd:integer "2026-03-23T09:00:00Z"^^xsd:dateTime)
+    ("Operations" "Engineering" "43200"^^xsd:integer "2026-03-22T14:00:00Z"^^xsd:dateTime)
+    ("Engineering" "Operations" "172800"^^xsd:integer "2026-03-21T10:00:00Z"^^xsd:dateTime)
+  }
+
+  BIND(IRI(CONCAT("http://businessos.local/handoffs/", ?sourceDept, "-", ?targetDept, "-", STR(?handoffAt))) AS ?handoffUri)
+
+  VALUES (?deptId ?deptName) {
+    ("eng" "Engineering")
+    ("sales" "Sales")
+    ("ops" "Operations")
+    ("fin" "Finance")
+  }
+
+  BIND(IRI(CONCAT("http://businessos.local/departments/", ?deptId)) AS ?deptUri)
+  BIND(IRI("http://businessos.local/departments/root") AS ?parentDeptUri)
+}

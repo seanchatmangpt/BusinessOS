@@ -1,0 +1,325 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXTENDED RESEARCH ONTOLOGY CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Extended configuration for research, healthcare, and academic use cases.
+# Includes Fortune 5 compliance stack plus research, healthcare, and academic domains.
+#
+# Environment: production (extended deployment)
+# Created: 2026-03-25
+# Purpose: Support research institutions, healthcare providers, and academic organizations
+
+apiVersion: "ontology.chatmangpt.com/v1"
+kind: "OntologyConfig"
+
+metadata:
+  name: "extended-research"
+  environment: "production"
+  version: "1.0.0"
+  description: "Extended ontology configuration with research, healthcare, and academic domains"
+  created_at: "2026-03-25T00:00:00Z"
+  updated_at: "2026-03-25T00:00:00Z"
+
+spec:
+  # All frameworks enabled including extended
+  frameworks:
+    compliance:
+      soc2: true
+      hipaa: true
+      gdpr: true
+      sox: true
+    domains:
+      commerce: true
+      operations: true
+      people: true
+      finance: true
+      analytics: true
+    extended:
+      fibo: true
+      healthcare: true
+      research: true
+
+  # Complete ontology set with research extensions
+  ontologies:
+    # ──────────────────────────────────────────────────────────────────────
+    # COMPLIANCE ONTOLOGIES (inherited from F5)
+    # ──────────────────────────────────────────────────────────────────────
+
+    - name: soc2_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/soc2/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "soc2"
+      frameworks: [soc2]
+      description: "SOC2 Type II trust service criteria"
+
+    - name: hipaa_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/hipaa/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "hipaa"
+      frameworks: [hipaa]
+      description: "HIPAA Privacy Rule, Security Rule (critical for healthcare)"
+
+    - name: gdpr_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/gdpr/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "gdpr"
+      frameworks: [gdpr]
+      description: "GDPR for research data subjects and international participants"
+
+    - name: sox_ontology
+      iri: "https://ontology.chatmangpt.com/compliance/sox/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "sox"
+      frameworks: [sox]
+      description: "SOX for research organization financial reporting"
+
+    # ──────────────────────────────────────────────────────────────────────
+    # DATA MESH DOMAINS
+    # ──────────────────────────────────────────────────────────────────────
+
+    - name: sales_ontology
+      iri: "https://ontology.chatmangpt.com/sales/v1"
+      version: "1.2.0"
+      required: true
+      enabled: true
+      alias: "sales"
+      frameworks: [commerce, soc2]
+      description: "Sales domain for research services, course enrollments, licensing"
+
+    - name: operations_ontology
+      iri: "https://ontology.chatmangpt.com/operations/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "ops"
+      frameworks: [operations, soc2]
+      description: "Operations domain for research workflows and lab operations"
+
+    - name: people_ontology
+      iri: "https://ontology.chatmangpt.com/people/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "people"
+      frameworks: [people, gdpr, hipaa]
+      description: "People domain for researchers, students, staff with GDPR compliance"
+
+    - name: finance_ontology
+      iri: "https://ontology.chatmangpt.com/finance/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "finance"
+      frameworks: [finance, sox]
+      description: "Finance domain for grant management and budgeting"
+
+    - name: analytics_ontology
+      iri: "https://ontology.chatmangpt.com/analytics/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "analytics"
+      frameworks: [analytics]
+      dependencies: [sales_ontology, operations_ontology, finance_ontology]
+      description: "Analytics for research performance and outcomes"
+
+    - name: governance_ontology
+      iri: "https://ontology.chatmangpt.com/governance/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "governance"
+      frameworks: [soc2, gdpr, hipaa, sox]
+      description: "Governance including IRB (Institutional Review Board) compliance"
+
+    - name: signal_ontology
+      iri: "https://ontology.chatmangpt.com/signal/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "signal"
+      frameworks: []
+      description: "Signal Theory for research artifact generation and synthesis"
+
+    # ──────────────────────────────────────────────────────────────────────
+    # HEALTHCARE DOMAIN (Required for healthcare orgs)
+    # ──────────────────────────────────────────────────────────────────────
+
+    - name: healthcare_ontology
+      iri: "https://ontology.chatmangpt.com/healthcare/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "healthcare"
+      frameworks: [healthcare, hipaa, gdpr]
+      dependencies: [hipaa_ontology, people_ontology]
+      validation:
+        entity_count_min: 20
+        relationship_count_min: 15
+      description: |
+        Healthcare domain: patients, episodes of care, diagnoses, treatments,
+        providers, clinical protocols, health information exchange (HIE),
+        HL7 v2/FHIR compliance, quality measures
+
+    # ──────────────────────────────────────────────────────────────────────
+    # RESEARCH DOMAIN (Required for research orgs)
+    # ──────────────────────────────────────────────────────────────────────
+
+    - name: research_ontology
+      iri: "https://ontology.chatmangpt.com/research/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "research"
+      frameworks: [research, gdpr, hipaa]
+      dependencies: [governance_ontology, people_ontology]
+      validation:
+        entity_count_min: 25
+        relationship_count_min: 20
+      description: |
+        Research domain: studies (observational/experimental), protocols,
+        subjects, informed consent, data collection, hypothesis, results,
+        publications, reproducibility, open science standards (DOI, ORCID),
+        data sharing agreements, IRB approval
+
+    # Research data management
+    - name: research_data_ontology
+      iri: "https://ontology.chatmangpt.com/research-data/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "research_data"
+      frameworks: [research, gdpr]
+      dependencies: [research_ontology]
+      validation:
+        entity_count_min: 15
+        relationship_count_min: 10
+      description: |
+        Research data management: datasets, data formats, repositories,
+        metadata, data discovery, FAIR principles (Findable, Accessible,
+        Interoperable, Reusable), provenance, versioning, retention policy
+
+    # Academic curriculum and courses
+    - name: academic_ontology
+      iri: "https://ontology.chatmangpt.com/academic/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "academic"
+      frameworks: [research, gdpr]
+      dependencies: [people_ontology]
+      validation:
+        entity_count_min: 12
+        relationship_count_min: 10
+      description: |
+        Academic domain: institutions, programs, courses, curriculum,
+        learning outcomes, assessment, student records, degrees, transcripts,
+        academic calendar, prerequisites, grading
+
+    # ──────────────────────────────────────────────────────────────────────
+    # EXTENDED FINANCIAL
+    # ──────────────────────────────────────────────────────────────────────
+
+    - name: fibo_ontology
+      iri: "https://spec.edmcouncil.org/fibo/v23.3/be/SoleProprietorships"
+      version: "23.3.0"
+      required: false
+      enabled: true
+      alias: "fibo"
+      frameworks: [fibo, finance, sox]
+      validation:
+        entity_count_min: 100
+      description: "FIBO for detailed financial instruments and business entities"
+
+    # Grant management
+    - name: grant_ontology
+      iri: "https://ontology.chatmangpt.com/grants/v1"
+      version: "1.0.0"
+      required: true
+      enabled: true
+      alias: "grants"
+      frameworks: [finance, research, sox]
+      dependencies: [finance_ontology, research_ontology]
+      validation:
+        entity_count_min: 10
+        relationship_count_min: 8
+      description: |
+        Grant management: funding sources, grant applications, awards,
+        budgets, spending, reporting, compliance (NSF, NIH, etc.),
+        cost-sharing, indirect costs, grant close-out
+
+  # SPARQL namespace registry with research extensions
+  namespaces:
+    # Compliance
+    soc2: "https://ontology.chatmangpt.com/compliance/soc2/v1"
+    hipaa: "https://ontology.chatmangpt.com/compliance/hipaa/v1"
+    gdpr: "https://ontology.chatmangpt.com/compliance/gdpr/v1"
+    sox: "https://ontology.chatmangpt.com/compliance/sox/v1"
+    # Core domains
+    sales: "https://ontology.chatmangpt.com/sales/v1"
+    ops: "https://ontology.chatmangpt.com/operations/v1"
+    people: "https://ontology.chatmangpt.com/people/v1"
+    finance: "https://ontology.chatmangpt.com/finance/v1"
+    analytics: "https://ontology.chatmangpt.com/analytics/v1"
+    governance: "https://ontology.chatmangpt.com/governance/v1"
+    signal: "https://ontology.chatmangpt.com/signal/v1"
+    # Healthcare and research
+    healthcare: "https://ontology.chatmangpt.com/healthcare/v1"
+    research: "https://ontology.chatmangpt.com/research/v1"
+    research_data: "https://ontology.chatmangpt.com/research-data/v1"
+    academic: "https://ontology.chatmangpt.com/academic/v1"
+    grants: "https://ontology.chatmangpt.com/grants/v1"
+    # Extended financial
+    fibo: "https://spec.edmcouncil.org/fibo/v23.3/"
+    # Standard RDF/OWL/DCAT
+    xsd: "http://www.w3.org/2001/XMLSchema#"
+    rdf: "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    rdfs: "http://www.w3.org/2000/01/rdf-schema#"
+    owl: "http://www.w3.org/2002/07/owl#"
+    dcat: "http://www.w3.org/ns/dcat#"
+    dctypes: "http://purl.org/dc/dcmitype/"
+    dcterms: "http://purl.org/dc/terms/"
+    prov: "http://www.w3.org/ns/prov#"
+    # Research standards
+    qudt: "http://qudt.org/schema/qudt/"
+    foaf: "http://xmlns.com/foaf/0.1/"
+
+  # Environment configuration
+  environments:
+    production:
+      enabled_ontologies:
+        # Core F5
+        - soc2_ontology
+        - hipaa_ontology
+        - gdpr_ontology
+        - sox_ontology
+        - sales_ontology
+        - operations_ontology
+        - people_ontology
+        - finance_ontology
+        - analytics_ontology
+        - governance_ontology
+        - signal_ontology
+        # Healthcare and research
+        - healthcare_ontology
+        - research_ontology
+        - research_data_ontology
+        - academic_ontology
+        # Finance extensions
+        - fibo_ontology
+        - grant_ontology
+
+  # Strict validation for extended research deployment
+  validation:
+    strict: true
+    on_missing_required: "error"
+    on_version_mismatch: "error"
+    on_circular_dependency: "error"

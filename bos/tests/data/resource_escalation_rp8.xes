@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log xes.version="1.0" xes.features="nested-attributes" xmlns="http://www.xes-standard.org/">
+  <extension name="Concept" prefix="concept" uri="http://www.xes-standard.org/concept.xesext"/>
+  <extension name="Time" prefix="time" uri="http://www.xes-standard.org/time.xesext"/>
+  <extension name="Organizational" prefix="org" uri="http://www.xes-standard.org/org.xesext"/>
+  <global scope="trace">
+    <string key="concept:name" value="case id"/>
+  </global>
+  <global scope="event">
+    <string key="concept:name" value="activity"/>
+    <date key="time:timestamp" value="timestamp"/>
+    <string key="org:resource" value="resource"/>
+    <string key="org:level" value="level"/>
+  </global>
+  <trace>
+    <string key="concept:name" value="ticket_001"/>
+    <event>
+      <string key="concept:name" value="create_ticket"/>
+      <date key="time:timestamp" value="2024-01-01T09:00:00.000Z"/>
+      <string key="org:resource" value="system"/>
+      <string key="org:level" value="system"/>
+    </event>
+    <event>
+      <string key="concept:name" value="handle_by_support_l1"/>
+      <date key="time:timestamp" value="2024-01-01T09:15:00.000Z"/>
+      <string key="org:resource" value="support_l1"/>
+      <string key="org:level" value="level1"/>
+    </event>
+    <event>
+      <string key="concept:name" value="escalate_to_l2"/>
+      <date key="time:timestamp" value="2024-01-01T10:00:00.000Z"/>
+      <string key="org:resource" value="support_l2"/>
+      <string key="org:level" value="level2"/>
+    </event>
+    <event>
+      <string key="concept:name" value="resolve_by_l2"/>
+      <date key="time:timestamp" value="2024-01-01T10:45:00.000Z"/>
+      <string key="org:resource" value="support_l2"/>
+      <string key="org:level" value="level2"/>
+    </event>
+  </trace>
+</log>

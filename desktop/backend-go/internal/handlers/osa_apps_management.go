@@ -427,14 +427,14 @@ func (h *OSAAppsHandler) GetAppLogs(c *gin.Context) {
 	limit := int32(50)
 	if limitStr := c.Query("limit"); limitStr != "" {
 		if parsedLimit, err := parseIntParam(limitStr); err == nil && parsedLimit > 0 {
-			limit = parsedLimit
+			limit = int32(parsedLimit)
 		}
 	}
 
 	offset := int32(0)
 	if offsetStr := c.Query("offset"); offsetStr != "" {
 		if parsedOffset, err := parseIntParam(offsetStr); err == nil && parsedOffset >= 0 {
-			offset = parsedOffset
+			offset = int32(parsedOffset)
 		}
 	}
 

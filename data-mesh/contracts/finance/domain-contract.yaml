@@ -1,0 +1,546 @@
+---
+# ========================================================================
+# Finance Domain Data Mesh Contract
+# ========================================================================
+# Version: 1.0.0
+# Owner: CFO / Finance Team
+# Created: 2026-03-25
+# Last Updated: 2026-03-25
+# ========================================================================
+
+domain:
+  name: Finance
+  owner: "Chief Financial Officer (CFO)"
+  contact_email: "cfo@businessos.example.com"
+  contact_phone: "+1-555-FINANCE"
+  department: "Finance Operations"
+  business_unit: "Corporate Finance"
+  cost_center: "1001"
+
+governance:
+  data_steward: "Finance Data Steward"
+  data_steward_email: "data-steward.finance@businessos.example.com"
+  technical_owner: "Finance Data Engineering Lead"
+  technical_owner_email: "data-engineering@businessos.example.com"
+  security_owner: "Chief Information Security Officer"
+  compliance_frameworks:
+    - SOC2 Type II
+    - GDPR (Personal Data)
+    - SOX (Public Company)
+    - PCI-DSS (Payment Data)
+  audit_frequency: "Quarterly"
+  last_audit_date: "2026-03-15"
+  next_audit_date: "2026-06-15"
+
+entities:
+  - name: "Deal"
+    identifier: "finance.deals.v1"
+    description: "Financial deals, contracts, and commercial agreements"
+    record_count: 15847
+    growth_rate: "12% quarterly"
+    business_criticality: "CRITICAL"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/finance/deals"
+        format: "JSON-HAL"
+        rate_limit: 1000
+        rate_limit_window: "60s"
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 500ms"
+        documentation: "https://businessos.example.com/api/finance/deals/docs"
+      database:
+        host: "finance-replica.db.example.com"
+        port: 5432
+        database: "finance"
+        schema: "public"
+        table: "deals"
+        authentication: "mTLS-Certificate"
+        replication_lag: "< 5s"
+        backup_frequency: "Hourly"
+    key_fields:
+      - deal_id: "Unique deal identifier"
+      - amount: "Financial amount in USD cents"
+      - status: "pending | active | closed | cancelled"
+      - contract_date: "Date contract was signed"
+      - account_id: "Related customer account"
+      - client_id: "Client organization identifier"
+    relationships:
+      - to: "Invoices"
+        type: "1:N"
+        foreign_key: "deal_id"
+      - to: "Payments"
+        type: "1:N"
+        via_invoices: true
+      - to: "Accounts"
+        type: "N:1"
+        foreign_key: "account_id"
+    lineage:
+      source_system: "Salesforce CRM"
+      source_system_version: "Winter 2026"
+      sync_method: "Kafka CDC (Change Data Capture)"
+      sync_frequency: "Real-time (sub-minute)"
+      last_sync: "2026-03-25T08:05:00Z"
+      records_synced: 15847
+      sync_success_rate: "100%"
+      etl_process: "DealsSyncProcess"
+
+  - name: "Invoice"
+    identifier: "finance.invoices.v1"
+    description: "Issued and received invoices with payment status tracking"
+    record_count: 45230
+    growth_rate: "8% quarterly"
+    business_criticality: "CRITICAL"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/finance/invoices"
+        format: "JSON-HAL"
+        rate_limit: 2000
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 300ms"
+      database:
+        host: "finance-replica.db.example.com"
+        port: 5432
+        database: "finance"
+        schema: "public"
+        table: "invoices"
+        replication_lag: "< 10s"
+    key_fields:
+      - invoice_id: "Unique invoice identifier"
+      - amount: "Invoice amount in USD cents"
+      - status: "draft | issued | overdue | paid | cancelled"
+      - issue_date: "Date invoice was issued"
+      - due_date: "Payment due date"
+      - line_items: "Itemized invoice lines"
+    relationships:
+      - to: "Deals"
+        type: "N:1"
+        foreign_key: "deal_id"
+      - to: "Payments"
+        type: "1:N"
+        foreign_key: "invoice_id"
+      - to: "Accounts"
+        type: "N:1"
+        foreign_key: "account_id"
+    lineage:
+      source_system: "SAP S/4HANA"
+      source_system_version: "2026.1"
+      sync_frequency: "Daily (batch 2 hours)"
+      records_synced: 45230
+      etl_process: "InvoicesSyncProcess"
+
+  - name: "Payment"
+    identifier: "finance.payments.v1"
+    description: "Transaction-level payments and cash flow records"
+    record_count: 156780
+    growth_rate: "15% quarterly"
+    business_criticality: "CRITICAL"
+    pii_fields:
+      - account_number
+      - routing_number
+      - card_number
+    pii_handling: "Masked (last 4 digits only)"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/finance/payments"
+        format: "JSON-HAL"
+        rate_limit: 5000
+        authentication: "OAuth2-RBAC + mTLS"
+        response_time_sla: "< 200ms"
+        pii_redaction: true
+    key_fields:
+      - payment_id: "Unique payment identifier"
+      - amount: "Payment amount in USD cents"
+      - status: "pending | settled | failed | reversed"
+      - settlement_date: "Date payment was settled"
+      - payment_method: "bank_transfer | credit_card | wire | ach"
+      - invoice_id: "Related invoice"
+    relationships:
+      - to: "Invoices"
+        type: "N:1"
+        foreign_key: "invoice_id"
+      - to: "Accounts"
+        type: "N:1"
+        foreign_key: "account_id"
+    lineage:
+      source_system: "Stripe + Bank API"
+      sync_frequency: "Real-time (per transaction)"
+      records_synced: 156780
+      etl_process: "PaymentsSyncProcess"
+
+  - name: "Account"
+    identifier: "finance.accounts.v1"
+    description: "Chart of accounts and account hierarchies"
+    record_count: 5432
+    growth_rate: "2% quarterly"
+    business_criticality: "CRITICAL"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/finance/accounts"
+        format: "JSON-HAL"
+        rate_limit: 500
+        authentication: "OAuth2-RBAC"
+    key_fields:
+      - account_id: "Unique account identifier"
+      - account_code: "GL account code"
+      - account_type: "asset | liability | equity | revenue | expense"
+      - parent_account_id: "Parent account in hierarchy"
+      - active: "Account is active/inactive"
+    relationships:
+      - to: "Deals"
+        type: "1:N"
+        foreign_key: "account_id"
+      - to: "Invoices"
+        type: "1:N"
+        foreign_key: "account_id"
+      - to: "Payments"
+        type: "1:N"
+        foreign_key: "account_id"
+    lineage:
+      source_system: "SAP S/4HANA"
+      change_frequency: "Monthly"
+      records_synced: 5432
+      etl_process: "AccountsSyncProcess"
+
+quality_metrics:
+  deals:
+    timeliness:
+      metric: "Data freshness (time from source change to mesh update)"
+      expected_value: "< 5 minutes"
+      actual_value: "1.2 minutes"
+      measurement_method: "Event-driven sync via Kafka"
+      monitoring_tool: "Prometheus + Alertmanager"
+      status: "PASSING"
+    accuracy:
+      metric: "Monetary value accuracy (sample validation)"
+      expected_value: "99.9%"
+      actual_value: "99.95%"
+      validation_frequency: "Hourly"
+      status: "PASSING"
+    completeness:
+      metric: "Non-null values in required fields"
+      expected_value: "99.5%"
+      actual_value: "99.8%"
+      measured_fields: "deal_id, amount, status, client_id, contract_date"
+      status: "PASSING"
+    consistency:
+      metric: "Referential integrity (foreign keys valid)"
+      expected_value: "100%"
+      actual_value: "99.98%"
+      validation_rules: "deal.account_id → accounts.id"
+      status: "PASSING"
+    validity:
+      metric: "Schema validation pass rate"
+      expected_value: "100%"
+      actual_value: "100%"
+      validation_rules: "amount > 0, status IN (pending, active, closed, cancelled)"
+      status: "PASSING"
+    overall_score: 0.96
+
+  invoices:
+    timeliness:
+      expected_value: "< 2 hours"
+      actual_value: "47 minutes"
+      status: "PASSING"
+    accuracy:
+      expected_value: "99.95%"
+      actual_value: "99.92%"
+      status: "PASSING"
+    completeness:
+      expected_value: "99%"
+      actual_value: "99.5%"
+      measured_fields: "invoice_id, amount, issue_date, due_date, status, line_items"
+      status: "PASSING"
+    validity:
+      expected_value: "100%"
+      actual_value: "100%"
+      status: "PASSING"
+    overall_score: 0.94
+
+  payments:
+    timeliness:
+      expected_value: "< 1 minute"
+      actual_value: "18 seconds"
+      status: "PASSING"
+    accuracy:
+      expected_value: "100%"
+      actual_value: "99.98%"
+      status: "PASSING"
+    duplicate_detection:
+      expected_value: "0 duplicates"
+      actual_value: "0 duplicates"
+      detection_method: "Hash-based"
+      status: "PASSING"
+    reconciliation:
+      expected_value: "100% bank match"
+      actual_value: "99.99%"
+      reconciled_records: 127349
+      unmatched_records: 1
+      status: "PASSING"
+    overall_score: 0.98
+
+  accounts:
+    completeness:
+      expected_value: "100%"
+      actual_value: "100%"
+      status: "PASSING"
+    consistency:
+      expected_value: "100% valid hierarchy"
+      actual_value: "100%"
+      validation_rules: "No cyclic hierarchies"
+      status: "PASSING"
+    overall_score: 0.99
+
+access_control:
+  finance_team:
+    roles:
+      - Finance Officer
+      - Finance Manager
+      - Finance Analyst
+    permissions:
+      deals: "READ"
+      invoices: "READ"
+      payments: "READ"
+      accounts: "READ"
+    constraints:
+      time_window: "working-hours"
+      fields: "all"
+      volume_limit: "unlimited"
+      external_share: "forbidden"
+
+  accounting_team:
+    roles:
+      - Controller
+      - Senior Accountant
+      - Accountant
+    permissions:
+      deals: "READ"
+      invoices: "READ (excluding cost_center_overhead, margin_percentage)"
+      payments: "READ"
+      accounts: "READ"
+    constraints:
+      fields: "exclude cost fields"
+      volume_limit: "unlimited"
+
+  sales_team:
+    roles:
+      - Sales Director
+      - Account Manager
+    permissions:
+      deals: "READ (only sales-generated)"
+      invoices: "READ (only sales-generated)"
+      payments: "READ (aggregated only)"
+    constraints:
+      fields: "exclude internal_cost, margin"
+      volume_limit: "1000 per query"
+
+  analytics_team:
+    roles:
+      - Data Analyst
+      - BI Developer
+    permissions:
+      deals: "READ (aggregated)"
+      invoices: "READ (aggregated)"
+      payments: "READ (aggregated)"
+      accounts: "READ"
+    constraints:
+      fields: "aggregated only"
+      volume_limit: "1000 per query"
+      report_frequency: "Daily/Weekly"
+
+  external_integrations:
+    sales_domain:
+      integration_type: "A2A (Agent-to-Agent)"
+      protocol: "MCP/JSON-RPC"
+      permissions:
+        deals: "READ"
+        invoices: "READ"
+      constraints:
+        max_concurrent_requests: 10
+        rate_limit: 100/min
+
+  audit_team:
+    roles:
+      - Internal Auditor
+      - External Auditor
+    permissions:
+      all_datasets: "READ"
+    constraints:
+      time_period: "last 24 months"
+      retention_period: "7 years (per SOX)"
+
+usage_policies:
+  export_policy:
+    description: "Data export restrictions"
+    rules:
+      - role: "Finance Team"
+        action: "Export"
+        target: "all_datasets"
+        allowed: true
+        constraints:
+          - format: "CSV, JSON"
+          - encryption: "TLS 1.3"
+          - max_size: "100MB per export"
+          - audit_logging: "required"
+
+      - role: "External Contractors"
+        action: "Export"
+        target: "all_datasets"
+        allowed: false
+        reason: "Non-Finance personnel cannot export financial data"
+
+      - role: "Sales Team"
+        action: "Export"
+        target: "Deals"
+        allowed: true
+        constraints:
+          - records: "only own deals"
+          - fields: "exclude internal_cost"
+
+  sharing_policy:
+    description: "Data sharing restrictions"
+    rules:
+      - action: "Transfer outside BusinessOS network"
+        allowed: false
+        reason: "Cannot share financial data with external parties"
+
+      - action: "Share with subsidiaries"
+        allowed: true
+        constraints:
+          - approval_level: "CFO"
+          - data_classification: "same level"
+
+  retention_policy:
+    deals:
+      retention_period: "7 years"
+      reason: "Tax audit requirements"
+    invoices:
+      retention_period: "10 years"
+      reason: "SOX compliance"
+    payments:
+      retention_period: "7 years"
+      reason: "Regulatory requirements"
+    accounts:
+      retention_period: "Indefinite"
+      reason: "Master data"
+
+  audit_policy:
+    description: "Audit and logging requirements"
+    rules:
+      - action: "All data access"
+        logging_level: "DEBUG"
+        log_retention: "7 years"
+        log_fields: "user_id, action, timestamp, record_ids, result_status"
+
+      - action: "Payments access"
+        logging_level: "WARN"
+        log_retention: "10 years"
+        reason: "SOX compliance"
+
+  encryption_policy:
+    in_transit:
+      protocol: "TLS 1.3"
+      min_version: "1.3"
+    at_rest:
+      algorithm: "AES-256-GCM"
+      key_rotation: "Annual"
+
+  pii_policy:
+    description: "Personally Identifiable Information handling"
+    sensitive_fields:
+      payments:
+        - account_number
+        - routing_number
+        - card_number
+      deals:
+        - contact_person
+        - personal_email
+    handling_method: "Mask last 4 characters"
+    redaction_enabled: true
+    data_minimization: true
+
+service_level_agreements:
+  deals:
+    availability: 99.5%
+    max_latency: "5 minutes"
+    data_refresh_frequency: "Real-time (sub-minute)"
+    rto_minutes: 15
+    rpo_minutes: 1
+    support_tier: "24/7 Level-2"
+    escalation_contact: "cto@businessos.example.com"
+    incident_response_time: "30 minutes"
+    planned_maintenance_window: "Sunday 2-4 AM UTC"
+    backup_frequency: "Hourly"
+    disaster_recovery_location: "Geographically separate region"
+
+  invoices:
+    availability: 99.9%
+    max_latency: "2 hours"
+    data_refresh_frequency: "Daily (batch 2 hours)"
+    rto_minutes: 30
+    rpo_minutes: 5
+    support_tier: "24/7 Level-3"
+
+  payments:
+    availability: 99.99%
+    max_latency: "< 1 minute"
+    data_refresh_frequency: "Real-time"
+    rto_minutes: 5
+    rpo_minutes: 1
+    support_tier: "24/7/365 Level-3 PCI-DSS"
+    soc2_compliance: "Type II"
+    pci_dss_compliance: "Level 1"
+
+  accounts:
+    availability: 99.9%
+    change_frequency: "Monthly"
+    support_tier: "Business hours Level-2"
+
+integration_contracts:
+  sales_to_finance:
+    protocol: "A2A (Agent-to-Agent MCP)"
+    endpoint: "/api/integrations/a2a/agents"
+    frequency: "Real-time"
+    sync_direction: "Bi-directional (Deals ← → Sales)"
+    contract_version: "1.0"
+    sla:
+      availability: 99.5%
+      response_time: "< 500ms"
+      rate_limit: "10 concurrent"
+
+monitoring_and_alerting:
+  metrics:
+    - name: "data_freshness_seconds"
+      threshold: 300  # 5 minutes
+      alert_severity: "warning"
+    - name: "quality_score"
+      threshold: 0.90
+      alert_severity: "critical"
+    - name: "sync_error_rate"
+      threshold: 0.01
+      alert_severity: "warning"
+    - name: "api_response_time_ms"
+      threshold: 500
+      alert_severity: "warning"
+
+  alert_channels:
+    - type: "email"
+      recipients: ["data-engineering@businessos.example.com", "cfo@businessos.example.com"]
+    - type: "slack"
+      channel: "#data-mesh-alerts"
+    - type: "pagerduty"
+      service: "Finance Data Mesh"
+
+documentation:
+  api_documentation: "https://businessos.example.com/api/finance/docs"
+  schema_documentation: "https://businessos.example.com/schemas/finance"
+  governance_wiki: "https://wiki.businessos.example.com/data-mesh/finance"
+  support_contact: "data-support@businessos.example.com"
+  support_hours: "24/7"
+
+versioning:
+  contract_version: "1.0.0"
+  schema_version: "2026-03.v1"
+  created_date: "2026-03-25"
+  last_updated: "2026-03-25"
+  next_review_date: "2026-06-25"
+  review_frequency: "Quarterly"

@@ -1,0 +1,463 @@
+---
+# ========================================================================
+# Sales Domain Data Mesh Contract
+# ========================================================================
+# Version: 1.0.0
+# Owner: Chief Revenue Officer (CRO) / VP Sales
+# Created: 2026-03-25
+# ========================================================================
+
+domain:
+  name: Sales
+  owner: "Chief Revenue Officer (CRO)"
+  contact_email: "cro@businessos.example.com"
+  contact_phone: "+1-555-SALES"
+  department: "Sales & Revenue"
+  business_unit: "Revenue Generation"
+  cost_center: "4001"
+
+governance:
+  data_steward: "Sales Data Steward"
+  data_steward_email: "data-steward.sales@businessos.example.com"
+  technical_owner: "Sales Systems Administrator"
+  technical_owner_email: "sales-ops@businessos.example.com"
+  security_owner: "Chief Information Security Officer"
+  compliance_frameworks:
+    - SOC2 Type II
+    - GDPR
+    - CCPA
+  audit_frequency: "Quarterly"
+  pii_classification: "MEDIUM (customer data, some PII)"
+
+entities:
+  - name: "Opportunity"
+    identifier: "sales.opportunities.v1"
+    description: "Sales opportunities and pipeline"
+    record_count: 8945
+    growth_rate: "22% quarterly"
+    business_criticality: "CRITICAL"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/sales/opportunities"
+        format: "JSON-HAL"
+        rate_limit: 2000
+        authentication: "OAuth2-RBAC (territory-scoped)"
+        response_time_sla: "< 300ms"
+      database:
+        host: "sales-db.db.example.com"
+        port: 5432
+        database: "sales"
+        table: "opportunities"
+        replication_lag: "< 5s"
+    key_fields:
+      - opportunity_id: "Unique opportunity identifier"
+      - account_id: "Related customer account"
+      - sales_rep_id: "Assigned sales representative"
+      - opportunity_name: "Deal description"
+      - stage: "prospecting | qualification | proposal | negotiation | closed_won | closed_lost"
+      - amount: "Expected deal value in USD"
+      - close_date: "Expected close date"
+      - probability: "Win probability (0-100%)"
+      - created_date: "When opportunity was created"
+      - last_modified: "Last update timestamp"
+    lineage:
+      source_system: "Salesforce CRM"
+      sync_frequency: "Real-time"
+      records_synced: 8945
+
+  - name: "Account"
+    identifier: "sales.accounts.v1"
+    description: "Customer accounts and relationships"
+    record_count: 4231
+    growth_rate: "15% quarterly"
+    business_criticality: "CRITICAL"
+    pii_fields:
+      - billing_contact
+      - shipping_contact
+      - phone_number
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/sales/accounts"
+        format: "JSON-HAL"
+        rate_limit: 1000
+        authentication: "OAuth2-RBAC (territory-scoped)"
+        pii_redaction: true
+      database:
+        host: "sales-replica.db.example.com"
+        port: 5432
+        database: "sales"
+        table: "accounts"
+        replication_lag: "< 10s"
+    key_fields:
+      - account_id: "Unique account identifier"
+      - account_name: "Customer company name"
+      - account_type: "prospect | customer | partner | competitor"
+      - industry: "Industry classification (SIC code)"
+      - annual_revenue: "Customer annual revenue"
+      - employee_count: "Number of employees"
+      - assigned_rep: "Primary sales representative"
+      - account_status: "active | inactive | suspended"
+      - created_date: "Account creation date"
+    lineage:
+      source_system: "Salesforce CRM"
+      sync_frequency: "Daily"
+      records_synced: 4231
+
+  - name: "Quote"
+    identifier: "sales.quotes.v1"
+    description: "Sales quotes and proposals"
+    record_count: 12847
+    growth_rate: "18% quarterly"
+    business_criticality: "HIGH"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/sales/quotes"
+        format: "JSON-HAL"
+        rate_limit: 1500
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 500ms"
+    key_fields:
+      - quote_id: "Unique quote identifier"
+      - opportunity_id: "Related opportunity"
+      - quote_status: "draft | sent | accepted | rejected | expired"
+      - total_amount: "Quote total in USD"
+      - quote_date: "Date quote was issued"
+      - expiration_date: "When quote expires"
+      - discount_percent: "Applied discount"
+      - created_by: "Quote creator"
+    lineage:
+      source_system: "Salesforce CPQ"
+      sync_frequency: "Real-time"
+      records_synced: 12847
+
+  - name: "Activity"
+    identifier: "sales.activities.v1"
+    description: "Sales activities and engagements"
+    record_count: 564230
+    growth_rate: "25% quarterly"
+    business_criticality: "HIGH"
+    distribution:
+      api:
+        endpoint: "https://api.businessos.example.com/v1/sales/activities"
+        format: "JSON-STREAM"
+        rate_limit: 5000
+        authentication: "OAuth2-RBAC"
+        response_time_sla: "< 100ms"
+    key_fields:
+      - activity_id: "Unique activity identifier"
+      - account_id: "Related account"
+      - activity_type: "call | email | meeting | task | other"
+      - activity_date: "When activity occurred"
+      - duration_minutes: "Duration in minutes"
+      - notes: "Activity summary"
+      - next_follow_up: "Next planned follow-up date"
+    lineage:
+      source_system: "Salesforce + Slack + Email integration"
+      sync_frequency: "Real-time"
+      records_synced: 564230
+      event_streaming: "Kafka topic: sales.activities.events"
+
+quality_metrics:
+  opportunities:
+    timeliness:
+      expected_value: "< 5 minutes"
+      actual_value: "2 minutes"
+      measurement_method: "Source update to sync"
+      status: "PASSING"
+    accuracy:
+      expected_value: "98%"
+      actual_value: "99.2%"
+      validation_rules: "amount > 0, stage in valid enum, close_date is future"
+      status: "PASSING"
+    completeness:
+      expected_value: "95%"
+      actual_value: "97.8%"
+      measured_fields: "opportunity_id, amount, stage (required)"
+      status: "PASSING"
+    validity:
+      expected_value: "99%"
+      actual_value: "99.9%"
+      status: "PASSING"
+    overall_score: 0.96
+
+  accounts:
+    timeliness:
+      expected_value: "< 1 day"
+      actual_value: "8 hours"
+      status: "PASSING"
+    accuracy:
+      expected_value: "97%"
+      actual_value: "98.5%"
+      measured_fields: "account_name, industry, annual_revenue"
+      status: "PASSING"
+    completeness:
+      expected_value: "90%"
+      actual_value: "95.2%"
+      status: "PASSING"
+    overall_score: 0.94
+
+  quotes:
+    timeliness:
+      expected_value: "< 10 minutes"
+      actual_value: "3 minutes"
+      status: "PASSING"
+    accuracy:
+      expected_value: "99.5%"
+      actual_value: "99.8%"
+      validation_rules: "total_amount = SUM(line items), discount <= 50%"
+      status: "PASSING"
+    overall_score: 0.95
+
+  activities:
+    timeliness:
+      expected_value: "< 1 minute"
+      actual_value: "15 seconds"
+      status: "PASSING"
+    completeness:
+      expected_value: "98%"
+      actual_value: "99.1%"
+      status: "PASSING"
+    overall_score: 0.96
+
+access_control:
+  sales_team:
+    roles:
+      - VP Sales
+      - Sales Manager
+      - Sales Representative
+      - Sales Development Rep (SDR)
+    permissions:
+      opportunities: "READ, WRITE (assigned reps only)"
+      accounts: "READ, WRITE (assigned territory)"
+      quotes: "READ, WRITE (created by or assigned)"
+      activities: "READ, WRITE (own activities)"
+    constraints:
+      territory_scoping: "strict (can only see assigned territory)"
+      account_hierarchy: "can see assigned accounts + hierarchy"
+      time_window: "24/7"
+      volume_limit: "unlimited for own territory"
+
+  sales_operations:
+    roles:
+      - Sales Operations Manager
+      - Sales Analyst
+    permissions:
+      opportunities: "READ (all opportunities)"
+      accounts: "READ (all accounts)"
+      quotes: "READ (all quotes)"
+      activities: "READ (all activities)"
+    constraints:
+      fields: "exclude negotiation notes"
+      reporting_only: true
+      export_allowed: true
+
+  finance_team:
+    roles:
+      - Finance Manager
+      - Revenue Accountant
+    permissions:
+      opportunities: "READ (amount, stage, close_date only)"
+      quotes: "READ (pricing information only)"
+      accounts: "READ (billing information only)"
+    constraints:
+      fields: "exclude internal sales notes"
+      forecast_data_only: true
+
+  marketing_team:
+    roles:
+      - Marketing Manager
+      - Demand Generation
+    permissions:
+      accounts: "READ (account size, industry, location)"
+      activities: "READ (aggregated engagement metrics)"
+    constraints:
+      pii_masking: true
+      personalization_data_only: true
+
+  executive_team:
+    roles:
+      - Chief Revenue Officer
+      - VP Sales
+      - Chief Executive Officer
+    permissions:
+      opportunities: "READ (all)"
+      accounts: "READ (all)"
+      quotes: "READ (all)"
+      activities: "READ (aggregated)"
+    constraints:
+      time_window: "24/7"
+      volume_limit: "unlimited"
+      export_allowed: true
+
+  external_integrations:
+    customer_success:
+      integration_type: "A2A"
+      protocol: "MCP/JSON-RPC"
+      permissions:
+        accounts: "READ (account info only)"
+        opportunities: "READ (won deals only)"
+      constraints:
+        renewal_data: "only for active customers"
+
+usage_policies:
+  export_policy:
+    rules:
+      - role: "Sales Operations"
+        action: "Export"
+        allowed: true
+        constraints:
+          - format: "CSV, JSON, Excel"
+          - frequency: "unlimited"
+          - audit_logging: "required"
+
+      - role: "Sales Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - records: "assigned territory only"
+          - format: "Excel (no raw SQL)"
+          - frequency: "max 5 times per day"
+
+      - role: "Marketing Team"
+        action: "Export"
+        allowed: true
+        constraints:
+          - data: "aggregated only"
+          - pii_redaction: "required"
+          - account_only: true
+
+  retention_policy:
+    opportunities:
+      retention_period: "3 years"
+      reason: "Sales forecast history"
+      archival: "After 1 year to cold storage"
+    accounts:
+      retention_period: "7 years"
+      reason: "Contractual obligation"
+    quotes:
+      retention_period: "3 years"
+      reason: "Contractual/legal"
+    activities:
+      retention_period: "2 years"
+      reason: "Activity history"
+      auto_archival: "After 1 year"
+
+  data_minimization:
+    rules:
+      - collect_only_necessary: "true"
+      - internal_notes_retention: "12 months"
+      - sensitive_pricing: "only for authorized users"
+
+  audit_policy:
+    logging_level: "INFO (WARN for opportunity changes > $100k)"
+    log_retention: "7 years"
+    log_fields: "user_id, action, timestamp, record_id, amount_changed, old_value, new_value"
+    change_tracking: "All opportunities with Salesforce Field History"
+
+  compliance_policy:
+    forecast_accuracy:
+      tracking: "required"
+      variance_threshold: 15%
+      alert_threshold: 25%
+    discount_approval:
+      rules:
+        - discount_0_10: "Manager approval"
+        - discount_10_25: "Director approval"
+        - discount_25_plus: "VP approval"
+    deal_approval:
+      rules:
+        - deals_under_100k: "No approval required"
+        - deals_100k_500k: "Manager approval"
+        - deals_500k_plus: "CRO approval"
+
+service_level_agreements:
+  opportunities:
+    availability: 99.9%
+    max_latency: "5 minutes"
+    rto_minutes: 30
+    rpo_minutes: 1
+    support_tier: "24/7 Level-3"
+    escalation_contact: "cro@businessos.example.com"
+
+  accounts:
+    availability: 99.5%
+    max_latency: "1 day"
+    rto_minutes: 60
+    rpo_minutes: 15
+    support_tier: "24/7 Level-2"
+
+  quotes:
+    availability: 99%
+    max_latency: "10 minutes"
+    rto_minutes: 60
+    rpo_minutes: 5
+    support_tier: "Business hours Level-2"
+
+  activities:
+    availability: 99.5%
+    max_latency: "1 minute"
+    rto_minutes: 15
+    rpo_minutes: 1
+    support_tier: "24/7 Level-2"
+
+integration_contracts:
+  finance_to_sales:
+    protocol: "A2A (Agent-to-Agent)"
+    endpoint: "/api/integrations/a2a/agents"
+    frequency: "Real-time"
+    sync_direction: "Bi-directional (Deals ← → Finance)"
+    sla:
+      availability: 99.5%
+      response_time: "< 500ms"
+
+  marketing_to_sales:
+    protocol: "A2A"
+    frequency: "Real-time"
+    sync_direction: "Uni-directional (Leads → Sales)"
+    data_quality_sla: "99% accuracy"
+
+monitoring_and_alerting:
+  metrics:
+    - name: "opportunity_update_latency_minutes"
+      threshold: 5
+      alert_severity: "warning"
+    - name: "quote_generation_latency_minutes"
+      threshold: 10
+      alert_severity: "warning"
+    - name: "forecast_variance_percent"
+      threshold: 25
+      alert_severity: "critical"
+    - name: "data_duplication_rate_percent"
+      threshold: 0.5
+      alert_severity: "warning"
+    - name: "audit_compliance_percent"
+      threshold: 100
+      alert_severity: "critical"
+
+  alert_channels:
+    - type: "slack"
+      channel: "#sales-data-alerts"
+    - type: "email"
+      recipients: ["sales-ops@businessos.example.com", "cro@businessos.example.com"]
+
+reporting_and_analytics:
+  standard_reports:
+    - name: "Sales Pipeline by Stage"
+      frequency: "Daily"
+      audience: "Sales Team, Executives"
+    - name: "Quota Attainment Dashboard"
+      frequency: "Weekly"
+      audience: "Sales Management"
+    - name: "Sales Forecast"
+      frequency: "Weekly"
+      audience: "Executives"
+    - name: "Activity Metrics"
+      frequency: "Weekly"
+      audience: "Sales Management"
+
+versioning:
+  contract_version: "1.0.0"
+  created_date: "2026-03-25"
+  next_review_date: "2026-06-25"
+  review_frequency: "Quarterly"
+  security_review_frequency: "Monthly"
