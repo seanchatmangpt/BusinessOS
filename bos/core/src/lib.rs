@@ -41,3 +41,7 @@ pub use streaming::{
 
 // Process Mining (pm4py-rust integration)
 pub mod process;
+
+// YAWL engine connector (event log import)
+pub mod yawl;
+pub use yawl::{YawlConnector, CaseInfo, YawlServeConfig, serve_yawl_api};

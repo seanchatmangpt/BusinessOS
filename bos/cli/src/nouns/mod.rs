@@ -12,3 +12,4 @@ pub mod healthcare;
 pub mod fibo;
 pub mod compliance;
 pub mod mesh;
+pub mod yawl;
