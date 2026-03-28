@@ -85,6 +85,23 @@ func registerRoutes(app *AppServices, skillsHandler *handlers.SkillsHandler, osa
 	router.GET("/ready", newReadinessHandler(deps, cfg.DatabaseRequired))
 	router.GET("/health/detailed", newDetailedHealthHandler(deps, cfg.DatabaseRequired))
 
+	// A2A well-known agent card — no auth, standard A2A discovery endpoint
+	router.GET("/.well-known/agent.json", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"name":         "businessos",
+			"display_name": "BusinessOS",
+			"description":  "AI company operating system with CRM, project management, and PROV-O audit trail capabilities.",
+			"url":          "http://localhost:8001/api/integrations/a2a",
+			"capabilities": []string{"tools"},
+			"skills": []gin.H{
+				{"name": "crm_deals", "description": "Create and manage CRM deals via A2A"},
+				{"name": "crm_leads", "description": "Update and track CRM leads via A2A"},
+				{"name": "project_tasks", "description": "Assign and manage project tasks via A2A"},
+				{"name": "audit_query", "description": "Query PROV-O compliant audit trail"},
+			},
+		})
+	})
+
 	// ── Kubernetes-standard probes ────────────────────────────────────────────
 	// /healthz  — liveness probe  (is the process alive?)
 	// /readyz   — readiness probe (can the process serve traffic?)
