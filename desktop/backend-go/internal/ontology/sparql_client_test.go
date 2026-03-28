@@ -366,19 +366,21 @@ func TestExecuteAskWithTimeout(t *testing.T) {
 	}
 }
 
-// TestSPARQLClientEndpointFromEnv tests endpoint from environment variable
+// TestSPARQLClientEndpointFromEnv tests endpoint from environment variable.
+// The env var was changed from OXIGRAPH_URL to BOS_SPARQL_ENDPOINT in the
+// bos-CLI-as-gateway refactor (all Oxigraph access through bos proxy :7879).
 func TestSPARQLClientEndpointFromEnv(t *testing.T) {
 	// Save original env var
-	originalURL := os.Getenv("OXIGRAPH_URL")
-	defer os.Setenv("OXIGRAPH_URL", originalURL)
+	originalURL := os.Getenv("BOS_SPARQL_ENDPOINT")
+	defer os.Setenv("BOS_SPARQL_ENDPOINT", originalURL)
 
 	// Set test endpoint
-	os.Setenv("OXIGRAPH_URL", "http://test-oxigraph:7878")
+	os.Setenv("BOS_SPARQL_ENDPOINT", "http://test-bos-proxy:7879")
 
 	client := NewSPARQLClient("", nil)
 
-	if client.endpoint != "http://test-oxigraph:7878" {
-		t.Errorf("expected endpoint from env var, got %s", client.endpoint)
+	if client.endpoint != "http://test-bos-proxy:7879" {
+		t.Errorf("expected endpoint from BOS_SPARQL_ENDPOINT, got %s", client.endpoint)
 	}
 }
 

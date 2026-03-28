@@ -54,6 +54,10 @@ impl QueryExecutor {
     /// Execute the pipeline for a single table.
     ///
     /// If `sparql` is provided, it overrides the generated CONSTRUCT query.
+    #[tracing::instrument(name = "bos.ontology.execute", skip(self, sparql), fields(
+        rdf.result.triple_count = tracing::field::Empty,
+        chatmangpt.run.correlation_id = tracing::field::Empty,
+    ))]
     pub fn execute_table(
         &self,
         table: &str,
@@ -101,6 +105,15 @@ impl QueryExecutor {
             .map(|t| format!("<{}> <{}> {} .", t.subject, t.predicate, t.object))
             .collect::<Vec<_>>()
             .join("\n");
+
+        // Record span fields now that we know the results.
+        tracing::Span::current().record(
+            "rdf.result.triple_count",
+            construct_triples as i64,
+        );
+        if let Ok(corr) = std::env::var("CHATMANGPT_CORRELATION_ID") {
+            tracing::Span::current().record("chatmangpt.run.correlation_id", corr.as_str());
+        }
 
         Ok(ExecutionResult {
             ntriples,

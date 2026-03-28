@@ -26,6 +26,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/observability"
+	canopyintegration "github.com/rhl/businessos-backend/internal/integrations/canopy"
 	"github.com/rhl/businessos-backend/internal/ontology"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
@@ -565,10 +566,10 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	if embeddingService != nil {
 		memoryExtractor = services.NewMemoryExtractorService(app.pool, embeddingService)
 		if cfg.GroqAPIKey != "" {
-			groqLLM := services.NewGroqService(cfg, "llama-3.1-8b-instant")
+			groqLLM := services.NewGroqService(cfg, "openai/gpt-oss-20b")
 			if groqLLM.HealthCheck(ctx) {
 				memoryExtractor.SetLLMService(groqLLM)
-				slog.Info("Memory extractor initialized with LLM-enhanced extraction", "model", "llama-3.1-8b-instant")
+				slog.Info("Memory extractor initialized with LLM-enhanced extraction", "model", "openai/gpt-oss-20b")
 			} else {
 				slog.Info("Memory extractor initialized (regex-only, Groq unavailable)")
 			}
@@ -585,21 +586,30 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 
 	// ===== BOARD CHAIR L0 SYNC =====
 	// Continuously mirrors BusinessOS case + handoff data into Oxigraph as L0 RDF facts.
+	// All Oxigraph access is routed through the bos CLI (BOS_PATH, BOS_MAPPING_FILE).
 	// OSA MaterializationScheduler depends on this data for L1/L2/L3 CONSTRUCT levels.
 	// Armstrong: goroutine supervised by context cancellation; crashes are visible in logs.
-	// WvdA: bounded query (LIMIT 10000), 30s HTTP timeout, 15min refresh interval.
-	if app.sqlDB != nil {
-		oxigraphURL := os.Getenv("OXIGRAPH_URL")
-		if oxigraphURL == "" {
-			oxigraphURL = "http://localhost:7878"
-		}
-		l0Sync := ontology.NewBoardchairL0Sync(app.sqlDB, oxigraphURL)
-		app.l0Sync = l0Sync
-		go l0Sync.Start(ctx)
-		slog.Info("board.l0_sync started", "oxigraph_url", oxigraphURL)
-	} else {
-		slog.Info("board.l0_sync disabled (no sql.DB available)")
+	// WvdA: subprocess bounded by 30s timeout, 15min refresh interval.
+	bosPath := os.Getenv("BOS_PATH")
+	if bosPath == "" {
+		bosPath = "bos"
 	}
+	bosMappingFile := os.Getenv("BOS_MAPPING_FILE")
+	dbURL := os.Getenv("DATABASE_URL")
+	l0Sync := ontology.NewBoardchairL0Sync(bosPath, bosMappingFile, dbURL)
+	app.l0Sync = l0Sync
+
+	// Wire optional Canopy intelligence push (fire-and-forget after each sync).
+	if canopyCfg := canopyintegration.LoadConfig(); canopyCfg != nil {
+		canopyClient := canopyintegration.NewClient(canopyCfg)
+		l0Sync.SetCanopyPusher(canopyClient)
+		slog.Info("canopy intelligence push enabled", "base_url", canopyCfg.BaseURL)
+	} else {
+		slog.Info("canopy intelligence push disabled (set CANOPY_BASE_URL + CANOPY_BOS_SECRET to enable)")
+	}
+
+	go l0Sync.Start(ctx)
+	slog.Info("board.l0_sync started", "bos_path", bosPath, "mapping_file", bosMappingFile)
 
 	// ===== OSA INTEGRATION =====
 	var osaClient *osa.ResilientClient
@@ -706,12 +716,13 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	app.osaQueueWorker = osaQueueWorker
 
 	// ===== FIBO DEALS SERVICE =====
-	oxigraphURL := os.Getenv("OXIGRAPH_URL")
-	if oxigraphURL == "" {
-		oxigraphURL = "http://localhost:7878"
+	// Route SPARQL queries through the bos sidecar proxy (:7879) not raw Oxigraph.
+	bosSparqlEndpoint := os.Getenv("BOS_SPARQL_ENDPOINT")
+	if bosSparqlEndpoint == "" {
+		bosSparqlEndpoint = "http://localhost:7879"
 	}
-	fiboDealsService := services.NewFIBODealsService(oxigraphURL)
-	slog.Info("FIBO deals service initialized", "oxigraph_url", oxigraphURL)
+	fiboDealsService := services.NewFIBODealsService(bosSparqlEndpoint)
+	slog.Info("FIBO deals service initialized", "sparql_endpoint", bosSparqlEndpoint)
 
 	// ===== HANDLERS =====
 	h := handlers.NewHandlers(app.pool, cfg, app.containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService, notificationService, osaClient, osaSyncService, fiboDealsService)

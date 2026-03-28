@@ -10,6 +10,14 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
+
+	semconv "github.com/rhl/businessos-backend/internal/semconv"
 )
 
 // SPARQLClient provides high-performance SPARQL query execution
@@ -17,6 +25,7 @@ type SPARQLClient struct {
 	endpoint   string
 	httpClient *http.Client
 	logger     *slog.Logger
+	tracer     trace.Tracer
 	retries    int
 	backoffMs  int
 }
@@ -29,9 +38,10 @@ func NewSPARQLClient(endpoint string, logger *slog.Logger) *SPARQLClient {
 	}
 
 	if endpoint == "" {
-		endpoint = os.Getenv("OXIGRAPH_URL")
+		// Route through bos SPARQL proxy sidecar (port 7879), not raw Oxigraph.
+		endpoint = os.Getenv("BOS_SPARQL_ENDPOINT")
 		if endpoint == "" {
-			endpoint = "http://localhost:7878"
+			endpoint = "http://localhost:7879"
 		}
 	}
 
@@ -47,6 +57,7 @@ func NewSPARQLClient(endpoint string, logger *slog.Logger) *SPARQLClient {
 			},
 		},
 		logger:    logger,
+		tracer:    otel.Tracer("businessos.sparql"),
 		retries:   3,
 		backoffMs: 100,
 	}
@@ -59,12 +70,25 @@ func (c *SPARQLClient) ExecuteConstruct(ctx context.Context, query string, timeo
 		timeout = 5 * time.Second // Default CONSTRUCT timeout
 	}
 
+	ctx, span := c.tracer.Start(ctx, semconv.RdfConstructSpan,
+		trace.WithSpanKind(trace.SpanKindClient),
+	)
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String(string(semconv.RdfSparqlQueryTypeKey), semconv.RdfSparqlQueryTypeValues.Construct),
+		attribute.String(string(semconv.RdfSparqlEndpointKey), c.endpoint),
+		attribute.Int64(string(semconv.RdfSparqlTimeoutMsKey), timeout.Milliseconds()),
+	)
+
 	// Apply timeout to context
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	// Validate SPARQL syntax
 	if err := validateSPARQLConstruct(query); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return nil, fmt.Errorf("invalid SPARQL: %w", err)
 	}
 
@@ -76,12 +100,16 @@ func (c *SPARQLClient) ExecuteConstruct(ctx context.Context, query string, timeo
 			select {
 			case <-time.After(backoff):
 			case <-ctx.Done():
-				return nil, ctx.Err()
+				err := ctx.Err()
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+				return nil, err
 			}
 		}
 
 		result, err := c.executeRequest(ctx, query, "CONSTRUCT", "text/turtle")
 		if err == nil {
+			span.SetStatus(codes.Ok, "")
 			return result, nil
 		}
 
@@ -93,10 +121,14 @@ func (c *SPARQLClient) ExecuteConstruct(ctx context.Context, query string, timeo
 
 		// Distinguish transient vs permanent errors
 		if !isTransientError(err) {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return nil, err // Don't retry non-transient errors
 		}
 	}
 
+	span.RecordError(lastErr)
+	span.SetStatus(codes.Error, lastErr.Error())
 	return nil, fmt.Errorf("CONSTRUCT query failed after %d retries: %w", c.retries, lastErr)
 }
 
@@ -203,6 +235,8 @@ func (c *SPARQLClient) executeRequest(ctx context.Context, query string, queryTy
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", acceptHeader)
 	req.Header.Set("User-Agent", "BusinessOS-OntologyRegistry/1.0")
+	// Inject W3C traceparent so the bos sidecar participates in the trace.
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
