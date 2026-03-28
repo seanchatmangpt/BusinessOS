@@ -13,25 +13,25 @@ import (
 
 // CalendarEvent represents a calendar event.
 type CalendarEvent struct {
-	ID           string     `json:"id"`
-	UserID       string     `json:"user_id"`
-	GoogleID     string     `json:"google_id,omitempty"`
-	Title        string     `json:"title"`
-	Description  string     `json:"description,omitempty"`
-	Location     string     `json:"location,omitempty"`
-	StartTime    time.Time  `json:"start_time"`
-	EndTime      time.Time  `json:"end_time"`
-	AllDay       bool       `json:"all_day"`
-	Status       string     `json:"status"`
-	MeetingLink  string     `json:"meeting_link,omitempty"`
-	MeetingType  string     `json:"meeting_type,omitempty"`
-	Attendees    []Attendee `json:"attendees,omitempty"`
-	Recurrence   string     `json:"recurrence,omitempty"`
-	ColorID      string     `json:"color_id,omitempty"`
-	Source       string     `json:"source"` // "local" or "google"
-	CalendarID   string     `json:"calendar_id,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
+	GoogleID    string     `json:"google_id,omitempty"`
+	Title       string     `json:"title"`
+	Description string     `json:"description,omitempty"`
+	Location    string     `json:"location,omitempty"`
+	StartTime   time.Time  `json:"start_time"`
+	EndTime     time.Time  `json:"end_time"`
+	AllDay      bool       `json:"all_day"`
+	Status      string     `json:"status"`
+	MeetingLink string     `json:"meeting_link,omitempty"`
+	MeetingType string     `json:"meeting_type,omitempty"`
+	Attendees   []Attendee `json:"attendees,omitempty"`
+	Recurrence  string     `json:"recurrence,omitempty"`
+	ColorID     string     `json:"color_id,omitempty"`
+	Source      string     `json:"source"` // "local" or "google"
+	CalendarID  string     `json:"calendar_id,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
 
 // Attendee represents an event attendee.
@@ -248,17 +248,23 @@ func (s *CalendarService) CreateEvent(ctx context.Context, userID string, event 
 
 	// Optionally push to Google Calendar
 	if event.GoogleID == "" {
-		go s.pushEventToGoogle(context.Background(), userID, event)
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			s.pushEventToGoogle(ctx, userID, event)
+		}()
 	}
 
 	return event, nil
 }
 
 // pushEventToGoogle pushes a local event to Google Calendar.
+// Called asynchronously with a bounded timeout (30s).
+// Errors are logged but not returned; let-it-crash principle applies.
 func (s *CalendarService) pushEventToGoogle(ctx context.Context, userID string, event *CalendarEvent) {
 	srv, err := s.GetCalendarAPI(ctx, userID)
 	if err != nil {
-		slog.Info("Failed to get calendar API for push", "error", err)
+		slog.Error("Failed to get calendar API for push", "error", err, "user_id", userID, "event_id", event.ID)
 		return
 	}
 
@@ -281,15 +287,18 @@ func (s *CalendarService) pushEventToGoogle(ctx context.Context, userID string, 
 
 	created, err := srv.Events.Insert("primary", googleEvent).Do()
 	if err != nil {
-		slog.Info("Failed to push event to Google", "error", err)
+		slog.Error("Failed to push event to Google Calendar", "error", err, "user_id", userID, "event_id", event.ID)
 		return
 	}
 
 	// Update local event with Google ID
-	s.provider.Pool().Exec(ctx, `
+	_, err = s.provider.Pool().Exec(ctx, `
 		UPDATE calendar_events SET google_event_id = $1, updated_at = NOW()
 		WHERE id = $2
 	`, created.Id, event.ID)
+	if err != nil {
+		slog.Error("Failed to update local event with Google ID", "error", err, "event_id", event.ID, "google_id", created.Id)
+	}
 }
 
 // DeleteEvent deletes a calendar event.
@@ -315,12 +324,17 @@ func (s *CalendarService) DeleteEvent(ctx context.Context, userID, eventID strin
 	// Delete from Google if it was synced
 	if googleID.Valid && googleID.String != "" {
 		go func() {
-			srv, err := s.GetCalendarAPI(context.Background(), userID)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			srv, err := s.GetCalendarAPI(ctx, userID)
 			if err != nil {
-				slog.Info("Failed to get calendar API for delete", "error", err)
+				slog.Error("Failed to get calendar API for delete", "error", err)
 				return
 			}
-			srv.Events.Delete("primary", googleID.String).Do()
+			err = srv.Events.Delete("primary", googleID.String).Do()
+			if err != nil {
+				slog.Error("Failed to delete event from Google Calendar", "error", err, "event_id", googleID.String)
+			}
 		}()
 	}
 
