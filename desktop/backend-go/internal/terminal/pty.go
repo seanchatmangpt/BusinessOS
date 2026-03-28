@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -103,15 +104,17 @@ func closePTY(session *Session) {
 		session.Cmd.Process.Signal(syscall.SIGTERM)
 
 		// Wait briefly for graceful shutdown
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 		done := make(chan error, 1)
-		go func() {
+		go func(ctx context.Context) {
 			done <- session.Cmd.Wait()
-		}()
+		}(ctx)
 
 		select {
 		case <-done:
 			// Process exited gracefully
-		case <-time.After(2 * time.Second):
+		case <-ctx.Done():
 			// Force kill if still running
 			session.Cmd.Process.Kill()
 		}

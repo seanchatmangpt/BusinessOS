@@ -127,7 +127,7 @@ func (s *ElevenLabsService) TextToSpeechStream(ctx context.Context, text string)
 	audioChan := make(chan []byte, 10)
 	errChan := make(chan error, 1)
 
-	go func() {
+	go func(ctx context.Context) {
 		defer close(audioChan)
 		defer close(errChan)
 
@@ -208,7 +208,7 @@ func (s *ElevenLabsService) TextToSpeechStream(ctx context.Context, text string)
 		}
 
 		slog.Info("[ElevenLabs] ✅ Streaming TTS complete")
-	}()
+	}(ctx)
 
 	return audioChan, errChan
 }
