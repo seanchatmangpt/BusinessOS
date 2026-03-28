@@ -8,6 +8,11 @@
  */
 
 import { api } from "$lib/api";
+import {
+  discoverProcessMap,
+  getDashboardKPI,
+  EMPTY_EVENT_LOG,
+} from "$lib/api/pm4py";
 import type { PetriNetJson } from "$lib/api/pm4py";
 import type {
   FocusItem,
@@ -182,27 +187,23 @@ function createDashboardDataStore() {
   async function loadProcessMiningKPI(eventLog?: unknown): Promise<void> {
     isProcessMiningKPILoading = true;
     try {
-      const resp = await fetch("/api/pm4py/dashboard-kpi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_log: eventLog ?? { traces: [] } }),
-      });
-      if (resp.ok) {
-        // Map snake_case Go response to camelCase TypeScript types
-        const raw = await resp.json();
-        processMiningKPI = {
-          conformanceFitness: raw.conformance_fitness ?? raw.conformanceFitness ?? 0,
-          conformancePrecision: raw.conformance_precision ?? raw.conformancePrecision ?? 0,
-          isConformant: raw.is_conformant ?? raw.isConformant ?? false,
-          variantCount: raw.variant_count ?? raw.variantCount ?? 0,
-          topVariants: raw.top_variants ?? raw.topVariants ?? [],
-          bottleneckActivities: raw.bottleneck_activities ?? raw.bottleneckActivities ?? [],
-          activityFrequencies: raw.activity_frequencies ?? raw.activityFrequencies ?? {},
-          eventCount: raw.event_count ?? raw.eventCount ?? 0,
-          traceCount: raw.trace_count ?? raw.traceCount ?? 0,
-          fetchedAt: raw.fetched_at ?? raw.fetchedAt ?? new Date().toISOString(),
-        } satisfies ProcessMiningKPIData;
-      }
+      // Use the typed API function — maps snake_case response to ProcessMiningKPIData.
+      const raw = await getDashboardKPI(
+        eventLog ?? EMPTY_EVENT_LOG,
+        discoveredPetriNet ?? undefined,
+      );
+      processMiningKPI = {
+        conformanceFitness: raw.conformance_fitness,
+        conformancePrecision: raw.conformance_precision,
+        isConformant: raw.is_conformant,
+        variantCount: raw.variant_count,
+        topVariants: raw.top_variants,
+        bottleneckActivities: raw.bottleneck_activities,
+        activityFrequencies: raw.activity_frequencies,
+        eventCount: raw.event_count,
+        traceCount: raw.trace_count,
+        fetchedAt: raw.fetched_at,
+      } satisfies ProcessMiningKPIData;
     } catch {
       // Silently fail — pm4py not running is expected in dev
     } finally {
@@ -213,13 +214,25 @@ function createDashboardDataStore() {
   async function discoverProcess(eventLog?: unknown): Promise<void> {
     const logToDiscover = eventLog ?? SAMPLE_EVENT_LOG;
     try {
-      const resp = await fetch("/api/bos/discover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_log: logToDiscover }),
-      });
-      if (resp.ok) {
-        discoveredPetriNet = (await resp.json()) as PetriNetJson;
+      // POST /api/v1/pm4py/discover — PM4PyRustHandler proxies to pm4py-rust.
+      // Response: DiscoveryResponse { petri_net, algorithm, execution_time_ms, ... }
+      const result = await discoverProcessMap(logToDiscover);
+      if (result?.petri_net) {
+        // The Go server returns label as *string (nullable); cast via unknown to
+        // allow the null-coalesce without TS strict-mode complaints.
+        type RawTransition = { id: string; name: string; label: string | null | undefined };
+        discoveredPetriNet = {
+          places: result.petri_net.places,
+          transitions: (result.petri_net.transitions as unknown as RawTransition[]).map((t) => ({
+            id: t.id,
+            name: t.name,
+            label: t.label ?? t.name,
+          })),
+          arcs: result.petri_net.arcs,
+          // initial_place / final_place are *string in Go — may be null at runtime
+          initial_place: (result.petri_net.initial_place as string | null | undefined) ?? "",
+          final_place: (result.petri_net.final_place as string | null | undefined) ?? "",
+        } satisfies PetriNetJson;
       }
     } catch {
       // Silently fail — pm4py not running is expected in dev

@@ -181,6 +181,11 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:8001",
         changeOrigin: true,
       },
+      // BOS gateway endpoints (process discovery, conformance, statistics)
+      "/api/bos": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+      },
       "/health": {
         target: "http://localhost:8001",
         changeOrigin: true,
