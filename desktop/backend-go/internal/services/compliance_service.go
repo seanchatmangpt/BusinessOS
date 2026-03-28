@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"net/url"
 	"strconv"
 	"sync"
@@ -809,8 +810,26 @@ func (s *ComplianceService) sendComplianceNotification(ctx context.Context, rule
 		"message", message,
 	)
 
-	// TODO: Implement actual notification delivery (email, Slack, PagerDuty, etc.)
-	// For now, this just logs to the audit trail.
+	// Deliver notification via email if a compliant admin email is configured.
+	// Non-critical: log and continue if delivery fails.
+	adminEmail := os.Getenv("COMPLIANCE_NOTIFICATION_EMAIL")
+	if adminEmail != "" {
+		emailSvc := NewEmailService()
+		if emailSvc.IsEnabled() {
+			err := emailSvc.SendNotificationEmail(ctx, NotificationEmailData{
+				RecipientEmail: adminEmail,
+				RecipientName:  "Compliance Officer",
+				Subject:        fmt.Sprintf("[BusinessOS] Compliance Alert: %s", ruleID),
+				Title:          "Compliance Rule Triggered",
+				Body:           message,
+				ActionURL:      "",
+				ActionText:     "View Details",
+			})
+			if err != nil {
+				s.logger.Warn("failed to send compliance notification email", "error", err)
+			}
+		}
+	}
 
 	return nil
 }
