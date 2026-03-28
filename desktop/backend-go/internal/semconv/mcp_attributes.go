@@ -195,12 +195,12 @@ func McpConnectionTransport(val string) attribute.KeyValue {
 // McpConnectionTransportValues contains the known enum values for mcp.connection.transport.
 var McpConnectionTransportValues = struct {
 	Stdio string
-	Http  string
-	Sse   string
+	Http string
+	Sse string
 }{
 	Stdio: "stdio",
-	Http:  "http",
-	Sse:   "sse",
+	Http: "http",
+	Sse: "sse",
 }
 
 // McpProtocol returns an attribute KeyValue for mcp.protocol.
@@ -211,12 +211,12 @@ func McpProtocol(val string) attribute.KeyValue {
 // McpProtocolValues contains the known enum values for mcp.protocol.
 var McpProtocolValues = struct {
 	Stdio string
-	Http  string
-	Sse   string
+	Http string
+	Sse string
 }{
 	Stdio: "stdio",
-	Http:  "http",
-	Sse:   "sse",
+	Http: "http",
+	Sse: "sse",
 }
 
 // McpProtocolVersion returns an attribute KeyValue for mcp.protocol.version.
@@ -261,15 +261,15 @@ func McpServerHealthStatus(val string) attribute.KeyValue {
 
 // McpServerHealthStatusValues contains the known enum values for mcp.server.health.status.
 var McpServerHealthStatusValues = struct {
-	Healthy   string
-	Degraded  string
+	Healthy string
+	Degraded string
 	Unhealthy string
-	Unknown   string
+	Unknown string
 }{
-	Healthy:   "healthy",
-	Degraded:  "degraded",
+	Healthy: "healthy",
+	Degraded: "degraded",
 	Unhealthy: "unhealthy",
-	Unknown:   "unknown",
+	Unknown: "unknown",
 }
 
 // McpServerHealthToolCount returns an attribute KeyValue for mcp.server.health.tool_count.
@@ -355,14 +355,14 @@ func McpToolCompositionStrategy(val string) attribute.KeyValue {
 // McpToolCompositionStrategyValues contains the known enum values for mcp.tool.composition.strategy.
 var McpToolCompositionStrategyValues = struct {
 	Sequential string
-	Parallel   string
-	Fallback   string
-	Pipeline   string
+	Parallel string
+	Fallback string
+	Pipeline string
 }{
 	Sequential: "sequential",
-	Parallel:   "parallel",
-	Fallback:   "fallback",
-	Pipeline:   "pipeline",
+	Parallel: "parallel",
+	Fallback: "fallback",
+	Pipeline: "pipeline",
 }
 
 // McpToolCompositionTimeoutMs returns an attribute KeyValue for mcp.tool.composition.timeout_ms.
@@ -392,13 +392,13 @@ func McpToolDeprecationPolicy(val string) attribute.KeyValue {
 
 // McpToolDeprecationPolicyValues contains the known enum values for mcp.tool.deprecation.policy.
 var McpToolDeprecationPolicyValues = struct {
-	Immediate   string
+	Immediate string
 	GracePeriod string
-	WarnOnly    string
+	WarnOnly string
 }{
-	Immediate:   "immediate",
+	Immediate: "immediate",
 	GracePeriod: "grace_period",
-	WarnOnly:    "warn_only",
+	WarnOnly: "warn_only",
 }
 
 // McpToolDeprecationReason returns an attribute KeyValue for mcp.tool.deprecation.reason.
@@ -478,13 +478,14 @@ func McpTransportType(val string) attribute.KeyValue {
 
 // McpTransportTypeValues contains the known enum values for mcp.transport.type.
 var McpTransportTypeValues = struct {
-	Stdio     string
-	Http      string
-	Sse       string
+	Stdio string
+	Http string
+	Sse string
 	Websocket string
 }{
-	Stdio:     "stdio",
-	Http:      "http",
-	Sse:       "sse",
+	Stdio: "stdio",
+	Http: "http",
+	Sse: "sse",
 	Websocket: "websocket",
 }
+

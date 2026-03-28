@@ -1,6 +1,12 @@
 package semconv
 
 const (
+	// jtbd_dmaic_phase is the span name for "jtbd.dmaic.phase".
+	//
+	// DMAIC phase transition in a JTBD Wave 12 scenario — tracks each step through the Define/Measure/Analyze/Improve/Control cycle.
+	// Kind: internal
+	// Stability: development
+	JtbdDmaicPhaseSpan = "jtbd.dmaic.phase"
 	// jtbd_loop is the span name for "jtbd.loop".
 	//
 	// A complete iteration of a 10-scenario JTBD loop execution across ChatmanGPT integration chain.

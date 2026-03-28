@@ -7,6 +7,27 @@ import "go.opentelemetry.io/otel/attribute"
 
 // Board Attributes
 const (
+	// BoardKpiBottleneckCountKey is the OTel attribute key for board.kpi_bottleneck_count.
+	// Number of detected bottleneck activities
+	BoardKpiBottleneckCountKey = attribute.Key("board.kpi_bottleneck_count")
+	// BoardKpiConformanceScoreKey is the OTel attribute key for board.kpi_conformance_score.
+	// Conformance score [0.0-1.0]: 0.0 (no conformance) to 1.0 (perfect)
+	BoardKpiConformanceScoreKey = attribute.Key("board.kpi_conformance_score")
+	// BoardKpiCycleTimeAvgMsKey is the OTel attribute key for board.kpi_cycle_time_avg_ms.
+	// Average case cycle time in milliseconds
+	BoardKpiCycleTimeAvgMsKey = attribute.Key("board.kpi_cycle_time_avg_ms")
+	// BoardKpiEventsProcessedKey is the OTel attribute key for board.kpi_events_processed.
+	// Total number of events processed (capped at 10,000)
+	BoardKpiEventsProcessedKey = attribute.Key("board.kpi_events_processed")
+	// BoardKpiTruncatedKey is the OTel attribute key for board.kpi_truncated.
+	// Whether the event log was truncated to respect the 10,000 event batch limit
+	BoardKpiTruncatedKey = attribute.Key("board.kpi_truncated")
+	// BoardKpiVariantCountKey is the OTel attribute key for board.kpi_variant_count.
+	// Number of unique process variants
+	BoardKpiVariantCountKey = attribute.Key("board.kpi_variant_count")
+	// BoardKpiErrorKey is the OTel attribute key for board.kpi_error.
+	// Error type if KPI computation failed
+	BoardKpiErrorKey = attribute.Key("board.kpi_error")
 	// BoardConwayScoreKey is the OTel attribute key for board.conway_score.
 	// Conway score [0.0-1.0]: boundary handoff time / total cycle time
 	BoardConwayScoreKey = attribute.Key("board.conway_score")
@@ -41,6 +62,41 @@ const (
 	// Count of Conway violations requiring board decision
 	BoardStructuralIssueCountKey = attribute.Key("board.structural_issue_count")
 )
+
+// BoardKpiBottleneckCount returns an attribute KeyValue for board.kpi_bottleneck_count.
+func BoardKpiBottleneckCount(val int64) attribute.KeyValue {
+	return BoardKpiBottleneckCountKey.Int64(val)
+}
+
+// BoardKpiConformanceScore returns an attribute KeyValue for board.kpi_conformance_score.
+func BoardKpiConformanceScore(val float64) attribute.KeyValue {
+	return BoardKpiConformanceScoreKey.Float64(val)
+}
+
+// BoardKpiCycleTimeAvgMs returns an attribute KeyValue for board.kpi_cycle_time_avg_ms.
+func BoardKpiCycleTimeAvgMs(val float64) attribute.KeyValue {
+	return BoardKpiCycleTimeAvgMsKey.Float64(val)
+}
+
+// BoardKpiEventsProcessed returns an attribute KeyValue for board.kpi_events_processed.
+func BoardKpiEventsProcessed(val int64) attribute.KeyValue {
+	return BoardKpiEventsProcessedKey.Int64(val)
+}
+
+// BoardKpiTruncated returns an attribute KeyValue for board.kpi_truncated.
+func BoardKpiTruncated(val bool) attribute.KeyValue {
+	return BoardKpiTruncatedKey.Bool(val)
+}
+
+// BoardKpiVariantCount returns an attribute KeyValue for board.kpi_variant_count.
+func BoardKpiVariantCount(val int64) attribute.KeyValue {
+	return BoardKpiVariantCountKey.Int64(val)
+}
+
+// BoardKpiError returns an attribute KeyValue for board.kpi_error.
+func BoardKpiError(val string) attribute.KeyValue {
+	return BoardKpiErrorKey.String(val)
+}
 
 // BoardConwayScore returns an attribute KeyValue for board.conway_score.
 func BoardConwayScore(val float64) attribute.KeyValue {
@@ -103,3 +159,4 @@ func BoardSectionCount(val int64) attribute.KeyValue {
 func BoardStructuralIssueCount(val int64) attribute.KeyValue {
 	return BoardStructuralIssueCountKey.Int64(val)
 }
+

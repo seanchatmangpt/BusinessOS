@@ -83,17 +83,17 @@ func BosAuditEventType(val string) attribute.KeyValue {
 
 // BosAuditEventTypeValues contains the known enum values for bos.audit.event_type.
 var BosAuditEventTypeValues = struct {
-	DataAccess      string
-	ConfigChange    string
+	DataAccess string
+	ConfigChange string
 	PermissionGrant string
 	ComplianceCheck string
-	GapDetection    string
+	GapDetection string
 }{
-	DataAccess:      "data_access",
-	ConfigChange:    "config_change",
+	DataAccess: "data_access",
+	ConfigChange: "config_change",
 	PermissionGrant: "permission_grant",
 	ComplianceCheck: "compliance_check",
-	GapDetection:    "gap_detection",
+	GapDetection: "gap_detection",
 }
 
 // BosAuditTrailId returns an attribute KeyValue for bos.audit.trail.id.
@@ -113,16 +113,16 @@ func BosComplianceFramework(val string) attribute.KeyValue {
 
 // BosComplianceFrameworkValues contains the known enum values for bos.compliance.framework.
 var BosComplianceFrameworkValues = struct {
-	Soc2   string
-	Hipaa  string
-	Gdpr   string
-	Sox    string
+	Soc2 string
+	Hipaa string
+	Gdpr string
+	Sox string
 	Custom string
 }{
-	Soc2:   "SOC2",
-	Hipaa:  "HIPAA",
-	Gdpr:   "GDPR",
-	Sox:    "SOX",
+	Soc2: "SOC2",
+	Hipaa: "HIPAA",
+	Gdpr: "GDPR",
+	Sox: "SOX",
 	Custom: "CUSTOM",
 }
 
@@ -144,14 +144,14 @@ func BosComplianceSeverity(val string) attribute.KeyValue {
 // BosComplianceSeverityValues contains the known enum values for bos.compliance.severity.
 var BosComplianceSeverityValues = struct {
 	Critical string
-	High     string
-	Medium   string
-	Low      string
+	High string
+	Medium string
+	Low string
 }{
 	Critical: "critical",
-	High:     "high",
-	Medium:   "medium",
-	Low:      "low",
+	High: "high",
+	Medium: "medium",
+	Low: "low",
 }
 
 // BosDecisionId returns an attribute KeyValue for bos.decision.id.
@@ -166,14 +166,14 @@ func BosDecisionOutcome(val string) attribute.KeyValue {
 
 // BosDecisionOutcomeValues contains the known enum values for bos.decision.outcome.
 var BosDecisionOutcomeValues = struct {
-	Approved  string
-	Rejected  string
-	Deferred  string
+	Approved string
+	Rejected string
+	Deferred string
 	Escalated string
 }{
-	Approved:  "approved",
-	Rejected:  "rejected",
-	Deferred:  "deferred",
+	Approved: "approved",
+	Rejected: "rejected",
+	Deferred: "deferred",
 	Escalated: "escalated",
 }
 
@@ -185,14 +185,14 @@ func BosDecisionType(val string) attribute.KeyValue {
 // BosDecisionTypeValues contains the known enum values for bos.decision.type.
 var BosDecisionTypeValues = struct {
 	Architectural string
-	Operational   string
-	Strategic     string
-	Compliance    string
+	Operational string
+	Strategic string
+	Compliance string
 }{
 	Architectural: "architectural",
-	Operational:   "operational",
-	Strategic:     "strategic",
-	Compliance:    "compliance",
+	Operational: "operational",
+	Strategic: "strategic",
+	Compliance: "compliance",
 }
 
 // BosGapId returns an attribute KeyValue for bos.gap.id.
@@ -213,14 +213,14 @@ func BosGapSeverity(val string) attribute.KeyValue {
 // BosGapSeverityValues contains the known enum values for bos.gap.severity.
 var BosGapSeverityValues = struct {
 	Critical string
-	High     string
-	Medium   string
-	Low      string
+	High string
+	Medium string
+	Low string
 }{
 	Critical: "critical",
-	High:     "high",
-	Medium:   "medium",
-	Low:      "low",
+	High: "high",
+	Medium: "medium",
+	Low: "low",
 }
 
 // BosGapStatus returns an attribute KeyValue for bos.gap.status.
@@ -230,15 +230,15 @@ func BosGapStatus(val string) attribute.KeyValue {
 
 // BosGapStatusValues contains the known enum values for bos.gap.status.
 var BosGapStatusValues = struct {
-	Open          string
+	Open string
 	InRemediation string
-	Resolved      string
-	AcceptedRisk  string
+	Resolved string
+	AcceptedRisk string
 }{
-	Open:          "open",
+	Open: "open",
 	InRemediation: "in_remediation",
-	Resolved:      "resolved",
-	AcceptedRisk:  "accepted_risk",
+	Resolved: "resolved",
+	AcceptedRisk: "accepted_risk",
 }
 
 // BosPolicyVersion returns an attribute KeyValue for bos.policy.version.
@@ -255,3 +255,4 @@ func BosWorkspaceId(val string) attribute.KeyValue {
 func BosWorkspaceName(val string) attribute.KeyValue {
 	return BosWorkspaceNameKey.String(val)
 }
+

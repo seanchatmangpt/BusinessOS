@@ -12,12 +12,15 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/rhl/businessos-backend/internal/circuitbreaker"
 )
 
 // Client communicates with the YAWLv6 engine over HTTP.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
+	breaker    *circuitbreaker.CircuitBreaker
 }
 
 // ConformanceResult holds the result of a YAWL conformance check.
@@ -33,52 +36,77 @@ func NewClient() *Client {
 	if baseURL == "" {
 		baseURL = "http://localhost:8080"
 	}
+	defaultConfig := circuitbreaker.Config{
+		MaxAttempts:      3,
+		BaseDelay:        100 * time.Millisecond,
+		MaxDelay:         5 * time.Second,
+		TimeoutDuration:  10 * time.Second,
+		CooldownPeriod:   30 * time.Second,
+		HalfOpenMaxCalls: 3,
+	}
 	return &Client{
 		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
+		breaker:    circuitbreaker.NewCircuitBreaker(defaultConfig),
 	}
 }
 
 // Health calls GET /health.jsp and returns an error if the engine is unreachable or unhealthy.
+// Wrapped with circuit breaker to prevent cascading failures.
 func (c *Client) Health(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/health.jsp", nil)
-	if err != nil {
-		return err
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("yawl health check failed: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("yawl health check returned %d", resp.StatusCode)
-	}
-	return nil
+	err := c.breaker.Execute(ctx, func() error {
+		req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/health.jsp", nil)
+		if err != nil {
+			return err
+		}
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("yawl health check failed: %w", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("yawl health check returned %d", resp.StatusCode)
+		}
+		return nil
+	})
+
+	// Circuit breaker errors are already wrapped
+	return err
 }
 
 // CheckConformance sends a YAWL spec XML and event log JSON to the engine and
 // returns a ConformanceResult.
+// Wrapped with circuit breaker to prevent cascading failures.
 func (c *Client) CheckConformance(ctx context.Context, specXML string, eventLogJSON []byte) (*ConformanceResult, error) {
-	body, _ := json.Marshal(map[string]interface{}{
-		"spec":      specXML,
-		"event_log": json.RawMessage(eventLogJSON),
+	var result *ConformanceResult
+	err := c.breaker.Execute(ctx, func() error {
+		body, _ := json.Marshal(map[string]interface{}{
+			"spec":      specXML,
+			"event_log": json.RawMessage(eventLogJSON),
+		})
+		req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/api/process-mining/conformance", bytes.NewReader(body))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("yawl conformance check failed: %w", err)
+		}
+		defer resp.Body.Close()
+		data, _ := io.ReadAll(resp.Body)
+		var conformanceResult ConformanceResult
+		if err := json.Unmarshal(data, &conformanceResult); err != nil {
+			return fmt.Errorf("yawl response parse failed: %w", err)
+		}
+		result = &conformanceResult
+		return nil
 	})
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/api/process-mining/conformance", bytes.NewReader(body))
+
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("yawl conformance check failed: %w", err)
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
-	var result ConformanceResult
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, fmt.Errorf("yawl response parse failed: %w", err)
-	}
-	return &result, nil
+	return result, nil
 }
 
 // wcpCategories is the ordered list of subdirectories under wcp-patterns/.
