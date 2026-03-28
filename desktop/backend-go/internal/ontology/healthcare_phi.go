@@ -558,8 +558,8 @@ ASK {
 		AuditLogPass:      auditLogPass,
 		EncryptionPass:    encryptionPass,
 		IntegrityPass:     integrityPass,
-		AccessLogCount:    checks * 100, // Placeholder: real count from logs
-		FailedAccessCount: 0,            // Placeholder: count from audit log
+		AccessLogCount:    0, // TODO: query real count from persistent audit log
+		FailedAccessCount: 0, // TODO: query real denied access count from audit log
 		CheckedAt:         now,
 		ComplianceScore:   complianceScore,
 	}, nil

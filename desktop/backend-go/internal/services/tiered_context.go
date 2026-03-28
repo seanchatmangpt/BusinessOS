@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -150,7 +151,11 @@ func (s *TieredContextService) buildLevel1(
 		for i, m := range memories {
 			memIDs[i] = m.ID
 		}
-		go s.touchMemories(context.Background(), memIDs)
+		go func() {
+			touchCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			s.touchMemories(touchCtx, memIDs)
+		}()
 	}
 
 	return nil

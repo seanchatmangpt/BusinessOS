@@ -47,12 +47,20 @@ func (m *MemoryService) UpdateWorkspaceMemory(ctx context.Context, memoryID uuid
 		return fmt.Errorf("user does not have access to this memory")
 	}
 
-	// Build dynamic update query
+	// Build dynamic update query — only allow whitelisted column names
+	// to prevent SQL injection via user-supplied keys.
+	allowedColumns := map[string]bool{
+		"title": true, "content": true, "tags": true, "category": true,
+		"importance": true, "visibility": true, "metadata_": true,
+	}
 	query := "UPDATE workspace_memories SET updated_at = NOW()"
 	args := []interface{}{memoryID}
 	argCount := 1
 
 	for key, value := range updates {
+		if !allowedColumns[key] {
+			return fmt.Errorf("disallowed column name: %s", key)
+		}
 		argCount++
 		query += fmt.Sprintf(", %s = $%d", key, argCount)
 		args = append(args, value)

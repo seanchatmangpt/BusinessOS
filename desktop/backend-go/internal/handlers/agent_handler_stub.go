@@ -31,7 +31,7 @@ func NewAgentHandler(pool *pgxpool.Pool, cfg *config.Config) *AgentHandler {
 
 // ListAgentPresets lists available agent presets from the database
 func (h *AgentHandler) ListAgentPresets(c *gin.Context) {
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000) // 5s timeout per WvdA soundness
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second) // 5s timeout per WvdA soundness
 	defer cancel()
 
 	rows, err := h.pool.Query(ctx, `
@@ -76,7 +76,7 @@ func (h *AgentHandler) GetAgentPreset(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	type Preset struct {
@@ -115,7 +115,7 @@ func (h *AgentHandler) ListCustomAgents(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	rows, err := h.pool.Query(ctx, `
@@ -333,7 +333,7 @@ func (h *AgentHandler) ListCustomAgentsByCategory(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	rows, err := h.pool.Query(ctx, `
@@ -495,7 +495,7 @@ func (h *AgentHandler) GetCustomAgent(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	type Agent struct {
@@ -704,7 +704,7 @@ func (h *AgentHandler) DeleteCustomAgent(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
 	// Soft delete: set deleted_at timestamp

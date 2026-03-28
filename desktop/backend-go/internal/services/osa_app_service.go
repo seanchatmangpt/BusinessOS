@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,8 +89,16 @@ func (s *OSAAppService) GenerateApp(ctx context.Context, req *GenerateAppRequest
 	// Create event channel
 	eventCh := make(chan streaming.StreamEvent, 10)
 
-	// Launch generation in background
-	go s.runGeneration(ctx, req, workspaceID, eventCh)
+	// Launch generation in background with bounded timeout.
+	// The goroutine gets its own derived context so that a parent
+	// cancellation (e.g. HTTP request disconnect) does not leave the
+	// generation workflow in a partial state. The 10-minute timeout
+	// provides an upper-bound for the entire generation pipeline.
+	go func() {
+		genCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		s.runGeneration(genCtx, req, workspaceID, eventCh)
+	}()
 
 	return eventCh, nil
 }
@@ -143,11 +152,8 @@ func (s *OSAAppService) runGeneration(
 		s.logger.Warn("failed to send progress event", "error", err)
 	}
 
-	// Build a structured prompt from template type, name, and description.
-	generatedPrompt := fmt.Sprintf(
-		"Build a %s application named %q.\n\nRequirements:\n%s",
-		req.TemplateType, req.Name, req.Description,
-	)
+	// Build a structured prompt from template type, name, description, and parameters.
+	generatedPrompt := s.buildGenerationPrompt(req)
 
 	// Send progress update
 	if err := s.sendEvent(eventCh, streaming.StreamEvent{
@@ -405,4 +411,46 @@ func (s *OSAAppService) ListUserApps(ctx context.Context, userID uuid.UUID) ([]s
 		return nil, fmt.Errorf("failed to list apps: %w", err)
 	}
 	return apps, nil
+}
+
+// buildGenerationPrompt constructs a prompt for OSA app generation.
+// It attempts to use the prompt template system first; if no matching
+// template is found, it falls back to a structured prompt built from the
+// request fields.
+func (s *OSAAppService) buildGenerationPrompt(req *GenerateAppRequest) string {
+	// Try the prompt template system if a template type was specified.
+	if req.TemplateType != "" {
+		tplSvc := NewTemplateLoaderService(GetTemplatesDirectory())
+		tmpl, err := tplSvc.LoadTemplate(req.TemplateType)
+		if err == nil && tmpl != nil && tmpl.Template != "" {
+			s.logger.Info("using prompt template for generation",
+				"template", req.TemplateType,
+			)
+			return tmpl.Template
+		}
+		s.logger.Debug("no template found for type, building default prompt",
+			"template_type", req.TemplateType,
+			"error", err,
+		)
+	}
+
+	// Fallback: build a structured prompt from request fields.
+	var b strings.Builder
+	b.WriteString("Generate a ")
+	b.WriteString(req.TemplateType)
+	b.WriteString(" application named \"")
+	b.WriteString(req.Name)
+	b.WriteString("\".\n\nRequirements:\n")
+	b.WriteString(req.Description)
+	if len(req.Parameters) > 0 {
+		b.WriteString("\n\nParameters:\n")
+		for k, v := range req.Parameters {
+			b.WriteString("- ")
+			b.WriteString(k)
+			b.WriteString(": ")
+			b.WriteString(fmt.Sprintf("%v", v))
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }

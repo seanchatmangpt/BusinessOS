@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rhl/businessos-backend/internal/ontology"
 	"github.com/rhl/businessos-backend/internal/utils"
 )
 
@@ -32,6 +29,7 @@ func HealthcareAPI() {
 }
 
 // TrackHealthcareData handles REST requests for tracking healthcare data
+// TODO: implement real audit trail — connect to Oxigraph RDF store and persist PROV-O triples
 func TrackHealthcareData(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req HealthcareRESTAPIRequest
@@ -50,23 +48,15 @@ func TrackHealthcareData(logger *slog.Logger) gin.HandlerFunc {
 			return
 		}
 
-		// Create tracking result
-		result := &ontology.PHITrackingResult{
-			ResourceID:       req.ResourceID,
-			ResourceType:     req.ResourceType,
-			TripleCount:      4,
-			ProvEntityID:     fmt.Sprintf("http://hl7.org/fhir/%s_%s", req.ResourceType, req.ResourceID),
-			ProvActivityID:   fmt.Sprintf("http://hl7.org/fhir/activity_%s_%d", req.ResourceType, time.Now().UnixNano()),
-			Timestamp:        time.Now(),
-			HIPAACheckPassed: true,
-		}
-
-		logger.Info("TrackHealthcareData REST endpoint", "resource_id", req.ResourceID)
-		c.JSON(http.StatusCreated, result)
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "HIPAA audit trail not yet implemented",
+			"status": "not_implemented",
+		})
 	}
 }
 
 // GetAuditTrailData handles REST requests for audit trail retrieval
+// TODO: implement real audit trail — query persistent audit log (PostgreSQL) with HMAC verification
 func GetAuditTrailData(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		patientID := c.Param("id")
@@ -78,25 +68,15 @@ func GetAuditTrailData(logger *slog.Logger) gin.HandlerFunc {
 			return
 		}
 
-		days := 90
-		if dayParam := c.DefaultQuery("days", "90"); dayParam != "" {
-			fmt.Sscanf(dayParam, "%d", &days)
-		}
-
-		result := &ontology.AuditTrailResult{
-			PatientID:    patientID,
-			TotalEntries: 0,
-			Period:       fmt.Sprintf("last_%d_days", days),
-			Entries:      []ontology.PHIAuditEntry{},
-			GeneratedAt:  time.Now(),
-		}
-
-		logger.Info("GetAuditTrailData REST endpoint", "patient_id", patientID, "days", days)
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "HIPAA audit trail not yet implemented",
+			"status": "not_implemented",
+		})
 	}
 }
 
 // VerifyConsentData handles REST requests for consent verification
+// TODO: implement real consent verification — query FHIR Consent resource from persistent store
 func VerifyConsentData(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req VerifyConsentAPIRequest
@@ -113,32 +93,15 @@ func VerifyConsentData(logger *slog.Logger) gin.HandlerFunc {
 			return
 		}
 
-		result := &ontology.ConsentVerificationResult{
-			PatientID:      req.PatientID,
-			ConsentGranted: false,
-			ConsentDocID:   fmt.Sprintf("Consent/%s_consent", req.PatientID),
-			ExpiresAt:      time.Now(),
-			Scope:          []string{},
-			VerifiedAt:     time.Now(),
-		}
-
-		if !result.ConsentGranted {
-			logger.Info("VerifyConsentData REST endpoint - no consent", "patient_id", req.PatientID)
-			c.JSON(http.StatusForbidden, gin.H{
-				"error":      "no_valid_consent",
-				"message":    "Patient has not granted consent for PHI access",
-				"patient_id": req.PatientID,
-				"result":     result,
-			})
-			return
-		}
-
-		logger.Info("VerifyConsentData REST endpoint", "patient_id", req.PatientID)
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "HIPAA consent verification not yet implemented",
+			"status": "not_implemented",
+		})
 	}
 }
 
 // DeleteHealthcareData handles REST requests for healthcare data deletion
+// TODO: implement real deletion — hard-delete from Oxigraph RDF store with GDPR compliance verification
 func DeleteHealthcareData(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		resourceID := c.Param("id")
@@ -152,35 +115,20 @@ func DeleteHealthcareData(logger *slog.Logger) gin.HandlerFunc {
 			return
 		}
 
-		result := &ontology.DeletionVerificationResult{
-			ResourceID:        resourceID,
-			FullyDeleted:      true,
-			TripleCount:       0,
-			VerifiedAt:        time.Now(),
-			RDFCleanConfirmed: true,
-		}
-
-		logger.Info("DeleteHealthcareData REST endpoint", "resource_id", resourceID, "resource_type", resourceType)
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "HIPAA healthcare data deletion not yet implemented",
+			"status": "not_implemented",
+		})
 	}
 }
 
 // VerifyHIPAACompliance handles REST requests for HIPAA compliance verification
+// TODO: implement real HIPAA compliance check — query access control, audit log, encryption, and integrity systems
 func VerifyHIPAACompliance(logger *slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		result := &ontology.HIPAAComplianceCheckResult{
-			Compliant:         true,
-			AccessControlPass: true,
-			AuditLogPass:      true,
-			EncryptionPass:    true,
-			IntegrityPass:     true,
-			AccessLogCount:    42,
-			FailedAccessCount: 0,
-			CheckedAt:         time.Now(),
-			ComplianceScore:   1.0,
-		}
-
-		logger.Info("VerifyHIPAACompliance REST endpoint", "compliant", result.Compliant)
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusNotImplemented, gin.H{
+			"error":  "HIPAA compliance verification not yet implemented",
+			"status": "not_implemented",
+		})
 	}
 }

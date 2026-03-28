@@ -51,7 +51,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerBOSGatewayRoutes(api)
 	h.registerLinkedInRoutes(api, auth)
 	h.registerBoardRoutes(api)
-	h.registerPM4PyDashboardRoutes(api)
+	h.registerPM4PyDashboardRoutes(api, optionalAuth)
 	h.registerVisionRoutes(api)
 	h.registerYawlRoutes(api, auth)
 }
@@ -89,14 +89,14 @@ func (h *Handlers) registerBoardRoutes(api *gin.RouterGroup) {
 // registerPM4PyDashboardRoutes wires POST /api/pm4py/dashboard-kpi.
 // The pm4py-rust base URL is read from the PM4PY_RUST_URL environment variable
 // (default: http://localhost:8090), consistent with the bos gateway pattern.
-func (h *Handlers) registerPM4PyDashboardRoutes(api *gin.RouterGroup) {
+func (h *Handlers) registerPM4PyDashboardRoutes(api *gin.RouterGroup, optionalAuth gin.HandlerFunc) {
 	baseURL := os.Getenv("PM4PY_RUST_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8090"
 	}
 	pm4pyClient := pm4py_rust.NewClient(baseURL)
 	dashHandler := NewPM4PyDashboardHandler(pm4pyClient)
-	api.POST("/pm4py/dashboard-kpi", dashHandler.GetDashboardKPI)
+	api.POST("/pm4py/dashboard-kpi", optionalAuth, dashHandler.GetDashboardKPI)
 }
 
 // registerVisionRoutes wires GET /api/vision/status for cross-project health aggregation.

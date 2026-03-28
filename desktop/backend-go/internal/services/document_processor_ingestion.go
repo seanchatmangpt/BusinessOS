@@ -56,15 +56,18 @@ func (p *DocumentProcessor) ProcessDocument(ctx context.Context, input ProcessDo
 		return nil, fmt.Errorf("failed to insert document: %w", err)
 	}
 
-	// Process document asynchronously
-	go p.processDocumentAsync(doc.ID, input.Content)
+	// Process document asynchronously with bounded timeout
+	go func() {
+		asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		p.processDocumentAsync(asyncCtx, doc.ID, input.Content)
+	}()
 
 	return doc, nil
 }
 
 // processDocumentAsync processes document content in background
-func (p *DocumentProcessor) processDocumentAsync(docID uuid.UUID, content []byte) {
-	ctx := context.Background()
+func (p *DocumentProcessor) processDocumentAsync(ctx context.Context, docID uuid.UUID, content []byte) {
 
 	// Extract text
 	extractedText, pageCount, err := p.extractText(content)
