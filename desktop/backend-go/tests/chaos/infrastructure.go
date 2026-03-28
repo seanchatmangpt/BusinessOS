@@ -94,7 +94,7 @@ func (dc *DockerCompose) IsolateService(service string) error {
 	}
 
 	// Disconnect from all networks
-	cmd := exec.Command("docker", "network", "disconnect", "-f", "businessos_default", containerID)
+	cmd := exec.Command("docker", "network", "disconnect", "-f", "businessos_businessos-network", containerID)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to isolate service %s: %w\nOutput: %s", service, err, string(output))
@@ -111,7 +111,7 @@ func (dc *DockerCompose) RestoreService(service string) error {
 	}
 
 	// Reconnect to the network
-	cmd := exec.Command("docker", "network", "connect", "businessos_default", containerID)
+	cmd := exec.Command("docker", "network", "connect", "businessos_businessos-network", containerID)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to restore service %s: %w\nOutput: %s", service, err, string(output))

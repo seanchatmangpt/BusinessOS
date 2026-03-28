@@ -4,18 +4,23 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
 
 // TestMain skips all chaos tests gracefully when the Docker environment is not
-// available.  Chaos tests require live containers on the businessos_default
-// network (created by `make dev`).  This matches the skip pattern used by
-// tests/integration/common_test.go.
+// available or the osa service is not in a running state.  Chaos tests require
+// live containers on the businessos_businessos-network (created by `make dev`).
+// This matches the skip pattern used by tests/integration/common_test.go.
 func TestMain(m *testing.M) {
-	cmd := exec.Command("docker", "network", "inspect", "businessos_default")
-	if err := cmd.Run(); err != nil {
-		fmt.Println("SKIP chaos tests: businessos_default Docker network not found (run `make dev` first)")
+	// Use `docker compose ps --filter status=running -q osa` to verify the osa
+	// service is actually running (not just "exited" or "restarting").
+	cmd := exec.Command("docker", "compose", "ps", "--filter", "status=running", "-q", "osa")
+	cmd.Dir = "/Users/sac/chatmangpt/BusinessOS"
+	out, err := cmd.Output()
+	if err != nil || strings.TrimSpace(string(out)) == "" {
+		fmt.Println("SKIP chaos tests: osa service not running — run `make dev` and wait for osa to be healthy")
 		os.Exit(0)
 	}
 	os.Exit(m.Run())

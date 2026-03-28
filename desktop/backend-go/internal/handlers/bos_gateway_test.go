@@ -816,7 +816,7 @@ func TestDiscover_CanopyWebhook_FiresOnSuccess(t *testing.T) {
 	assert.NotEmpty(t, capturedPayload["model_id"])
 	assert.NotEmpty(t, capturedPayload["algorithm"])
 	assert.NotNil(t, capturedPayload["activities_count"])
-	assert.Equal(t, float64(0), capturedPayload["fitness_score"])
+	assert.Equal(t, float64(-1), capturedPayload["fitness_score"]) // -1.0 = not-yet-computed sentinel
 }
 
 func TestDiscover_CanopyWebhook_SkippedWhenURLEmpty(t *testing.T) {
