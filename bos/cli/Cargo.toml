@@ -12,6 +12,10 @@ description = "BusinessOS data layer CLI — ODCS workspace operations, schema m
 name = "bos"
 path = "src/main.rs"
 
+[[test]]
+name = "bos_weaver_live_check"
+path = "../tests/bos_weaver_live_check.rs"
+
 [dependencies]
 bos-core = { path = "../core" }
 bos-ingest = { path = "../ingest" }
@@ -35,6 +39,10 @@ reqwest = { workspace = true, features = ["blocking", "json"] }
 chrono = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+opentelemetry          = { workspace = true }
+opentelemetry_sdk      = { workspace = true }
+opentelemetry-otlp     = { workspace = true }
+tracing-opentelemetry  = { workspace = true }
 owo-colors = { workspace = true }
 console = { workspace = true }
 indicatif = { workspace = true }
@@ -46,3 +54,8 @@ uuid = { workspace = true }
 assert_cmd = "2.0"
 tempfile = "3"
 predicates = "3"
+# For weaver live-check integration tests
+opentelemetry          = { workspace = true }
+opentelemetry_sdk      = { workspace = true }
+opentelemetry-otlp     = { workspace = true }
+tokio = { workspace = true }

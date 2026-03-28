@@ -34,7 +34,7 @@ tokio-postgres = { workspace = true }
 pm4py = { path = "/Users/sac/chatmangpt/pm4py-rust" }
 
 # HTTP client for BusinessOS gateway
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = ["json", "blocking"] }
 
 # Async trait objects (PeerTransport)
 async-trait = { workspace = true }

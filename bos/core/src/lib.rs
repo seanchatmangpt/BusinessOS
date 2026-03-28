@@ -30,7 +30,7 @@ pub use ontology::bridge::BusinessOSBridge;
 pub use ontology::execute::{QueryExecutor, ExecutionResult};
 pub use ontology::infer::{ConfidenceLevel, InferConfig, InferResult, OntologyInferrer};
 pub use ontology::select::{SemanticSearch, SelectResult};
-pub use ontology::serve::{ServeConfig, serve as serve_ontology};
+pub use ontology::serve::{ServeConfig, SparqlProxyConfig, serve as serve_ontology, serve_sparql_proxy};
 pub use rdf::store::{TripleStore, Triple};
 pub use supervision::{SupervisorConfig, SupervisorHandle, Worker, WorkerConfig, WorkerHandle, WorkerState};
 pub use distributed::{DistributedPM, RaftCoordinator, PeerTransport, HttpPeerTransport, DistributedWorker, ConsensusProtocol, ModelMerger, FaultRecovery};
