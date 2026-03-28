@@ -207,11 +207,11 @@ func TestBOSProgressHandlerErrorRecovery(t *testing.T) {
 		EventType: "error_recoverable",
 		SessionID: sessionID.String(),
 		Error: &services.BOSErrorInfo{
-			Code:        "TIMEOUT",
-			Message:     "Worker timeout, retrying",
-			Recoverable: true,
+			Code:         "TIMEOUT",
+			Message:      "Worker timeout, retrying",
+			Recoverable:  true,
 			RetryAttempt: int32Ptr(1),
-			MaxRetries:  int32Ptr(3),
+			MaxRetries:   int32Ptr(3),
 		},
 		TimestampMs: time.Now().UnixMilli(),
 	}
@@ -319,9 +319,9 @@ func TestBOSProgressHandlerPartialResults(t *testing.T) {
 	}
 
 	event := &services.BOSStreamEvent{
-		ID:        uuid.New().String(),
-		EventType: "partial_results",
-		SessionID: sessionID.String(),
+		ID:            uuid.New().String(),
+		EventType:     "partial_results",
+		SessionID:     sessionID.String(),
 		PartialResult: resultData,
 		TimestampMs:   time.Now().UnixMilli(),
 	}

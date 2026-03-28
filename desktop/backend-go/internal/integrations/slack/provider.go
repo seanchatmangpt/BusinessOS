@@ -34,186 +34,186 @@ var DefaultScopes = []string{
 	// ============================================================================
 	// CHANNELS - Public channels
 	// ============================================================================
-	"channels:read",           // View basic channel info
-	"channels:history",        // Read channel messages
-	"channels:join",           // Join public channels
-	"channels:write",          // Create/archive/rename channels
-	"channels:manage",         // Manage channel settings
+	"channels:read",    // View basic channel info
+	"channels:history", // Read channel messages
+	"channels:join",    // Join public channels
+	"channels:write",   // Create/archive/rename channels
+	"channels:manage",  // Manage channel settings
 
 	// ============================================================================
 	// DIRECT MESSAGES (IMs)
 	// ============================================================================
-	"im:read",                 // View direct messages info
-	"im:history",              // Read direct messages
-	"im:write",                // Send direct messages
+	"im:read",    // View direct messages info
+	"im:history", // Read direct messages
+	"im:write",   // Send direct messages
 
 	// ============================================================================
 	// PRIVATE CHANNELS (Groups)
 	// ============================================================================
-	"groups:read",             // View private channels
-	"groups:history",          // Read private channel messages
-	"groups:write",            // Manage private channels
+	"groups:read",    // View private channels
+	"groups:history", // Read private channel messages
+	"groups:write",   // Manage private channels
 
 	// ============================================================================
 	// MULTI-PARTY DIRECT MESSAGES (MPIMs)
 	// ============================================================================
-	"mpim:read",               // View multi-party DMs
-	"mpim:history",            // Read multi-party DM messages
-	"mpim:write",              // Send multi-party DMs
+	"mpim:read",    // View multi-party DMs
+	"mpim:history", // Read multi-party DM messages
+	"mpim:write",   // Send multi-party DMs
 
 	// ============================================================================
 	// CHAT & MESSAGES
 	// ============================================================================
-	"chat:write",              // Send messages as user
-	"chat:write.public",       // Send to channels without joining
-	"chat:write.customize",    // Send with custom username/avatar
+	"chat:write",           // Send messages as user
+	"chat:write.public",    // Send to channels without joining
+	"chat:write.customize", // Send with custom username/avatar
 
 	// ============================================================================
 	// USERS & TEAM
 	// ============================================================================
-	"users:read",              // View users
-	"users:read.email",        // View user email addresses
-	"users.profile:read",      // View user profile details
-	"users.profile:write",     // Edit user profile
-	"users:write",             // Modify user data
-	"team:read",               // View workspace info
-	"team.billing:read",       // View billing info
-	"team.preferences:read",   // View team preferences
+	"users:read",            // View users
+	"users:read.email",      // View user email addresses
+	"users.profile:read",    // View user profile details
+	"users.profile:write",   // Edit user profile
+	"users:write",           // Modify user data
+	"team:read",             // View workspace info
+	"team.billing:read",     // View billing info
+	"team.preferences:read", // View team preferences
 
 	// ============================================================================
 	// FILES & ATTACHMENTS
 	// ============================================================================
-	"files:read",              // View files shared in channels
-	"files:write",             // Upload and edit files
+	"files:read",  // View files shared in channels
+	"files:write", // Upload and edit files
 
 	// ============================================================================
 	// REACTIONS & INTERACTIONS
 	// ============================================================================
-	"reactions:read",          // View emoji reactions
-	"reactions:write",         // Add/remove reactions
+	"reactions:read",  // View emoji reactions
+	"reactions:write", // Add/remove reactions
 
 	// ============================================================================
 	// PINS, BOOKMARKS, STARS
 	// ============================================================================
-	"pins:read",               // View pinned messages
-	"pins:write",              // Pin/unpin messages
-	"bookmarks:read",          // View saved items
-	"bookmarks:write",         // Save items
-	"stars:read",              // View starred items
-	"stars:write",             // Star/unstar items
+	"pins:read",       // View pinned messages
+	"pins:write",      // Pin/unpin messages
+	"bookmarks:read",  // View saved items
+	"bookmarks:write", // Save items
+	"stars:read",      // View starred items
+	"stars:write",     // Star/unstar items
 
 	// ============================================================================
 	// SEARCH
 	// ============================================================================
-	"search:read",             // Search messages and files
+	"search:read", // Search messages and files
 
 	// ============================================================================
 	// REMINDERS
 	// ============================================================================
-	"reminders:read",          // View reminders
-	"reminders:write",         // Create/edit reminders
+	"reminders:read",  // View reminders
+	"reminders:write", // Create/edit reminders
 
 	// ============================================================================
 	// USER GROUPS
 	// ============================================================================
-	"usergroups:read",         // View user groups (teams)
-	"usergroups:write",        // Manage user groups
+	"usergroups:read",  // View user groups (teams)
+	"usergroups:write", // Manage user groups
 
 	// ============================================================================
 	// CALLS & VOICE
 	// ============================================================================
-	"calls:read",              // View call info
-	"calls:write",             // Start/manage calls
+	"calls:read",  // View call info
+	"calls:write", // Start/manage calls
 
 	// ============================================================================
 	// DO NOT DISTURB
 	// ============================================================================
-	"dnd:read",                // View Do Not Disturb settings
-	"dnd:write",               // Set Do Not Disturb
+	"dnd:read",  // View Do Not Disturb settings
+	"dnd:write", // Set Do Not Disturb
 
 	// ============================================================================
 	// EMOJI
 	// ============================================================================
-	"emoji:read",              // View custom emoji
+	"emoji:read", // View custom emoji
 
 	// ============================================================================
 	// IDENTITY (OAuth)
 	// ============================================================================
-	"identity.basic",          // View user's basic info
-	"identity.email",          // View user's email
-	"identity.avatar",         // View user's avatar
-	"identity.team",           // View user's team
+	"identity.basic",  // View user's basic info
+	"identity.email",  // View user's email
+	"identity.avatar", // View user's avatar
+	"identity.team",   // View user's team
 
 	// ============================================================================
 	// CANVASES (New Feature)
 	// ============================================================================
-	"canvases:read",           // View canvases
-	"canvases:write",          // Edit canvases
+	"canvases:read",  // View canvases
+	"canvases:write", // Edit canvases
 
 	// ============================================================================
 	// WORKFLOWS & AUTOMATION
 	// ============================================================================
-	"workflow.steps:execute",  // Execute workflow steps
-	"triggers:read",           // View triggers
-	"triggers:write",          // Create triggers
+	"workflow.steps:execute", // Execute workflow steps
+	"triggers:read",          // View triggers
+	"triggers:write",         // Create triggers
 
 	// ============================================================================
 	// LINKS
 	// ============================================================================
-	"links:read",              // View URL info
-	"links:write",             // Unfurl URLs
+	"links:read",  // View URL info
+	"links:write", // Unfurl URLs
 
 	// ============================================================================
 	// METADATA
 	// ============================================================================
-	"metadata.message:read",   // Read message metadata
+	"metadata.message:read", // Read message metadata
 
 	// ============================================================================
 	// ASSISTANT (Slack AI)
 	// ============================================================================
-	"assistant:write",         // Interact as an assistant
+	"assistant:write", // Interact as an assistant
 
 	// ============================================================================
 	// CONNECTIONS (External)
 	// ============================================================================
-	"connections:write",       // Manage external connections
+	"connections:write", // Manage external connections
 
 	// ============================================================================
 	// APP HOME
 	// ============================================================================
-	"app_mentions:read",       // View app mentions
+	"app_mentions:read", // View app mentions
 
 	// ============================================================================
 	// OPENID
 	// ============================================================================
-	"openid",                  // OpenID Connect
-	"profile",                 // View profile info
-	"email",                   // View email
+	"openid",  // OpenID Connect
+	"profile", // View profile info
+	"email",   // View email
 }
 
 // AdminScopes contains Slack admin scopes (requires admin privileges)
 // These are separate because they require Enterprise Grid
 var AdminScopes = []string{
-	"admin",                               // Full admin access
-	"admin.analytics:read",                // View analytics
-	"admin.apps:read",                     // View apps
-	"admin.apps:write",                    // Manage apps
-	"admin.barriers:read",                 // View info barriers
-	"admin.barriers:write",                // Manage info barriers
-	"admin.conversations:read",            // View conversations
-	"admin.conversations:write",           // Manage conversations
-	"admin.invites:read",                  // View invite requests
-	"admin.invites:write",                 // Manage invites
-	"admin.roles:read",                    // View roles
-	"admin.roles:write",                   // Manage roles
-	"admin.teams:read",                    // View teams
-	"admin.teams:write",                   // Manage teams
-	"admin.usergroups:read",               // View user groups
-	"admin.usergroups:write",              // Manage user groups
-	"admin.users:read",                    // View users
-	"admin.users:write",                   // Manage users
-	"admin.workflows:read",                // View workflows
-	"admin.workflows:write",               // Manage workflows
+	"admin",                     // Full admin access
+	"admin.analytics:read",      // View analytics
+	"admin.apps:read",           // View apps
+	"admin.apps:write",          // Manage apps
+	"admin.barriers:read",       // View info barriers
+	"admin.barriers:write",      // Manage info barriers
+	"admin.conversations:read",  // View conversations
+	"admin.conversations:write", // Manage conversations
+	"admin.invites:read",        // View invite requests
+	"admin.invites:write",       // Manage invites
+	"admin.roles:read",          // View roles
+	"admin.roles:write",         // Manage roles
+	"admin.teams:read",          // View teams
+	"admin.teams:write",         // Manage teams
+	"admin.usergroups:read",     // View user groups
+	"admin.usergroups:write",    // Manage user groups
+	"admin.users:read",          // View users
+	"admin.users:write",         // Manage users
+	"admin.workflows:read",      // View workflows
+	"admin.workflows:write",     // Manage workflows
 }
 
 // AllSlackScopes contains ALL Slack scopes combined
@@ -343,7 +343,7 @@ func (p *Provider) ExchangeCode(ctx context.Context, code string) (*integrations
 
 	return &integrations.TokenResponse{
 		AccessToken:  accessToken,
-		RefreshToken: "", // Slack doesn't use refresh tokens
+		RefreshToken: "",                           // Slack doesn't use refresh tokens
 		ExpiresAt:    time.Now().AddDate(10, 0, 0), // Slack tokens don't expire
 		Scopes:       scopes,
 		AccountID:    tokenResp.Team.ID,

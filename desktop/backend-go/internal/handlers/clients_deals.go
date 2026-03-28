@@ -141,9 +141,9 @@ func (h *ClientHandler) CreateClientDeal(c *gin.Context) {
 		// column (set below in the SQL query). The CompanyID field should only
 		// be populated if the user explicitly links the deal to a CRM company.
 		// Future enhancement: accept an optional company_id in the request body.
-		CompanyID:         pgtype.UUID{},
-		Status:            &openStatus,
-		CustomFields:      []byte("{}"),
+		CompanyID:    pgtype.UUID{},
+		Status:       &openStatus,
+		CustomFields: []byte("{}"),
 	})
 	if err != nil {
 		slog.Error("failed to create client deal", "error", err)
@@ -226,8 +226,8 @@ func (h *ClientHandler) UpdateClientDeal(c *gin.Context) {
 		// UUID preserves the existing company association (UpdateCRMDeal does
 		// not overwrite non-zero values when passed zero). Future enhancement:
 		// accept an optional company_id in the update request body.
-		CompanyID:         pgtype.UUID{},
-		CustomFields:      []byte("{}"),
+		CompanyID:    pgtype.UUID{},
+		CustomFields: []byte("{}"),
 	})
 	if err != nil {
 		slog.Error("failed to update client deal", "error", err)

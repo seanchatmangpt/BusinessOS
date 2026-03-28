@@ -30,15 +30,15 @@ type GoogleSlide struct {
 
 // SlideInfo represents information about a slide in a presentation.
 type SlideInfo struct {
-	ObjectID    string   `json:"object_id"`
-	SlideIndex  int      `json:"slide_index"`
-	Title       string   `json:"title,omitempty"`
-	TextContent string   `json:"text_content,omitempty"`
-	HasImages   bool     `json:"has_images"`
-	HasTables   bool     `json:"has_tables"`
-	HasCharts   bool     `json:"has_charts"`
-	LayoutID    string   `json:"layout_id,omitempty"`
-	MasterID    string   `json:"master_id,omitempty"`
+	ObjectID    string `json:"object_id"`
+	SlideIndex  int    `json:"slide_index"`
+	Title       string `json:"title,omitempty"`
+	TextContent string `json:"text_content,omitempty"`
+	HasImages   bool   `json:"has_images"`
+	HasTables   bool   `json:"has_tables"`
+	HasCharts   bool   `json:"has_charts"`
+	LayoutID    string `json:"layout_id,omitempty"`
+	MasterID    string `json:"master_id,omitempty"`
 }
 
 // SlidesService handles Google Slides operations.

@@ -144,7 +144,7 @@ func (p *Provider) ExchangeCode(ctx context.Context, code string) (*integrations
 
 	return &integrations.TokenResponse{
 		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: "", // Notion doesn't use refresh tokens
+		RefreshToken: "",                           // Notion doesn't use refresh tokens
 		ExpiresAt:    time.Now().AddDate(10, 0, 0), // Notion tokens don't expire
 		AccountID:    tokenResp.WorkspaceID,
 		AccountName:  tokenResp.WorkspaceName,

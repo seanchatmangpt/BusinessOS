@@ -161,8 +161,6 @@ func setupOSARouter(userID, sessionID string) *gin.Engine {
 	return router
 }
 
-
-
 // pgUUIDFromString creates a pgtype.UUID from string
 func pgUUIDFromString(t *testing.T, s string) pgtype.UUID {
 	t.Helper()

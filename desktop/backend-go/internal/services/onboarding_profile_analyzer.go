@@ -32,17 +32,17 @@ type EmailMetadataInput struct {
 
 // ProfileAnalysisResult represents the analyzed user profile
 type ProfileAnalysisResult struct {
-	Insights                []string               `json:"insights"`                  // 3 conversational phrases
-	Interests               []string               `json:"interests"`                 // Detected interests
-	ToolsUsed               []string               `json:"tools_used"`                // Top tools
-	ProfileSummary          string                 `json:"profile_summary"`           // Full narrative summary
-	WorkPatterns            map[string]interface{} `json:"work_patterns"`             // Activity patterns
-	Confidence              float64                `json:"confidence"`                // 0.0 to 1.0
-	BusinessType            string                 `json:"business_type"`             // Business type
-	TeamSize                string                 `json:"team_size"`                 // Team size
-	OwnerRole               string                 `json:"owner_role"`                // Owner role
-	MainChallenge           string                 `json:"main_challenge"`            // Main challenge
-	RecommendedIntegrations []string               `json:"recommended_integrations"`  // Recommended integrations
+	Insights                []string               `json:"insights"`                 // 3 conversational phrases
+	Interests               []string               `json:"interests"`                // Detected interests
+	ToolsUsed               []string               `json:"tools_used"`               // Top tools
+	ProfileSummary          string                 `json:"profile_summary"`          // Full narrative summary
+	WorkPatterns            map[string]interface{} `json:"work_patterns"`            // Activity patterns
+	Confidence              float64                `json:"confidence"`               // 0.0 to 1.0
+	BusinessType            string                 `json:"business_type"`            // Business type
+	TeamSize                string                 `json:"team_size"`                // Team size
+	OwnerRole               string                 `json:"owner_role"`               // Owner role
+	MainChallenge           string                 `json:"main_challenge"`           // Main challenge
+	RecommendedIntegrations []string               `json:"recommended_integrations"` // Recommended integrations
 }
 
 func NewProfileAnalyzerAgent(cfg *config.Config) *ProfileAnalyzerAgent {

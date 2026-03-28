@@ -19,12 +19,13 @@ import (
 // progress updates, aggregates metrics, and broadcasts to connected WebSocket clients.
 //
 // Architecture:
-//   BOS (Rust) -> HTTP/SSE -> BOSProgressHandler -> WebSocket -> Browser UI
+//
+//	BOS (Rust) -> HTTP/SSE -> BOSProgressHandler -> WebSocket -> Browser UI
 //
 // Example curl to test:
-//   curl -N -H "Authorization: Bearer <token>" \
-//     http://localhost:8001/api/bos/stream/discover/550e8400-e29b-41d4-a716-446655440000
 //
+//	curl -N -H "Authorization: Bearer <token>" \
+//	  http://localhost:8001/api/bos/stream/discover/550e8400-e29b-41d4-a716-446655440000
 type BOSProgressHandler struct {
 	streamService *services.BOSStreamingService
 	logger        *slog.Logger
@@ -372,10 +373,10 @@ func (h *BOSProgressHandler) formatSSE(event *BOSStreamEvent) string {
 
 // BOSSessionInfo represents session metadata
 type BOSSessionInfo struct {
-	SessionID     uuid.UUID `json:"session_id"`
-	UserID        uuid.UUID `json:"user_id"`
-	StartTime     time.Time `json:"start_time"`
-	Phase         string    `json:"phase"` // discovery, conformance, complete
-	ProgressPct   int32     `json:"progress_percent"`
-	EventsProcessed int64   `json:"events_processed"`
+	SessionID       uuid.UUID `json:"session_id"`
+	UserID          uuid.UUID `json:"user_id"`
+	StartTime       time.Time `json:"start_time"`
+	Phase           string    `json:"phase"` // discovery, conformance, complete
+	ProgressPct     int32     `json:"progress_percent"`
+	EventsProcessed int64     `json:"events_processed"`
 }

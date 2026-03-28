@@ -544,14 +544,14 @@ func TestRuleEngine_HIPAA_RulesEvaluation(t *testing.T) {
 
 	ctx := context.Background()
 	ruleCtx := RuleEvaluationContext{
-		EventID:                "evt1",
-		UserRole:               "user",
-		DataClassification:     "phi",
-		Encrypted:              false,
-		DataContainsPHI:        true,
-		DataRetentionDays:      3000,
+		EventID:                   "evt1",
+		UserRole:                  "user",
+		DataClassification:        "phi",
+		Encrypted:                 false,
+		DataContainsPHI:           true,
+		DataRetentionDays:         3000,
 		AuditLogMissingPHIEntries: true,
-		Timestamp:              time.Now(),
+		Timestamp:                 time.Now(),
 	}
 
 	results := engine.EvaluateAll(ctx, ruleCtx)

@@ -405,12 +405,12 @@ func NewWorkerPool(ctx context.Context, numWorkers int) *WorkerPool {
 
 // WorkerPool is a stub for testing goroutine cleanup patterns.
 type WorkerPool struct {
-	ctx        context.Context
-	workers    int
-	taskQueue  chan func()
-	wg         sync.WaitGroup
+	ctx          context.Context
+	workers      int
+	taskQueue    chan func()
+	wg           sync.WaitGroup
 	shuttingDown bool
-	mu         sync.Mutex
+	mu           sync.Mutex
 }
 
 func (p *WorkerPool) init() {

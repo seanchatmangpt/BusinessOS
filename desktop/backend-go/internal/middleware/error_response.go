@@ -16,16 +16,16 @@ type ErrorResponse struct {
 
 // Standard error codes
 const (
-	ErrCodeBadRequest          = "BAD_REQUEST"
-	ErrCodeUnauthorized        = "UNAUTHORIZED"
-	ErrCodeForbidden           = "FORBIDDEN"
-	ErrCodeNotFound            = "NOT_FOUND"
-	ErrCodeConflict            = "CONFLICT"
-	ErrCodeValidation          = "VALIDATION_ERROR"
-	ErrCodeInternalServer      = "INTERNAL_SERVER_ERROR"
-	ErrCodeServiceUnavailable  = "SERVICE_UNAVAILABLE"
-	ErrCodeDatabaseError       = "DATABASE_ERROR"
-	ErrCodeInvalidInput        = "INVALID_INPUT"
+	ErrCodeBadRequest         = "BAD_REQUEST"
+	ErrCodeUnauthorized       = "UNAUTHORIZED"
+	ErrCodeForbidden          = "FORBIDDEN"
+	ErrCodeNotFound           = "NOT_FOUND"
+	ErrCodeConflict           = "CONFLICT"
+	ErrCodeValidation         = "VALIDATION_ERROR"
+	ErrCodeInternalServer     = "INTERNAL_SERVER_ERROR"
+	ErrCodeServiceUnavailable = "SERVICE_UNAVAILABLE"
+	ErrCodeDatabaseError      = "DATABASE_ERROR"
+	ErrCodeInvalidInput       = "INVALID_INPUT"
 )
 
 // RespondWithError sends a standardized error response

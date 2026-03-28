@@ -27,8 +27,8 @@ type MCPToolAdapter struct {
 	source    string // "mcp:<server-name>" for attribution
 }
 
-func (t *MCPToolAdapter) Name() string                       { return t.name }
-func (t *MCPToolAdapter) Description() string                { return t.description }
+func (t *MCPToolAdapter) Name() string                        { return t.name }
+func (t *MCPToolAdapter) Description() string                 { return t.description }
 func (t *MCPToolAdapter) InputSchema() map[string]interface{} { return t.inputSchema }
 
 // Execute calls the remote MCP server to run this tool

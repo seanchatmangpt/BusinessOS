@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/rhl/businessos-backend/internal/integrations/pm4py_rust"
+	"github.com/stretchr/testify/assert"
 )
 
 // mockPM4PyServer creates a mock pm4py-rust HTTP server for testing
@@ -87,12 +87,12 @@ func newMockPM4PyServer() *mockPM4PyServer {
 			json.NewDecoder(r.Body).Decode(&req)
 
 			resp := pm4py_rust.ConformanceResponse{
-				IsConformant:  true,
-				Fitness:       0.95,
-				Precision:     0.92,
+				IsConformant:   true,
+				Fitness:        0.95,
+				Precision:      0.92,
 				Generalization: 0.88,
-				Method:        "token_replay",
-				ExecutionTime: 125,
+				Method:         "token_replay",
+				ExecutionTime:  125,
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -111,9 +111,9 @@ func newMockPM4PyServer() *mockPM4PyServer {
 				},
 				VariantCount: 3,
 				VariantFrequencies: map[string]int{
-					"A,B,C":     5,
-					"A,C,B":     3,
-					"A,B,C,D":   2,
+					"A,B,C":   5,
+					"A,C,B":   3,
+					"A,B,C,D": 2,
 				},
 				BottleneckActivities: []string{"B"},
 				ResourceCount:        intPtr(4),
@@ -257,10 +257,10 @@ func TestStatistics(t *testing.T) {
 	ctx := context.Background()
 
 	req := &pm4py_rust.StatisticsRequest{
-		EventLog:              createTestEventLog(),
-		IncludeVariants:       true,
+		EventLog:               createTestEventLog(),
+		IncludeVariants:        true,
 		IncludeResourceMetrics: true,
-		IncludeBottlenecks:    true,
+		IncludeBottlenecks:     true,
 	}
 
 	resp, err := client.StatisticsRequest(ctx, req)

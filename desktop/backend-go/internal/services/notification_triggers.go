@@ -139,14 +139,14 @@ func (t *NotificationTriggers) OnTaskStatusChanged(ctx context.Context, input Ta
 
 // TaskCommentInput contains data for task comment notification
 type TaskCommentInput struct {
-	TaskID       uuid.UUID
-	TaskTitle    string
-	CommentID    uuid.UUID
-	CommentText  string
-	CommenterID  string
+	TaskID        uuid.UUID
+	TaskTitle     string
+	CommentID     uuid.UUID
+	CommentText   string
+	CommenterID   string
 	CommenterName string
-	TaskOwnerID  string
-	AssigneeID   string
+	TaskOwnerID   string
+	AssigneeID    string
 }
 
 // OnTaskComment triggers notification when someone comments on a task
@@ -186,12 +186,12 @@ func (t *NotificationTriggers) OnTaskComment(ctx context.Context, input TaskComm
 
 // ProjectMemberAddedInput contains data for project member addition
 type ProjectMemberAddedInput struct {
-	ProjectID    uuid.UUID
-	ProjectName  string
-	AddedUserID  string
-	AddedByID    string
-	AddedByName  string
-	Role         string
+	ProjectID   uuid.UUID
+	ProjectName string
+	AddedUserID string
+	AddedByID   string
+	AddedByName string
+	Role        string
 }
 
 // OnProjectMemberAdded triggers notification when someone is added to a project
@@ -222,13 +222,13 @@ func (t *NotificationTriggers) OnProjectMemberAdded(ctx context.Context, input P
 
 // ProjectStatusChangedInput contains data for project status change
 type ProjectStatusChangedInput struct {
-	ProjectID    uuid.UUID
-	ProjectName  string
-	OldStatus    string
-	NewStatus    string
-	ChangedByID  string
-	ChangedBy    string
-	MemberIDs    []string // All project members to notify
+	ProjectID   uuid.UUID
+	ProjectName string
+	OldStatus   string
+	NewStatus   string
+	ChangedByID string
+	ChangedBy   string
+	MemberIDs   []string // All project members to notify
 }
 
 // OnProjectStatusChanged triggers notification when project status changes
@@ -274,7 +274,7 @@ type MentionInput struct {
 	MentionerID   string
 	MentionerName string
 	// UserLookup maps usernames to user IDs
-	UserLookup    map[string]string
+	UserLookup map[string]string
 }
 
 // OnMention triggers notifications for @mentions in text
@@ -360,15 +360,15 @@ type OnMentionEvent struct {
 
 // OnCommentReplyEvent - event struct for reply notifications
 type OnCommentReplyEvent struct {
-	ParentCommentID  uuid.UUID
-	ParentAuthorID   string
-	ReplyID          uuid.UUID
-	ReplyText        string
-	ReplierID        string
-	ReplierName      string
-	EntityType       string
-	EntityID         uuid.UUID
-	EntityTitle      string
+	ParentCommentID uuid.UUID
+	ParentAuthorID  string
+	ReplyID         uuid.UUID
+	ReplyText       string
+	ReplierID       string
+	ReplierName     string
+	EntityType      string
+	EntityID        uuid.UUID
+	EntityTitle     string
 }
 
 // OnTaskComment triggers notification when someone comments on a task (called by CommentService)

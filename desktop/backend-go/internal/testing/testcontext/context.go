@@ -6,10 +6,10 @@ import (
 
 // Context provides debugging information for test failures.
 type Context struct {
-	Category    string
-	Details     map[string]interface{}
-	ErrorMsg    string
-	DebugSteps  []string
+	Category   string
+	Details    map[string]interface{}
+	ErrorMsg   string
+	DebugSteps []string
 }
 
 // APIFailure creates context for API/network failures.
@@ -32,10 +32,10 @@ Debugging Steps:
 	return &Context{
 		Category: "api_failure",
 		Details: map[string]interface{}{
-			"endpoint":          endpoint,
-			"expected_status":   expectedStatus,
-			"actual_status":     actualStatus,
-			"reason":            reason,
+			"endpoint":        endpoint,
+			"expected_status": expectedStatus,
+			"actual_status":   actualStatus,
+			"reason":          reason,
 		},
 		ErrorMsg: errorMsg,
 		DebugSteps: []string{
@@ -73,9 +73,9 @@ If test passes in isolation but fails in parallel:
 	return &Context{
 		Category: "timing_failure",
 		Details: map[string]interface{}{
-			"operation":       operation,
-			"timeout_ms":      timeoutMs,
-			"expected_value":  expectedValue,
+			"operation":      operation,
+			"timeout_ms":     timeoutMs,
+			"expected_value": expectedValue,
 		},
 		ErrorMsg: errorMsg,
 		DebugSteps: []string{
@@ -203,9 +203,9 @@ If fails unpredictably:
 	return &Context{
 		Category: "flaky_test",
 		Details: map[string]interface{}{
-			"test_name":        testName,
-			"pass_rate":        passRate,
-			"failure_pattern":  failurePattern,
+			"test_name":       testName,
+			"pass_rate":       passRate,
+			"failure_pattern": failurePattern,
 		},
 		ErrorMsg: errorMsg,
 		DebugSteps: []string{

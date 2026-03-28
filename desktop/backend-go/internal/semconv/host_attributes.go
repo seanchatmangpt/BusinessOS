@@ -24,4 +24,3 @@ func HostArch(val string) attribute.KeyValue {
 func HostName(val string) attribute.KeyValue {
 	return HostNameKey.String(val)
 }
-

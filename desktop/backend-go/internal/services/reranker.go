@@ -20,53 +20,53 @@ type ReRankerService struct {
 // ReRankingOptions configures re-ranking behavior
 type ReRankingOptions struct {
 	// Scoring weights (should sum to 1.0)
-	SemanticWeight      float64 // Weight for semantic similarity
-	RecencyWeight       float64 // Weight for content recency
-	QualityWeight       float64 // Weight for content quality signals
-	InteractionWeight   float64 // Weight for user interaction history
-	ContextRelevance    float64 // Weight for contextual relevance
+	SemanticWeight    float64 // Weight for semantic similarity
+	RecencyWeight     float64 // Weight for content recency
+	QualityWeight     float64 // Weight for content quality signals
+	InteractionWeight float64 // Weight for user interaction history
+	ContextRelevance  float64 // Weight for contextual relevance
 
 	// Recency parameters
-	RecencyDecayDays    int     // Days after which recency score starts decaying
-	RecencyHalfLife     int     // Days for recency score to decay to 50%
+	RecencyDecayDays int // Days after which recency score starts decaying
+	RecencyHalfLife  int // Days for recency score to decay to 50%
 
 	// Quality signals
-	MinContentLength    int     // Minimum content length for quality
+	MinContentLength    int      // Minimum content length for quality
 	PreferredBlockTypes []string // Preferred block types (e.g., "heading", "paragraph")
 
 	// Context
-	CurrentProjectID    *uuid.UUID // Current project context
-	CurrentTaskID       *uuid.UUID // Current task context
+	CurrentProjectID *uuid.UUID // Current project context
+	CurrentTaskID    *uuid.UUID // Current task context
 }
 
 // ReRankedResult represents a result after re-ranking
 type ReRankedResult struct {
-	HybridSearchResult              // Embed original result
+	HybridSearchResult // Embed original result
 
 	// Re-ranking scores
-	RecencyScore      float64 `json:"recency_score"`
-	QualityScore      float64 `json:"quality_score"`
-	InteractionScore  float64 `json:"interaction_score"`
-	ContextScore      float64 `json:"context_score"`
-	FinalScore        float64 `json:"final_score"`
+	RecencyScore     float64 `json:"recency_score"`
+	QualityScore     float64 `json:"quality_score"`
+	InteractionScore float64 `json:"interaction_score"`
+	ContextScore     float64 `json:"context_score"`
+	FinalScore       float64 `json:"final_score"`
 
 	// Metadata
-	OriginalRank      int     `json:"original_rank"`
-	ReRankedPosition  int     `json:"reranked_position"`
-	RankChange        int     `json:"rank_change"` // Positive = moved up
+	OriginalRank     int `json:"original_rank"`
+	ReRankedPosition int `json:"reranked_position"`
+	RankChange       int `json:"rank_change"` // Positive = moved up
 
 	// Explanation
-	ScoreBreakdown    map[string]float64 `json:"score_breakdown"`
+	ScoreBreakdown map[string]float64 `json:"score_breakdown"`
 }
 
 // DefaultReRankingOptions returns sensible defaults
 func DefaultReRankingOptions() ReRankingOptions {
 	return ReRankingOptions{
-		SemanticWeight:    0.4,  // Semantic similarity is important
-		RecencyWeight:     0.2,  // Recent content is more relevant
-		QualityWeight:     0.2,  // Quality matters
-		InteractionWeight: 0.1,  // User history provides signals
-		ContextRelevance:  0.1,  // Context awareness
+		SemanticWeight:    0.4, // Semantic similarity is important
+		RecencyWeight:     0.2, // Recent content is more relevant
+		QualityWeight:     0.2, // Quality matters
+		InteractionWeight: 0.1, // User history provides signals
+		ContextRelevance:  0.1, // Context awareness
 
 		RecencyDecayDays: 30,
 		RecencyHalfLife:  90,

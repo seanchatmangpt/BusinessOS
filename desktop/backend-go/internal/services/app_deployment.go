@@ -18,12 +18,12 @@ import (
 
 // AppDeploymentService handles local deployment of generated applications
 type AppDeploymentService struct {
-	pool            *pgxpool.Pool
-	logger          *slog.Logger
-	workspaceRoot   string
-	deployedApps    map[uuid.UUID]*DeployedApp
-	portAllocator   *PortAllocator
-	mu              sync.RWMutex
+	pool          *pgxpool.Pool
+	logger        *slog.Logger
+	workspaceRoot string
+	deployedApps  map[uuid.UUID]*DeployedApp
+	portAllocator *PortAllocator
+	mu            sync.RWMutex
 }
 
 // DeployedApp represents a running application instance

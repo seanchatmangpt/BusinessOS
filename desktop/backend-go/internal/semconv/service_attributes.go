@@ -32,4 +32,3 @@ func ServiceNamespace(val string) attribute.KeyValue {
 func ServiceVersion(val string) attribute.KeyValue {
 	return ServiceVersionKey.String(val)
 }
-

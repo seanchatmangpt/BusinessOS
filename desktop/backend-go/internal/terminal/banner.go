@@ -7,9 +7,9 @@ import (
 
 // ANSI color constants
 const (
-	ColorReset   = "\x1b[0m"
-	ColorBold    = "\x1b[1m"
-	ColorDim     = "\x1b[2m"
+	ColorReset = "\x1b[0m"
+	ColorBold  = "\x1b[1m"
+	ColorDim   = "\x1b[2m"
 
 	// Standard colors
 	ColorRed     = "\x1b[31m"

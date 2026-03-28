@@ -14,7 +14,7 @@ import (
 // CircuitBreakerWrapper adds circuit breaker protection to ComplianceService
 type CircuitBreakerWrapper struct {
 	*ComplianceService
-	cb *circuitbreaker.CircuitBreaker
+	cb     *circuitbreaker.CircuitBreaker
 	logger *slog.Logger
 }
 
@@ -51,8 +51,8 @@ func NewCircuitBreakerWrapper(osaBaseURL string, logger *slog.Logger) *CircuitBr
 
 	return &CircuitBreakerWrapper{
 		ComplianceService: complianceService,
-		cb: cb,
-		logger: logger,
+		cb:                cb,
+		logger:            logger,
 	}
 }
 
@@ -252,11 +252,11 @@ func (c *CircuitBreakerWrapper) getFallbackStatus(ctx context.Context) (Complian
 	return ComplianceStatus{
 		OverallScore: 0.5, // Conservative score when OSA is down
 		Domains: map[string]DomainCompliance{
-			"data_security":    {Score: 0.5, ChecksPassed: 0, ChecksFailed: 1},
+			"data_security":     {Score: 0.5, ChecksPassed: 0, ChecksFailed: 1},
 			"process_integrity": {Score: 0.5, ChecksPassed: 0, ChecksFailed: 1},
-			"regulatory":       {Score: 0.5, ChecksPassed: 0, ChecksFailed: 1},
+			"regulatory":        {Score: 0.5, ChecksPassed: 0, ChecksFailed: 1},
 		},
-		LastAudit: time.Now(),
+		LastAudit:    time.Now(),
 		Certificates: []Certificate{},
 	}, nil
 }
@@ -270,7 +270,7 @@ func (c *CircuitBreakerWrapper) getFallbackGapAnalysis(framework string) GapAnal
 	gaps := []ComplianceGap{
 		{ID: "fallback-1", Framework: framework, Control: "Unknown",
 			Description: "OSA unavailable, compliance status degraded",
-			Severity: "medium", Status: "open"},
+			Severity:    "medium", Status: "open"},
 	}
 
 	return GapAnalysisResponse{
@@ -340,15 +340,15 @@ func (c *CircuitBreakerWrapper) HealthCheck(ctx context.Context) map[string]inte
 
 	return map[string]interface{}{
 		"circuit_breaker": map[string]interface{}{
-			"state":             stats.State,
-			"success_rate":      stats.SuccessRate,
-			"total_calls":       stats.TotalCalls,
-			"successful_calls":  stats.SuccessfulCalls,
-			"failed_calls":      stats.FailedCalls,
-			"timeout_calls":     stats.TimeoutCalls,
+			"state":                stats.State,
+			"success_rate":         stats.SuccessRate,
+			"total_calls":          stats.TotalCalls,
+			"successful_calls":     stats.SuccessfulCalls,
+			"failed_calls":         stats.FailedCalls,
+			"timeout_calls":        stats.TimeoutCalls,
 			"consecutive_failures": stats.ConsecutiveFailures,
-			"last_failure":      stats.LastFailure,
-			"next_retry_delay":  c.GetNextRetryDelay(),
+			"last_failure":         stats.LastFailure,
+			"next_retry_delay":     c.GetNextRetryDelay(),
 		},
 		"compliance_service": map[string]interface{}{
 			"osa_base_url": c.osaBaseURL,

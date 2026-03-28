@@ -31,9 +31,9 @@ func NewOrgStructureHandler(sparqlClient *ontology.SPARQLClient, logger *slog.Lo
 
 // OrgStructureResponse represents the organizational structure.
 type OrgStructureResponse struct {
-	Organization string           `json:"organization"`
-	Departments  []Department     `json:"departments"`
-	Roles        []Role           `json:"roles"`
+	Organization   string          `json:"organization"`
+	Departments    []Department    `json:"departments"`
+	Roles          []Role          `json:"roles"`
 	ReportingLines []ReportingLine `json:"reporting_lines"`
 }
 
@@ -55,10 +55,10 @@ type Role struct {
 
 // ReportingLine represents a reporting relationship.
 type ReportingLine struct {
-	ManagerID  string `json:"manager_id"`
+	ManagerID   string `json:"manager_id"`
 	ManagerName string `json:"manager_name"`
-	ReportID   string `json:"report_id"`
-	ReportName string `json:"report_name"`
+	ReportID    string `json:"report_id"`
+	ReportName  string `json:"report_name"`
 }
 
 // GetOrgStructure returns the organizational structure from the ontology.
@@ -119,9 +119,9 @@ WHERE {
 func parseOrgStructureResult(data []byte) OrgStructureResponse {
 	// Lightweight parsing implementation
 	return OrgStructureResponse{
-		Organization: "Default Organization",
-		Departments:  make([]Department, 0),
-		Roles:        make([]Role, 0),
+		Organization:   "Default Organization",
+		Departments:    make([]Department, 0),
+		Roles:          make([]Role, 0),
 		ReportingLines: make([]ReportingLine, 0),
 	}
 }

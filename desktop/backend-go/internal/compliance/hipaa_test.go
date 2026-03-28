@@ -42,7 +42,7 @@ func TestRegisterAuthorizedUser_ValidRoles(t *testing.T) {
 		{"user3", []string{"hipaa_auditor"}, true},
 		{"user4", []string{"phi_editor"}, true},
 		{"", []string{"hipaa_admin"}, false}, // empty user_id
-		{"user5", []string{}, false},          // no roles
+		{"user5", []string{}, false},         // no roles
 		{"user6", []string{"invalid_role"}, false},
 	}
 

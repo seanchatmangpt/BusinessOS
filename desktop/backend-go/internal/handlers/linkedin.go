@@ -11,11 +11,11 @@ import (
 
 // LinkedInHandler manages LinkedIn integration endpoints.
 type LinkedInHandler struct {
-	logger           *slog.Logger
-	repo             *linkedin.Repository
-	scorer           *linkedin.ICPScorer
-	importer         *linkedin.CSVImporter
-	outreachQueue    *linkedin.OutreachQueueManager
+	logger        *slog.Logger
+	repo          *linkedin.Repository
+	scorer        *linkedin.ICPScorer
+	importer      *linkedin.CSVImporter
+	outreachQueue *linkedin.OutreachQueueManager
 }
 
 // NewLinkedInHandler creates a new LinkedIn handler.

@@ -119,20 +119,20 @@ func WorkspaceActivityType(val string) attribute.KeyValue {
 
 // WorkspaceActivityTypeValues contains the known enum values for workspace.activity.type.
 var WorkspaceActivityTypeValues = struct {
-	CodeEdit string
-	FileRead string
+	CodeEdit     string
+	FileRead     string
 	TerminalExec string
-	WebSearch string
-	AgentSpawn string
-	ToolCall string
+	WebSearch    string
+	AgentSpawn   string
+	ToolCall     string
 	MemoryUpdate string
 }{
-	CodeEdit: "code_edit",
-	FileRead: "file_read",
+	CodeEdit:     "code_edit",
+	FileRead:     "file_read",
 	TerminalExec: "terminal_exec",
-	WebSearch: "web_search",
-	AgentSpawn: "agent_spawn",
-	ToolCall: "tool_call",
+	WebSearch:    "web_search",
+	AgentSpawn:   "agent_spawn",
+	ToolCall:     "tool_call",
 	MemoryUpdate: "memory_update",
 }
 
@@ -148,17 +148,17 @@ func WorkspaceAgentRole(val string) attribute.KeyValue {
 
 // WorkspaceAgentRoleValues contains the known enum values for workspace.agent.role.
 var WorkspaceAgentRoleValues = struct {
-	Planner string
-	Executor string
-	Reviewer string
+	Planner     string
+	Executor    string
+	Reviewer    string
 	Coordinator string
-	Researcher string
+	Researcher  string
 }{
-	Planner: "planner",
-	Executor: "executor",
-	Reviewer: "reviewer",
+	Planner:     "planner",
+	Executor:    "executor",
+	Reviewer:    "reviewer",
 	Coordinator: "coordinator",
-	Researcher: "researcher",
+	Researcher:  "researcher",
 }
 
 // WorkspaceCheckpointId returns an attribute KeyValue for workspace.checkpoint.id.
@@ -228,16 +228,16 @@ func WorkspaceOrchestrationPattern(val string) attribute.KeyValue {
 
 // WorkspaceOrchestrationPatternValues contains the known enum values for workspace.orchestration.pattern.
 var WorkspaceOrchestrationPatternValues = struct {
-	Sequential string
-	Parallel string
-	Reactive string
-	Proactive string
+	Sequential  string
+	Parallel    string
+	Reactive    string
+	Proactive   string
 	EventDriven string
 }{
-	Sequential: "sequential",
-	Parallel: "parallel",
-	Reactive: "reactive",
-	Proactive: "proactive",
+	Sequential:  "sequential",
+	Parallel:    "parallel",
+	Reactive:    "reactive",
+	Proactive:   "proactive",
 	EventDriven: "event_driven",
 }
 
@@ -248,14 +248,14 @@ func WorkspacePhase(val string) attribute.KeyValue {
 
 // WorkspacePhaseValues contains the known enum values for workspace.phase.
 var WorkspacePhaseValues = struct {
-	Startup string
-	Active string
-	Idle string
+	Startup  string
+	Active   string
+	Idle     string
 	Shutdown string
 }{
-	Startup: "startup",
-	Active: "active",
-	Idle: "idle",
+	Startup:  "startup",
+	Active:   "active",
+	Idle:     "idle",
 	Shutdown: "shutdown",
 }
 
@@ -297,14 +297,14 @@ func WorkspaceSharingScope(val string) attribute.KeyValue {
 // WorkspaceSharingScopeValues contains the known enum values for workspace.sharing.scope.
 var WorkspaceSharingScopeValues = struct {
 	Private string
-	Team string
-	Org string
-	Public string
+	Team    string
+	Org     string
+	Public  string
 }{
 	Private: "private",
-	Team: "team",
-	Org: "org",
-	Public: "public",
+	Team:    "team",
+	Org:     "org",
+	Public:  "public",
 }
 
 // WorkspaceTaskQueueDepth returns an attribute KeyValue for workspace.task.queue.depth.
@@ -319,19 +319,19 @@ func WorkspaceToolCategory(val string) attribute.KeyValue {
 
 // WorkspaceToolCategoryValues contains the known enum values for workspace.tool.category.
 var WorkspaceToolCategoryValues = struct {
-	Read string
-	Write string
-	Search string
-	Compute string
+	Read        string
+	Write       string
+	Search      string
+	Compute     string
 	Communicate string
-	Transform string
+	Transform   string
 }{
-	Read: "read",
-	Write: "write",
-	Search: "search",
-	Compute: "compute",
+	Read:        "read",
+	Write:       "write",
+	Search:      "search",
+	Compute:     "compute",
 	Communicate: "communicate",
-	Transform: "transform",
+	Transform:   "transform",
 }
 
 // WorkspaceToolCount returns an attribute KeyValue for workspace.tool.count.
@@ -348,4 +348,3 @@ func WorkspaceToolName(val string) attribute.KeyValue {
 func WorkspaceToolProvider(val string) attribute.KeyValue {
 	return WorkspaceToolProviderKey.String(val)
 }
-

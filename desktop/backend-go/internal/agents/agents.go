@@ -41,18 +41,18 @@ type Agent interface {
 
 // AgentInput defines input for agents
 type AgentInput struct {
-	UserID          string
-	UserName        string
-	ProjectID       interface{}
-	MessageText     string
-	Context         interface{} // map[string]interface{} or *services.TieredContext
-	Messages        interface{} // []ChatMessage
-	TieredContext   interface{} // *services.TieredContext or map[string]interface{}
-	FocusMode       interface{} // bool or string
-	ConversationID  interface{} // *uuid.UUID
-	MemoryContext   string
-	RoleContext     interface{}
-	SignalEnvelope  interface{}
+	UserID         string
+	UserName       string
+	ProjectID      interface{}
+	MessageText    string
+	Context        interface{} // map[string]interface{} or *services.TieredContext
+	Messages       interface{} // []ChatMessage
+	TieredContext  interface{} // *services.TieredContext or map[string]interface{}
+	FocusMode      interface{} // bool or string
+	ConversationID interface{} // *uuid.UUID
+	MemoryContext  string
+	RoleContext    interface{}
+	SignalEnvelope interface{}
 }
 
 // OrchestratorCOT handles chain-of-thought orchestration

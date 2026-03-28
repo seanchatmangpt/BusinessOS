@@ -37,8 +37,8 @@ type SandboxEdit struct {
 	ModuleID   string            `json:"module_id"`
 	ModuleName string            `json:"module_name"`
 	State      SandboxEditState  `json:"state"`
-	Files      map[string]string `json:"files"`              // filename -> current content
-	OrigFiles  map[string]string `json:"orig_files"`         // filename -> original content
+	Files      map[string]string `json:"files"`      // filename -> current content
+	OrigFiles  map[string]string `json:"orig_files"` // filename -> original content
 	Diff       []DiffEntry       `json:"diff,omitempty"`
 	Errors     []string          `json:"errors,omitempty"`
 	CreatedAt  time.Time         `json:"created_at"`

@@ -86,10 +86,10 @@ func setupTestContext() (*gin.Context, *httptest.ResponseRecorder) {
 	c, _ := gin.CreateTestContext(w)
 
 	// Add user to context
-		mockUser := &middleware.BetterAuthUser{
-			ID:    "test-user-id",
-			Email: "test@example.com",
-		}
+	mockUser := &middleware.BetterAuthUser{
+		ID:    "test-user-id",
+		Email: "test@example.com",
+	}
 	c.Set("user", mockUser)
 
 	return c, w

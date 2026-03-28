@@ -139,8 +139,8 @@ func TestMigration093_InvalidStatusValues(t *testing.T) {
 	// Define invalid enum values
 	invalidStatuses := []string{
 		"invalid", "GENERATING", "Generated", "deploye", // typos, wrong case
-		"pending", "active", "deleted", "completed",     // valid in other contexts
-		"", "null", "undefined",                         // empty/null-like
+		"pending", "active", "deleted", "completed", // valid in other contexts
+		"", "null", "undefined", // empty/null-like
 	}
 	invalidSandboxStatuses := []string{
 		"invalid", "RUNNING", "None", "paused",

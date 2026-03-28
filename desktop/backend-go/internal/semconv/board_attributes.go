@@ -103,4 +103,3 @@ func BoardSectionCount(val int64) attribute.KeyValue {
 func BoardStructuralIssueCount(val int64) attribute.KeyValue {
 	return BoardStructuralIssueCountKey.Int64(val)
 }
-

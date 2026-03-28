@@ -370,12 +370,12 @@ func ProcessMiningInductiveAlgorithm(val string) attribute.KeyValue {
 
 // ProcessMiningInductiveAlgorithmValues contains the known enum values for process.mining.inductive.algorithm.
 var ProcessMiningInductiveAlgorithmValues = struct {
-	InductiveMinerBase string
-	InductiveMinerDfg string
+	InductiveMinerBase  string
+	InductiveMinerDfg   string
 	InductiveMinerImdfa string
 }{
-	InductiveMinerBase: "inductive_miner_base",
-	InductiveMinerDfg: "inductive_miner_dfg",
+	InductiveMinerBase:  "inductive_miner_base",
+	InductiveMinerDfg:   "inductive_miner_dfg",
 	InductiveMinerImdfa: "inductive_miner_imdfa",
 }
 
@@ -392,14 +392,14 @@ func ProcessMiningInductiveSplitType(val string) attribute.KeyValue {
 // ProcessMiningInductiveSplitTypeValues contains the known enum values for process.mining.inductive.split_type.
 var ProcessMiningInductiveSplitTypeValues = struct {
 	Exclusive string
-	Parallel string
-	Loop string
-	Sequence string
+	Parallel  string
+	Loop      string
+	Sequence  string
 }{
 	Exclusive: "exclusive",
-	Parallel: "parallel",
-	Loop: "loop",
-	Sequence: "sequence",
+	Parallel:  "parallel",
+	Loop:      "loop",
+	Sequence:  "sequence",
 }
 
 // ProcessMiningInductiveTreeDepth returns an attribute KeyValue for process.mining.inductive.tree_depth.
@@ -434,16 +434,16 @@ func ProcessMiningAlgorithm(val string) attribute.KeyValue {
 
 // ProcessMiningAlgorithmValues contains the known enum values for process.mining.algorithm.
 var ProcessMiningAlgorithmValues = struct {
-	AlphaMiner string
-	InductiveMiner string
+	AlphaMiner      string
+	InductiveMiner  string
 	HeuristicsMiner string
-	HeuristicMiner string
+	HeuristicMiner  string
 	DirectlyFollows string
 }{
-	AlphaMiner: "alpha_miner",
-	InductiveMiner: "inductive_miner",
+	AlphaMiner:      "alpha_miner",
+	InductiveMiner:  "inductive_miner",
 	HeuristicsMiner: "heuristics_miner",
-	HeuristicMiner: "heuristic_miner",
+	HeuristicMiner:  "heuristic_miner",
 	DirectlyFollows: "directly_follows",
 }
 
@@ -524,15 +524,15 @@ func ProcessMiningClusterAlgorithm(val string) attribute.KeyValue {
 
 // ProcessMiningClusterAlgorithmValues contains the known enum values for process.mining.cluster.algorithm.
 var ProcessMiningClusterAlgorithmValues = struct {
-	Kmeans string
-	Dbscan string
+	Kmeans       string
+	Dbscan       string
 	Hierarchical string
-	Spectral string
+	Spectral     string
 }{
-	Kmeans: "kmeans",
-	Dbscan: "dbscan",
+	Kmeans:       "kmeans",
+	Dbscan:       "dbscan",
 	Hierarchical: "hierarchical",
-	Spectral: "spectral",
+	Spectral:     "spectral",
 }
 
 // ProcessMiningClusterCaseCount returns an attribute KeyValue for process.mining.cluster.case_count.
@@ -558,11 +558,11 @@ func ProcessMiningComplexityMetric(val string) attribute.KeyValue {
 // ProcessMiningComplexityMetricValues contains the known enum values for process.mining.complexity.metric.
 var ProcessMiningComplexityMetricValues = struct {
 	Cyclomatic string
-	Cognitive string
+	Cognitive  string
 	Structural string
 }{
 	Cyclomatic: "cyclomatic",
-	Cognitive: "cognitive",
+	Cognitive:  "cognitive",
 	Structural: "structural",
 }
 
@@ -594,14 +594,14 @@ func ProcessMiningConformanceDeviationType(val string) attribute.KeyValue {
 // ProcessMiningConformanceDeviationTypeValues contains the known enum values for process.mining.conformance.deviation_type.
 var ProcessMiningConformanceDeviationTypeValues = struct {
 	MissingActivity string
-	ExtraActivity string
-	WrongOrder string
-	LoopViolation string
+	ExtraActivity   string
+	WrongOrder      string
+	LoopViolation   string
 }{
 	MissingActivity: "missing_activity",
-	ExtraActivity: "extra_activity",
-	WrongOrder: "wrong_order",
-	LoopViolation: "loop_violation",
+	ExtraActivity:   "extra_activity",
+	WrongOrder:      "wrong_order",
+	LoopViolation:   "loop_violation",
 }
 
 // ProcessMiningConformanceRepairCostMs returns an attribute KeyValue for process.mining.conformance.repair_cost_ms.
@@ -626,14 +626,14 @@ func ProcessMiningConformanceRepairType(val string) attribute.KeyValue {
 
 // ProcessMiningConformanceRepairTypeValues contains the known enum values for process.mining.conformance.repair_type.
 var ProcessMiningConformanceRepairTypeValues = struct {
-	Insert string
-	Delete string
-	Move string
+	Insert  string
+	Delete  string
+	Move    string
 	Replace string
 }{
-	Insert: "insert",
-	Delete: "delete",
-	Move: "move",
+	Insert:  "insert",
+	Delete:  "delete",
+	Move:    "move",
 	Replace: "replace",
 }
 
@@ -659,14 +659,14 @@ func ProcessMiningConformanceVisualizationType(val string) attribute.KeyValue {
 
 // ProcessMiningConformanceVisualizationTypeValues contains the known enum values for process.mining.conformance.visualization_type.
 var ProcessMiningConformanceVisualizationTypeValues = struct {
-	TokenReplay string
-	Alignment string
-	Footprint string
+	TokenReplay   string
+	Alignment     string
+	Footprint     string
 	AntiAlignment string
 }{
-	TokenReplay: "token_replay",
-	Alignment: "alignment",
-	Footprint: "footprint",
+	TokenReplay:   "token_replay",
+	Alignment:     "alignment",
+	Footprint:     "footprint",
 	AntiAlignment: "anti_alignment",
 }
 
@@ -697,15 +697,15 @@ func ProcessMiningDeviationType(val string) attribute.KeyValue {
 
 // ProcessMiningDeviationTypeValues contains the known enum values for process.mining.deviation.type.
 var ProcessMiningDeviationTypeValues = struct {
-	Skip string
-	Insert string
+	Skip      string
+	Insert    string
 	MoveModel string
-	MoveLog string
+	MoveLog   string
 }{
-	Skip: "skip",
-	Insert: "insert",
+	Skip:      "skip",
+	Insert:    "insert",
 	MoveModel: "move_model",
-	MoveLog: "move_log",
+	MoveLog:   "move_log",
 }
 
 // ProcessMiningDfgEdgeCount returns an attribute KeyValue for process.mining.dfg.edge_count.
@@ -735,14 +735,14 @@ func ProcessMiningDriftCorrectionType(val string) attribute.KeyValue {
 
 // ProcessMiningDriftCorrectionTypeValues contains the known enum values for process.mining.drift.correction_type.
 var ProcessMiningDriftCorrectionTypeValues = struct {
-	Retrain string
-	ThresholdAdjust string
-	ModelSwap string
+	Retrain           string
+	ThresholdAdjust   string
+	ModelSwap         string
 	IncrementalUpdate string
 }{
-	Retrain: "retrain",
-	ThresholdAdjust: "threshold_adjust",
-	ModelSwap: "model_swap",
+	Retrain:           "retrain",
+	ThresholdAdjust:   "threshold_adjust",
+	ModelSwap:         "model_swap",
 	IncrementalUpdate: "incremental_update",
 }
 
@@ -758,14 +758,14 @@ func ProcessMiningDriftSeverity(val string) attribute.KeyValue {
 
 // ProcessMiningDriftSeverityValues contains the known enum values for process.mining.drift.severity.
 var ProcessMiningDriftSeverityValues = struct {
-	None string
-	Gradual string
-	Sudden string
+	None        string
+	Gradual     string
+	Sudden      string
 	Incremental string
 }{
-	None: "none",
-	Gradual: "gradual",
-	Sudden: "sudden",
+	None:        "none",
+	Gradual:     "gradual",
+	Sudden:      "sudden",
 	Incremental: "incremental",
 }
 
@@ -801,15 +801,15 @@ func ProcessMiningEnhancementPerspective(val string) attribute.KeyValue {
 
 // ProcessMiningEnhancementPerspectiveValues contains the known enum values for process.mining.enhancement.perspective.
 var ProcessMiningEnhancementPerspectiveValues = struct {
-	Performance string
-	Conformance string
+	Performance    string
+	Conformance    string
 	Organizational string
-	Decision string
+	Decision       string
 }{
-	Performance: "performance",
-	Conformance: "conformance",
+	Performance:    "performance",
+	Conformance:    "conformance",
 	Organizational: "organizational",
-	Decision: "decision",
+	Decision:       "decision",
 }
 
 // ProcessMiningEnhancementQualityScore returns an attribute KeyValue for process.mining.enhancement.quality_score.
@@ -824,15 +824,15 @@ func ProcessMiningEnhancementType(val string) attribute.KeyValue {
 
 // ProcessMiningEnhancementTypeValues contains the known enum values for process.mining.enhancement.type.
 var ProcessMiningEnhancementTypeValues = struct {
-	Performance string
-	Conformance string
+	Performance    string
+	Conformance    string
 	Organizational string
-	SocialNetwork string
+	SocialNetwork  string
 }{
-	Performance: "performance",
-	Conformance: "conformance",
+	Performance:    "performance",
+	Conformance:    "conformance",
 	Organizational: "organizational",
-	SocialNetwork: "social_network",
+	SocialNetwork:  "social_network",
 }
 
 // ProcessMiningEventAbstractionInputCount returns an attribute KeyValue for process.mining.event.abstraction_input_count.
@@ -847,15 +847,15 @@ func ProcessMiningEventAbstractionLevel(val string) attribute.KeyValue {
 
 // ProcessMiningEventAbstractionLevelValues contains the known enum values for process.mining.event.abstraction_level.
 var ProcessMiningEventAbstractionLevelValues = struct {
-	Raw string
+	Raw      string
 	Activity string
-	Case string
-	Process string
+	Case     string
+	Process  string
 }{
-	Raw: "raw",
+	Raw:      "raw",
 	Activity: "activity",
-	Case: "case",
-	Process: "process",
+	Case:     "case",
+	Process:  "process",
 }
 
 // ProcessMiningEventAbstractionMappingRules returns an attribute KeyValue for process.mining.event.abstraction_mapping_rules.
@@ -931,14 +931,14 @@ func ProcessMiningModelType(val string) attribute.KeyValue {
 // ProcessMiningModelTypeValues contains the known enum values for process.mining.model.type.
 var ProcessMiningModelTypeValues = struct {
 	PetriNet string
-	Bpmn string
-	Dfg string
-	Declare string
+	Bpmn     string
+	Dfg      string
+	Declare  string
 }{
 	PetriNet: "petri_net",
-	Bpmn: "bpmn",
-	Dfg: "dfg",
-	Declare: "declare",
+	Bpmn:     "bpmn",
+	Dfg:      "dfg",
+	Declare:  "declare",
 }
 
 // ProcessMiningPetriNetPlaceCount returns an attribute KeyValue for process.mining.petri_net.place_count.
@@ -1043,16 +1043,16 @@ func ProcessMiningRootCauseType(val string) attribute.KeyValue {
 
 // ProcessMiningRootCauseTypeValues contains the known enum values for process.mining.root_cause.type.
 var ProcessMiningRootCauseTypeValues = struct {
-	DataQuality string
-	ModelDrift string
-	ProcessChange string
-	ResourceBottleneck string
+	DataQuality         string
+	ModelDrift          string
+	ProcessChange       string
+	ResourceBottleneck  string
 	ComplianceViolation string
 }{
-	DataQuality: "data_quality",
-	ModelDrift: "model_drift",
-	ProcessChange: "process_change",
-	ResourceBottleneck: "resource_bottleneck",
+	DataQuality:         "data_quality",
+	ModelDrift:          "model_drift",
+	ProcessChange:       "process_change",
+	ResourceBottleneck:  "resource_bottleneck",
 	ComplianceViolation: "compliance_violation",
 }
 
@@ -1160,4 +1160,3 @@ func ProcessMiningVariantCount(val int64) attribute.KeyValue {
 func ProcessPid(val int64) attribute.KeyValue {
 	return ProcessPidKey.Int64(val)
 }
-

@@ -44,43 +44,43 @@ const (
 
 // PrepareRequest is sent by the coordinator to ask the participant to prepare
 type PrepareRequest struct {
-	TransactionID TransactionID      `json:"transaction_id"`
-	LogData       LogData            `json:"log_data"`
-	Algorithm     string             `json:"algorithm"`
-	Parameters    AlgorithmParams    `json:"parameters"`
-	TimeoutMS     int64              `json:"timeout_ms"`
+	TransactionID TransactionID   `json:"transaction_id"`
+	LogData       LogData         `json:"log_data"`
+	Algorithm     string          `json:"algorithm"`
+	Parameters    AlgorithmParams `json:"parameters"`
+	TimeoutMS     int64           `json:"timeout_ms"`
 }
 
 // LogData contains the event log for discovery
 type LogData struct {
-	Type     string `json:"log_type"`      // "xes", "csv"
-	Encoding string `json:"encoding"`      // "base64"
-	Content  string `json:"content"`       // base64-encoded log
+	Type     string `json:"log_type"` // "xes", "csv"
+	Encoding string `json:"encoding"` // "base64"
+	Content  string `json:"content"`  // base64-encoded log
 }
 
 // AlgorithmParams are parameters for the discovery algorithm
 type AlgorithmParams struct {
-	ActivityKey   string `json:"activity_key"`
-	TimestampKey  string `json:"timestamp_key"`
-	CaseKey       string `json:"case_key"`
+	ActivityKey  string `json:"activity_key"`
+	TimestampKey string `json:"timestamp_key"`
+	CaseKey      string `json:"case_key"`
 }
 
 // PrepareResponse is the participant's response to a prepare request
 type PrepareResponse struct {
-	TransactionID TransactionID    `json:"transaction_id"`
-	Vote          Vote             `json:"vote"`
-	Model         *ModelInfo       `json:"model,omitempty"`
-	Error         *ParticipantErr  `json:"error,omitempty"`
+	TransactionID TransactionID     `json:"transaction_id"`
+	Vote          Vote              `json:"vote"`
+	Model         *ModelInfo        `json:"model,omitempty"`
+	Error         *ParticipantErr   `json:"error,omitempty"`
 	ResourceHold  *ResourceHoldInfo `json:"resource_hold,omitempty"`
-	Timestamp     time.Time        `json:"timestamp"`
+	Timestamp     time.Time         `json:"timestamp"`
 }
 
 // ModelInfo describes a discovered process model
 type ModelInfo struct {
-	Type      string            `json:"model_type"`
-	Content   string            `json:"content"`   // base64-encoded
-	Hash      string            `json:"hash"`      // sha256:...
-	Metadata  ModelMetadata     `json:"metadata"`
+	Type     string        `json:"model_type"`
+	Content  string        `json:"content"` // base64-encoded
+	Hash     string        `json:"hash"`    // sha256:...
+	Metadata ModelMetadata `json:"metadata"`
 }
 
 // ModelMetadata contains model statistics
@@ -134,26 +134,26 @@ type AbortResponse struct {
 
 // transactionRecord tracks in-flight transaction state
 type transactionRecord struct {
-	ID            TransactionID
-	State         TransactionState
-	StartedAt     time.Time
-	BosResponse   *PrepareResponse
+	ID              TransactionID
+	State           TransactionState
+	StartedAt       time.Time
+	BosResponse     *PrepareResponse
 	DiscoveredModel []byte
-	mu            sync.RWMutex
+	mu              sync.RWMutex
 }
 
 // ===== TransactionCoordinator: Main Coordinator Implementation =====
 
 // TransactionCoordinator manages two-phase commit transactions in BusinessOS
 type TransactionCoordinator struct {
-	db                *pgxpool.Pool
-	transactions      map[TransactionID]*transactionRecord
-	txMu              sync.RWMutex
-	log               *slog.Logger
-	prepareTimeout    time.Duration
-	commitTimeout     time.Duration
-	abortTimeout      time.Duration
-	resourceExpiry    time.Duration
+	db             *pgxpool.Pool
+	transactions   map[TransactionID]*transactionRecord
+	txMu           sync.RWMutex
+	log            *slog.Logger
+	prepareTimeout time.Duration
+	commitTimeout  time.Duration
+	abortTimeout   time.Duration
+	resourceExpiry time.Duration
 }
 
 // NewTransactionCoordinator creates a new coordinator

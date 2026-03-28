@@ -422,4 +422,3 @@ func (h *Handler) SyncTasks(c *gin.Context) {
 		"synced":  synced,
 	})
 }
-

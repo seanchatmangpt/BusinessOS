@@ -16,10 +16,10 @@ type LLMOptions struct {
 	// Model override (e.g. from focus mode)
 	Model *string
 	// Thinking/COT options
-	ThinkingEnabled      bool
-	ThinkingInstruction  string
-	MaxThinkingTokens    int
-	ReasoningTemplateID  string
+	ThinkingEnabled     bool
+	ThinkingInstruction string
+	MaxThinkingTokens   int
+	ReasoningTemplateID string
 }
 
 // DefaultLLMOptions returns sensible defaults
@@ -92,10 +92,10 @@ func (sr *StreamResult) GetTokenUsage() *TokenUsage {
 
 // ExtendedThinkingResult wraps streaming results with separate thinking channel
 type ExtendedThinkingResult struct {
-	Chunks         chan string        // Regular response content
-	ThinkingChunks chan string        // Extended thinking content
-	Errors         chan error         // Errors
-	TokenUsage     *TokenUsage        // Final token usage
+	Chunks         chan string // Regular response content
+	ThinkingChunks chan string // Extended thinking content
+	Errors         chan error  // Errors
+	TokenUsage     *TokenUsage // Final token usage
 	mu             sync.Mutex
 }
 

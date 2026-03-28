@@ -12,15 +12,15 @@ import (
 // SpanContext represents a distributed trace span.
 // It includes span ID, trace ID, parent span ID, and attributes.
 type SpanContext struct {
-	SpanID       string            `json:"span_id"`
-	TraceID      string            `json:"trace_id"`
-	ParentSpanID string            `json:"parent_span_id,omitempty"`
-	SpanName     string            `json:"span_name"`
-	Attributes   map[string]any    `json:"attributes"`
-	StartTimeUs  int64             `json:"start_time_us"`
-	EndTimeUs    int64             `json:"end_time_us,omitempty"`
-	Status       string            `json:"status"`
-	ErrorMessage string            `json:"error_message,omitempty"`
+	SpanID       string         `json:"span_id"`
+	TraceID      string         `json:"trace_id"`
+	ParentSpanID string         `json:"parent_span_id,omitempty"`
+	SpanName     string         `json:"span_name"`
+	Attributes   map[string]any `json:"attributes"`
+	StartTimeUs  int64          `json:"start_time_us"`
+	EndTimeUs    int64          `json:"end_time_us,omitempty"`
+	Status       string         `json:"status"`
+	ErrorMessage string         `json:"error_message,omitempty"`
 }
 
 // MetricPoint represents a single metric observation.

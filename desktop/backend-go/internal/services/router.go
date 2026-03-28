@@ -17,15 +17,15 @@ import (
 type IntentType string
 
 const (
-	IntentTypeChat       IntentType = "chat"       // Standard LLM response
-	IntentTypeSearch     IntentType = "search"     // Web search required
-	IntentTypeAgent      IntentType = "agent"      // Agent delegation via @mention
-	IntentTypeCommand    IntentType = "command"    // Slash command execution
-	IntentTypeCode       IntentType = "code"       // Code generation/review
-	IntentTypeAnalysis   IntentType = "analysis"   // Data analysis task
-	IntentTypeWriting    IntentType = "writing"    // Writing/document task
-	IntentTypePlanning   IntentType = "planning"   // Planning/strategy task
-	IntentTypeResearch   IntentType = "research"   // Research task (search + synthesis)
+	IntentTypeChat     IntentType = "chat"     // Standard LLM response
+	IntentTypeSearch   IntentType = "search"   // Web search required
+	IntentTypeAgent    IntentType = "agent"    // Agent delegation via @mention
+	IntentTypeCommand  IntentType = "command"  // Slash command execution
+	IntentTypeCode     IntentType = "code"     // Code generation/review
+	IntentTypeAnalysis IntentType = "analysis" // Data analysis task
+	IntentTypeWriting  IntentType = "writing"  // Writing/document task
+	IntentTypePlanning IntentType = "planning" // Planning/strategy task
+	IntentTypeResearch IntentType = "research" // Research task (search + synthesis)
 )
 
 // IntentConfidence represents how confident we are in the classification
@@ -44,14 +44,14 @@ type RoutingDecision struct {
 	Confidence IntentConfidence `json:"confidence"`
 
 	// Extracted entities
-	Mentions    []string `json:"mentions,omitempty"`    // @agent mentions
-	Command     string   `json:"command,omitempty"`     // /command if present
+	Mentions    []string `json:"mentions,omitempty"` // @agent mentions
+	Command     string   `json:"command,omitempty"`  // /command if present
 	CommandArgs string   `json:"command_args,omitempty"`
 
 	// Search indicators
-	RequiresSearch   bool   `json:"requires_search"`
-	SearchQuery      string `json:"search_query,omitempty"`
-	SearchDepth      string `json:"search_depth,omitempty"` // basic, deep
+	RequiresSearch bool   `json:"requires_search"`
+	SearchQuery    string `json:"search_query,omitempty"`
+	SearchDepth    string `json:"search_depth,omitempty"` // basic, deep
 
 	// Routing recommendations
 	SuggestedAgent   string `json:"suggested_agent,omitempty"`

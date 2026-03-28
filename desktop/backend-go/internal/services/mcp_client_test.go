@@ -277,8 +277,8 @@ func TestMCPClient_SetHeaders_BlockedHeaders(t *testing.T) {
 
 	// Security-critical headers should be blocked
 	client := NewMCPClient(ts.URL, "none", "", map[string]string{
-		"Host":             "evil.com",
-		"Content-Length":   "99999",
+		"Host":              "evil.com",
+		"Content-Length":    "99999",
 		"Transfer-Encoding": "chunked",
 	})
 	_, err := client.DiscoverTools(context.Background())

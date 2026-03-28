@@ -291,7 +291,6 @@ func Idempotency(store *IdempotencyStore) gin.HandlerFunc {
 	}
 }
 
-
 // hashRequest creates a hash of method + path + body for request validation
 func hashRequest(method, path string, body []byte) string {
 	h := sha256.New()

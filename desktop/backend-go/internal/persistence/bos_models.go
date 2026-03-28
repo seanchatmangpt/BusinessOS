@@ -47,47 +47,47 @@ const (
 
 // DiscoveredModel represents a process model discovered by BOS
 type DiscoveredModel struct {
-	ID                   uuid.UUID            `json:"id"`
-	WorkspaceID          uuid.UUID            `json:"workspace_id"`
-	Name                 string               `json:"name"`
-	Description          *string              `json:"description"`
-	ModelType            string               `json:"model_type"` // 'petri_net', 'process_tree', 'dfg'
-	Places               *json.RawMessage     `json:"places"`
-	Transitions          *json.RawMessage     `json:"transitions"`
-	Arcs                 *json.RawMessage     `json:"arcs"`
-	TreeJSON             *json.RawMessage     `json:"tree_json"`
-	FitnessScore         *float64             `json:"fitness_score"`
-	PrecisionScore       *float64             `json:"precision_score"`
-	GeneralizationScore  *float64             `json:"generalization_score"`
-	Version              int32                `json:"version"`
-	SourceSessionID      *uuid.UUID           `json:"source_session_id"`
-	SourceLogID          uuid.UUID            `json:"source_log_id"`
-	IsArchived           bool                 `json:"is_archived"`
-	CreatedAt            time.Time            `json:"created_at"`
-	UpdatedAt            time.Time            `json:"updated_at"`
-	CreatedBy            *string              `json:"created_by"`
+	ID                  uuid.UUID        `json:"id"`
+	WorkspaceID         uuid.UUID        `json:"workspace_id"`
+	Name                string           `json:"name"`
+	Description         *string          `json:"description"`
+	ModelType           string           `json:"model_type"` // 'petri_net', 'process_tree', 'dfg'
+	Places              *json.RawMessage `json:"places"`
+	Transitions         *json.RawMessage `json:"transitions"`
+	Arcs                *json.RawMessage `json:"arcs"`
+	TreeJSON            *json.RawMessage `json:"tree_json"`
+	FitnessScore        *float64         `json:"fitness_score"`
+	PrecisionScore      *float64         `json:"precision_score"`
+	GeneralizationScore *float64         `json:"generalization_score"`
+	Version             int32            `json:"version"`
+	SourceSessionID     *uuid.UUID       `json:"source_session_id"`
+	SourceLogID         uuid.UUID        `json:"source_log_id"`
+	IsArchived          bool             `json:"is_archived"`
+	CreatedAt           time.Time        `json:"created_at"`
+	UpdatedAt           time.Time        `json:"updated_at"`
+	CreatedBy           *string          `json:"created_by"`
 }
 
 // ConformanceResult represents conformance checking results
 type ConformanceResult struct {
-	ID                 uuid.UUID        `json:"id"`
-	WorkspaceID        uuid.UUID        `json:"workspace_id"`
-	ModelID            uuid.UUID        `json:"model_id"`
-	LogID              uuid.UUID        `json:"log_id"`
-	ConformanceType    string           `json:"conformance_type"` // 'token_replay', 'alignment'
-	Fitness            float64          `json:"fitness"`
-	Precision          *float64         `json:"precision"`
-	Generalization     *float64         `json:"generalization"`
-	IsFitting          bool             `json:"is_fitting"`
-	TraceFitness       *json.RawMessage `json:"trace_fitness"`
-	AlignedTraces      *json.RawMessage `json:"aligned_traces"`
+	ID                  uuid.UUID        `json:"id"`
+	WorkspaceID         uuid.UUID        `json:"workspace_id"`
+	ModelID             uuid.UUID        `json:"model_id"`
+	LogID               uuid.UUID        `json:"log_id"`
+	ConformanceType     string           `json:"conformance_type"` // 'token_replay', 'alignment'
+	Fitness             float64          `json:"fitness"`
+	Precision           *float64         `json:"precision"`
+	Generalization      *float64         `json:"generalization"`
+	IsFitting           bool             `json:"is_fitting"`
+	TraceFitness        *json.RawMessage `json:"trace_fitness"`
+	AlignedTraces       *json.RawMessage `json:"aligned_traces"`
 	ViolatedConstraints *json.RawMessage `json:"violated_constraints"`
-	TotalTraces        int32            `json:"total_traces"`
-	FittingTraces      int32            `json:"fitting_traces"`
-	NonFittingTraces   int32            `json:"non_fitting_traces"`
-	ExecutionTimeMs    *int32           `json:"execution_time_ms"`
-	CreatedAt          time.Time        `json:"created_at"`
-	UpdatedAt          time.Time        `json:"updated_at"`
+	TotalTraces         int32            `json:"total_traces"`
+	FittingTraces       int32            `json:"fitting_traces"`
+	NonFittingTraces    int32            `json:"non_fitting_traces"`
+	ExecutionTimeMs     *int32           `json:"execution_time_ms"`
+	CreatedAt           time.Time        `json:"created_at"`
+	UpdatedAt           time.Time        `json:"updated_at"`
 }
 
 // ProcessStatistics represents process mining statistics

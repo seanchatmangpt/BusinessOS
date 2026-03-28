@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -13,19 +13,19 @@ import (
 
 // Channel represents a Slack channel.
 type Channel struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	SlackID      string    `json:"slack_id"`
-	Name         string    `json:"name"`
-	IsPrivate    bool      `json:"is_private"`
-	IsDM         bool      `json:"is_dm"`
-	MemberCount  int       `json:"member_count"`
-	Topic        string    `json:"topic,omitempty"`
-	Purpose      string    `json:"purpose,omitempty"`
-	UnreadCount  int       `json:"unread_count"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	SlackID      string     `json:"slack_id"`
+	Name         string     `json:"name"`
+	IsPrivate    bool       `json:"is_private"`
+	IsDM         bool       `json:"is_dm"`
+	MemberCount  int        `json:"member_count"`
+	Topic        string     `json:"topic,omitempty"`
+	Purpose      string     `json:"purpose,omitempty"`
+	UnreadCount  int        `json:"unread_count"`
 	LastActivity *time.Time `json:"last_activity,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 // ChannelService handles Slack channel operations.
@@ -190,17 +190,17 @@ func (s *ChannelService) fetchDMs(ctx context.Context, token string) ([]SlackCha
 
 // SlackChannel represents a channel from the Slack API.
 type SlackChannel struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	IsPrivate      bool   `json:"is_private"`
-	IsIM           bool   `json:"is_im"`
-	IsMpIM         bool   `json:"is_mpim"`
-	NumMembers     int    `json:"num_members"`
-	Topic          Topic  `json:"topic"`
-	Purpose        Topic  `json:"purpose"`
-	UnreadCount    int    `json:"unread_count"`
-	LastRead       string `json:"last_read"`
-	User           string `json:"user"` // For DMs
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	IsPrivate   bool   `json:"is_private"`
+	IsIM        bool   `json:"is_im"`
+	IsMpIM      bool   `json:"is_mpim"`
+	NumMembers  int    `json:"num_members"`
+	Topic       Topic  `json:"topic"`
+	Purpose     Topic  `json:"purpose"`
+	UnreadCount int    `json:"unread_count"`
+	LastRead    string `json:"last_read"`
+	User        string `json:"user"` // For DMs
 }
 
 // Topic represents a channel topic or purpose.
@@ -396,10 +396,10 @@ func (s *ChannelService) SearchMessages(ctx context.Context, userID, query strin
 	body, _ := io.ReadAll(resp.Body)
 
 	var result struct {
-		OK       bool `json:"ok"`
+		OK       bool   `json:"ok"`
 		Error    string `json:"error"`
 		Messages struct {
-			Total   int `json:"total"`
+			Total   int                  `json:"total"`
 			Matches []SlackSearchMessage `json:"matches"`
 		} `json:"messages"`
 	}
@@ -420,10 +420,10 @@ func (s *ChannelService) SearchMessages(ctx context.Context, userID, query strin
 
 // SlackUser represents a user from Slack API.
 type SlackUser struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	RealName string `json:"real_name"`
-	IsAdmin  bool   `json:"is_admin"`
+	ID       string           `json:"id"`
+	Name     string           `json:"name"`
+	RealName string           `json:"real_name"`
+	IsAdmin  bool             `json:"is_admin"`
 	Profile  SlackUserProfile `json:"profile"`
 }
 

@@ -27,29 +27,29 @@ import (
 // ============================================================================
 
 type PerformanceSnapshot struct {
-	Timestamp        time.Time
-	OperationName    string
-	TotalOperations  int64
-	SuccessCount     int64
-	ErrorCount       int64
-	MinLatencyUs     uint64
-	MaxLatencyUs     uint64
-	AvgLatencyUs     float64
-	P50LatencyUs     uint64
-	P95LatencyUs     uint64
-	P99LatencyUs     uint64
-	ThroughputOpsec  float64
-	AllocMB          float64
-	AllocRateMBsec   float64
+	Timestamp       time.Time
+	OperationName   string
+	TotalOperations int64
+	SuccessCount    int64
+	ErrorCount      int64
+	MinLatencyUs    uint64
+	MaxLatencyUs    uint64
+	AvgLatencyUs    float64
+	P50LatencyUs    uint64
+	P95LatencyUs    uint64
+	P99LatencyUs    uint64
+	ThroughputOpsec float64
+	AllocMB         float64
+	AllocRateMBsec  float64
 }
 
 type LatencyCollector struct {
-	mu       sync.Mutex
-	samples  []uint64
-	minLat   uint64
-	maxLat   uint64
-	minOnce  sync.Once
-	maxOnce  sync.Once
+	mu      sync.Mutex
+	samples []uint64
+	minLat  uint64
+	maxLat  uint64
+	minOnce sync.Once
+	maxOnce sync.Once
 }
 
 func NewLatencyCollector() *LatencyCollector {
@@ -281,9 +281,9 @@ func TestIndexedQueryPerformance(t *testing.T) {
 	}
 
 	queryTypes := []struct {
-		name           string
-		indexed        bool
-		recordCount    int
+		name            string
+		indexed         bool
+		recordCount     int
 		targetLatencyMs int
 	}{
 		{"indexed_single", true, 1000000, 10},

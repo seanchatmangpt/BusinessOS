@@ -169,7 +169,7 @@ func (f *FallbackClient) GetAppStatusWithFallback(ctx context.Context, appID str
 	return applyFallback[AppStatusResponse](f, cacheKey, fmt.Errorf("primary request failed"), func() *AppStatusResponse {
 		return &AppStatusResponse{
 			AppID:  appID,
-			Status:  "unknown",
+			Status: "unknown",
 			Error:  "Service temporarily unavailable",
 		}
 	})
@@ -260,19 +260,19 @@ func (f *FallbackClient) cacheKey(operation string, userID, workspaceID uuid.UUI
 
 // RequestQueue queues requests when service is unavailable
 type RequestQueue struct {
-	mu       sync.RWMutex
-	queue    []QueuedRequest
-	maxSize  int
-	enabled  bool
+	mu      sync.RWMutex
+	queue   []QueuedRequest
+	maxSize int
+	enabled bool
 }
 
 // QueuedRequest represents a queued request
 type QueuedRequest struct {
-	ID        string
-	Operation string
-	Payload   json.RawMessage
-	QueuedAt  time.Time
-	UserID    uuid.UUID
+	ID         string
+	Operation  string
+	Payload    json.RawMessage
+	QueuedAt   time.Time
+	UserID     uuid.UUID
 	RetryCount int
 }
 

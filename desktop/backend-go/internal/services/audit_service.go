@@ -253,12 +253,12 @@ func (as *AuditService) GetComplianceReport(
 	`
 
 	var (
-		totalEvents        int
-		uniqueUsers        int
-		eventsWithPII      int
-		eventsLegalHold    int
-		criticalEvents     int
-		securityEvents     int
+		totalEvents     int
+		uniqueUsers     int
+		eventsWithPII   int
+		eventsLegalHold int
+		criticalEvents  int
+		securityEvents  int
 	)
 
 	err := as.pool.QueryRow(ctx, query, fromDate, toDate).Scan(
@@ -276,12 +276,12 @@ func (as *AuditService) GetComplianceReport(
 			"to":   toDate.Format(time.RFC3339),
 		},
 		"summary": map[string]int{
-			"total_events":           totalEvents,
-			"unique_users":           uniqueUsers,
-			"events_with_pii":        eventsWithPII,
+			"total_events":            totalEvents,
+			"unique_users":            uniqueUsers,
+			"events_with_pii":         eventsWithPII,
 			"events_under_legal_hold": eventsLegalHold,
-			"critical_events":        criticalEvents,
-			"security_events":        securityEvents,
+			"critical_events":         criticalEvents,
+			"security_events":         securityEvents,
 		},
 		"generated_at": time.Now().UTC().Format(time.RFC3339),
 	}

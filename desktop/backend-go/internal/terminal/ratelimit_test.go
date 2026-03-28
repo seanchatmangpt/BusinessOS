@@ -27,8 +27,8 @@ func TestDefaultRateLimitConfig(t *testing.T) {
 
 func TestRateLimiter_AllowMessage(t *testing.T) {
 	config := &RateLimitConfig{
-		MessagesPerSecond:     10,  // 10 per second
-		BurstSize:             5,   // Allow 5 burst
+		MessagesPerSecond:     10, // 10 per second
+		BurstSize:             5,  // Allow 5 burst
 		MaxMessageSize:        1024,
 		MaxConnectionsPerUser: 3,
 		CleanupInterval:       time.Minute,

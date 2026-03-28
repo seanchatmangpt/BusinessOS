@@ -374,7 +374,7 @@ func TestSOX_IntegrationScenario_ViolationDetection(t *testing.T) {
 		ChangeMadeBy:               "alice",
 		SystemMeasuredUptime:       99.85, // VIOLATION: below 99.9%
 		FinancialDataAccessLogged:  false, // VIOLATION: access not logged
-		AuditLogRetentionDays:      1825,   // VIOLATION: only 5 years, not 7
+		AuditLogRetentionDays:      1825,  // VIOLATION: only 5 years, not 7
 		ProductionChangeDocumented: false, // VIOLATION: undocumented
 		FinancialRecordHasChecksum: false, // VIOLATION: missing checksum
 		ChecksumVerified:           false,

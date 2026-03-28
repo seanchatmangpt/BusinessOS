@@ -155,9 +155,9 @@ func TestContextTypesForFocusMode(t *testing.T) {
 		{"research", []string{"DOCUMENT", "CUSTOM", "BUSINESS"}},
 		{"deep", []string{"DOCUMENT", "CUSTOM", "BUSINESS"}},
 		{"plan", []string{"PROJECT", "BUSINESS", "DOCUMENT"}},
-		{"quick", []string{"DOCUMENT", "PROJECT", "BUSINESS", "CUSTOM"}},       // default
+		{"quick", []string{"DOCUMENT", "PROJECT", "BUSINESS", "CUSTOM"}}, // default
 		{"creative", []string{"CUSTOM", "DOCUMENT", "PERSON"}},
-		{"unknown", []string{"DOCUMENT", "PROJECT", "BUSINESS", "CUSTOM"}},     // default
+		{"unknown", []string{"DOCUMENT", "PROJECT", "BUSINESS", "CUSTOM"}}, // default
 	}
 
 	for _, tt := range tests {
@@ -184,9 +184,9 @@ func TestContextTypesForFocusMode(t *testing.T) {
 func TestOutputConstraintsInstructionsGeneration(t *testing.T) {
 	service := NewFocusService(nil)
 
-	maxLen500 := 500              // 500/4 = 125 words -> brief
-	maxLen4000 := 4000            // 4000/4 = 1000 words -> moderate-length
-	maxLen16000 := 16000          // 16000/4 = 4000 words -> comprehensive (>3000)
+	maxLen500 := 500     // 500/4 = 125 words -> brief
+	maxLen4000 := 4000   // 4000/4 = 1000 words -> moderate-length
+	maxLen16000 := 16000 // 16000/4 = 4000 words -> comprehensive (>3000)
 
 	tests := []struct {
 		name        string

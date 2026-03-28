@@ -48,19 +48,19 @@ func YawlEventType(val string) attribute.KeyValue {
 
 // YawlEventTypeValues contains the known enum values for yawl.event.type.
 var YawlEventTypeValues = struct {
-	InstanceCreated string
-	TaskEnabled string
-	TaskStarted string
-	TaskCompleted string
-	TaskFailed string
+	InstanceCreated   string
+	TaskEnabled       string
+	TaskStarted       string
+	TaskCompleted     string
+	TaskFailed        string
 	InstanceCompleted string
 	InstanceCancelled string
 }{
-	InstanceCreated: "INSTANCE_CREATED",
-	TaskEnabled: "TASK_ENABLED",
-	TaskStarted: "TASK_STARTED",
-	TaskCompleted: "TASK_COMPLETED",
-	TaskFailed: "TASK_FAILED",
+	InstanceCreated:   "INSTANCE_CREATED",
+	TaskEnabled:       "TASK_ENABLED",
+	TaskStarted:       "TASK_STARTED",
+	TaskCompleted:     "TASK_COMPLETED",
+	TaskFailed:        "TASK_FAILED",
 	InstanceCompleted: "INSTANCE_COMPLETED",
 	InstanceCancelled: "INSTANCE_CANCELLED",
 }
@@ -99,4 +99,3 @@ func YawlTokenProduced(val int64) attribute.KeyValue {
 func YawlWorkItemId(val string) attribute.KeyValue {
 	return YawlWorkItemIdKey.String(val)
 }
-

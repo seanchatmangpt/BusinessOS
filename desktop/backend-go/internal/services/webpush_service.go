@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
-	"log/slog"
 	"encoding/json"
+	"log/slog"
 
 	"github.com/SherClockHolmes/webpush-go"
 	"github.com/jackc/pgx/v5/pgxpool"

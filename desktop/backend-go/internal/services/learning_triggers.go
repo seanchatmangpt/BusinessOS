@@ -13,10 +13,10 @@ import (
 
 // AutoLearningTriggers handles automatic learning from conversations
 type AutoLearningTriggers struct {
-	learningSvc *LearningService
-	memorySvc   *MemoryService
+	learningSvc  *LearningService
+	memorySvc    *MemoryService
 	embeddingSvc *EmbeddingService
-	logger      *slog.Logger
+	logger       *slog.Logger
 }
 
 // NewAutoLearningTriggers creates a new auto-learning triggers service
@@ -35,17 +35,17 @@ func NewAutoLearningTriggers(
 
 // LearningConversationContext holds context for learning from a conversation
 type LearningConversationContext struct {
-	UserID          string
-	WorkspaceID     *uuid.UUID // Added for workspace_memories support
-	ConversationID  uuid.UUID
-	UserMessage     string
-	AgentResponse   string
-	AgentType       string
-	FocusMode       string
-	ProjectID       *uuid.UUID
-	NodeID          *uuid.UUID
-	ContextIDs      []uuid.UUID
-	Timestamp       time.Time
+	UserID         string
+	WorkspaceID    *uuid.UUID // Added for workspace_memories support
+	ConversationID uuid.UUID
+	UserMessage    string
+	AgentResponse  string
+	AgentType      string
+	FocusMode      string
+	ProjectID      *uuid.UUID
+	NodeID         *uuid.UUID
+	ContextIDs     []uuid.UUID
+	Timestamp      time.Time
 }
 
 // ProcessConversationTurn analyzes a conversation turn and extracts learnings

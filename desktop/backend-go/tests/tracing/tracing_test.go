@@ -21,16 +21,16 @@ type Trace struct {
 
 // Span represents an individual span in a trace
 type Span struct {
-	TraceID      string
-	SpanID       string
-	ParentID     string
-	Name         string
-	StartTime    time.Time
-	EndTime      time.Time
-	DurationMs   int64
-	Status       string
-	Attributes   map[string]interface{}
-	Service      string
+	TraceID    string
+	SpanID     string
+	ParentID   string
+	Name       string
+	StartTime  time.Time
+	EndTime    time.Time
+	DurationMs int64
+	Status     string
+	Attributes map[string]interface{}
+	Service    string
 }
 
 // TestExtractTraceparent tests extracting traceparent from headers

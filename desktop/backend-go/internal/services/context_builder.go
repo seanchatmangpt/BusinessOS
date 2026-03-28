@@ -19,11 +19,11 @@ type ContextBuilder struct {
 
 // HierarchicalContext represents the full context for an AI query
 type HierarchicalContext struct {
-	Query          string           `json:"query"`
-	ProfileContext *ProfileContext  `json:"profile_context,omitempty"`
-	RelevantBlocks []RelevantBlock  `json:"relevant_blocks"`
-	RelatedDocs    []RelatedDoc     `json:"related_docs,omitempty"`
-	SiblingDocs    []RelatedDoc     `json:"sibling_docs,omitempty"`
+	Query          string          `json:"query"`
+	ProfileContext *ProfileContext `json:"profile_context,omitempty"`
+	RelevantBlocks []RelevantBlock `json:"relevant_blocks"`
+	RelatedDocs    []RelatedDoc    `json:"related_docs,omitempty"`
+	SiblingDocs    []RelatedDoc    `json:"sibling_docs,omitempty"`
 }
 
 // ProfileContext represents a parent profile's context

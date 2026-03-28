@@ -12,43 +12,43 @@ import (
 
 // DelegationTarget represents an agent that can receive delegated tasks
 type DelegationTarget struct {
-	ID             uuid.UUID `json:"id"`
-	Name           string    `json:"name"`
-	DisplayName    string    `json:"display_name"`
-	Description    string    `json:"description"`
-	Capabilities   []string  `json:"capabilities,omitempty"`
-	Category       string    `json:"category,omitempty"`
-	IsSystemAgent  bool      `json:"is_system_agent"`
-	ModelOverride  *string   `json:"model_override,omitempty"`
-	SystemPrompt   string    `json:"system_prompt,omitempty"`
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	DisplayName   string    `json:"display_name"`
+	Description   string    `json:"description"`
+	Capabilities  []string  `json:"capabilities,omitempty"`
+	Category      string    `json:"category,omitempty"`
+	IsSystemAgent bool      `json:"is_system_agent"`
+	ModelOverride *string   `json:"model_override,omitempty"`
+	SystemPrompt  string    `json:"system_prompt,omitempty"`
 }
 
 // DelegationRequest represents a request to delegate to another agent
 type DelegationRequest struct {
-	FromAgent      string              `json:"from_agent"`
-	ToAgent        string              `json:"to_agent"`
-	Reason         string              `json:"reason"`
-	Context        string              `json:"context"`
-	OriginalQuery  string              `json:"original_query"`
-	ConversationID uuid.UUID           `json:"conversation_id"`
-	UserID         string              `json:"user_id"`
-	Metadata       map[string]string   `json:"metadata,omitempty"`
+	FromAgent      string            `json:"from_agent"`
+	ToAgent        string            `json:"to_agent"`
+	Reason         string            `json:"reason"`
+	Context        string            `json:"context"`
+	OriginalQuery  string            `json:"original_query"`
+	ConversationID uuid.UUID         `json:"conversation_id"`
+	UserID         string            `json:"user_id"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
 }
 
 // DelegationResult represents the result of a delegation
 type DelegationResult struct {
-	Success       bool              `json:"success"`
-	TargetAgent   *DelegationTarget `json:"target_agent,omitempty"`
-	Error         string            `json:"error,omitempty"`
-	TraceID       uuid.UUID         `json:"trace_id"`
+	Success     bool              `json:"success"`
+	TargetAgent *DelegationTarget `json:"target_agent,omitempty"`
+	Error       string            `json:"error,omitempty"`
+	TraceID     uuid.UUID         `json:"trace_id"`
 }
 
 // MentionedAgent represents an @mentioned agent in a message
 type MentionedAgent struct {
-	Mention    string            `json:"mention"`    // The @mention text (e.g., "@code-reviewer")
-	Agent      *DelegationTarget `json:"agent"`      // The resolved agent
-	Position   int               `json:"position"`   // Position in the message
-	Resolved   bool              `json:"resolved"`   // Whether the agent was found
+	Mention  string            `json:"mention"`  // The @mention text (e.g., "@code-reviewer")
+	Agent    *DelegationTarget `json:"agent"`    // The resolved agent
+	Position int               `json:"position"` // Position in the message
+	Resolved bool              `json:"resolved"` // Whether the agent was found
 }
 
 // DelegationService handles agent delegation and @mention resolution

@@ -111,7 +111,6 @@ func uuidToPgtype(id uuid.UUID) pgtype.UUID {
 	return pgtype.UUID{Bytes: id, Valid: true}
 }
 
-
 func (t *ConfigureDashboardTool) Execute(ctx context.Context, input json.RawMessage) (string, error) {
 	var params DashboardInput
 	if err := json.Unmarshal(input, &params); err != nil {
@@ -498,7 +497,7 @@ func (t *ConfigureDashboardTool) getDashboard(ctx context.Context, queries *sqlc
 	for _, w := range layout.Widgets {
 		configStr, err := json.Marshal(w.Config)
 		if err != nil {
-			configStr = []byte("{}")  // Fallback to empty object
+			configStr = []byte("{}") // Fallback to empty object
 		}
 		sb.WriteString(fmt.Sprintf("- **%s** (ID: %s)\n  Position: (%d,%d) Size: %dx%d\n  Config: %s\n\n", w.Type, w.ID, w.X, w.Y, w.W, w.H, string(configStr)))
 	}

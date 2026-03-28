@@ -57,29 +57,29 @@ func getEnv(key, defaultValue string) string {
 
 // DealPayload represents a FIBO deal creation request
 type DealPayload struct {
-	DealID       string    `json:"deal_id"`
-	DealName     string    `json:"deal_name"`
-	DealAmount   float64   `json:"deal_amount"`
-	Currency     string    `json:"currency"`
-	Counterparty string    `json:"counterparty"`
-	DealDate     string    `json:"deal_date"`
-	DealType     string    `json:"deal_type"`
-	Status       string    `json:"status"`
+	DealID       string                 `json:"deal_id"`
+	DealName     string                 `json:"deal_name"`
+	DealAmount   float64                `json:"deal_amount"`
+	Currency     string                 `json:"currency"`
+	Counterparty string                 `json:"counterparty"`
+	DealDate     string                 `json:"deal_date"`
+	DealType     string                 `json:"deal_type"`
+	Status       string                 `json:"status"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // DealResponse represents a deal response from the API
 type DealResponse struct {
-	DealID       string    `json:"deal_id"`
-	DealName     string    `json:"deal_name"`
-	DealAmount   float64   `json:"deal_amount"`
-	Currency     string    `json:"currency"`
-	Counterparty string    `json:"counterparty"`
-	Status       string    `json:"status"`
-	CreatedAt    string    `json:"created_at"`
-	RDFIdentifier string `json:"rdf_identifier,omitempty"`
-	ContentHash  string `json:"content_hash,omitempty"`
-	Error        string    `json:"error,omitempty"`
+	DealID        string  `json:"deal_id"`
+	DealName      string  `json:"deal_name"`
+	DealAmount    float64 `json:"deal_amount"`
+	Currency      string  `json:"currency"`
+	Counterparty  string  `json:"counterparty"`
+	Status        string  `json:"status"`
+	CreatedAt     string  `json:"created_at"`
+	RDFIdentifier string  `json:"rdf_identifier,omitempty"`
+	ContentHash   string  `json:"content_hash,omitempty"`
+	Error         string  `json:"error,omitempty"`
 }
 
 // RDFTriple represents an RDF triple in Oxigraph

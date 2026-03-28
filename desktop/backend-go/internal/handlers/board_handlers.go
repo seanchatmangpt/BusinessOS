@@ -31,12 +31,12 @@ import (
 )
 
 const (
-	boardTracerName     = "businessos.board"
-	oxigraphQueryPath   = "/query"
-	boardQueryTimeout   = 10 * time.Second
-	osaConwayPath       = "/api/board/conway/check"
-	defaultOSABaseURL   = "http://localhost:8089"
-	defaultOxigraphURL  = "http://localhost:7878"
+	boardTracerName    = "businessos.board"
+	oxigraphQueryPath  = "/query"
+	boardQueryTimeout  = 10 * time.Second
+	osaConwayPath      = "/api/board/conway/check"
+	defaultOSABaseURL  = "http://localhost:8089"
+	defaultOxigraphURL = "http://localhost:7878"
 )
 
 // BoardHandler handles the /api/board route group.

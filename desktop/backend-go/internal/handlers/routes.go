@@ -50,6 +50,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerLinkedInRoutes(api, auth)
 	h.registerBoardRoutes(api)
 	h.registerPM4PyDashboardRoutes(api)
+	h.registerYawlRoutes(api, auth)
 }
 
 // registerOntologyRoutes wires /api/ontology routes via bos CLI bridge.

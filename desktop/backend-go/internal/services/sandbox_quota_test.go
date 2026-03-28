@@ -19,8 +19,8 @@ func testQuotaLogger() *slog.Logger {
 func testQuotaConfig() *config.Config {
 	return &config.Config{
 		SandboxMaxPerUser:      5,
-		SandboxDefaultMemory:   512 * 1024 * 1024, // 512MB
-		SandboxDefaultCPU:      50000,             // 50% of 1 CPU
+		SandboxDefaultMemory:   512 * 1024 * 1024,      // 512MB
+		SandboxDefaultCPU:      50000,                  // 50% of 1 CPU
 		SandboxMaxTotalMemory:  2 * 1024 * 1024 * 1024, // 2GB
 		SandboxMaxTotalStorage: 5 * 1024 * 1024 * 1024, // 5GB
 	}
@@ -113,9 +113,9 @@ func TestGetUserQuota_WithOverride(t *testing.T) {
 	// Set custom quota override
 	customQuota := UserQuota{
 		MaxSandboxes:        10,
-		MaxMemoryPerSandbox: 1024 * 1024 * 1024, // 1GB
-		MaxCPUPerSandbox:    100000,             // 100% of 1 CPU
-		MaxTotalMemory:      8 * 1024 * 1024 * 1024, // 8GB
+		MaxMemoryPerSandbox: 1024 * 1024 * 1024,      // 1GB
+		MaxCPUPerSandbox:    100000,                  // 100% of 1 CPU
+		MaxTotalMemory:      8 * 1024 * 1024 * 1024,  // 8GB
 		MaxTotalStorage:     20 * 1024 * 1024 * 1024, // 20GB
 	}
 	err := service.SetUserQuotaOverride(ctx, userID, customQuota)
@@ -314,8 +314,8 @@ func TestCheckQuota_ValidRequest(t *testing.T) {
 	// Valid request within all limits
 	request := QuotaRequest{
 		SandboxCount:      2,
-		MemoryPerSandbox:  256 * 1024 * 1024, // 256MB
-		CPUPerSandbox:     25000,             // 25%
+		MemoryPerSandbox:  256 * 1024 * 1024,  // 256MB
+		CPUPerSandbox:     25000,              // 25%
 		StoragePerSandbox: 1024 * 1024 * 1024, // 1GB
 	}
 

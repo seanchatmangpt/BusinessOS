@@ -55,8 +55,8 @@ type AppContainerConfig struct {
 	HostPort      int    // Port on host (assigned by port allocator)
 	Environment   map[string]string
 	StartCommand  []string
-	MemoryLimit   int64 // Optional: override default memory limit
-	CPUQuota      int64 // Optional: override default CPU quota
+	MemoryLimit   int64  // Optional: override default memory limit
+	CPUQuota      int64  // Optional: override default CPU quota
 	WorkingDir    string // Working directory inside container
 }
 
@@ -190,9 +190,9 @@ func (m *AppContainerManager) CreateAppContainer(ctx context.Context, cfg AppCon
 		PortBindings: portBindings,
 		Mounts:       mounts,
 		Resources: container.Resources{
-			Memory:     memoryLimit,
-			CPUQuota:   cpuQuota,
-			PidsLimit:  ptr(int64(appDefaultPidsLimit)),
+			Memory:    memoryLimit,
+			CPUQuota:  cpuQuota,
+			PidsLimit: ptr(int64(appDefaultPidsLimit)),
 		},
 		SecurityOpt: securityOpts,
 		CapDrop:     []string{"ALL"},
@@ -349,17 +349,17 @@ func (m *AppContainerManager) GetAppContainerInfo(ctx context.Context, container
 	}
 
 	return &AppContainerInfo{
-		ContainerID:   containerID,
-		AppID:         appID,
-		AppName:       appName,
-		UserID:        userID,
-		Image:         inspect.Config.Image,
-		Status:        inspect.State.Status,
-		HostPort:      hostPort,
-		CreatedAt:     createdAt,
-		StartedAt:     startedAt,
-		IPAddress:     ipAddress,
-		HealthStatus:  healthStatus,
+		ContainerID:  containerID,
+		AppID:        appID,
+		AppName:      appName,
+		UserID:       userID,
+		Image:        inspect.Config.Image,
+		Status:       inspect.State.Status,
+		HostPort:     hostPort,
+		CreatedAt:    createdAt,
+		StartedAt:    startedAt,
+		IPAddress:    ipAddress,
+		HealthStatus: healthStatus,
 	}, nil
 }
 

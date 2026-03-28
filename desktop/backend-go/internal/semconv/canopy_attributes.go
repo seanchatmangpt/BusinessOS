@@ -106,15 +106,15 @@ func CanopyAdapterType(val string) attribute.KeyValue {
 
 // CanopyAdapterTypeValues contains the known enum values for canopy.adapter.type.
 var CanopyAdapterTypeValues = struct {
-	Osa string
-	Mcp string
+	Osa        string
+	Mcp        string
 	BusinessOs string
-	Webhook string
+	Webhook    string
 }{
-	Osa: "osa",
-	Mcp: "mcp",
+	Osa:        "osa",
+	Mcp:        "mcp",
 	BusinessOs: "business_os",
-	Webhook: "webhook",
+	Webhook:    "webhook",
 }
 
 // CanopyBudgetMs returns an attribute KeyValue for canopy.budget.ms.
@@ -139,29 +139,29 @@ func CanopyCommandType(val string) attribute.KeyValue {
 
 // CanopyCommandTypeValues contains the known enum values for canopy.command.type.
 var CanopyCommandTypeValues = struct {
-	AgentDispatch string
+	AgentDispatch   string
 	WorkflowTrigger string
-	DataQuery string
-	HeartbeatCheck string
-	ConfigReload string
-	Execute string
-	Query string
-	Route string
-	Broadcast string
-	Sync string
-	Delegate string
+	DataQuery       string
+	HeartbeatCheck  string
+	ConfigReload    string
+	Execute         string
+	Query           string
+	Route           string
+	Broadcast       string
+	Sync            string
+	Delegate        string
 }{
-	AgentDispatch: "agent_dispatch",
+	AgentDispatch:   "agent_dispatch",
 	WorkflowTrigger: "workflow_trigger",
-	DataQuery: "data_query",
-	HeartbeatCheck: "heartbeat_check",
-	ConfigReload: "config_reload",
-	Execute: "execute",
-	Query: "query",
-	Route: "route",
-	Broadcast: "broadcast",
-	Sync: "sync",
-	Delegate: "delegate",
+	DataQuery:       "data_query",
+	HeartbeatCheck:  "heartbeat_check",
+	ConfigReload:    "config_reload",
+	Execute:         "execute",
+	Query:           "query",
+	Route:           "route",
+	Broadcast:       "broadcast",
+	Sync:            "sync",
+	Delegate:        "delegate",
 }
 
 // CanopyConflictCount returns an attribute KeyValue for canopy.conflict.count.
@@ -191,15 +191,15 @@ func CanopyHeartbeatStatus(val string) attribute.KeyValue {
 
 // CanopyHeartbeatStatusValues contains the known enum values for canopy.heartbeat.status.
 var CanopyHeartbeatStatusValues = struct {
-	Healthy string
+	Healthy  string
 	Degraded string
 	Critical string
-	Timeout string
+	Timeout  string
 }{
-	Healthy: "healthy",
+	Healthy:  "healthy",
 	Degraded: "degraded",
 	Critical: "critical",
-	Timeout: "timeout",
+	Timeout:  "timeout",
 }
 
 // CanopyHeartbeatTier returns an attribute KeyValue for canopy.heartbeat.tier.
@@ -210,14 +210,14 @@ func CanopyHeartbeatTier(val string) attribute.KeyValue {
 // CanopyHeartbeatTierValues contains the known enum values for canopy.heartbeat.tier.
 var CanopyHeartbeatTierValues = struct {
 	Critical string
-	High string
-	Normal string
-	Low string
+	High     string
+	Normal   string
+	Low      string
 }{
 	Critical: "critical",
-	High: "high",
-	Normal: "normal",
-	Low: "low",
+	High:     "high",
+	Normal:   "normal",
+	Low:      "low",
 }
 
 // CanopyOperationType returns an attribute KeyValue for canopy.operation.type.
@@ -227,15 +227,15 @@ func CanopyOperationType(val string) attribute.KeyValue {
 
 // CanopyOperationTypeValues contains the known enum values for canopy.operation.type.
 var CanopyOperationTypeValues = struct {
-	Read string
-	Write string
+	Read      string
+	Write     string
 	Subscribe string
-	Publish string
+	Publish   string
 }{
-	Read: "read",
-	Write: "write",
+	Read:      "read",
+	Write:     "write",
 	Subscribe: "subscribe",
-	Publish: "publish",
+	Publish:   "publish",
 }
 
 // CanopyPeerCount returns an attribute KeyValue for canopy.peer.count.
@@ -285,14 +285,14 @@ func CanopySyncStrategy(val string) attribute.KeyValue {
 
 // CanopySyncStrategyValues contains the known enum values for canopy.sync.strategy.
 var CanopySyncStrategyValues = struct {
-	Immediate string
-	Batched string
-	Eventual string
+	Immediate    string
+	Batched      string
+	Eventual     string
 	ConflictFree string
 }{
-	Immediate: "immediate",
-	Batched: "batched",
-	Eventual: "eventual",
+	Immediate:    "immediate",
+	Batched:      "batched",
+	Eventual:     "eventual",
 	ConflictFree: "conflict_free",
 }
 
@@ -300,4 +300,3 @@ var CanopySyncStrategyValues = struct {
 func CanopyWorkspaceId(val string) attribute.KeyValue {
 	return CanopyWorkspaceIdKey.String(val)
 }
-

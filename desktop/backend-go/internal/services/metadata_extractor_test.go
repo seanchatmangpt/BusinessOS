@@ -8,12 +8,12 @@ import (
 
 func TestExtractAppMetadata_WithBundleContent(t *testing.T) {
 	tests := []struct {
-		name           string
-		bundleContent  map[string]string
-		expectedName   string
-		expectedCat    string
-		expectedIcon   string
-		wantErr        bool
+		name          string
+		bundleContent map[string]string
+		expectedName  string
+		expectedCat   string
+		expectedIcon  string
+		wantErr       bool
 	}{
 		{
 			name: "Invoice app from bundle",
@@ -100,12 +100,12 @@ func TestExtractAppMetadata_WithBundleContent(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:           "No package.json - returns defaults",
-			bundleContent:  map[string]string{},
-			expectedName:   "Generated App",
-			expectedCat:    "general",
-			expectedIcon:   "AppWindow",
-			wantErr:        false,
+			name:          "No package.json - returns defaults",
+			bundleContent: map[string]string{},
+			expectedName:  "Generated App",
+			expectedCat:   "general",
+			expectedIcon:  "AppWindow",
+			wantErr:       false,
 		},
 		{
 			name: "Malformed JSON - returns defaults",

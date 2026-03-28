@@ -154,9 +154,9 @@ func TestTransaction_AbortParticipantVotedNo(t *testing.T) {
 			Encoding: "base64",
 			Content:  "", // Empty log triggers NO vote in real BOS
 		},
-		Algorithm: "unknown_algorithm",
+		Algorithm:  "unknown_algorithm",
 		Parameters: AlgorithmParams{},
-		TimeoutMS: 30000,
+		TimeoutMS:  30000,
 	}
 
 	_, err = coordinator.Prepare(ctx, txID, prepareReq)
@@ -209,9 +209,9 @@ func TestTransaction_PrepareTimeout(t *testing.T) {
 			Encoding: "base64",
 			Content:  "large_log_data", // Triggers long processing
 		},
-		Algorithm: "inductive_miner",
+		Algorithm:  "inductive_miner",
 		Parameters: AlgorithmParams{},
-		TimeoutMS: 100, // 100ms timeout
+		TimeoutMS:  100, // 100ms timeout
 	}
 
 	// Create context with timeout to simulate slow response

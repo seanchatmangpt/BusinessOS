@@ -24,14 +24,14 @@ var ErrScheduledJobNotFound = errors.New("scheduled job not found")
 
 // JobScheduler manages recurring jobs with cron-like scheduling
 type JobScheduler struct {
-	pool           *pgxpool.Pool
-	service        *BackgroundJobsService
-	cronParser     cron.Parser
-	checkInterval  time.Duration
-	stopChan       chan struct{}
-	wg             sync.WaitGroup
-	running        bool
-	runningMu      sync.Mutex
+	pool          *pgxpool.Pool
+	service       *BackgroundJobsService
+	cronParser    cron.Parser
+	checkInterval time.Duration
+	stopChan      chan struct{}
+	wg            sync.WaitGroup
+	running       bool
+	runningMu     sync.Mutex
 }
 
 // CreateScheduledJobRequest represents a request to create a scheduled job

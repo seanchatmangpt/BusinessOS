@@ -23,18 +23,18 @@ type ImageStatus struct {
 
 // ImageWarmerService pre-pulls commonly used Docker images for faster sandbox deployment
 type ImageWarmerService struct {
-	cli               *client.Client
-	logger            *slog.Logger
-	mu                sync.RWMutex
-	imageStatus       map[string]*ImageStatus
-	stopCh            chan struct{}
-	refreshInterval   time.Duration
-	commonImages      []string
-	ctx               context.Context
-	cancel            context.CancelFunc
-	wg                sync.WaitGroup
-	startOnce         sync.Once
-	stopOnce          sync.Once
+	cli             *client.Client
+	logger          *slog.Logger
+	mu              sync.RWMutex
+	imageStatus     map[string]*ImageStatus
+	stopCh          chan struct{}
+	refreshInterval time.Duration
+	commonImages    []string
+	ctx             context.Context
+	cancel          context.CancelFunc
+	wg              sync.WaitGroup
+	startOnce       sync.Once
+	stopOnce        sync.Once
 }
 
 // NewImageWarmerService creates a new image warmer service

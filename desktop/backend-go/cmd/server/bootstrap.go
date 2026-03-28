@@ -15,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"github.com/rhl/businessos-backend/internal/carrier"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
@@ -36,6 +35,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/subconscious"
 	"github.com/rhl/businessos-backend/internal/terminal"
 	"github.com/rhl/businessos-backend/internal/workers"
+	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 // AppServices holds all initialized application state. It is the single
@@ -43,10 +43,10 @@ import (
 // down cleanly without relying on closure captures.
 type AppServices struct {
 	// Core
-	cfg        *config.Config
-	instanceID string
-	router     *gin.Engine
-	handlers   *handlers.Handlers
+	cfg            *config.Config
+	instanceID     string
+	router         *gin.Engine
+	handlers       *handlers.Handlers
 	tracerProvider *trace.TracerProvider
 
 	// Database

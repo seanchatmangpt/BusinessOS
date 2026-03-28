@@ -16,10 +16,10 @@ func TestDetermineDockerImage(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		appType     string
-		wantImage   string
-		wantErr     bool
+		name      string
+		appType   string
+		wantImage string
+		wantErr   bool
 	}{
 		{
 			name:      "React app",
@@ -461,9 +461,9 @@ func TestSetWorkspaceBasePath(t *testing.T) {
 
 func TestAppConfigJSONRoundtrip(t *testing.T) {
 	original := &AppConfig{
-		AppType:   "nextjs",
-		Framework: "react",
-		Port:      3000,
+		AppType:      "nextjs",
+		Framework:    "react",
+		Port:         3000,
 		StartCommand: []string{"npm", "run", "dev"},
 		Environment: map[string]string{
 			"NODE_ENV": "development",
