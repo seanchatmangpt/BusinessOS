@@ -177,6 +177,10 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:8001",
         changeOrigin: true,
       },
+      "/api/pm4py": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+      },
       "/health": {
         target: "http://localhost:8001",
         changeOrigin: true,
