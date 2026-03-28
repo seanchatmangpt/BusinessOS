@@ -30,4 +30,5 @@ func (h *Handlers) registerYawlRoutes(api *gin.RouterGroup, auth gin.HandlerFunc
 	yawlGroup.GET("/specs", yawlHandler.ListSpecs)
 	yawlGroup.GET("/real-data", yawlHandler.ListRealData)
 	yawlGroup.GET("/real-data/:name", yawlHandler.GetRealData)
+	yawlGroup.POST("/simulate", yawlHandler.SimulateWorkflows)
 }
