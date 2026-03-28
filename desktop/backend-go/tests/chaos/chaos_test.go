@@ -1,9 +1,25 @@
 package chaos
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
+
+// TestMain skips all chaos tests gracefully when the Docker environment is not
+// available.  Chaos tests require live containers on the businessos_default
+// network (created by `make dev`).  This matches the skip pattern used by
+// tests/integration/common_test.go.
+func TestMain(m *testing.M) {
+	cmd := exec.Command("docker", "network", "inspect", "businessos_default")
+	if err := cmd.Run(); err != nil {
+		fmt.Println("SKIP chaos tests: businessos_default Docker network not found (run `make dev` first)")
+		os.Exit(0)
+	}
+	os.Exit(m.Run())
+}
 
 // ChaosTest defines a single chaos engineering test scenario
 type ChaosTest struct {
