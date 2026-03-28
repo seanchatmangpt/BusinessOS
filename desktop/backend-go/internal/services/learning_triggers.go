@@ -57,11 +57,13 @@ func (a *AutoLearningTriggers) ProcessConversationTurn(ctx context.Context, conv
 		"agent_type", conv.AgentType,
 	)
 
-	// Run learning extraction in background
-	// Use background context to avoid cancellation when HTTP request completes
+	// Run learning extraction in background with bounded timeout.
+	// Use background context derived from context.Background() with a timeout
+	// to avoid cancellation when HTTP request completes, while still bounding
+	// the goroutine's lifetime.
 	go func() {
-		// Create independent context that won't be canceled when HTTP request ends
-		bgCtx := context.Background()
+		bgCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
 
 		// 1. Extract patterns
 		if err := a.extractPatterns(bgCtx, conv); err != nil {

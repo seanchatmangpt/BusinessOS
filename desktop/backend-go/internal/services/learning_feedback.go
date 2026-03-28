@@ -46,18 +46,25 @@ func (s *LearningService) RecordFeedback(ctx context.Context, input FeedbackInpu
 		return nil, fmt.Errorf("failed to record feedback: %w", err)
 	}
 
-	// Process feedback asynchronously
-	go s.processFeedback(feedback)
+	// Process feedback asynchronously with bounded timeout
+	go func() {
+		fbCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		s.processFeedback(fbCtx, feedback)
+	}()
 
-	// Update personalization stats
-	go s.updateFeedbackStats(input.UserID, input.FeedbackType)
+	// Update personalization stats with bounded timeout
+	go func() {
+		statsCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		s.updateFeedbackStats(statsCtx, input.UserID, input.FeedbackType)
+	}()
 
 	return feedback, nil
 }
 
 // processFeedback processes feedback to extract learnings
-func (s *LearningService) processFeedback(feedback *FeedbackEntry) {
-	ctx := context.Background()
+func (s *LearningService) processFeedback(ctx context.Context, feedback *FeedbackEntry) {
 
 	var learningID *uuid.UUID
 
@@ -172,8 +179,7 @@ func (s *LearningService) reinforcePattern(ctx context.Context, feedback *Feedba
 }
 
 // updateFeedbackStats updates personalization profile stats after feedback
-func (s *LearningService) updateFeedbackStats(userID, feedbackType string) {
-	ctx := context.Background()
+func (s *LearningService) updateFeedbackStats(ctx context.Context, userID, feedbackType string) {
 
 	// Update total feedback count
 	s.pool.Exec(ctx, `

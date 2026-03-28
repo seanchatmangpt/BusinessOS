@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/ontology"
@@ -243,81 +243,68 @@ func (h *HealthcareHandler) VerifyHIPAA(c *gin.Context) {
 	c.JSON(status, result)
 }
 
-// Mock implementations for demonstration (would be replaced with real Oxigraph/audit store in production)
+// Stub implementations for development only.
+// These return errors so that any code path using them fails visibly
+// instead of silently returning fake data.
 
-// SPARQLExecutorImpl is a stub implementation of SPARQLExecutor for demo purposes.
+// TODO: implement real audit trail — connect to Oxigraph RDF store for SPARQL queries,
+// persistent PostgreSQL audit log with HMAC signatures, and real deletion verification.
+
+// SPARQLExecutorImpl is a stub implementation of SPARQLExecutor.
+// Returns error for all operations until connected to a real Oxigraph instance.
 type SPARQLExecutorImpl struct {
 	logger *slog.Logger
 }
 
 func (s *SPARQLExecutorImpl) ExecuteConstruct(c context.Context, query string) (string, error) {
-	// In production: execute SPARQL CONSTRUCT against Oxigraph
-	return `@prefix fhir: <http://hl7.org/fhir/> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
-fhir:Patient_p123 a prov:Entity .
-`, nil
+	return "", fmt.Errorf("SPARQL executor not connected: no Oxigraph backend configured")
 }
 
 func (s *SPARQLExecutorImpl) ExecuteAsk(c context.Context, query string) (bool, error) {
-	// In production: execute SPARQL ASK against Oxigraph
-	return true, nil
+	return false, fmt.Errorf("SPARQL executor not connected: no Oxigraph backend configured")
 }
 
 func (s *SPARQLExecutorImpl) ExecuteSelect(c context.Context, query string) (map[string]interface{}, error) {
-	// In production: execute SPARQL SELECT against Oxigraph
-	return map[string]interface{}{}, nil
+	return nil, fmt.Errorf("SPARQL executor not connected: no Oxigraph backend configured")
 }
 
-// RDFStoreImpl is a stub implementation of RDFStore for demo purposes.
+// RDFStoreImpl is a stub implementation of RDFStore.
+// Returns error for all operations until connected to a real Oxigraph instance.
 type RDFStoreImpl struct {
 	logger *slog.Logger
 }
 
 func (r *RDFStoreImpl) StoreTriples(c context.Context, turtleData string) error {
-	// In production: persist triples to Oxigraph
-	return nil
+	return fmt.Errorf("RDF store not connected: no Oxigraph backend configured")
 }
 
 func (r *RDFStoreImpl) QueryTriples(c context.Context, query string) (int, error) {
-	// In production: query triples from Oxigraph
-	return 42, nil
+	return 0, fmt.Errorf("RDF store not connected: no Oxigraph backend configured")
 }
 
 func (r *RDFStoreImpl) DeleteTriples(c context.Context, pattern string) error {
-	// In production: delete triples from Oxigraph
-	return nil
+	return fmt.Errorf("RDF store not connected: no Oxigraph backend configured")
 }
 
 func (r *RDFStoreImpl) GetTriplesForEntity(c context.Context, entityURI string) (int, error) {
-	// In production: count triples for entity
-	return 15, nil
+	return 0, fmt.Errorf("RDF store not connected: no Oxigraph backend configured")
 }
 
-// AuditLoggerImpl is a stub implementation of AuditLogger for demo purposes.
+// AuditLoggerImpl is a stub implementation of AuditLogger.
+// Returns error for all operations until connected to a real persistent audit store.
+// Previously returned hardcoded fake audit entries, which was a compliance risk.
 type AuditLoggerImpl struct {
 	logger *slog.Logger
 }
 
 func (a *AuditLoggerImpl) LogAccess(c context.Context, entry ontology.PHIAuditEntry) error {
-	// In production: persist audit entry to secure log (PostgreSQL + HMAC signature)
-	return nil
+	return fmt.Errorf("audit logger not connected: no persistent audit store configured")
 }
 
 func (a *AuditLoggerImpl) GetAuditTrail(c context.Context, patientID string, lastNDays int) ([]ontology.PHIAuditEntry, error) {
-	// In production: retrieve audit entries from secure log
-	return []ontology.PHIAuditEntry{
-		{
-			Timestamp:    time.Now().AddDate(0, 0, -5),
-			Actor:        "doctor@example.com",
-			Action:       "read",
-			ResourceID:   "obs123",
-			ResourceType: "Observation",
-			Details:      "Patient vitals review",
-		},
-	}, nil
+	return nil, fmt.Errorf("audit logger not connected: no persistent audit store configured")
 }
 
 func (a *AuditLoggerImpl) VerifyAuditIntegrity(c context.Context, entries []ontology.PHIAuditEntry) (bool, error) {
-	// In production: verify HMAC signatures on entries
-	return len(entries) > 0, nil
+	return false, fmt.Errorf("audit logger not connected: no persistent audit store configured")
 }

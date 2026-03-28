@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -129,9 +130,10 @@ func (s *OnboardingService) CompleteOnboarding(ctx context.Context, sessionID uu
 				"error", err,
 			)
 		} else {
-			// Sync user to OSA (async)
+			// Sync user to OSA (async with timeout)
 			go func() {
-				bgCtx := context.Background()
+				bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
 				if err := s.osaSyncService.SyncUser(bgCtx, userUUID); err != nil {
 					slog.Warn("Failed to sync user to OSA",
 						"user_id", userID,
@@ -144,9 +146,10 @@ func (s *OnboardingService) CompleteOnboarding(ctx context.Context, sessionID uu
 				}
 			}()
 
-			// Sync workspace to OSA (async)
+			// Sync workspace to OSA (async with timeout)
 			go func() {
-				bgCtx := context.Background()
+				bgCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
 				if err := s.osaSyncService.SyncWorkspace(bgCtx, workspace.ID); err != nil {
 					slog.Warn("Failed to sync workspace to OSA",
 						"workspace_id", workspace.ID,
@@ -166,10 +169,12 @@ func (s *OnboardingService) CompleteOnboarding(ctx context.Context, sessionID uu
 		)
 	}
 
-	// Trigger post-onboarding app generation (fire-and-forget)
+	// Trigger post-onboarding app generation (fire-and-forget with timeout)
 	go func() {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
 		postOnboardingService := NewPostOnboardingService(s.pool, slog.Default())
-		if err := postOnboardingService.QueueAppsForWorkspace(context.Background(), workspace.ID); err != nil {
+		if err := postOnboardingService.QueueAppsForWorkspace(bgCtx, workspace.ID); err != nil {
 			slog.Warn("Failed to queue post-onboarding apps",
 				"workspace_id", workspace.ID,
 				"error", err,
@@ -197,9 +202,10 @@ func (s *OnboardingService) CompleteOnboarding(ctx context.Context, sessionID uu
 			"session_id", session.ID,
 		)
 
-		// Analyze and save recent emails (async to not block workspace creation)
+		// Analyze and save recent emails (async with timeout)
 		go func() {
-			bgCtx := context.Background()
+			bgCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			defer cancel()
 			metadata, err := s.emailAnalyzer.AnalyzeAndSaveRecentEmails(bgCtx, userID, session.ID, 50)
 			if err != nil {
 				slog.Warn("Failed to analyze emails during onboarding",
