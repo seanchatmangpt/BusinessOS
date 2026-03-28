@@ -8,6 +8,51 @@ import (
 	"time"
 )
 
+// NewAdaptivePoolWithFactory creates an AdaptivePool that uses the supplied
+// ConnFactory instead of the removed createMockConnection helper.
+// This is the production-safe constructor; call it from server startup after
+// the real pgxpool.Pool is available via database.GetPool().
+func NewAdaptivePoolWithFactory(config *PoolConfig, factory ConnFactory) *AdaptivePool {
+	if config.MinSize <= 0 {
+		config.MinSize = 10
+	}
+	if config.MaxSize <= 0 {
+		config.MaxSize = 100
+	}
+	if config.IdleTimeout == 0 {
+		config.IdleTimeout = 5 * time.Minute
+	}
+	if config.AcquireTimeout == 0 {
+		config.AcquireTimeout = 30 * time.Second
+	}
+
+	pool := &AdaptivePool{
+		config:     config,
+		available:  make(chan Connection, config.MaxSize),
+		allConns:   make(map[string]Connection),
+		waitTimes:  make([]int64, 0),
+		lastResize: time.Now(),
+		factory:    factory,
+	}
+
+	// Initialize with MinSize real connections.
+	for i := 0; i < config.MinSize; i++ {
+		id := fmt.Sprintf("conn-%d", i)
+		conn, err := NewPooledConnection(id, factory)
+		if err != nil {
+			// Log and skip — pool will grow on first Acquire.
+			continue
+		}
+		pool.allConns[conn.ID()] = conn
+		pool.available <- conn
+	}
+
+	pool.idleTimer = time.NewTicker(1 * time.Minute)
+	go pool.handleIdleTimeout()
+
+	return pool
+}
+
 // Connection interface for pool-managed connections
 type Connection interface {
 	ID() string
@@ -46,6 +91,7 @@ type AdaptivePool struct {
 	waitMutex   sync.Mutex
 	idleTimer   *time.Ticker
 	lastResize  time.Time
+	factory     ConnFactory // nil → legacy mock path; non-nil → real connections
 }
 
 // NewAdaptivePool creates a new adaptive connection pool
@@ -112,7 +158,17 @@ func (p *AdaptivePool) Acquire(ctx context.Context) (Connection, error) {
 		if p.canScale() {
 			elapsed := time.Since(start).Milliseconds()
 			p.recordWaitTime(elapsed)
-			conn := createMockConnection(fmt.Sprintf("conn-%d", len(p.allConns)))
+			var conn Connection
+			if p.factory != nil {
+				id := fmt.Sprintf("conn-%d", len(p.allConns))
+				pc, err := NewPooledConnection(id, p.factory)
+				if err != nil {
+					return nil, fmt.Errorf("pool scale-up: %w", err)
+				}
+				conn = pc
+			} else {
+				conn = createMockConnection(fmt.Sprintf("conn-%d", len(p.allConns)))
+			}
 			p.mutex.Lock()
 			p.allConns[conn.ID()] = conn
 			p.mutex.Unlock()

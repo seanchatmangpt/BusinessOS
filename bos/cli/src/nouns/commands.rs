@@ -567,15 +567,67 @@ fn generate_fingerprint(
         .map_err(|e| clap_noun_verb::NounVerbError::execution_error(e.to_string()))?;
 
     let algo = algorithm.unwrap_or_else(|| "entropy".to_string());
-    let num_unique_variants = event_log.traces.len();
 
-    tracing::info!("Generating {} fingerprint for log with {} traces", algo, num_unique_variants);
+    // Count activity frequencies for Shannon entropy: H = -Σ p(a) * log2(p(a))
+    let mut activity_freq: HashMap<String, usize> = HashMap::new();
+    let mut total_events = 0usize;
+    for trace in &event_log.traces {
+        for event in &trace.events {
+            *activity_freq.entry(event.activity.clone()).or_insert(0) += 1;
+            total_events += 1;
+        }
+    }
+
+    let entropy = if total_events == 0 {
+        0.0
+    } else {
+        let n = total_events as f64;
+        activity_freq.values().fold(0.0f64, |acc, &count| {
+            let p = count as f64 / n;
+            if p > 0.0 {
+                acc - p * p.log2()
+            } else {
+                acc
+            }
+        })
+    };
+
+    // Compute duration variance across traces (seconds between first and last event per trace)
+    let durations: Vec<f64> = event_log.traces.iter().filter_map(|trace| {
+        if trace.events.len() < 2 {
+            return None;
+        }
+        let first = trace.events.iter().map(|e| e.timestamp).min()?;
+        let last = trace.events.iter().map(|e| e.timestamp).max()?;
+        let secs = (last - first).num_seconds() as f64;
+        Some(secs)
+    }).collect();
+
+    let variance_in_duration = if durations.is_empty() {
+        0.0
+    } else {
+        let mean = durations.iter().sum::<f64>() / durations.len() as f64;
+        durations.iter().map(|d| (d - mean).powi(2)).sum::<f64>() / durations.len() as f64
+    };
+
+    // Count unique variants for fingerprint
+    let mut variant_set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for trace in &event_log.traces {
+        let variant = trace.events.iter()
+            .map(|e| e.activity.as_str())
+            .collect::<Vec<_>>()
+            .join("->");
+        variant_set.insert(variant);
+    }
+    let num_unique_variants = variant_set.len();
+
+    tracing::info!("Generating {} fingerprint for log with {} traces, entropy={:.4}", algo, event_log.traces.len(), entropy);
 
     Ok(FingerprintResult {
         trace_fingerprint: format!("fp_{:x}", fxhash::hash64(&log)),
         num_variants: num_unique_variants,
-        entropy: 3.14,
-        variance_in_duration: 0.28,
+        entropy,
+        variance_in_duration,
         similarity_to_baseline: 0.91,
     })
 }
@@ -675,14 +727,66 @@ fn workspace_stats(path: Option<String>) -> Result<WorkspaceStats> {
 
     tracing::info!("Computing workspace statistics for: {}", workspace_path);
 
+    let counts = count_workspace_files(&workspace_path);
+
     Ok(WorkspaceStats {
         workspace_path,
-        total_tables: 28,
-        total_relationships: 45,
-        total_entities: 156,
-        ontology_size_kb: 2340,
+        total_tables: counts.yaml_files,
+        total_relationships: counts.json_files,
+        total_entities: counts.total_files,
+        ontology_size_kb: counts.ttl_size_kb,
         last_updated: get_timestamp(),
     })
+}
+
+/// File counts from walking a workspace directory.
+struct WorkspaceFileCounts {
+    yaml_files: usize,
+    json_files: usize,
+    ttl_size_kb: usize,
+    total_files: usize,
+}
+
+/// Walk the workspace directory and count .yaml, .ttl, .json files.
+fn count_workspace_files(workspace_path: &str) -> WorkspaceFileCounts {
+    let mut yaml_files = 0usize;
+    let mut json_files = 0usize;
+    let mut ttl_bytes = 0u64;
+    let mut total_files = 0usize;
+
+    if let Ok(entries) = std::fs::read_dir(workspace_path) {
+        let mut stack: Vec<std::path::PathBuf> = entries
+            .flatten()
+            .map(|e| e.path())
+            .collect();
+
+        while let Some(path) = stack.pop() {
+            if path.is_dir() {
+                if let Ok(children) = std::fs::read_dir(&path) {
+                    stack.extend(children.flatten().map(|e| e.path()));
+                }
+            } else if path.is_file() {
+                total_files += 1;
+                match path.extension().and_then(|e| e.to_str()) {
+                    Some("yaml") | Some("yml") => yaml_files += 1,
+                    Some("json") => json_files += 1,
+                    Some("ttl") => {
+                        if let Ok(meta) = path.metadata() {
+                            ttl_bytes += meta.len();
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    WorkspaceFileCounts {
+        yaml_files,
+        json_files,
+        ttl_size_kb: (ttl_bytes / 1024) as usize,
+        total_files,
+    }
 }
 
 /// Refresh workspace indexes and caches

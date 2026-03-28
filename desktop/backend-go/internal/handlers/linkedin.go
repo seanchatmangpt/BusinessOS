@@ -3,11 +3,29 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/integrations/linkedin"
 	"github.com/rhl/businessos-backend/internal/utils"
 )
+
+// ComputePagination converts page/page_size query params into a SQL LIMIT and
+// OFFSET pair. Both inputs are validated and sanitised:
+//   - page <= 0  is treated as page 1
+//   - pageSize <= 0 is treated as the default of 20
+//
+// This helper is exported so that the stub_replacement tests can call it directly
+// without standing up an HTTP server.
+func ComputePagination(page, pageSize int) (limit, offset int) {
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if page <= 0 {
+		page = 1
+	}
+	return pageSize, (page - 1) * pageSize
+}
 
 // LinkedInHandler manages LinkedIn integration endpoints.
 type LinkedInHandler struct {
@@ -68,19 +86,23 @@ func (h *LinkedInHandler) ImportCSV(c *gin.Context) {
 
 // GetContacts handles GET /api/linkedin/contacts
 // Returns paginated list of all contacts.
+// Query params:
+//   - page      (int, default 1)  — 1-based page number
+//   - page_size (int, default 20) — records per page
 func (h *LinkedInHandler) GetContacts(c *gin.Context) {
-	page := 1
-	if p := c.Query("page"); p != "" {
-		_, _ = parseIntParam(p) // TODO: implement pagination
+	rawPage, _ := strconv.Atoi(c.Query("page"))
+	rawPageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	limit, offset := ComputePagination(rawPage, rawPageSize)
+
+	// Recover the sanitised page number for the response envelope.
+	page := rawPage
+	if page <= 0 {
+		page = 1
 	}
 
-	pageSize := 50
-	if ps := c.Query("page_size"); ps != "" {
-		_, _ = parseIntParam(ps)
-	}
-
-	// Get qualified contacts (placeholder: all contacts)
-	contacts, err := h.repo.GetQualifiedContacts(0.0, pageSize)
+	// Fetch contacts with LIMIT and OFFSET applied.
+	contacts, err := h.repo.GetQualifiedContactsPaginated(0.0, limit, offset)
 	if err != nil {
 		h.logger.Error("Failed to fetch contacts", "error", err)
 		utils.RespondInternalError(c, h.logger, "fetch LinkedIn contacts", err)
@@ -91,11 +113,11 @@ func (h *LinkedInHandler) GetContacts(c *gin.Context) {
 		contacts = []*linkedin.Contact{}
 	}
 
-	// Convert pointers to values for response
+	// Convert pointers to values for response.
 	contactValues := make([]linkedin.Contact, len(contacts))
-	for i, c := range contacts {
-		if c != nil {
-			contactValues[i] = *c
+	for i, contact := range contacts {
+		if contact != nil {
+			contactValues[i] = *contact
 		}
 	}
 
@@ -103,8 +125,8 @@ func (h *LinkedInHandler) GetContacts(c *gin.Context) {
 		Contacts: contactValues,
 		Total:    int64(len(contacts)),
 		Page:     page,
-		PageSize: pageSize,
-		HasMore:  false,
+		PageSize: limit,
+		HasMore:  len(contacts) == limit,
 	})
 }
 
@@ -213,6 +235,5 @@ func (h *LinkedInHandler) EnrollOutreach(c *gin.Context) {
 // Helper functions
 
 func parseFloatParam(s string) (float64, error) {
-	// TODO: implement float parsing
-	return 0.7, nil
+	return strconv.ParseFloat(s, 64)
 }
