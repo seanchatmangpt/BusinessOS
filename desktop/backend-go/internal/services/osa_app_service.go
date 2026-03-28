@@ -104,30 +104,34 @@ func (s *OSAAppService) runGeneration(
 	defer close(eventCh)
 
 	// Send initial event
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Initializing app generation...",
 		Data: map[string]interface{}{
 			"percent": 10,
 			"phase":   "initializing",
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send initial event", "error", err)
+	}
 
 	// Create database record
 	appID, err := s.createAppRecord(ctx, req, workspaceID)
 	if err != nil {
 		s.logger.Error("failed to create app record", "error", err)
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("Failed to create app record: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
 	s.logger.Info("created app record", "app_id", appID)
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Generating prompt from template...",
 		Data: map[string]interface{}{
@@ -135,21 +139,25 @@ func (s *OSAAppService) runGeneration(
 			"phase":   "prompt_generation",
 			"app_id":  appID.String(),
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
 	// TODO: Generate prompt from templates (placeholder for now)
 	// This would integrate with the prompt template system
 	generatedPrompt := req.Description
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Calling OSA API to generate app...",
 		Data: map[string]interface{}{
 			"percent": 40,
 			"phase":   "calling_osa",
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
 	// Call OSA client
 	osaReq := &osa.AppGenerationRequest{
@@ -166,17 +174,19 @@ func (s *OSAAppService) runGeneration(
 		s.logger.Error("OSA API call failed", "error", err)
 		// Update status to failed
 		_ = s.updateAppStatus(ctx, appID, "failed")
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("OSA API call failed: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
 	s.logger.Info("OSA API responded", "osa_app_id", osaResp.AppID, "status", osaResp.Status)
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "App generation in progress...",
 		Data: map[string]interface{}{
@@ -184,16 +194,20 @@ func (s *OSAAppService) runGeneration(
 			"phase":      "generating",
 			"osa_app_id": osaResp.AppID,
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
 	// Poll for status until complete (with timeout)
 	if err := s.pollGenerationStatus(ctx, osaResp.AppID, req.UserID, appID, eventCh); err != nil {
 		s.logger.Error("generation polling failed", "error", err)
 		_ = s.updateAppStatus(ctx, appID, "failed")
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("Generation polling failed: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
@@ -203,7 +217,7 @@ func (s *OSAAppService) runGeneration(
 	}
 
 	// Send completion event
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    streaming.EventTypeDone,
 		Content: "App generation completed successfully",
 		Data: map[string]interface{}{
@@ -213,7 +227,9 @@ func (s *OSAAppService) runGeneration(
 			"osa_app_id":     osaResp.AppID,
 			"deployment_url": osaResp.Data["deployment_url"],
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send completion event", "error", err)
+	}
 }
 
 // pollGenerationStatus polls OSA API for generation progress
@@ -253,7 +269,7 @@ func (s *OSAAppService) pollGenerationStatus(
 				progressPercent = 95
 			}
 
-			s.sendEvent(eventCh, streaming.StreamEvent{
+			if err := s.sendEvent(eventCh, streaming.StreamEvent{
 				Type:    "progress",
 				Content: status.CurrentStep,
 				Data: map[string]interface{}{
@@ -261,7 +277,9 @@ func (s *OSAAppService) pollGenerationStatus(
 					"phase":   status.Status,
 					"step":    status.CurrentStep,
 				},
-			})
+			}); err != nil {
+				s.logger.Warn("failed to send poll progress event", "error", err)
+			}
 
 			// Check completion
 			if status.Status == "completed" {
@@ -339,22 +357,27 @@ func (s *OSAAppService) updateAppStatus(ctx context.Context, appID uuid.UUID, st
 	return err
 }
 
-// sendEvent safely sends an event to the channel
-func (s *OSAAppService) sendEvent(eventCh chan<- streaming.StreamEvent, event streaming.StreamEvent) {
+// sendEvent safely sends an event to the channel and returns an error if the
+// event could not be delivered (channel full or channel closed/panicked).
+// Callers must check the returned error.
+func (s *OSAAppService) sendEvent(eventCh chan<- streaming.StreamEvent, event streaming.StreamEvent) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			err = fmt.Errorf("panic while sending event type %s: %v", event.Type, r)
 			if s.logger != nil {
-				s.logger.Warn("recovered from panic while sending event", "panic", r)
+				s.logger.Warn("recovered from panic while sending event", "panic", r, "event_type", event.Type)
 			}
 		}
 	}()
 
 	select {
 	case eventCh <- event:
+		return nil
 	default:
 		if s.logger != nil {
-			s.logger.Warn("event channel full, dropping event")
+			s.logger.Warn("event channel full, dropping event", "event_type", event.Type)
 		}
+		return fmt.Errorf("event channel full, dropping event type %s", event.Type)
 	}
 }
 
