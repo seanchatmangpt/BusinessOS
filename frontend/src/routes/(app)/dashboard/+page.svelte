@@ -46,6 +46,7 @@
 	$effect(() => {
 		if ($session.data) {
 			data.loadDashboard();
+			data.loadProcessMiningKPI({ traces: [] });
 		}
 	});
 
@@ -447,9 +448,10 @@
 												<SignalHealthWidget />
 											{:else if widget.type === 'process_map'}
 												<ProcessMapViewer
-													petriNet={null}
-													activityFrequencies={{}}
-													bottleneckActivities={[]}
+													petriNet={data.discoveredPetriNet}
+													activityFrequencies={data.processMiningKPI?.activityFrequencies ?? {}}
+													bottleneckActivities={(data.processMiningKPI?.bottleneckActivities ?? []).map(b => b.activity)}
+													ondiscoverRequest={(log) => data.discoverProcess(log)}
 												/>
 											{:else if widget.type === 'conformance_score'}
 												<ConformanceScoreWidget

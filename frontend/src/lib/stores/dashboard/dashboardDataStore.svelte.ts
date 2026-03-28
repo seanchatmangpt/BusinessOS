@@ -8,6 +8,7 @@
  */
 
 import { api } from "$lib/api";
+import type { PetriNetJson } from "$lib/api/pm4py";
 import type {
   FocusItem,
   DashboardProjectRow,
@@ -15,6 +16,40 @@ import type {
   DashboardActivityRow,
   ProcessMiningKPIData,
 } from "./types";
+
+const SAMPLE_EVENT_LOG = {
+  traces: [
+    {
+      case_id: "case_001",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-01T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-01T10:00:00Z" },
+        { activity: "Approve", timestamp: "2024-01-01T11:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-01T12:00:00Z" },
+      ],
+    },
+    {
+      case_id: "case_002",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-02T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-02T10:00:00Z" },
+        { activity: "Reject", timestamp: "2024-01-02T11:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-02T12:00:00Z" },
+      ],
+    },
+    {
+      case_id: "case_003",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-03T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-03T10:30:00Z" },
+        { activity: "Request Info", timestamp: "2024-01-03T11:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-03T14:00:00Z" },
+        { activity: "Approve", timestamp: "2024-01-03T15:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-03T16:00:00Z" },
+      ],
+    },
+  ],
+};
 
 function createDashboardDataStore() {
   // ── Loading / error ──────────────────────────────────────────────────────────
@@ -31,6 +66,7 @@ function createDashboardDataStore() {
   // ── Process Mining KPI ───────────────────────────────────────────────────────
   let processMiningKPI = $state<ProcessMiningKPIData | null>(null);
   let isProcessMiningKPILoading = $state(false);
+  let discoveredPetriNet = $state<PetriNetJson | null>(null);
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
@@ -152,12 +188,41 @@ function createDashboardDataStore() {
         body: JSON.stringify({ event_log: eventLog ?? { traces: [] } }),
       });
       if (resp.ok) {
-        processMiningKPI = (await resp.json()) as ProcessMiningKPIData;
+        // Map snake_case Go response to camelCase TypeScript types
+        const raw = await resp.json();
+        processMiningKPI = {
+          conformanceFitness: raw.conformance_fitness ?? raw.conformanceFitness ?? 0,
+          conformancePrecision: raw.conformance_precision ?? raw.conformancePrecision ?? 0,
+          isConformant: raw.is_conformant ?? raw.isConformant ?? false,
+          variantCount: raw.variant_count ?? raw.variantCount ?? 0,
+          topVariants: raw.top_variants ?? raw.topVariants ?? [],
+          bottleneckActivities: raw.bottleneck_activities ?? raw.bottleneckActivities ?? [],
+          activityFrequencies: raw.activity_frequencies ?? raw.activityFrequencies ?? {},
+          eventCount: raw.event_count ?? raw.eventCount ?? 0,
+          traceCount: raw.trace_count ?? raw.traceCount ?? 0,
+          fetchedAt: raw.fetched_at ?? raw.fetchedAt ?? new Date().toISOString(),
+        } satisfies ProcessMiningKPIData;
       }
     } catch {
       // Silently fail — pm4py not running is expected in dev
     } finally {
       isProcessMiningKPILoading = false;
+    }
+  }
+
+  async function discoverProcess(eventLog?: unknown): Promise<void> {
+    const logToDiscover = eventLog ?? SAMPLE_EVENT_LOG;
+    try {
+      const resp = await fetch("/api/bos/discover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_log: logToDiscover }),
+      });
+      if (resp.ok) {
+        discoveredPetriNet = (await resp.json()) as PetriNetJson;
+      }
+    } catch {
+      // Silently fail — pm4py not running is expected in dev
     }
   }
 
@@ -234,6 +299,13 @@ function createDashboardDataStore() {
       isProcessMiningKPILoading = v;
     },
 
+    get discoveredPetriNet() {
+      return discoveredPetriNet;
+    },
+    set discoveredPetriNet(v: PetriNetJson | null) {
+      discoveredPetriNet = v;
+    },
+
     loadDashboard,
     handleFocusToggle,
     handleFocusAdd,
@@ -242,6 +314,7 @@ function createDashboardDataStore() {
     handleTaskToggle,
     handleEnergySet,
     loadProcessMiningKPI,
+    discoverProcess,
   };
 }
 

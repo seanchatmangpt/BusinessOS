@@ -8,14 +8,68 @@
 		activityFrequencies = {},
 		bottleneckActivities = [],
 		loading = false,
-		error = null
+		error = null,
+		ondiscoverRequest = undefined,
 	}: {
 		petriNet: PetriNetJson | null;
 		activityFrequencies?: Record<string, number>;
 		bottleneckActivities?: string[];
 		loading?: boolean;
 		error?: string | null;
+		ondiscoverRequest?: (eventLog: unknown) => void;
 	} = $props();
+
+	const SAMPLE_EVENT_LOG = {
+		traces: [
+			{
+				case_id: 'case_001',
+				events: [
+					{ activity: 'Submit Request', timestamp: '2024-01-01T09:00:00Z' },
+					{ activity: 'Review Request', timestamp: '2024-01-01T10:00:00Z' },
+					{ activity: 'Approve', timestamp: '2024-01-01T11:00:00Z' },
+					{ activity: 'Close', timestamp: '2024-01-01T12:00:00Z' }
+				]
+			},
+			{
+				case_id: 'case_002',
+				events: [
+					{ activity: 'Submit Request', timestamp: '2024-01-02T09:00:00Z' },
+					{ activity: 'Review Request', timestamp: '2024-01-02T10:00:00Z' },
+					{ activity: 'Reject', timestamp: '2024-01-02T11:00:00Z' },
+					{ activity: 'Close', timestamp: '2024-01-02T12:00:00Z' }
+				]
+			},
+			{
+				case_id: 'case_003',
+				events: [
+					{ activity: 'Submit Request', timestamp: '2024-01-03T09:00:00Z' },
+					{ activity: 'Review Request', timestamp: '2024-01-03T10:30:00Z' },
+					{ activity: 'Request Info', timestamp: '2024-01-03T11:00:00Z' },
+					{ activity: 'Review Request', timestamp: '2024-01-03T14:00:00Z' },
+					{ activity: 'Approve', timestamp: '2024-01-03T15:00:00Z' },
+					{ activity: 'Close', timestamp: '2024-01-03T16:00:00Z' }
+				]
+			}
+		]
+	};
+
+	let fileInput: HTMLInputElement | undefined = $state(undefined);
+
+	function handleUploadClick() {
+		fileInput?.click();
+	}
+
+	async function handleFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (!file || !ondiscoverRequest) return;
+		try {
+			const text = await file.text();
+			const parsed = JSON.parse(text);
+			ondiscoverRequest(parsed);
+		} catch {
+			// invalid JSON — silently ignore
+		}
+	}
 
 	// ── Layout constants ──────────────────────────────────────────────────────
 
@@ -332,6 +386,29 @@
 			<p class="dw-pmv-meta text-xs text-center">
 				No process map loaded.<br />Run process discovery to visualize a Petri net.
 			</p>
+			{#if ondiscoverRequest}
+				<div class="flex gap-2 mt-1">
+					<button
+						onclick={() => ondiscoverRequest!(SAMPLE_EVENT_LOG)}
+						class="dw-pmv-btn-primary text-xs px-3 py-1.5 rounded-md font-medium transition-opacity hover:opacity-80"
+					>
+						Load Sample Data
+					</button>
+					<button
+						onclick={handleUploadClick}
+						class="dw-pmv-btn-secondary text-xs px-3 py-1.5 rounded-md font-medium transition-opacity hover:opacity-80"
+					>
+						Upload Event Log
+					</button>
+				</div>
+				<input
+					bind:this={fileInput}
+					type="file"
+					accept=".json"
+					class="hidden"
+					onchange={handleFileChange}
+				/>
+			{/if}
 		</div>
 	{:else}
 		<!-- SVG Canvas -->
@@ -504,6 +581,20 @@
 
 	.dw-pmv-skeleton {
 		background: var(--dbg3, var(--bos-hover, #eee));
+	}
+
+	.dw-pmv-btn-primary {
+		background: linear-gradient(135deg, #6366f1, #4f46e5);
+		color: #fff;
+		border: none;
+		cursor: pointer;
+	}
+
+	.dw-pmv-btn-secondary {
+		background: var(--dbg2, #f5f5f5);
+		color: var(--dt, #111);
+		border: 1px solid var(--dbd, #e0e0e0);
+		cursor: pointer;
 	}
 
 	.dw-pmv-canvas {
