@@ -92,6 +92,7 @@ func TestExportAccountData_NoUser(t *testing.T) {
 
 func TestExportAccountData_MethodNotAllowed(t *testing.T) {
 	r := gin.New()
+	r.HandleMethodNotAllowed = true
 	handler := &ProfileHandler{}
 	r.GET("/api/account/export", handler.ExportAccountData)
 

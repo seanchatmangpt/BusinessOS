@@ -357,11 +357,23 @@ func SafeLogFields(fields map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-// SanitizeURL redacts sensitive parts of a URL (tokens, keys, session IDs in path/query)
+// SanitizeURL redacts sensitive parts of a URL (tokens, keys, session IDs in path/query).
+// - Any query string is replaced with ?[PARAMS_REDACTED]
+// - Path segments following "session" are replaced with [REDACTED]
 func SanitizeURL(rawURL string) string {
-	logger := GetLogger()
-	return logger.sanitize(rawURL)
+	// Redact all query parameters
+	if idx := strings.Index(rawURL, "?"); idx != -1 {
+		rawURL = rawURL[:idx] + "?[PARAMS_REDACTED]"
+	}
+
+	// Redact path segment immediately after "session/"
+	rawURL = sessionPathRedactRe.ReplaceAllString(rawURL, "${1}[REDACTED]${2}")
+
+	return rawURL
 }
+
+// sessionPathRedactRe matches a path segment following /session/ in a URL.
+var sessionPathRedactRe = regexp.MustCompile(`(?i)(/session/)[^/?#]+(/|$)`)
 
 func min(a, b int) int {
 	if a < b {

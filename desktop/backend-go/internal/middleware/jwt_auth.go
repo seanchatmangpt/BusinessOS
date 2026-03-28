@@ -60,6 +60,17 @@ func JWTAuth(secretKey string) gin.HandlerFunc {
 
 		tokenString := parts[1]
 
+		// A valid Bearer token must not contain spaces (multiple tokens = invalid format)
+		if strings.ContainsAny(tokenString, " \t") {
+			logger.Debug("JWT: token string contains spaces (multiple tokens)",
+				"header", authHeader)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid Authorization header format. Expected: Bearer <token>",
+				"code":  "JWT_INVALID_FORMAT",
+			})
+			return
+		}
+
 		// Parse and validate JWT
 		claims := &JWTClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {

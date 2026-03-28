@@ -35,21 +35,38 @@ func bosMockPM4PyServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		pn := map[string]interface{}{
+			"places": []interface{}{
+				map[string]interface{}{"id": "p1", "name": "start", "initial_marking": 1},
+				map[string]interface{}{"id": "p2", "name": "end", "initial_marking": 0},
+			},
+			"transitions": []interface{}{
+				map[string]interface{}{"id": "t1", "name": "a", "label": nil},
+			},
+			"arcs": []interface{}{
+				map[string]interface{}{"from": "p1", "to": "t1", "weight": 1},
+				map[string]interface{}{"from": "t1", "to": "p2", "weight": 1},
+			},
+			"initial_place": nil,
+			"final_place":   nil,
+		}
 		switch {
-		case r.URL.Path == "/discover":
+		case r.URL.Path == pm4pyPathDiscoveryAlpha:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"model_id": "model_test_001", "algorithm": "inductive_miner",
-				"transitions": 8, "places": 5,
-				"model_data": map[string]interface{}{"places": 5, "transitions": 8},
+				"model_id":    "model_test_001",
+				"algorithm":   "inductive_miner",
+				"petri_net":   pn,
+				"trace_count": 2.0,
+				"event_count": 4.0,
 			})
-		case r.URL.Path == "/conformance":
+		case r.URL.Path == pm4pyPathConformanceTokenReplay:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"traces_checked": 125, "fitting_traces": 120,
 				"fitness": 0.96, "precision": 0.92, "generalization": 0.88, "simplicity": 0.91,
 			})
-		case r.URL.Path == "/statistics":
+		case r.URL.Path == pm4pyPathStatistics:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"log_name": "sample_log.xes", "num_traces": 500, "num_events": 2450,
@@ -59,6 +76,11 @@ func bosMockPM4PyServer(t *testing.T) *httptest.Server {
 					"min_seconds": 60, "max_seconds": 3600,
 					"avg_seconds": 1200.5, "median_seconds": 900.0,
 				},
+			})
+		case r.URL.Path == pm4pyPathParseXES:
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"traces": []interface{}{},
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)

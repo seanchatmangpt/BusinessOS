@@ -71,9 +71,10 @@ type AgentConnection struct {
 // It follows Google's A2A specification for agent discovery, task
 // submission, and tool execution over HTTP.
 type A2AClient struct {
-	httpClient *http.Client
-	agents     map[string]*AgentConnection
-	mu         sync.RWMutex
+	httpClient  *http.Client
+	agents      map[string]*AgentConnection
+	mu          sync.RWMutex
+	bypassSSRF  bool // set true only in tests to allow loopback httptest servers
 }
 
 // NewA2AClient creates a new A2A client with sensible defaults.
@@ -93,6 +94,14 @@ func NewA2AClient() *A2AClient {
 	}
 }
 
+// NewA2AClientForTest creates an A2A client with SSRF validation disabled.
+// Use only in tests where httptest.Server (loopback) URLs are needed.
+func NewA2AClientForTest() *A2AClient {
+	c := NewA2AClient()
+	c.bypassSSRF = true
+	return c
+}
+
 // ---------------------------------------------------------------------------
 // Agent Discovery
 // ---------------------------------------------------------------------------
@@ -102,8 +111,10 @@ func NewA2AClient() *A2AClient {
 func (c *A2AClient) DiscoverAgent(ctx context.Context, agentURL string) (*AgentCard, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	// A2A spec: GET the agent URL to retrieve the AgentCard
@@ -157,8 +168,10 @@ func (c *A2AClient) DiscoverAgent(ctx context.Context, agentURL string) (*AgentC
 func (c *A2AClient) CallAgent(ctx context.Context, agentURL string, message string) (*Task, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	taskURL := agentURL + "/tasks"
@@ -215,8 +228,10 @@ func (c *A2AClient) CallAgent(ctx context.Context, agentURL string, message stri
 func (c *A2AClient) GetAgentTools(ctx context.Context, agentURL string) ([]A2ATool, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	toolsURL := agentURL + "/tools"
@@ -260,8 +275,10 @@ func (c *A2AClient) GetAgentTools(ctx context.Context, agentURL string) ([]A2ATo
 func (c *A2AClient) ExecuteAgentTool(ctx context.Context, agentURL string, toolName string, args map[string]any) (any, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	toolURL := fmt.Sprintf("%s/tools/%s", agentURL, url.PathEscape(toolName))

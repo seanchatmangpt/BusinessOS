@@ -148,9 +148,11 @@ func TestA2AHandler_GetAgentTools_InvalidURL(t *testing.T) {
 func TestA2AHandler_ExecuteAgentTool_MissingName(t *testing.T) {
 	r, handler := setupA2ARouter()
 	r.POST("/api/integrations/a2a/agents/tools/:name", handler.ExecuteAgentTool)
+	// Register base path to catch requests with no tool name segment
+	r.POST("/api/integrations/a2a/agents/tools", handler.ExecuteAgentTool)
 
 	body, _ := json.Marshal(map[string]string{"agent_url": "https://agent.example.com"})
-	req := httptest.NewRequest(http.MethodPost, "/api/integrations/a2a/agents/tools/", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/integrations/a2a/agents/tools", bytes.NewReader(body))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

@@ -2,21 +2,32 @@
 
 **Guide Type:** How-To (Task-Focused)
 **Level:** Intermediate (assumes knowledge of Go services)
-**Version:** 1.0.0
-**Last Updated:** 2026-03-26
+**Version:** 1.1.0
+**Last Updated:** 2026-03-27
 
 ---
 
 ## Overview
 
-This guide shows how to integrate the `SOXAuditValidator` into your BusinessOS financial services to ensure SOX 404(b) compliance.
+This guide shows how to integrate the BusinessOS audit trail components into your financial services to ensure SOX 404(b) compliance.
+
+The audit trail pipeline has three cooperating layers:
+
+| Layer | Package | Responsibility |
+|-------|---------|---------------|
+| **Request logging** | `internal/middleware/audit_log.go` | Log every HTTP request with user ID, path, status, latency |
+| **A2A hash-chain logger** | `internal/middleware/audit.go` | Cryptographically chained entries for agent-to-agent calls |
+| **Compliance service** | `internal/services/compliance_service.go` | Aggregate audit trail from OSA, verify chain integrity, gap analysis |
+
+All log output passes through the **`SanitizedLogger`** (`internal/logging/sanitizer.go`) to strip PII and credentials before any entry is persisted or forwarded.
 
 **What You'll Learn:**
-- Where to call `RecordFinancialMutation()`
-- How to capture before/after values
-- How to verify audit trail integrity
-- How to handle concurrent mutations
-- How to set up HMAC secret management
+- How to wire the `AuditLogger` and `AuditSensitiveAccess` Gin middleware
+- How to create a `HashChainLogger` and call `LogA2ACall()`
+- How to use `SafeLogFields`, `MaskSessionID`, and `MaskIP` before writing audit data
+- How to verify hash-chain integrity with `VerifyChainIntegrity()`
+- How to use `ComplianceService.GetAuditTrail()` and `VerifyAuditChain()`
+- How audit events surface as OpenTelemetry spans via the global tracer
 
 ---
 
@@ -24,14 +35,26 @@ This guide shows how to integrate the `SOXAuditValidator` into your BusinessOS f
 
 - Go 1.24+ installed
 - Access to BusinessOS backend-go codebase
-- Familiarity with Go services and context.Context
+- Familiarity with Go services and `context.Context`
 - Understanding of your business domain (what is a "transaction", "ledger entry", etc.)
+- `SOX_HMAC_SECRET` environment variable set (see Step 1)
 
 ---
 
-## Step 1: Initialize the SOX Audit Validator
+## Step 1: Set the HMAC Secret
 
-**Location:** In your service initialization code (e.g., `main.go` or `services/init.go`)
+**Location:** `.env` file (never commit this file)
+
+```bash
+# Generate a secure secret:
+openssl rand -hex 32
+
+SOX_HMAC_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e
+```
+
+The HMAC secret is used by `HashChainLogger` to sign every audit entry: `HMAC-SHA256(previousHash + dataHash, secret)`. Entries signed with different secrets will fail `VerifyChainIntegrity()`, so do not rotate the secret without a migration plan.
+
+**Validation** (in your service init):
 
 ```go
 package main
@@ -39,45 +62,172 @@ package main
 import (
     "log/slog"
     "os"
-    "github.com/rhl/businessos-backend/internal/compliance"
 )
 
-// Initialize SOX audit trail validator (create once, reuse globally)
-var soxValidator *compliance.SOXAuditValidator
-
-func init() {
+func validateSOXConfig() {
     hmacSecret := os.Getenv("SOX_HMAC_SECRET")
     if hmacSecret == "" {
         slog.Error("SOX_HMAC_SECRET not set - audit trail will not be available")
         return
     }
-
     if len(hmacSecret) < 32 {
         slog.Warn("SOX_HMAC_SECRET is too short - should be at least 32 bytes for security")
     }
-
-    soxValidator = compliance.NewSOXAuditValidator(
-        hmacSecret,
-        slog.Default(),
-    )
-    slog.Info("SOX audit trail initialized")
+    slog.Info("SOX audit trail HMAC secret configured")
 }
-```
-
-**Environment Variable Setup** (in `.env`):
-
-```bash
-# Generate a secure secret:
-# openssl rand -hex 32
-
-SOX_HMAC_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e
 ```
 
 ---
 
-## Step 2: Create a Transaction Service with Audit Trail
+## Step 2: Mount the Audit Middleware on Your Router
 
-**Example:** `internal/services/transaction_service.go`
+**Location:** wherever you configure your Gin router (e.g., `cmd/server/bootstrap.go`)
+
+Two middleware functions are available in `internal/middleware/audit_log.go`:
+
+| Function | When to use |
+|----------|------------|
+| `AuditLogger()` | Apply globally — logs every request (user, method, path, status, latency) |
+| `AuditSensitiveAccess(resourceType)` | Apply to route groups serving PII or confidential data |
+
+```go
+package main
+
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/rhl/businessos-backend/internal/middleware"
+)
+
+func setupRouter() *gin.Engine {
+    r := gin.New()
+
+    // Global audit log — applies to all routes
+    r.Use(middleware.AuditLogger())
+
+    // Sensitive data groups — extra detail for SOX-regulated resources
+    financial := r.Group("/api/transactions")
+    financial.Use(middleware.AuditSensitiveAccess("transaction"))
+    {
+        financial.POST("", transactionHandler.Create)
+        financial.PUT("/:id/approve", transactionHandler.Approve)
+        financial.PUT("/:id/reject", transactionHandler.Reject)
+    }
+
+    return r
+}
+```
+
+`AuditLogger()` emits a structured `slog.Info("AUDIT", ...)` entry after each request containing `timestamp`, `user_id`, `method`, `path`, `status`, `ip`, `user_agent`, and `latency_ms`.
+
+`AuditSensitiveAccess` emits a `slog.Warn("AUDIT_SENSITIVE_ACCESS", ...)` entry with `user_id`, `resource_type`, `resource_id`, `method`, `path`, `status`, `ip`, and `timestamp`.
+
+---
+
+## Step 3: Initialize the Hash-Chain Logger
+
+**Location:** Service initialization (e.g., `cmd/server/bootstrap.go` or `internal/services/init.go`)
+
+```go
+package main
+
+import (
+    "log/slog"
+    "os"
+
+    "github.com/rhl/businessos-backend/internal/middleware"
+)
+
+var auditLogger *middleware.HashChainLogger
+
+func initAuditLogger() {
+    hmacSecret := os.Getenv("SOX_HMAC_SECRET")
+    if hmacSecret == "" {
+        slog.Error("SOX_HMAC_SECRET not set - hash-chain audit logger unavailable")
+        return
+    }
+    auditLogger = middleware.NewHashChainLogger(hmacSecret)
+    slog.Info("SOX hash-chain audit logger initialized")
+}
+```
+
+The `HashChainLogger` is thread-safe via in-memory append. It chains entries using:
+
+- `DataHash = SHA256(agent + action + resourceType + resourceID + timestamp)`
+- `Signature = HMAC-SHA256(previousHash + dataHash, secret)`
+
+---
+
+## Step 4: Sanitize Data Before Writing Audit Entries
+
+**Package:** `internal/logging/sanitizer.go`
+
+All data written to the audit trail must be sanitized to remove PII, credentials, and session tokens before logging. The `logging` package provides the following utilities:
+
+| Function | Purpose |
+|----------|---------|
+| `logging.SafeLogFields(map[string]interface{})` | Redacts known-sensitive field names (`password`, `token`, `api_key`, `session_id`, `authorization`, `cookie`, etc.) |
+| `logging.MaskSessionID(sessionID string)` | Shows first 8 chars of a session ID, masks the rest |
+| `logging.MaskIP(ip string)` | Masks the last two octets of an IPv4 address (e.g., `192.168.xxx.xxx`) |
+| `logging.SanitizeURL(rawURL string)` | Redacts all query parameters and path segments following `/session/` |
+
+The `SanitizedLogger` automatically applies regex-based masking for:
+- UUIDs (session IDs)
+- Bearer tokens and JWT strings
+- Email addresses
+- IP addresses
+- Secrets embedded in key=value patterns
+
+**Example — sanitize before recording an audit entry:**
+
+```go
+import (
+    "github.com/rhl/businessos-backend/internal/logging"
+    "github.com/rhl/businessos-backend/internal/middleware"
+)
+
+func recordAuditedAction(
+    auditLogger *middleware.HashChainLogger,
+    agentID, action, resourceType, resourceID string,
+    fields map[string]interface{},
+) {
+    // Sanitize any field map before it reaches the audit trail
+    safeFields := logging.SafeLogFields(fields)
+
+    // Log the safe fields using slog (picked up by AuditLogger middleware)
+    slog.Info("financial_mutation",
+        "agent", agentID,
+        "action", action,
+        "resource_type", resourceType,
+        "resource_id", resourceID,
+        "details", safeFields,
+    )
+
+    // Record in the cryptographic hash chain
+    _, err := auditLogger.LogA2ACall(agentID, action, resourceType, resourceID, 0.85)
+    if err != nil {
+        slog.Error("failed to record audit entry",
+            "error", err,
+            "resource_id", resourceID,
+        )
+    }
+}
+```
+
+**Example — mask session and IP in log output:**
+
+```go
+slog.Info("AUDIT",
+    "session_id", logging.MaskSessionID(sessionID),   // "a3f9b2c1********"
+    "client_ip",  logging.MaskIP(clientIP),            // "192.168.xxx.xxx"
+    "path",       logging.SanitizeURL(requestURL),     // query params redacted
+)
+```
+
+---
+
+## Step 5: Record Financial Mutations via `LogA2ACall`
+
+**Location:** In your service layer, wherever financial state changes
 
 ```go
 package services
@@ -89,37 +239,33 @@ import (
     "log/slog"
     "time"
 
-    "github.com/rhl/businessos-backend/internal/compliance"
+    "github.com/rhl/businessos-backend/internal/logging"
+    "github.com/rhl/businessos-backend/internal/middleware"
     "github.com/rhl/businessos-backend/internal/models"
 )
 
 type TransactionService struct {
     repo      models.TransactionRepository
-    audit     *compliance.SOXAuditValidator
+    audit     *middleware.HashChainLogger
     logger    *slog.Logger
 }
 
 func NewTransactionService(
     repo models.TransactionRepository,
-    audit *compliance.SOXAuditValidator,
+    audit *middleware.HashChainLogger,
     logger *slog.Logger,
 ) *TransactionService {
-    return &TransactionService{
-        repo:   repo,
-        audit:  audit,
-        logger: logger,
-    }
+    return &TransactionService{repo: repo, audit: audit, logger: logger}
 }
 
-// CreateTransaction creates a new transaction and records audit entry
+// CreateTransaction creates a new transaction and records a hash-chain audit entry.
 func (s *TransactionService) CreateTransaction(
     ctx context.Context,
-    userID string,
+    agentID string,
     amount float64,
     accountID string,
     description string,
 ) (*models.Transaction, error) {
-    // 1. Create the transaction in the database
     txn := &models.Transaction{
         ID:          uuid.New().String(),
         Amount:      amount,
@@ -133,347 +279,148 @@ func (s *TransactionService) CreateTransaction(
         return nil, fmt.Errorf("failed to create transaction: %w", err)
     }
 
-    // 2. Record in SOX audit trail (required for compliance)
-    afterValues, _ := json.Marshal(txn)
+    // Sanitize fields before audit logging
+    auditFields := logging.SafeLogFields(map[string]interface{}{
+        "amount":     amount,
+        "account_id": accountID,
+        "status":     "pending",
+    })
+    s.logger.InfoContext(ctx, "transaction_created", "fields", auditFields)
 
-    _, err := s.audit.RecordFinancialMutation(
-        ctx,
-        userID,                              // Who made the change
-        "human",                             // Actor type
-        compliance.OperationCreate,          // What operation
-        compliance.Transaction,              // What resource
-        txn.ID,                              // Resource ID
-        "new_transaction_created",           // Why (business justification)
-        nil,                                 // No before state for CREATE
-        json.RawMessage(afterValues),        // After state
+    // Record in hash chain (snScore 0.85 = high-confidence agent action)
+    _, err := s.audit.LogA2ACall(
+        agentID,             // who performed the action
+        "create_transaction", // what was done
+        "transaction",        // resource type
+        txn.ID,               // resource ID
+        0.85,                 // Signal/Noise score
     )
-
     if err != nil {
-        // Log audit failure but don't fail the transaction creation
         s.logger.ErrorContext(ctx, "failed to record audit entry",
             "error", err,
             "transaction_id", txn.ID,
         )
-        // NOTE: In production, you may want to escalate this to an alert
+        // NOTE: In production, escalate this to an alert — audit failure is a compliance event
     }
 
     return txn, nil
 }
 
-// UpdateTransaction updates transaction and records audit entry
-func (s *TransactionService) UpdateTransaction(
+// ApproveTransaction approves a pending transaction and records a hash-chain audit entry.
+func (s *TransactionService) ApproveTransaction(
     ctx context.Context,
-    userID string,
+    agentID string,
     transactionID string,
-    newAmount *float64,
-    newStatus *string,
-    reason string,
 ) (*models.Transaction, error) {
-    // 1. Get current state (before)
-    before, err := s.repo.GetByID(ctx, transactionID)
+    txn, err := s.repo.GetByID(ctx, transactionID)
     if err != nil {
         return nil, fmt.Errorf("transaction not found: %w", err)
     }
 
-    beforeValues, _ := json.Marshal(before)
+    txn.Status = "approved"
+    txn.UpdatedAt = time.Now()
 
-    // 2. Apply updates
-    if newAmount != nil {
-        before.Amount = *newAmount
-    }
-    if newStatus != nil {
-        before.Status = *newStatus
-    }
-    before.UpdatedAt = time.Now()
-
-    if err := s.repo.Update(ctx, before); err != nil {
+    if err := s.repo.Update(ctx, txn); err != nil {
         return nil, fmt.Errorf("failed to update transaction: %w", err)
     }
 
-    // 3. Record in SOX audit trail (before and after states required for UPDATE)
-    afterValues, _ := json.Marshal(before)
-
-    _, err = s.audit.RecordFinancialMutation(
-        ctx,
-        userID,                              // Who made the change
-        "human",                             // Actor type
-        compliance.OperationUpdate,          // What operation
-        compliance.Transaction,              // What resource
-        transactionID,                       // Resource ID
-        reason,                              // Why (user-provided reason)
-        beforeValues,                        // Before state (required for UPDATE)
-        json.RawMessage(afterValues),        // After state
+    _, err = s.audit.LogA2ACall(
+        agentID,
+        "approve_transaction",
+        "transaction",
+        transactionID,
+        0.90, // Higher confidence for approval actions
     )
-
     if err != nil {
-        s.logger.ErrorContext(ctx, "failed to record audit entry",
+        s.logger.ErrorContext(ctx, "failed to record approval audit entry",
             "error", err,
             "transaction_id", transactionID,
         )
     }
 
-    return before, nil
-}
-
-// ApproveTransaction approves a pending transaction
-func (s *TransactionService) ApproveTransaction(
-    ctx context.Context,
-    userID string,
-    transactionID string,
-) (*models.Transaction, error) {
-    return s.UpdateTransaction(
-        ctx,
-        userID,
-        transactionID,
-        nil,
-        stringPtr("approved"),
-        "manager_approval",  // Standard reason code for approvals
-    )
-}
-
-// RejectTransaction rejects a transaction with reason
-func (s *TransactionService) RejectTransaction(
-    ctx context.Context,
-    userID string,
-    transactionID string,
-    rejectionReason string,
-) (*models.Transaction, error) {
-    return s.UpdateTransaction(
-        ctx,
-        userID,
-        transactionID,
-        nil,
-        stringPtr("rejected"),
-        fmt.Sprintf("rejection: %s", rejectionReason),
-    )
-}
-
-// Helper function
-func stringPtr(s string) *string {
-    return &s
+    return txn, nil
 }
 ```
+
+**`LogA2ACall` parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agent` | `string` | Who performed the action (agent ID or user ID) |
+| `action` | `string` | What was done (e.g., `"create_transaction"`, `"approve_transaction"`) |
+| `resourceType` | `string` | Category of affected resource (e.g., `"transaction"`, `"ledger_entry"`) |
+| `resourceID` | `string` | Identifier of the specific resource affected |
+| `snScore` | `float64` | Signal/Noise score `[0.0–1.0]`; drives `GovernanceTier` assignment |
 
 ---
 
-## Step 3: Capture Before/After Values Correctly
+## Step 6: Mount the A2A Audit Middleware for Agent Routes
 
-**Best Practices:**
-
-### Full Object Snapshot
+For A2A agent endpoints, use `A2AAuditMiddleware` to automatically log all non-GET requests:
 
 ```go
-// GOOD: Capture complete object state
-type TransactionSnapshot struct {
-    ID          string    `json:"id"`
-    Amount      float64   `json:"amount"`
-    AccountID   string    `json:"account_id"`
-    Status      string    `json:"status"`
-    CreatedAt   time.Time `json:"created_at"`
-    UpdatedAt   time.Time `json:"updated_at"`
+import "github.com/rhl/businessos-backend/internal/middleware"
+
+auditChain := middleware.NewHashChainLogger(os.Getenv("SOX_HMAC_SECRET"))
+
+a2aGroup := r.Group("/api/integrations/a2a")
+a2aGroup.Use(middleware.A2AAuditMiddleware(auditChain))
+{
+    a2aGroup.POST("/crm/deals", crmHandler.CreateDeal)
+    a2aGroup.PUT("/crm/deals/:id", crmHandler.UpdateDeal)
+    // GET routes are excluded by A2AAuditMiddleware (read-only, no mutation)
 }
-
-before, _ := json.Marshal(&TransactionSnapshot{
-    ID:        txn.ID,
-    Amount:    1000.00,
-    AccountID: "acct-123",
-    Status:    "pending",
-    CreatedAt: time.Now(),
-})
-
-after, _ := json.Marshal(&TransactionSnapshot{
-    ID:        txn.ID,
-    Amount:    1500.00,  // Changed
-    AccountID: "acct-123",
-    Status:    "approved",  // Changed
-    CreatedAt: time.Now(),
-})
 ```
 
-### Sparse Changes (Only Modified Fields)
-
-```go
-// ACCEPTABLE: Capture only fields that changed (space-efficient)
-beforeChanges := json.RawMessage(`{"amount": 1000.00, "status": "pending"}`)
-afterChanges := json.RawMessage(`{"amount": 1500.00, "status": "approved"}`)
-
-s.audit.RecordFinancialMutation(ctx, userID, "human",
-    compliance.OperationUpdate, compliance.Transaction, txnID,
-    "amount_and_status_update", beforeChanges, afterChanges)
-```
-
-### What NOT to Do
-
-```go
-// WRONG: Don't capture nil for before/after
-// - For CREATE: before MUST be nil or empty
-// - For UPDATE: both before AND after are REQUIRED
-// - For DELETE: before is REQUIRED, after can be empty
-
-// WRONG: Don't use non-deterministic JSON (will fail signature verification)
-// Use json.Marshal to ensure consistent ordering
-json.RawMessage(`{status:"pending", amount:1000}`)  // ❌ Wrong order
-
-// CORRECT: json.Marshal handles ordering
-data, _ := json.Marshal(struct {
-    Amount float64 `json:"amount"`
-    Status string  `json:"status"`
-}{1000, "pending"})  // ✅ Consistent order
-```
+The middleware extracts the `X-Agent-ID` header, derives `action` and `resourceType` from the HTTP method and URL path, and reads the optional `sn_score` context value set by upstream middleware.
 
 ---
 
-## Step 4: Integrate with Handlers
+## Step 7: Verify Hash-Chain Integrity
 
-**Example:** `internal/handlers/transaction_handler.go`
-
-```go
-package handlers
-
-import (
-    "log/slog"
-    "net/http"
-
-    "github.com/gin-gonic/gin"
-    "github.com/rhl/businessos-backend/internal/services"
-)
-
-type TransactionHandler struct {
-    txnService *services.TransactionService
-    logger     *slog.Logger
-}
-
-func NewTransactionHandler(
-    txnService *services.TransactionService,
-    logger *slog.Logger,
-) *TransactionHandler {
-    return &TransactionHandler{
-        txnService: txnService,
-        logger:     logger,
-    }
-}
-
-// POST /api/transactions
-func (h *TransactionHandler) CreateTransaction(c *gin.Context) {
-    type CreateRequest struct {
-        Amount      float64 `json:"amount" binding:"required,gt=0"`
-        AccountID   string  `json:"account_id" binding:"required"`
-        Description string  `json:"description" binding:"required"`
-    }
-
-    var req CreateRequest
-    if err := c.BindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
-
-    // Extract user ID from JWT token (already authenticated by middleware)
-    userID, _ := c.Get("user_id")
-    userIDStr := userID.(string)
-
-    // Create transaction (automatically audited)
-    txn, err := h.txnService.CreateTransaction(
-        c.Request.Context(),
-        userIDStr,
-        req.Amount,
-        req.AccountID,
-        req.Description,
-    )
-
-    if err != nil {
-        h.logger.ErrorContext(c.Request.Context(), "failed to create transaction",
-            "error", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create transaction"})
-        return
-    }
-
-    c.JSON(http.StatusCreated, txn)
-}
-
-// PUT /api/transactions/:id/approve
-func (h *TransactionHandler) ApproveTransaction(c *gin.Context) {
-    transactionID := c.Param("id")
-    userID, _ := c.Get("user_id")
-    userIDStr := userID.(string)
-
-    // Approve transaction (automatically audited)
-    txn, err := h.txnService.ApproveTransaction(
-        c.Request.Context(),
-        userIDStr,
-        transactionID,
-    )
-
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
-
-    c.JSON(http.StatusOK, txn)
-}
-```
-
----
-
-## Step 5: Verify Audit Trail Integrity
-
-**Periodic Verification** (e.g., run hourly or daily):
+**Periodic Verification** (run hourly or daily via scheduler):
 
 ```go
 package services
 
 import (
+    "fmt"
     "log/slog"
-    "time"
 
-    "github.com/rhl/businessos-backend/internal/compliance"
+    "github.com/rhl/businessos-backend/internal/middleware"
 )
 
-type ComplianceService struct {
-    audit  *compliance.SOXAuditValidator
-    logger *slog.Logger
-}
-
-// VerifyAuditTrailIntegrity checks entire audit trail for tampering
-func (s *ComplianceService) VerifyAuditTrailIntegrity() error {
-    valid, issues := s.audit.VerifyAuditTrailImmutability()
+// VerifyAuditChainIntegrity checks the entire in-memory hash chain for tampering.
+func VerifyAuditChainIntegrity(auditLogger *middleware.HashChainLogger) error {
+    valid, issues := auditLogger.VerifyChainIntegrity()
 
     if !valid {
-        s.logger.Error("SOX audit trail integrity violation",
+        slog.Error("SOX audit chain integrity violation",
             "issues_count", len(issues),
         )
         for i, issue := range issues {
-            s.logger.Error("issue", "number", i, "detail", issue)
+            slog.Error("chain issue", "number", i, "detail", issue)
         }
         // ESCALATE: Alert security team
-        return fmt.Errorf("audit trail integrity compromised: %d violations", len(issues))
+        return fmt.Errorf("audit chain integrity compromised: %d violations", len(issues))
     }
 
-    s.logger.Info("SOX audit trail integrity verified",
-        "total_entries", s.audit.GetEntryCount(),
-    )
+    slog.Info("SOX audit chain integrity verified")
     return nil
 }
-
-// ComputeAuditFingerprint returns fingerprint for compliance reporting
-func (s *ComplianceService) ComputeAuditFingerprint() string {
-    return s.audit.ComputeAuditFingerprint()
-}
-
-// GetAuditHistory retrieves all changes to a resource
-func (s *ComplianceService) GetAuditHistory(
-    resourceType compliance.FinancialResourceType,
-    resourceID string,
-) []*compliance.SOXAuditEntry {
-    return s.audit.GetAuditHistory(context.Background(), resourceType, resourceID)
-}
 ```
+
+`VerifyChainIntegrity()` checks three things for every entry:
+
+1. `DataHash` recomputed from fields matches stored `DataHash`
+2. `Signature` recomputed from `HMAC(previousHash + dataHash)` matches stored `Signature`
+3. `PreviousHash` matches the `DataHash` of the immediately preceding entry
 
 **Register Periodic Verification** (in your scheduler):
 
 ```go
-// In your main.go or scheduler initialization
 scheduler.Every(1).Hours().Do(func() {
-    if err := complianceService.VerifyAuditTrailIntegrity(); err != nil {
+    if err := VerifyAuditChainIntegrity(auditLogger); err != nil {
         alertSecurityTeam(err)
     }
 })
@@ -481,116 +428,255 @@ scheduler.Every(1).Hours().Do(func() {
 
 ---
 
-## Step 6: Standard Reason Codes
+## Step 8: Use the Compliance Service for Cross-System Audit Trail
 
-Create a constants file for standardized reason codes:
+The `ComplianceService` (`internal/services/compliance_service.go`) aggregates audit data from OSA and BusinessOS, verifies the hash chain, and surfaces gaps.
+
+**Initialize:**
+
+```go
+import "github.com/rhl/businessos-backend/internal/services"
+
+complianceSvc := services.NewComplianceService(
+    os.Getenv("OSA_BASE_URL"),  // e.g., "http://localhost:8089"
+    slog.Default(),
+)
+```
+
+**Retrieve audit trail for a session:**
+
+```go
+trail, err := complianceSvc.GetAuditTrail(ctx, services.AuditTrailParams{
+    SessionID: sessionID,
+    From:      time.Now().Add(-24 * time.Hour),
+    To:        time.Now(),
+    Limit:     100,
+    Offset:    0,
+})
+if err != nil {
+    return fmt.Errorf("get audit trail: %w", err)
+}
+// trail.Entries is []AuditEntry{ID, SessionID, Timestamp, Action, Actor, ToolName, Details, Hash, PrevHash}
+```
+
+**Verify chain integrity via the compliance service:**
+
+```go
+result, err := complianceSvc.VerifyAuditChain(ctx, sessionID)
+if err != nil {
+    return fmt.Errorf("verify audit chain: %w", err)
+}
+// result.Verified bool
+// result.Entries  int
+// result.Issues   []string
+// result.MerkleRoot string
+```
+
+**Evaluate a specific audit entry against compliance rules:**
+
+```go
+entry := services.AuditEntry{
+    ID:        "entry-uuid",
+    SessionID: sessionID,
+    Timestamp: time.Now(),
+    Action:    "approve_transaction",
+    Actor:     "manager-001",
+}
+if err := complianceSvc.EvaluateAuditEvent(ctx, entry, "manager"); err != nil {
+    slog.Error("compliance rule triggered", "error", err)
+}
+```
+
+**Run SOX gap analysis:**
+
+```go
+resp, err := complianceSvc.VerifyCompliance(ctx, services.ComplianceVerifyRequest{
+    WorkspaceID: workspaceID,
+    Framework:   "SOX",
+})
+// resp.Status              — "compliant" | "partial" | "non_compliant"
+// resp.FindingsCount       — number of open gaps
+// resp.RemediationProgress — fraction of gaps resolved
+// resp.Gaps                — []ComplianceGap (ID, Framework, Control, Description, Severity, Status)
+```
+
+---
+
+## Step 9: OpenTelemetry Integration
+
+BusinessOS initializes a global OTEL tracer at startup (`internal/observability/tracer.go`) with service name `"businessos"`. Audit-related operations can be wrapped in spans so they appear in Jaeger.
+
+**Initialize the tracer** (already done in `cmd/server/bootstrap.go`):
+
+```go
+import "github.com/rhl/businessos-backend/internal/observability"
+
+tp, err := observability.InitTracer(ctx, os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+if err != nil {
+    slog.Error("tracer init failed", "error", err)
+}
+defer observability.ShutdownTracer(ctx, tp)
+```
+
+**Wrap audit-critical operations in spans:**
+
+```go
+import "go.opentelemetry.io/otel"
+
+func (s *TransactionService) CreateTransactionWithSpan(
+    ctx context.Context,
+    agentID string,
+    amount float64,
+    accountID string,
+) (*models.Transaction, error) {
+    tracer := otel.Tracer("businessos")
+    ctx, span := tracer.Start(ctx, "sox.audit.create_transaction")
+    defer span.End()
+
+    span.SetAttributes(
+        attribute.String("sox.agent_id", agentID),
+        attribute.String("sox.resource_type", "transaction"),
+        attribute.Float64("sox.sn_score", 0.85),
+    )
+
+    txn, err := s.CreateTransaction(ctx, agentID, amount, accountID, "")
+    if err != nil {
+        span.RecordError(err)
+        span.SetStatus(codes.Error, err.Error())
+        return nil, err
+    }
+
+    span.SetAttributes(attribute.String("sox.resource_id", txn.ID))
+    span.SetStatus(codes.Ok, "")
+    return txn, nil
+}
+```
+
+**Expected Jaeger span** (visible at `http://localhost:16686`, service `businessos`):
+
+```json
+{
+  "service": "businessos",
+  "span_name": "sox.audit.create_transaction",
+  "status": "ok",
+  "attributes": {
+    "sox.agent_id": "agent-001",
+    "sox.resource_type": "transaction",
+    "sox.resource_id": "txn-uuid",
+    "sox.sn_score": 0.85
+  }
+}
+```
+
+---
+
+## Step 10: Standard Action Codes
+
+Create a constants file to standardize the `action` argument passed to `LogA2ACall`:
 
 **File:** `internal/compliance/reason_codes.go`
 
 ```go
 package compliance
 
-// StandardReasonCode represents a standardized business justification
-type StandardReasonCode string
+// StandardActionCode represents a standardized business action for SOX audit entries.
+type StandardActionCode string
 
 const (
     // Regular Operations
-    CreateNew              StandardReasonCode = "new_transaction_created"
-    UpdateAmount           StandardReasonCode = "amount_correction"
-    UpdateStatus           StandardReasonCode = "status_change"
+    ActionCreateTransaction StandardActionCode = "create_transaction"
+    ActionUpdateTransaction StandardActionCode = "update_transaction"
+    ActionDeleteTransaction StandardActionCode = "delete_transaction"
 
     // Approval Process
-    ManagerApproval        StandardReasonCode = "manager_approval"
-    ExecutiveApproval      StandardReasonCode = "executive_approval"
-    RejectionByManager     StandardReasonCode = "rejection_by_manager"
+    ActionManagerApproval   StandardActionCode = "manager_approval"
+    ActionExecutiveApproval StandardActionCode = "executive_approval"
+    ActionRejection         StandardActionCode = "rejection"
 
     // Reconciliation
-    PeriodEndReconciliation StandardReasonCode = "periodic_reconciliation"
-    BankReconciliation      StandardReasonCode = "bank_reconciliation"
-    InternalAudit           StandardReasonCode = "internal_audit"
-    ExternalAuditAdjustment StandardReasonCode = "external_audit_adjustment"
+    ActionPeriodEndReconciliation StandardActionCode = "period_end_reconciliation"
+    ActionBankReconciliation      StandardActionCode = "bank_reconciliation"
+    ActionInternalAudit           StandardActionCode = "internal_audit"
+    ActionExternalAuditAdjustment StandardActionCode = "external_audit_adjustment"
 
     // Error Correction
-    DataEntryError          StandardReasonCode = "data_entry_error"
-    SystemError             StandardReasonCode = "system_error_correction"
-    DuplicateRemoval        StandardReasonCode = "duplicate_removal"
+    ActionDataEntryError   StandardActionCode = "data_entry_error_correction"
+    ActionSystemError      StandardActionCode = "system_error_correction"
+    ActionDuplicateRemoval StandardActionCode = "duplicate_removal"
 
     // Policy/System Changes
-    PolicyChange            StandardReasonCode = "policy_change"
-    SystemMigration         StandardReasonCode = "system_migration"
-    ConfigurationUpdate     StandardReasonCode = "configuration_update"
+    ActionPolicyChange        StandardActionCode = "policy_change"
+    ActionSystemMigration     StandardActionCode = "system_migration"
+    ActionConfigurationUpdate StandardActionCode = "configuration_update"
 
-    // Investigation/Fraud
-    FraudInvestigation      StandardReasonCode = "fraud_investigation"
-    ComplianceInvestigation StandardReasonCode = "compliance_investigation"
+    // Investigation
+    ActionFraudInvestigation      StandardActionCode = "fraud_investigation"
+    ActionComplianceInvestigation StandardActionCode = "compliance_investigation"
 )
 ```
 
 **Usage:**
 
 ```go
-// Type-safe reason codes
-s.audit.RecordFinancialMutation(
-    ctx, userID, "human", compliance.OperationUpdate,
-    compliance.Transaction, txnID,
-    string(compliance.ManagerApproval),  // Using constant
-    beforeValues, afterValues,
+_, err = auditLogger.LogA2ACall(
+    agentID,
+    string(compliance.ActionManagerApproval),
+    "transaction",
+    txnID,
+    0.90,
 )
 ```
 
 ---
 
-## Step 7: Handle Concurrent Writes Safely
-
-The `SOXAuditValidator` is thread-safe (uses `sync.RWMutex`), so concurrent mutations are safe:
-
-```go
-// SAFE: Multiple goroutines can call RecordFinancialMutation concurrently
-go func() {
-    s.audit.RecordFinancialMutation(ctx, "user-1", "human", ...)
-}()
-
-go func() {
-    s.audit.RecordFinancialMutation(ctx, "user-2", "human", ...)
-}()
-
-// Both entries will be sequentially numbered and chained correctly
-// No race conditions or data corruption
-```
-
----
-
-## Step 8: Test Your Integration
+## Step 11: Test Your Integration
 
 **Unit Test Example:**
 
 ```go
 func TestTransactionServiceAuditTrail(t *testing.T) {
     // Setup
-    audit := compliance.NewSOXAuditValidator("secret-key-at-least-32-bytes-long", slog.Default())
+    auditLogger := middleware.NewHashChainLogger("secret-key-at-least-32-bytes-long")
     repo := &mockTransactionRepo{}
-    service := services.NewTransactionService(repo, audit, slog.Default())
+    service := services.NewTransactionService(repo, auditLogger, slog.Default())
 
     // Create transaction
     txn, err := service.CreateTransaction(
         context.Background(),
-        "user-123",
+        "agent-001",
         1000.00,
         "acct-456",
         "Test transaction",
     )
     assert.NoError(t, err)
+    assert.NotEmpty(t, txn.ID)
 
-    // Verify audit entry was created
-    history := audit.GetAuditHistory(context.Background(),
-        compliance.Transaction, txn.ID)
-    assert.Equal(t, 1, len(history))
-    assert.Equal(t, "user-123", history[0].Actor)
+    // Verify audit entry was created in hash chain
+    entries := auditLogger.QueryAuditTrail("transaction", txn.ID)
+    assert.Equal(t, 1, len(entries))
+    assert.Equal(t, "agent-001", entries[0].Agent)
+    assert.Equal(t, "create_transaction", entries[0].Action)
 
     // Verify chain integrity
-    valid, issues := audit.VerifyAuditTrailImmutability()
+    valid, issues := auditLogger.VerifyChainIntegrity()
     assert.True(t, valid)
     assert.Empty(t, issues)
+}
+
+func TestSanitizedFieldsAreNotLogged(t *testing.T) {
+    fields := map[string]interface{}{
+        "amount":   1000.00,
+        "password": "super-secret",
+        "token":    "eyJhbGciOiJIUzI1NiJ9...",
+        "account":  "acct-123",
+    }
+
+    safe := logging.SafeLogFields(fields)
+
+    assert.Equal(t, "[REDACTED]", safe["password"])
+    assert.Equal(t, "[REDACTED]", safe["token"])
+    assert.Equal(t, 1000.00, safe["amount"])    // Not a sensitive field
+    assert.Equal(t, "acct-123", safe["account"]) // Not a sensitive field
 }
 ```
 
@@ -607,28 +693,51 @@ SOX_HMAC_SECRET not set - audit trail will not be available
 
 **Solution:**
 ```bash
-# Generate and set in .env
 openssl rand -hex 32 > /tmp/secret.txt
 echo "SOX_HMAC_SECRET=$(cat /tmp/secret.txt)" >> .env
 ```
 
-### Issue: Audit Entry Signature Invalid
+### Issue: Chain Integrity Violation
 
-**Cause:** HMAC secret changed between entries
+**Error reported by `VerifyChainIntegrity()`:**
+```
+entry <uuid> signature invalid
+entry <uuid> chain link broken
+```
 
-**Solution:**
-- Rotate secret carefully with timestamp-based backup
-- All entries must use same secret for chain verification
-
-### Issue: Audit Trail Integrity Violation
-
-**Cause:** Entry was modified after creation
+**Causes:**
+- HMAC secret changed after entries were written
+- Entries were modified after creation (tamper detected)
 
 **Action:**
-1. Stop processing
+1. Stop processing immediately
 2. Alert security team
-3. Investigate who had access
-4. Consider re-rotating HMAC secret
+3. Identify which entries are compromised via `issues` slice
+4. Do not rotate the HMAC secret until after investigation
+
+### Issue: OSA Audit Trail Unavailable
+
+**Error from `ComplianceService.GetAuditTrail()`:**
+```
+fetch audit trail from OSA: OSA unavailable: ...
+```
+
+**Cause:** OSA service at `OSA_BASE_URL` is not reachable.
+
+**Action:**
+- `ComplianceService` caches the last successful response per session
+- If no cache exists, the call returns an error — do not swallow it
+- Check `OSA_BASE_URL` env var and OSA service health at `/health`
+
+### Issue: Sensitive Data Appears in Logs
+
+**Symptom:** Audit log entries contain raw session IDs, tokens, or email addresses.
+
+**Fix:**
+- Wrap all field maps with `logging.SafeLogFields(fields)` before passing to `slog`
+- Use `logging.MaskSessionID(id)` when logging session identifiers
+- Use `logging.MaskIP(ip)` when logging client IP addresses
+- Use `logging.SanitizeURL(url)` when logging request URLs with query parameters
 
 ---
 
@@ -636,27 +745,31 @@ echo "SOX_HMAC_SECRET=$(cat /tmp/secret.txt)" >> .env
 
 Before deploying to production:
 
-- [ ] HMAC secret is >32 bytes
-- [ ] HMAC secret stored in environment variable (never hardcoded)
-- [ ] HMAC secret rotated at least annually
-- [ ] All financial mutations call `RecordFinancialMutation()`
-- [ ] Before/after values captured exactly (not modified)
-- [ ] Reason codes standardized and documented
-- [ ] Weekly integrity verification scheduled
+- [ ] `SOX_HMAC_SECRET` is at least 32 bytes
+- [ ] `SOX_HMAC_SECRET` is stored in environment variable (never hardcoded or committed)
+- [ ] `SOX_HMAC_SECRET` rotated at least annually (with migration plan for existing entries)
+- [ ] `AuditLogger()` middleware mounted globally on Gin router
+- [ ] `AuditSensitiveAccess(resourceType)` applied to all financial route groups
+- [ ] `A2AAuditMiddleware` applied to all agent-facing route groups
+- [ ] All field maps sanitized with `logging.SafeLogFields()` before logging
+- [ ] `VerifyChainIntegrity()` scheduled to run at least hourly
+- [ ] `ComplianceService.VerifyAuditChain()` called nightly for cross-system verification
 - [ ] Audit trail access restricted to compliance/audit roles
-- [ ] PostgreSQL retention policy in place (7-year archival)
+- [ ] PostgreSQL retention policy in place (7-year archival for SOX 404)
 - [ ] Backup/recovery procedures tested
+- [ ] OTEL spans emitted for all high-value mutation operations (visible in Jaeger)
 
 ---
 
 ## Next Steps
 
 1. Identify all financial mutation points in your codebase
-2. Update services to call `RecordFinancialMutation()`
-3. Add audit trail verification to your health checks
-4. Set up compliance reporting endpoint (exports audit history)
-5. Test with SOX auditor
+2. Wire `HashChainLogger` into each service and call `LogA2ACall()` on every mutation
+3. Mount `AuditLogger()` and `AuditSensitiveAccess()` on all applicable route groups
+4. Instrument high-value operations with OTEL spans (see Step 9)
+5. Add `VerifyAuditChain()` to your nightly compliance reporting endpoint
+6. Test with SOX auditor using the evidence collected by `ComplianceService.CollectEvidence()`
 
 ---
 
-*Version 1.0.0 | 2026-03-26 | SOX 404(b) Integration Guide*
+*Version 1.1.0 | 2026-03-27 | SOX 404(b) Integration Guide*

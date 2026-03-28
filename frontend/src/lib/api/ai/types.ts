@@ -67,17 +67,20 @@ export interface WarmupResponse {
   message: string;
 }
 
-// MCP Tools Types
+// MCP Tools Types (matches Go MCPTool JSON: name, description, parameters, source)
 export interface Tool {
   name: string;
   description: string;
-  input_schema: Record<string, unknown>;
-  source: 'builtin' | 'custom';
+  /** JSON Schema-style parameters from the backend */
+  parameters?: Record<string, unknown>;
+  /** Legacy alias; prefer `parameters` */
+  input_schema?: Record<string, unknown>;
+  source: string;
 }
 
 // Discriminated union for ToolResponse - prevents illegal state where both result and error are set
 export type ToolResponse =
-  | { success: true; result: string; error?: never }
+  | { success: true; result: unknown; error?: never }
   | { success: false; result?: never; error: string };
 
 // Custom Agents Types

@@ -212,7 +212,7 @@ func (s *ComplianceService) GetAuditTrail(ctx context.Context, params AuditTrail
 	cached, ok := s.auditCache[cacheKey]
 	s.mu.RUnlock()
 
-	if ok && len(cached) > 0 {
+	if ok {
 		total := len(cached)
 		start := params.Offset
 		if start >= total {
@@ -626,8 +626,11 @@ func parsePeriod(period string) time.Time {
 		year, _ := strconv.Atoi(period[:4])
 		return time.Date(year, time.Month(int(quarter)*3+1), 1, 0, 0, 0, 0, time.UTC)
 	case len(period) == 7:
-		t, _ := time.Parse("2006-01", period)
-		return t
+		t, err := time.Parse("2006-01", period)
+		if err == nil && !t.IsZero() {
+			return t
+		}
+		return now.AddDate(0, -1, 0)
 	default:
 		return now.AddDate(0, -1, 0)
 	}

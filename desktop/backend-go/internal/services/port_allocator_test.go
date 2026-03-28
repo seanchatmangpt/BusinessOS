@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 
@@ -252,7 +253,7 @@ func TestPortAllocator_Exhaustion(t *testing.T) {
 	// Next allocation should fail
 	appID := uuid.New()
 	_, err = pa.Allocate(ctx, appID)
-	if err != ErrPortsExhausted {
+	if !errors.Is(err, ErrPortsExhausted) {
 		t.Errorf("expected ErrPortsExhausted, got %v", err)
 	}
 }

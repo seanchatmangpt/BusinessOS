@@ -19,6 +19,7 @@ func InitTracer(ctx context.Context, otelEndpoint string) (*trace.TracerProvider
 	// Create HTTP exporter to send traces to the OpenTelemetry collector
 	exporter, err := otlptracehttp.New(ctx,
 		otlptracehttp.WithEndpoint(otelEndpoint),
+		otlptracehttp.WithInsecure(),
 	)
 	if err != nil {
 		slog.Error("failed to create OTLP exporter", "error", err)

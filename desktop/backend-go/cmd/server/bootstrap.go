@@ -324,7 +324,8 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	// ===== OPENTELEMETRY TRACING =====
 	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if otelEndpoint == "" {
-		otelEndpoint = "localhost:4317" // Default OTLP gRPC receiver
+		// OTLP/HTTP (Jaeger all-in-one exposes HTTP on 4318; 4317 is gRPC).
+		otelEndpoint = "localhost:4318"
 	}
 	tp, err := observability.InitTracer(ctx, otelEndpoint)
 	if err != nil {
