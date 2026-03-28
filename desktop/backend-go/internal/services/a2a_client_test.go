@@ -18,6 +18,12 @@ import (
 // Helpers
 // ---------------------------------------------------------------------------
 
+// newTestClient creates an A2AClient with SSRF bypass enabled for tests
+// that use httptest.Server (which binds to 127.0.0.1).
+func newTestClient() *A2AClient {
+	return NewA2AClientForTest()
+}
+
 func newTestA2AServer() *httptest.Server {
 	mux := http.NewServeMux()
 
@@ -171,7 +177,7 @@ func TestDiscoverAgent_Success(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	card, err := client.DiscoverAgent(context.Background(), server.URL)
 	require.NoError(t, err)
 	require.NotNil(t, card)
@@ -189,7 +195,7 @@ func TestDiscoverAgent_CachesConnection(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	require.NoError(t, err)
 
@@ -207,7 +213,7 @@ func TestDiscoverAgent_InvalidURL(t *testing.T) {
 }
 
 func TestDiscoverAgent_ServerUnreachable(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), "http://localhost:1")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to reach agent")
@@ -220,7 +226,7 @@ func TestDiscoverAgent_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse agent card")
@@ -235,7 +241,7 @@ func TestDiscoverAgent_MissingName(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "missing required field: name")
@@ -247,7 +253,7 @@ func TestDiscoverAgent_NonOKStatus(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "503")
@@ -257,7 +263,7 @@ func TestDiscoverAgent_TrailingSlash(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	// Server URL with trailing slash should be normalized
 	card, err := client.DiscoverAgent(context.Background(), server.URL+"/")
 	require.NoError(t, err)
@@ -272,7 +278,7 @@ func TestCallAgent_Success(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	task, err := client.CallAgent(context.Background(), server.URL, "Hello agent!")
 	require.NoError(t, err)
 	require.NotNil(t, task)
@@ -284,7 +290,7 @@ func TestCallAgent_Success(t *testing.T) {
 }
 
 func TestCallAgent_InvalidURL(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.CallAgent(context.Background(), "://bad", "test")
 	assert.Error(t, err)
 }
@@ -295,7 +301,7 @@ func TestCallAgent_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.CallAgent(context.Background(), server.URL, "test")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "500")
@@ -305,7 +311,7 @@ func TestCallAgent_UpdatesLastSeen(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 
 	// Discover first to cache
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
@@ -332,7 +338,7 @@ func TestGetAgentTools_Success(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	tools, err := client.GetAgentTools(context.Background(), server.URL)
 	require.NoError(t, err)
 	require.Len(t, tools, 2)
@@ -345,7 +351,7 @@ func TestGetAgentTools_Success(t *testing.T) {
 }
 
 func TestGetAgentTools_InvalidURL(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.GetAgentTools(context.Background(), "not-a-url")
 	assert.Error(t, err)
 }
@@ -356,7 +362,7 @@ func TestGetAgentTools_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.GetAgentTools(context.Background(), server.URL)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "404")
@@ -370,7 +376,7 @@ func TestExecuteAgentTool_Success(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	args := map[string]any{"query": "test search"}
 	result, err := client.ExecuteAgentTool(context.Background(), server.URL, "search", args)
 	require.NoError(t, err)
@@ -386,14 +392,14 @@ func TestExecuteAgentTool_NilArgs(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	result, err := client.ExecuteAgentTool(context.Background(), server.URL, "search", nil)
 	require.NoError(t, err)
 	require.NotNil(t, result)
 }
 
 func TestExecuteAgentTool_InvalidURL(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.ExecuteAgentTool(context.Background(), "bad", "tool", nil)
 	assert.Error(t, err)
 }
@@ -402,7 +408,7 @@ func TestExecuteAgentTool_ToolNameEscaped(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	// Tool name with special characters should be escaped
 	result, err := client.ExecuteAgentTool(context.Background(), server.URL, "search things", nil)
 	require.NoError(t, err)
@@ -415,7 +421,7 @@ func TestExecuteAgentTool_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.ExecuteAgentTool(context.Background(), server.URL, "tool", nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "400")
@@ -426,7 +432,7 @@ func TestExecuteAgentTool_ServerError(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestListConnectedAgents_Empty(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	agents := client.ListConnectedAgents()
 	assert.Empty(t, agents)
 }
@@ -435,7 +441,7 @@ func TestListConnectedAgents_AfterDiscovery(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	require.NoError(t, err)
 
@@ -448,7 +454,7 @@ func TestDisconnectAgent_Success(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	require.NoError(t, err)
 
@@ -460,7 +466,7 @@ func TestDisconnectAgent_Success(t *testing.T) {
 }
 
 func TestDisconnectAgent_NotConnected(t *testing.T) {
-	client := NewA2AClient()
+	client := newTestClient()
 	err := client.DisconnectAgent("http://not-connected.example.com")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "agent not connected")
@@ -470,7 +476,7 @@ func TestDisconnectAgent_TrailingSlash(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 	_, err := client.DiscoverAgent(context.Background(), server.URL)
 	require.NoError(t, err)
 
@@ -487,7 +493,7 @@ func TestConcurrentAccess(t *testing.T) {
 	server := newTestA2AServer()
 	defer server.Close()
 
-	client := NewA2AClient()
+	client := newTestClient()
 
 	var wg sync.WaitGroup
 	errors := make(chan error, 10)

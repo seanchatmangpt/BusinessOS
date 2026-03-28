@@ -11,10 +11,10 @@
 Add a new endpoint in 5 steps:
 
 ```bash
-# Step 1: Create handler in handlers/users.go
-# Step 2: Add route to router in cmd/server/main.go
-# Step 3: Add database query if needed (write SQL in queries/)
-# Step 4: Run code generation (sqlc, wire)
+# Step 1: Create handler in handlers/<domain>.go
+# Step 2: Wire the handler into the Handlers struct (handlers/handlers.go)
+# Step 3: Add route to a register*Routes method in handlers/routes_<domain>.go
+# Step 4: Add database query if needed (write SQL in queries/, run sqlc generate)
 # Step 5: Test with curl
 ```
 
@@ -25,124 +25,187 @@ Add a new endpoint in 5 steps:
 Handlers live in `desktop/backend-go/internal/handlers/`. Follow the layering pattern:
 **Handler → Service → Repository → Database**
 
-Add your handler to `handlers/users.go`:
+Each handler type holds its own dependencies. Prefer injecting `*pgxpool.Pool`, `*config.Config`,
+or specific service structs — not a single god-object. Look at the existing constructors for the
+pattern your domain needs:
 
 ```go
 package handlers
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rhl/businessos-backend/internal/middleware"
-	"github.com/rhl/businessos-backend/internal/utils"
 )
+
+// UserProfileHandler handles user profile operations.
+type UserProfileHandler struct {
+	pool *pgxpool.Pool
+}
+
+// NewUserProfileHandler creates a new UserProfileHandler.
+// Accepts the dependencies it needs directly — not a *Handlers wrapper.
+func NewUserProfileHandler(pool *pgxpool.Pool) *UserProfileHandler {
+	return &UserProfileHandler{pool: pool}
+}
 
 // GetUserProfile retrieves a user's profile by ID.
 // GET /api/users/:id/profile
-func (h *UserHandler) GetUserProfile(c *gin.Context) {
+func (h *UserProfileHandler) GetUserProfile(c *gin.Context) {
 	// Authenticate user
 	user := middleware.GetCurrentUser(c)
 	if user == nil {
-		utils.RespondUnauthorized(c, slog.Default())
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
 
 	// Validate input: extract ID from URL param
 	userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.RespondBadRequest(c, "invalid user id", slog.Default())
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
 		return
 	}
 
-	// Call service layer to fetch profile
-	profile, err := h.userService.GetProfileByID(c.Request.Context(), userID)
+	// WvdA soundness: every blocking call has an explicit timeout
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5000) // 5 s
+	defer cancel()
+
+	// Query the database (parameterized — never string interpolation)
+	var name, email string
+	err = h.pool.QueryRow(ctx,
+		`SELECT name, email FROM users WHERE id = $1 AND deleted_at IS NULL`,
+		userID,
+	).Scan(&name, &email)
 	if err != nil {
-		slog.Error("failed to get user profile", slog.Any("error", err), slog.Int64("user_id", userID))
-		utils.RespondInternalError(c, slog.Default())
+		slog.Error("failed to get user profile",
+			slog.Any("error", err),
+			slog.Int64("user_id", userID))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch profile"})
 		return
 	}
 
-	// Return 200 OK with profile data
-	c.JSON(http.StatusOK, profile)
+	c.JSON(http.StatusOK, gin.H{"id": userID, "name": name, "email": email})
 }
 ```
 
 **Handler Checklist:**
-- [ ] Input validation at handler boundary (no invalid ID)
-- [ ] Authentication check (use `middleware.GetCurrentUser`)
-- [ ] Call service layer (not directly database)
-- [ ] Error handling with structured logging (`slog`)
-- [ ] Return appropriate HTTP status (200, 400, 404, 500)
+- [ ] Input validation at handler boundary (no invalid ID passes through)
+- [ ] Authentication check via `middleware.GetCurrentUser`
+- [ ] Every `QueryRow` / `Query` / `Exec` wrapped in `context.WithTimeout` (WvdA deadlock freedom)
+- [ ] Parameterized queries only (`$1`, never `fmt.Sprintf`)
+- [ ] `slog.Error` (not `fmt.Println`) for structured error logging
+- [ ] Return appropriate HTTP status (200, 400, 401, 404, 500)
 
 ---
 
-## Step 2: Add Service Layer Logic
+## Step 2: Implement a Stub First (501 Pattern)
 
-Services live in `internal/services/`. They contain business logic (validation, authorization, orchestration).
-
-Add to `services/user_service.go`:
+If the handler needs a service or LLM integration that is not yet available, return
+`501 Not Implemented` immediately instead of faking a success response. This follows the
+Armstrong Let-It-Crash principle: fail visibly, never silently.
 
 ```go
-package services
-
-import (
-	"context"
-	"fmt"
-	"log/slog"
-
-	"github.com/rhl/businessos-backend/internal/database"
-)
-
-type UserService struct {
-	repo *database.UserRepository
-}
-
-// GetProfileByID retrieves a user's profile.
-// Returns error if user not found or access denied.
-func (s *UserService) GetProfileByID(ctx context.Context, userID int64) (*UserProfile, error) {
-	// Call repository (database access)
-	user, err := s.repo.GetByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("fetch user profile: %w", err)
-	}
-
-	if user == nil {
-		return nil, fmt.Errorf("user not found: id=%d", userID)
-	}
-
-	// Transform to response DTO
-	profile := &UserProfile{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-	}
-
-	return profile, nil
+// CreateUserProfile creates a user profile (stub — real implementation pending)
+func (h *UserProfileHandler) CreateUserProfile(c *gin.Context) {
+	// ARMSTRONG: Let-It-Crash — return 501 until request validation
+	// and idempotency key logic are implemented.
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error":  "create user profile not implemented",
+		"reason": "requires request validation (name, bio) and idempotency key",
+	})
 }
 ```
 
-**Service Checklist:**
-- [ ] Business logic (validation, transformation)
-- [ ] Error wrapping with context (`fmt.Errorf`)
-- [ ] Calls repository for data access
-- [ ] No HTTP concerns (no gin.Context, no status codes)
+Replace the stub with a real implementation only after the service layer exists and a
+failing test (Red) has been written.
 
 ---
 
-## Step 3: Add Database Query (if needed)
+## Step 3: Register the Route
 
-If you need a database query, define it in SQL. BusinessOS uses `sqlc` to generate type-safe Go code from SQL.
+Routes are **not** registered in `main.go`. The registration flow is:
 
-Create or update `queries/users.sql`:
+```
+cmd/server/routes.go   → registerRoutes() calls app.handlers.RegisterRoutes(api)
+handlers/routes.go     → Handlers.RegisterRoutes() calls h.register<Domain>Routes()
+handlers/routes_<domain>.go  → register<Domain>Routes() mounts individual paths
+```
+
+### 3a. Add a `register*Routes` helper (or extend an existing one)
+
+Create or update a domain-scoped file such as `handlers/routes_users.go`:
+
+```go
+package handlers
+
+import "github.com/gin-gonic/gin"
+
+// registerUserRoutes wires /api/profile, /api/users, /api/mcp routes.
+func (h *Handlers) registerUserRoutes(api *gin.RouterGroup, auth gin.HandlerFunc) {
+	profileH := NewUserProfileHandler(h.pool)
+
+	users := api.Group("/users")
+	{
+		// Public
+		users.GET("/check-username/:username", profileH.CheckUsernameAvailability)
+
+		// Protected
+		users.GET("/:id/profile", auth, profileH.GetUserProfile)
+		users.POST("/:id/profile", auth, profileH.CreateUserProfile)
+	}
+}
+```
+
+### 3b. Call your helper from `handlers/routes.go`
+
+`handlers/routes.go` already calls `h.registerUserRoutes(api, auth)`. If you added a new
+domain (e.g., billing), add one line to `RegisterRoutes`:
+
+```go
+func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
+	// ... existing calls ...
+	h.registerBillingRoutes(api, auth)   // ← add here
+}
+```
+
+### 3c. Both `/api` and `/api/v1` are wired automatically
+
+`cmd/server/routes.go` calls `app.handlers.RegisterRoutes` **twice** — once for the
+deprecated `/api` group and once for `/api/v1`. You do not need to duplicate route
+registrations; a single `register*Routes` call covers both.
+
+```go
+// From cmd/server/routes.go (already present — shown for context only):
+app.handlers.RegisterRoutes(api)    // /api/* — deprecated, warns client
+app.handlers.RegisterRoutes(apiv1) // /api/v1/* — current versioned path
+```
+
+**Routing Checklist:**
+- [ ] Route mounted in a `register<Domain>Routes` method
+- [ ] `register<Domain>Routes` called from `handlers/routes.go RegisterRoutes()`
+- [ ] HTTP method matches semantics (GET read, POST create, PUT replace, PATCH update, DELETE remove)
+- [ ] `auth` middleware passed for protected routes
+- [ ] URL parameter names match `c.Param("id")` in handler
+
+---
+
+## Step 4: Add Database Query (if needed)
+
+If you need a database query, define it in SQL. BusinessOS uses `sqlc` to generate
+type-safe Go code from SQL.
+
+Create or update a file under `queries/`, e.g. `queries/users.sql`:
 
 ```sql
 -- name: GetUserByID :one
 SELECT id, name, email, created_at, updated_at
 FROM users
-WHERE id = $1;
+WHERE id = $1 AND deleted_at IS NULL;
 ```
 
 Run code generation:
@@ -152,7 +215,7 @@ cd desktop/backend-go
 sqlc generate
 ```
 
-This generates `internal/database/querier.go` with:
+This regenerates `internal/database/sqlc/querier.go` with:
 
 ```go
 type Querier interface {
@@ -162,40 +225,10 @@ type Querier interface {
 
 **Database Checklist:**
 - [ ] SQL query uses parameterized `$1` (never string interpolation)
-- [ ] Query has sqlc directive (`:one`, `:many`, `:exec`)
-- [ ] Run `sqlc generate` after adding SQL
+- [ ] Query has an sqlc directive (`:one`, `:many`, `:exec`)
+- [ ] `sqlc generate` run after adding SQL
 - [ ] Generated code is type-safe (compiler enforces types)
-
----
-
-## Step 4: Register the Route
-
-Routes live in `cmd/server/main.go` (or in a router initialization function). Use Gin's routing:
-
-```go
-package main
-
-import "github.com/gin-gonic/gin"
-
-func setupRoutes(engine *gin.Engine, userHandler *handlers.UserHandler) {
-	// Public routes (no auth required)
-	public := engine.Group("/api")
-	// public.POST("/login", userHandler.Login)
-
-	// Protected routes (auth required)
-	protected := engine.Group("/api")
-	protected.Use(middleware.AuthRequired)
-	protected.GET("/users/:id/profile", userHandler.GetUserProfile)
-	protected.POST("/users", userHandler.CreateUser)
-	protected.PUT("/users/:id", userHandler.UpdateUser)
-}
-```
-
-**Routing Checklist:**
-- [ ] Route matches your handler method name
-- [ ] HTTP method correct (GET, POST, PUT, DELETE)
-- [ ] Auth middleware applied if protected (`middleware.AuthRequired`)
-- [ ] URL parameter names match handler (`c.Param("id")`)
+- [ ] Generated files committed alongside the `.sql` source
 
 ---
 
@@ -211,77 +244,69 @@ cd BusinessOS && make dev
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   http://localhost:8001/api/users/123/profile
 
-# Expected response:
-# {
-#   "id": 123,
-#   "name": "John Doe",
-#   "email": "john@example.com"
-# }
+# Expected 200 response:
+# { "id": 123, "name": "John Doe", "email": "john@example.com" }
+
+# Test stub (501):
+curl -X POST -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8001/api/users/123/profile
+# Expected:
+# { "error": "create user profile not implemented", "reason": "..." }
 ```
 
 **Test Checklist:**
 - [ ] Server starts without errors (`make dev`)
-- [ ] Request returns 200 OK
-- [ ] Response body matches expected shape
-- [ ] Try invalid ID (should return 400 or 404)
-- [ ] Try without auth header (should return 401 Unauthorized)
+- [ ] GET returns 200 with expected body
+- [ ] POST stub returns 501 until implemented
+- [ ] Invalid ID returns 400 Bad Request
+- [ ] Missing auth header returns 401 Unauthorized
 
 ---
 
 ## Writing Integration Tests
 
-Add tests in `handlers/users_test.go`:
+Add tests in `handlers/<domain>_test.go`:
 
 ```go
 package handlers_test
 
 import (
-	"testing"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
-	"github.com/rhl/businessos-backend/internal/handlers"
-	"github.com/rhl/businessos-backend/internal/services"
-	"github.com/stretchr/testify/assert"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUserProfile_Success(t *testing.T) {
-	// Setup mock service
-	mockService := &services.MockUserService{}
-	mockService.On("GetProfileByID", mock.Anything, int64(123)).
-		Return(&services.UserProfile{
-			ID:    123,
-			Name:  "Test User",
-			Email: "test@example.com",
-		}, nil)
+	gin.SetMode(gin.TestMode)
 
-	// Create handler
-	handler := handlers.NewUserHandler(mockService)
+	// Create handler with test pool (or use httptest + real DB in integration tests)
+	handler := NewUserProfileHandler(testPool)
 
-	// Create request
-	req := httptest.NewRequest("GET", "/api/users/123/profile", nil)
+	// Build request
+	req := httptest.NewRequest(http.MethodGet, "/api/users/123/profile", nil)
 	w := httptest.NewRecorder()
 
-	// Call handler
-	c, _ := gin.CreateTestContextForRequest(req)
-	c.Params = gin.Params{{Key: "id", Value: "123"}}
-	handler.GetUserProfile(c)
+	r := gin.New()
+	r.GET("/api/users/:id/profile", handler.GetUserProfile)
+	r.ServeHTTP(w, req)
 
-	// Assert
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Test User")
+	assert.Contains(t, w.Body.String(), "email")
 }
 
 func TestGetUserProfile_InvalidID(t *testing.T) {
-	// Invalid ID should return 400
-	handler := handlers.NewUserHandler(mockService)
-	req := httptest.NewRequest("GET", "/api/users/invalid/profile", nil)
+	gin.SetMode(gin.TestMode)
+	handler := NewUserProfileHandler(testPool)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/users/not-a-number/profile", nil)
 	w := httptest.NewRecorder()
 
-	c, _ := gin.CreateTestContextForRequest(req)
-	c.Params = gin.Params{{Key: "id", Value: "invalid"}}
-	handler.GetUserProfile(c)
+	r := gin.New()
+	r.GET("/api/users/:id/profile", handler.GetUserProfile)
+	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -303,12 +328,19 @@ go test ./internal/handlers/... -run TestGetUserProfile -v
 **Fix:** Run `sqlc generate` in `desktop/backend-go/`, then rebuild.
 
 ### Error: "handler not found" when calling endpoint
-**Cause:** Route not registered in `main.go`.
-**Fix:** Add the route to `setupRoutes()` function, matching your handler method name exactly.
+**Cause:** Route not registered — either the `register<Domain>Routes` call is missing from
+`handlers/routes.go`, or the route group path has a typo.
+**Fix:** Add or verify the call in `Handlers.RegisterRoutes()` in `handlers/routes.go`.
 
 ### Error: "missing Authorization header"
-**Cause:** Applied `middleware.AuthRequired` but didn't send JWT token.
-**Fix:** Add `Authorization: Bearer YOUR_TOKEN` header to request.
+**Cause:** Applied auth middleware but did not send a JWT token.
+**Fix:** Add `Authorization: Bearer YOUR_TOKEN` header to the request, or call
+`/api/auth/login` first to obtain a token.
+
+### Error: "501 Not Implemented"
+**Cause:** You called a stub endpoint. The handler intentionally returns 501 until the
+service layer is wired.
+**Fix:** Implement the service logic, write the Red test first, then replace the stub body.
 
 ---
 
@@ -317,17 +349,18 @@ go test ./internal/handlers/... -run TestGetUserProfile -v
 Before merging your endpoint:
 
 - [ ] Handler validates input at boundaries
-- [ ] Handler calls service (not database directly)
-- [ ] Service contains business logic
-- [ ] Service calls repository
+- [ ] Handler calls service (not database directly for complex logic)
+- [ ] Every blocking DB call wrapped in `context.WithTimeout` (WvdA soundness)
+- [ ] Stubs return `501 Not Implemented` with descriptive `reason` (not fake 200)
 - [ ] Database query uses parameterized `$1` (no string interpolation)
-- [ ] `sqlc generate` run and types match
-- [ ] Route registered in main.go with correct HTTP method
-- [ ] Auth middleware applied (if protected endpoint)
+- [ ] `sqlc generate` run and types match (if SQL added)
+- [ ] Route registered in `handlers/routes_<domain>.go` via `register<Domain>Routes`
+- [ ] `register<Domain>Routes` called from `handlers/routes.go`
+- [ ] Auth middleware applied for protected routes
 - [ ] Test passes locally (`make test-backend`)
 - [ ] curl test passes with valid and invalid input
-- [ ] Error logging includes context (`slog`)
-- [ ] Status codes correct (200, 400, 401, 404, 500)
+- [ ] Error logging uses `slog` with structured key-value pairs
+- [ ] Status codes correct (200, 400, 401, 404, 500, 501)
 
 ---
 
@@ -341,3 +374,5 @@ Before merging your endpoint:
 ---
 
 *See also: [API Endpoints Reference](../reference/api-endpoints.md), [Code Standards](../../CLAUDE.md#code-standards-go-backend)*
+
+*updated: 2026-03-27*

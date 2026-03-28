@@ -1,26 +1,30 @@
 # =============================================================================
-# BusinessOS Backend - Multi-stage Dockerfile for Cloud Run
+# BusinessOS Backend — Go server + optional OpenTelemetry Weaver (semconv MCP)
 # =============================================================================
 
+# Weaver CLI (glibc) — used for `weaver registry mcp` stdio bridge to semconv
+FROM rust:bookworm AS weaver
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN cargo install weaver@0.22.1
+
 # ---------------------------------------------------------------------------
-# Stage 1: Build
+# Stage: Go build (static binary)
 # ---------------------------------------------------------------------------
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-bookworm AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy go mod files first for better caching
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
-# Copy only necessary source files
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 
-# Build the binary with optimizations
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -a \
     -installsuffix cgo \
@@ -28,36 +32,30 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /server ./cmd/server
 
 # ---------------------------------------------------------------------------
-# Stage 2: Production
+# Stage: Runtime (Debian — matches glibc-linked weaver binary)
 # ---------------------------------------------------------------------------
-FROM alpine:3.19
+FROM debian:bookworm-slim
 
-# Install runtime dependencies (ca-certificates for HTTPS, tzdata for TZ,
-# curl for Docker HEALTHCHECK)
-RUN apk add --no-cache ca-certificates tzdata curl
-
-# Create non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates tzdata curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appgroup && useradd -r -g appgroup -d /app appuser
 
 WORKDIR /app
 
-# Copy binary from builder
 COPY --from=builder /server /app/server
+COPY --from=weaver /usr/local/cargo/bin/weaver /usr/local/bin/weaver
 
-# Own the workdir as non-root user
-RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /app && chmod +x /usr/local/bin/weaver
 
-# Switch to non-root user
 USER appuser
 
-# Cloud Run injects PORT env var; default to 8080
-ENV SERVER_PORT=8080
+# Must match docker-compose.yml SERVER_PORT env and port mapping (8001).
+ENV SERVER_PORT=8001
 
-EXPOSE 8080
+EXPOSE 8001
 
-# Health check: Cloud Run uses its own HTTP health probes, but this is useful
-# for local Docker and docker-compose testing
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:8001/healthz || exit 1
 
 CMD ["/app/server"]

@@ -1,13 +1,9 @@
 package integration
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 )
@@ -42,18 +38,8 @@ import (
 // =============================================================================
 
 var (
-	businessOSURL = getEnv("BUSINESSOS_URL", "http://localhost:8001")
-	osaURL        = getEnv("OSA_URL", "http://localhost:8089")
-	oxigraphURL   = getEnv("OXIGRAPH_URL", "http://localhost:6379")
-	testTimeout   = 30 * time.Second
+	osaURL = getEnvOrDefault("OSA_URL", "http://localhost:8089")
 )
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
 
 // DealPayload represents a FIBO deal creation request
 type DealPayload struct {
@@ -80,45 +66,6 @@ type DealResponse struct {
 	RDFIdentifier string  `json:"rdf_identifier,omitempty"`
 	ContentHash   string  `json:"content_hash,omitempty"`
 	Error         string  `json:"error,omitempty"`
-}
-
-// RDFTriple represents an RDF triple in Oxigraph
-type RDFTriple struct {
-	Subject   string `json:"subject"`
-	Predicate string `json:"predicate"`
-	Object    string `json:"object"`
-}
-
-// makeRequest is a helper function to make HTTP requests
-func makeRequest(method, url string, body interface{}) ([]byte, int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
-	defer cancel()
-
-	var bodyReader io.Reader
-	if body != nil {
-		bodyBytes, _ := json.Marshal(body)
-		bodyReader = bytes.NewReader(bodyBytes)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{
-		Timeout: testTimeout,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	return respBody, resp.StatusCode, nil
 }
 
 // TestFIBO_001_CreateDealInBusinessOS tests creating a deal in BusinessOS

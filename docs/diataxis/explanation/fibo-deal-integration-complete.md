@@ -652,4 +652,5 @@ ORDER BY DESC(?avg_days)
 ---
 
 **Version History:**
+- v1.0.1 (2026-03-27) - Audit pass: verified code references current as of this date
 - v1.0.0 (2026-03-25) - Initial release with 3 CONSTRUCT queries and examples

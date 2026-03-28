@@ -3,6 +3,7 @@ package ontology
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 )
@@ -58,6 +59,7 @@ func (m *MockSPARQLExecutor) ExecuteSelect(ctx context.Context, query string) (m
 
 // MockRDFStore implements RDFStore for testing
 type MockRDFStore struct {
+	mu            sync.Mutex
 	storedTriples map[string]string
 	tripleCounts  map[string]int
 }
@@ -68,7 +70,9 @@ func (m *MockRDFStore) StoreTriples(ctx context.Context, turtleData string) erro
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
+		m.mu.Lock()
 		m.storedTriples["last"] = turtleData
+		m.mu.Unlock()
 		return nil
 	}
 }
@@ -99,7 +103,10 @@ func (m *MockRDFStore) GetTriplesForEntity(ctx context.Context, entityURI string
 	case <-ctx.Done():
 		return 0, ctx.Err()
 	default:
-		if count, ok := m.tripleCounts[entityURI]; ok {
+		m.mu.Lock()
+		count, ok := m.tripleCounts[entityURI]
+		m.mu.Unlock()
+		if ok {
 			return count, nil
 		}
 		return 15, nil // Default: 15 triples per entity
@@ -108,6 +115,7 @@ func (m *MockRDFStore) GetTriplesForEntity(ctx context.Context, entityURI string
 
 // MockAuditLogger implements AuditLogger for testing
 type MockAuditLogger struct {
+	mu            sync.Mutex
 	loggedEntries []PHIAuditEntry
 }
 
@@ -117,7 +125,9 @@ func (m *MockAuditLogger) LogAccess(ctx context.Context, entry PHIAuditEntry) er
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
+		m.mu.Lock()
 		m.loggedEntries = append(m.loggedEntries, entry)
+		m.mu.Unlock()
 		return nil
 	}
 }

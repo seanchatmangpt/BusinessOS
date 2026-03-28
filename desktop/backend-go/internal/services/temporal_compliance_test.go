@@ -23,7 +23,7 @@ func TestTemporalDailyDuration(t *testing.T) {
 // TestTemporalQuarterlyDuration verifies 90 days = 7,776,000 seconds
 func TestTemporalQuarterlyDuration(t *testing.T) {
 	t1 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	t2 := time.Date(2026, 3, 31, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
 
 	duration := t2.Sub(t1).Seconds()
 	expected := 90.0 * 86400.0 // 7,776,000 seconds

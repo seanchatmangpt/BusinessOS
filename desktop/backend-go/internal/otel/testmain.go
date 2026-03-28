@@ -18,21 +18,29 @@ import (
 // export spans to the Weaver OTLP receiver, ensuring live-check validation
 // during test execution.
 func TestMainFunc(m interface{ Run() int }) {
+	var shutdown func(context.Context) error
+
 	if IsLiveCheckEnabled() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		shutdown, err := SetupWeaverLiveCheck(ctx)
+		var err error
+		shutdown, err = SetupWeaverLiveCheck(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "weaver live-check setup failed: %v\n", err)
 			os.Exit(1)
 		}
-		defer func() {
-			if err := shutdown(context.Background()); err != nil {
-				fmt.Fprintf(os.Stderr, "weaver shutdown warning: %v\n", err)
-			}
-		}()
 	}
 
-	os.Exit(m.Run())
+	code := m.Run()
+
+	// Flush spans before exit. os.Exit does not run deferred functions,
+	// so we must call shutdown explicitly here.
+	if shutdown != nil {
+		if err := shutdown(context.Background()); err != nil {
+			fmt.Fprintf(os.Stderr, "weaver shutdown warning: %v\n", err)
+		}
+	}
+
+	os.Exit(code)
 }

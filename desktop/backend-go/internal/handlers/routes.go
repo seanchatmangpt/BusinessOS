@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rhl/businessos-backend/internal/integrations/pm4py_rust"
 	"github.com/rhl/businessos-backend/internal/middleware"
+	"github.com/rhl/businessos-backend/internal/vision"
 )
 
 // RegisterRoutes is the top-level route registration entry point.
@@ -50,6 +51,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	h.registerLinkedInRoutes(api, auth)
 	h.registerBoardRoutes(api)
 	h.registerPM4PyDashboardRoutes(api)
+	h.registerVisionRoutes(api)
 	h.registerYawlRoutes(api, auth)
 }
 
@@ -94,6 +96,13 @@ func (h *Handlers) registerPM4PyDashboardRoutes(api *gin.RouterGroup) {
 	pm4pyClient := pm4py_rust.NewClient(baseURL)
 	dashHandler := NewPM4PyDashboardHandler(pm4pyClient)
 	api.POST("/pm4py/dashboard-kpi", dashHandler.GetDashboardKPI)
+}
+
+// registerVisionRoutes wires GET /api/vision/status for cross-project health aggregation.
+// Unauthenticated — this is an operational status endpoint, similar to /healthz.
+func (h *Handlers) registerVisionRoutes(api *gin.RouterGroup) {
+	sr := vision.NewSignalRouter()
+	sr.RegisterRoutes(api)
 }
 
 // registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception

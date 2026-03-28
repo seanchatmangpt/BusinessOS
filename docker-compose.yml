@@ -1,6 +1,7 @@
 # =============================================================================
-# BusinessOS — Full Stack Compose
-# Boots: postgres → redis → backend → frontend in dependency order.
+# BusinessOS — Full Stack Compose (Complete Integration Chain)
+# Chain: pm4py-rust (8090) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
+# Boots: postgres → redis → pm4py-rust → osa → canopy → backend → frontend
 # Usage:
 #   First time:  make setup
 #   Daily:       docker compose up -d
@@ -14,11 +15,16 @@ services:
   # PostgreSQL 16 + pgvector
   # ---------------------------------------------------------------------------
   postgres:
+    # pgvector/pgvector:pg16 provides vector similarity search (required for embeddings).
+    # If image pull fails on restricted networks, replace with postgres:16-alpine
+    # (vector features will be unavailable but core DB works).
     image: pgvector/pgvector:pg16
     container_name: businessos-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Host port 5433 avoids conflict with local Homebrew PostgreSQL on 5432.
+      # Container still listens on 5432 internally. Override: POSTGRES_PORT=5432
+      - "${POSTGRES_PORT:-5433}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_change_in_prod}
@@ -92,8 +98,77 @@ services:
       - businessos-network
 
   # ---------------------------------------------------------------------------
+  # OSA — Optimal System Agent (Elixir/OTP, port 8089)
+  # Multi-agent orchestration runtime. Standalone — no DB dependency.
+  # Health probe: GET /health
+  # ---------------------------------------------------------------------------
+  osa:
+    build:
+      context: ../OSA
+      dockerfile: Dockerfile
+    image: osa:local
+    container_name: businessos-osa
+    restart: unless-stopped
+    ports:
+      - "${OSA_PORT:-8089}:8089"
+    environment:
+      MIX_ENV: prod
+      OSA_HTTP_PORT: "8089"
+      SECRET_KEY_BASE: ${OSA_SECRET_KEY_BASE:-CHANGE_ME_generate_with_mix_phx_gen_secret}
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_SERVICE_NAME: "osa"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8089/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - businessos-network
+
+  # ---------------------------------------------------------------------------
+  # Canopy — Workspace Protocol + Command Center (Elixir/Phoenix, port 9089)
+  # Orchestrates agents via heartbeat protocol. Connects to OSA + PostgreSQL.
+  # Health probe: GET /health
+  # ---------------------------------------------------------------------------
+  canopy:
+    build:
+      context: ../canopy/backend
+      dockerfile: Dockerfile
+    image: canopy:local
+    container_name: businessos-canopy
+    restart: unless-stopped
+    ports:
+      - "${CANOPY_PORT:-9089}:9089"
+    environment:
+      MIX_ENV: prod
+      PHX_SERVER: "true"
+      PORT: "9089"
+      SECRET_KEY_BASE: ${CANOPY_SECRET_KEY_BASE:-CHANGE_ME_generate_with_mix_phx_gen_secret}
+      GUARDIAN_SECRET_KEY: ${CANOPY_GUARDIAN_SECRET_KEY:-CHANGE_ME_generate_with_mix_phx_gen_secret}
+      DATABASE_URL: >-
+        postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev_password_change_in_prod}@postgres:5432/${CANOPY_DB:-canopy_prod}?sslmode=disable
+      OSA_URL: "http://osa:8089"
+      BUSINESSOS_URL: "http://backend:8001"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_SERVICE_NAME: "canopy"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      osa:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9089/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - businessos-network
+
+  # ---------------------------------------------------------------------------
   # BusinessOS Backend (Go)
-  # Dockerfile: desktop/backend-go/Dockerfile (multi-stage, alpine final image)
+  # Dockerfile: desktop/backend-go/Dockerfile (Debian runtime + weaver binary for semconv MCP)
   # Health probes: GET /healthz (liveness), GET /readyz (readiness)
   # ---------------------------------------------------------------------------
   backend:
@@ -133,10 +208,14 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
 
-      # ── OSA Integration (optional — disabled by default) ──────────────────
-      OSA_ENABLED: ${OSA_ENABLED:-false}
+      # ── OSA Integration ───────────────────────────────────────────────────
+      OSA_ENABLED: "true"
+      OSA_URL: "http://osa:8089"
       OSA_MODE: ${OSA_MODE:-local}
       MIOSA_API_KEY: ${MIOSA_API_KEY:-}
+
+      # ── Canopy Integration ──────────────────────────────────────────────
+      CANOPY_URL: "http://canopy:9089"
 
       # ── OAuth (optional — leave blank to skip) ────────────────────────────
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -172,6 +251,16 @@ services:
       # ── pm4py-rust Integration ────────────────────────────────────────────
       PM4PY_RUST_URL: "http://pm4py-rust:8090"
 
+      # ── OpenTelemetry ─────────────────────────────────────────────────────
+      # otlptracehttp expects host:port (no scheme). Port 4318 = OTLP/HTTP.
+      OTEL_EXPORTER_OTLP_ENDPOINT: "otel-collector:4318"
+      OTEL_SERVICE_NAME: "businessos"
+
+      # ── Weaver MCP (stdio) — LLM tools from semconv registry (same model as live-check) ──
+      WEAVER_SEMCONV_ENABLED: "1"
+      WEAVER_SEMCONV_REGISTRY: /semconv/model
+      WEAVER_BIN: /usr/local/bin/weaver
+
       # ── Feature flags ─────────────────────────────────────────────────────
       ENABLE_LOCAL_MODELS: ${ENABLE_LOCAL_MODELS:-true}
       NATS_ENABLED: "false"
@@ -184,7 +273,10 @@ services:
         condition: service_healthy
       pm4py-rust:
         condition: service_healthy
+      osa:
+        condition: service_healthy
     volumes:
+      - ../semconv/model:/semconv/model:ro
       # Docker socket — only needed for sandbox/container management features.
       # Remove this line if you are not using the terminal/sandbox feature.
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -198,8 +290,9 @@ services:
       - businessos-network
 
   # ---------------------------------------------------------------------------
-  # OpenTelemetry Collector (port 4317 for OTLP gRPC, 4318 for HTTP)
-  # Receives spans from all 4 projects (OSA, Canopy, BusinessOS, pm4py-rust)
+  # OpenTelemetry Collector (port 4317 gRPC, 4318 HTTP)
+  # Receives spans from all services, fans out to Jaeger + Weaver live-check.
+  # Pipeline: Services → Collector (4317/4318) → Jaeger + Weaver (validation)
   # ---------------------------------------------------------------------------
   otel-collector:
     image: otel/opentelemetry-collector:latest
@@ -216,6 +309,55 @@ services:
     command: [--config=/etc/otel-collector/config.yaml]
     depends_on:
       - jaeger
+      - weaver-live-check
+    networks:
+      - businessos-network
+
+  # ---------------------------------------------------------------------------
+  # Weaver Live-Check — Semantic Convention Validator (sidecar)
+  # Receives a copy of ALL OTLP spans from the collector, validates each span
+  # against semconv/model/ registry, and reports violations in real-time.
+  # Reports written to /reports/ volume and streamed to stdout (docker logs).
+  #
+  # Span flow: Services → Collector (4317) → Jaeger (traces)
+  #                                        → Weaver (4316, validation only)
+  # ---------------------------------------------------------------------------
+  weaver-live-check:
+    build:
+      context: ../docker/weaver
+      dockerfile: Dockerfile
+    image: weaver-live-check:local
+    container_name: businessos-weaver-live-check
+    restart: unless-stopped
+    ports:
+      - "4320:4320"   # Weaver admin (/stop endpoint)
+    environment:
+      RUST_LOG: "${WEAVER_LOG_LEVEL:-info}"
+    volumes:
+      - ../semconv/model:/semconv/model:ro
+      - ../semconv/policies:/semconv/policies:ro
+      - weaver_reports:/reports
+    command:
+      - registry
+      - live-check
+      - -r
+      - /semconv/model
+      - --skip-policies
+      - --input-source
+      - otlp
+      - --otlp-grpc-port
+      - "4316"
+      - --admin-port
+      - "4320"
+      - --format
+      - json
+      - --output
+      - /reports/
+      - --diagnostic-format
+      - json
+      - --diagnostic-stdout
+      - --inactivity-timeout
+      - "86400"
     networks:
       - businessos-network
 
@@ -230,6 +372,7 @@ services:
     ports:
       - "6831:6831/udp"  # Jaeger agent compact Thrift
       - "6832:6832/udp"  # Jaeger agent binary Thrift
+      - "14250:14250"    # gRPC model.proto (used by OTLP exporter)
       - "16686:16686"    # Jaeger UI (http://localhost:16686)
     environment:
       MEMORY_MAX_TRACES: "5000"
@@ -278,6 +421,8 @@ volumes:
     driver: local
   redis_data:
     driver: local
+  weaver_reports:
+    driver: local
 
 # =============================================================================
 # Networks
@@ -287,4 +432,6 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        # /24 (256 IPs) is sufficient and avoids collisions with common Docker ranges.
+        # The previous /16 (65k IPs) at 172.20.x.x frequently collided with other networks.
+        - subnet: 172.28.0.0/24

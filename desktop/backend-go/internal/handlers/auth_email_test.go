@@ -180,7 +180,7 @@ func TestLoginMaxAttempts_Constant(t *testing.T) {
 
 func TestLoginLockDuration_Constant(t *testing.T) {
 	// 15 minutes
-	assert.Equal(t, 15*60*1000*1000*1000, loginLockDuration.Nanoseconds())
+	assert.Equal(t, int64(15*60*1000*1000*1000), loginLockDuration.Nanoseconds())
 }
 
 // ---------------------------------------------------------------------------

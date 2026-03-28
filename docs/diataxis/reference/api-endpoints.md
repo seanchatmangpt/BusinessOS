@@ -2,7 +2,12 @@
 
 **Information-oriented.** Complete list of all BusinessOS HTTP endpoints for lookup.
 
+**Last updated:** 2026-03-27 — Added BOS Gateway status route, corrected request schemas, added A2A agent protocol routes, added 2PC status route.
+
 Format: `METHOD /path` → description, request body, response schema, status codes.
+
+> **Path prefix note:** All `/api/*` routes are registered under both `/api/*` (deprecated, returns
+> deprecation headers) and `/api/v1/*` (current). CSRF is skipped for `/api/bos/*` paths.
 
 ---
 
@@ -17,7 +22,6 @@ Health check endpoint (no auth).
     "timestamp": "2026-03-25T10:00:00Z"
   }
   ```
-- **See also:** Troubleshooting health checks
 
 ### GET /ready
 Readiness probe (no auth).
@@ -29,7 +33,6 @@ Readiness probe (no auth).
     "redis": "connected"
   }
   ```
-- **See also:** Kubernetes liveness/readiness probes
 
 ### GET /health/detailed
 Detailed health report with component status (no auth).
@@ -77,7 +80,6 @@ List all conversations for user.
   }
   ```
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** How-to: Create a conversation
 
 ### POST /api/v1/conversations
 Create new conversation.
@@ -103,23 +105,7 @@ Create new conversation.
 ### GET /api/v1/conversations/:id
 Retrieve single conversation.
 - **Auth:** Required
-- **Response:** `200 OK`
-  ```json
-  {
-    "id": "uuid",
-    "title": "Project Planning",
-    "context_id": "uuid",
-    "created_at": "2026-03-25T10:00:00Z",
-    "messages": [
-      {
-        "id": "uuid",
-        "role": "user",
-        "content": "What's the project status?",
-        "created_at": "2026-03-25T10:00:00Z"
-      }
-    ]
-  }
-  ```
+- **Response:** `200 OK` with conversation + messages array
 - **Status codes:** `200 OK`, `401 Unauthorized`, `404 Not Found`, `500 Internal Server Error`
 
 ### POST /api/v1/conversations/:id/messages
@@ -133,24 +119,14 @@ Add message to conversation.
   }
   ```
 - **Response:** `201 Created`
-  ```json
-  {
-    "id": "uuid",
-    "conversation_id": "uuid",
-    "role": "user",
-    "content": "What's the project status?",
-    "created_at": "2026-03-25T10:00:00Z"
-  }
-  ```
 - **Status codes:** `201 Created`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found`, `500 Internal Server Error`
 
 ### GET /api/v1/conversations/:id/sync
 Sync conversation (real-time updates).
 - **Auth:** Required
-- **Query:** `since=2026-03-25T10:00:00Z` (last sync timestamp)
+- **Query:** `since=2026-03-25T10:00:00Z`
 - **Response:** `200 OK` with updated messages
 - **Status codes:** `200 OK`, `401 Unauthorized`, `404 Not Found`
-- **See also:** Real-time synchronization guide
 
 ---
 
@@ -160,26 +136,8 @@ Sync conversation (real-time updates).
 List all projects for user.
 - **Auth:** Required
 - **Query:** `status=ACTIVE`, `limit=50`, `offset=0`
-- **Response:** `200 OK`
-  ```json
-  {
-    "projects": [
-      {
-        "id": "uuid",
-        "name": "Client Portal",
-        "description": "Build client-facing portal",
-        "status": "ACTIVE",
-        "priority": "HIGH",
-        "start_date": "2026-03-01",
-        "due_date": "2026-06-30",
-        "created_at": "2026-03-25T10:00:00Z"
-      }
-    ],
-    "total": 10
-  }
-  ```
+- **Response:** `200 OK` with projects array and `total` count
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** How-to: Create a project
 
 ### POST /api/v1/projects
 Create new project.
@@ -223,7 +181,6 @@ Sync all projects (real-time).
 - **Auth:** Required
 - **Query:** `since=timestamp`
 - **Response:** `200 OK` with updated projects
-- **See also:** Sync operations reference
 
 ---
 
@@ -233,25 +190,7 @@ Sync all projects (real-time).
 List all tasks for user.
 - **Auth:** Required
 - **Query:** `status=todo`, `project_id=uuid`, `limit=50`
-- **Response:** `200 OK`
-  ```json
-  {
-    "tasks": [
-      {
-        "id": "uuid",
-        "title": "Design homepage",
-        "description": "Create wireframes and mockups",
-        "status": "in_progress",
-        "priority": "high",
-        "due_date": "2026-04-15",
-        "project_id": "uuid",
-        "assignee_id": "uuid",
-        "created_at": "2026-03-25T10:00:00Z"
-      }
-    ],
-    "total": 45
-  }
-  ```
+- **Response:** `200 OK` with tasks array and `total` count
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
 
 ### POST /api/v1/tasks
@@ -295,27 +234,21 @@ Delete task.
 List task comments.
 - **Auth:** Required
 - **Response:** `200 OK` with array of comments
-- **See also:** Comments reference
 
 ### POST /api/v1/tasks/:id/comments
 Add comment to task.
 - **Auth:** Required
 - **Request:**
   ```json
-  {
-    "content": "Need more details on requirements",
-    "attachments": []
-  }
+  { "content": "Need more details on requirements", "attachments": [] }
   ```
 - **Response:** `201 Created`
-- **See also:** Comments reference
 
 ### GET /api/v1/tasks/sync
 Sync all tasks (real-time).
 - **Auth:** Required
 - **Query:** `since=timestamp`
 - **Response:** `200 OK`
-- **See also:** Sync operations reference
 
 ---
 
@@ -325,21 +258,7 @@ Sync all tasks (real-time).
 List all workspace nodes.
 - **Auth:** Required
 - **Query:** `parent_id=uuid`, `type=PROJECT`
-- **Response:** `200 OK`
-  ```json
-  {
-    "nodes": [
-      {
-        "id": "uuid",
-        "name": "Q1 Planning",
-        "type": "BUSINESS",
-        "health": "HEALTHY",
-        "parent_id": "uuid",
-        "created_at": "2026-03-25T10:00:00Z"
-      }
-    ]
-  }
-  ```
+- **Response:** `200 OK` with nodes array
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
 
 ### POST /api/v1/nodes
@@ -360,18 +279,7 @@ Create new workspace node.
 ### GET /api/v1/nodes/:id
 Retrieve node details with connections.
 - **Auth:** Required
-- **Response:** `200 OK`
-  ```json
-  {
-    "id": "uuid",
-    "name": "Q1 Planning",
-    "type": "BUSINESS",
-    "health": "HEALTHY",
-    "linked_projects": [],
-    "linked_contexts": [],
-    "children": []
-  }
-  ```
+- **Response:** `200 OK` with node + `linked_projects`, `linked_contexts`, `children`
 - **Status codes:** `200 OK`, `401 Unauthorized`, `404 Not Found`, `500 Internal Server Error`
 
 ### PUT /api/v1/nodes/:id
@@ -386,7 +294,6 @@ Retrieve full node dependency graph.
 - **Auth:** Required
 - **Response:** `200 OK` with graph structure (nodes, edges, relationships)
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** How-to: Visualize project structure
 
 ### GET /api/v1/nodes/sync
 Sync all nodes (real-time).
@@ -403,10 +310,7 @@ Authenticate user (email/password or OAuth).
 - **Auth:** Not required
 - **Request:**
   ```json
-  {
-    "email": "user@example.com",
-    "password": "secure_password"
-  }
+  { "email": "user@example.com", "password": "secure_password" }
   ```
 - **Response:** `200 OK`
   ```json
@@ -414,15 +318,10 @@ Authenticate user (email/password or OAuth).
     "access_token": "eyJhbGc...",
     "token_type": "Bearer",
     "expires_in": 3600,
-    "user": {
-      "id": "user_id",
-      "email": "user@example.com",
-      "name": "John Doe"
-    }
+    "user": { "id": "user_id", "email": "user@example.com", "name": "John Doe" }
   }
   ```
 - **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** How-to: Authenticate with OAuth
 
 ### POST /api/v1/auth/logout
 Logout user (invalidate token).
@@ -433,16 +332,7 @@ Logout user (invalidate token).
 ### GET /api/v1/users/me
 Get current user profile.
 - **Auth:** Required
-- **Response:** `200 OK`
-  ```json
-  {
-    "id": "user_id",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "image": "https://...",
-    "created_at": "2026-03-25T10:00:00Z"
-  }
-  ```
+- **Response:** `200 OK` with user object
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
 
 ### PUT /api/v1/users/me
@@ -450,10 +340,7 @@ Update current user profile.
 - **Auth:** Required
 - **Request:**
   ```json
-  {
-    "name": "John Doe",
-    "image": "https://..."
-  }
+  { "name": "John Doe", "image": "https://..." }
   ```
 - **Response:** `200 OK` with updated user object
 - **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
@@ -472,22 +359,7 @@ Get user by ID (admin only).
 List all clients.
 - **Auth:** Required
 - **Query:** `status=active`, `type=company`, `limit=50`
-- **Response:** `200 OK`
-  ```json
-  {
-    "clients": [
-      {
-        "id": "uuid",
-        "name": "Acme Corp",
-        "type": "company",
-        "status": "active",
-        "email": "contact@acme.com",
-        "phone": "+1-555-0100",
-        "created_at": "2026-03-25T10:00:00Z"
-      }
-    ]
-  }
-  ```
+- **Response:** `200 OK` with clients array
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
 
 ### POST /api/v1/clients
@@ -526,41 +398,7 @@ Delete client.
 
 ---
 
-## Integrations & A2A (Agent-to-Agent)
-
-### POST /api/v1/integrations/a2a/agents
-Create A2A (agent-to-agent) connection.
-- **Auth:** Required (JWT)
-- **Request:**
-  ```json
-  {
-    "agent_id": "agent_123",
-    "target_service": "osa",
-    "action": "execute_task"
-  }
-  ```
-- **Response:** `201 Created`
-- **Status codes:** `201 Created`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** A2A integration guide
-
-### GET /api/v1/integrations/a2a/agents
-List all A2A connections.
-- **Auth:** Required
-- **Response:** `200 OK`
-- **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
-
-### POST /api/v1/integrations/a2a/agents/:id/invoke
-Invoke remote agent action.
-- **Auth:** Required
-- **Request:**
-  ```json
-  {
-    "action": "execute_task",
-    "parameters": {}
-  }
-  ```
-- **Response:** `200 OK` with action result
-- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `404 Not Found`, `500 Internal Server Error`
+## Integrations (OAuth Callbacks)
 
 ### GET /api/v1/integrations/google/callback
 Google OAuth callback endpoint (no auth).
@@ -576,79 +414,390 @@ Microsoft OAuth callback endpoint (no auth).
 
 ---
 
+## A2A Agent Protocol
+
+Agent-to-agent endpoints use shared-secret authentication via the `X-Shared-Secret` header.
+The calling agent must also supply `X-Agent-ID` to identify itself in the audit trail.
+
+All responses include an `audit_entry` field with PROV-O hash-chain signature for governance.
+
+### POST /api/integrations/a2a/crm/deals
+Create a CRM deal via A2A call.
+- **Auth:** `X-Shared-Secret` header required; `X-Agent-ID` header identifies calling agent
+- **Request:**
+  ```json
+  {
+    "name": "Enterprise License",
+    "value": 50000.00,
+    "extra": { "source": "agent-7", "probability": 0.85 }
+  }
+  ```
+- **Response:** `201 Created`
+  ```json
+  {
+    "deal": {
+      "id": "uuid",
+      "name": "Enterprise License",
+      "value": 50000.00
+    },
+    "audit_entry": {
+      "id": "uuid",
+      "agent": "agent-7",
+      "action": "create",
+      "resource_type": "deal",
+      "resource_id": "uuid",
+      "sn_score": 0.9,
+      "hash": "sha256:..."
+    }
+  }
+  ```
+- **Status codes:** `201 Created`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+
+### POST /api/integrations/a2a/crm/leads
+Update a CRM lead status via A2A call.
+- **Auth:** `X-Shared-Secret` header required
+- **Request:**
+  ```json
+  {
+    "lead_id": "uuid",
+    "status": "qualified",
+    "extra": { "score": 92 }
+  }
+  ```
+- **Response:** `200 OK`
+  ```json
+  {
+    "lead": { "id": "uuid", "status": "qualified" },
+    "audit_entry": { ... }
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+
+### POST /api/integrations/a2a/projects/tasks
+Assign a task via A2A call.
+- **Auth:** `X-Shared-Secret` header required
+- **Request:**
+  ```json
+  {
+    "title": "Review proposal",
+    "assignee": "user@example.com",
+    "extra": { "priority": "high" }
+  }
+  ```
+- **Response:** `201 Created`
+  ```json
+  {
+    "task": { "id": "uuid", "title": "Review proposal", "assignee": "user@example.com" },
+    "audit_entry": { ... }
+  }
+  ```
+- **Status codes:** `201 Created`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+
+### POST /api/integrations/a2a/projects/progress
+Update project progress via A2A call.
+- **Auth:** `X-Shared-Secret` header required
+- **Request:**
+  ```json
+  {
+    "project_id": "uuid",
+    "status": "on_track",
+    "percent": 65,
+    "extra": { "milestone": "Phase 2 complete" }
+  }
+  ```
+- **Response:** `200 OK`
+  ```json
+  {
+    "status": "updated",
+    "audit_entry": { ... }
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+
+### GET /api/integrations/a2a/audit/query
+Query A2A audit trail for a resource.
+- **Auth:** `X-Shared-Secret` header required
+- **Query:** `resource_type=deal` (required), `resource_id=uuid` (optional)
+- **Response:** `200 OK`
+  ```json
+  {
+    "entries": [
+      {
+        "id": "uuid",
+        "agent": "agent-7",
+        "action": "create",
+        "resource_type": "deal",
+        "resource_id": "uuid",
+        "sn_score": 0.9,
+        "hash": "sha256:..."
+      }
+    ],
+    "count": 1
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+
+---
+
 ## BOS Gateway (Process Mining)
 
-### POST /api/v1/bos/discover
-Forward discovery request to pm4py-rust.
-- **Auth:** Required
+Routes are registered at `/api/bos/` (no versioning prefix). CSRF is skipped for this group.
+The gateway proxies requests to pm4py-rust (default: `http://localhost:8090`, override via `PM4PY_RUST_URL`).
+
+### GET /api/bos/status
+Gateway health and statistics.
+- **Auth:** None required
+- **Response:** `200 OK`
+  ```json
+  {
+    "status": "ok",
+    "database_ready": true,
+    "latency_ms": 2,
+    "requests_total": 142,
+    "requests_failed": 3,
+    "average_latency_ms": 185.4,
+    "uptime_seconds": 86400
+  }
+  ```
+- **Status codes:** `200 OK`
+
+### POST /api/bos/discover
+Trigger process model discovery on an event log via pm4py-rust.
+Results are persisted via write-ahead log before the response is returned.
+- **Auth:** None required (CSRF skipped)
 - **Request:**
   ```json
   {
-    "log_file": "base64_encoded_csv",
-    "algorithm": "heuristics"
+    "log_path": "/data/events/order-process.json",
+    "algorithm": "inductive_miner"
   }
   ```
-- **Response:** `202 Accepted` (async processing)
-- **Status codes:** `202 Accepted`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
-- **See also:** Process mining guide
+  | Field | Type | Required | Default | Values |
+  |-------|------|----------|---------|--------|
+  | `log_path` | string | yes | — | Path to JSON or XES log file |
+  | `algorithm` | string | no | `inductive_miner` | `alpha`, `heuristics`, `inductive_miner` |
 
-### POST /api/v1/bos/conformance
-Check log conformance against process model.
-- **Auth:** Required
+- **Response:** `200 OK`
+  ```json
+  {
+    "model_id": "uuid",
+    "algorithm": "inductive_miner",
+    "places": 12,
+    "transitions": 8,
+    "arcs": 24,
+    "model_data": { ... },
+    "latency_ms": 310
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request` (missing `log_path`), `503 Service Unavailable` (pm4py-rust down), `500 Internal Server Error`
+- **See also:** Process mining guide; pm4py-rust `/api/discovery/alpha`
+
+### POST /api/bos/conformance
+Check event log conformance against a process model via pm4py-rust.
+- **Auth:** None required (CSRF skipped)
 - **Request:**
   ```json
   {
-    "log_file": "base64_encoded_csv",
-    "model": "base64_encoded_model"
+    "log_path": "/data/events/order-process.json",
+    "model_id": "uuid",
+    "model_path": "/data/models/order-model.pnml"
   }
   ```
-- **Response:** `202 Accepted`
-- **Status codes:** `202 Accepted`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+  | Field | Type | Required |
+  |-------|------|----------|
+  | `log_path` | string | yes |
+  | `model_id` | string | yes |
+  | `model_path` | string | no |
 
-### POST /api/v1/bos/progress
-Receive progress updates from pm4py-rust (internal).
-- **Auth:** Required (JWT)
+- **Response:** `200 OK`
+  ```json
+  {
+    "traces_checked": 1200,
+    "fitting_traces": 1140,
+    "fitness": 0.95,
+    "precision": 0.88,
+    "generalization": 0.91,
+    "simplicity": 0.82,
+    "latency_ms": 520
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`, `500 Internal Server Error`
+
+### POST /api/bos/statistics
+Extract statistics from an event log via pm4py-rust.
+- **Auth:** None required (CSRF skipped)
 - **Request:**
   ```json
   {
-    "session_id": "uuid",
-    "status": "processing",
-    "progress": 45,
-    "message": "Discovering patterns..."
+    "log_path": "/data/events/order-process.json"
   }
   ```
 - **Response:** `200 OK`
-- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
-
-### GET /api/v1/bos/stream/:session_id
-Stream discovery results via Server-Sent Events (SSE).
-- **Auth:** Required
-- **Response:** `200 OK` with event stream
+  ```json
+  {
+    "log_name": "order-process",
+    "num_traces": 1200,
+    "num_events": 14400,
+    "num_unique_activities": 12,
+    "num_variants": 38,
+    "avg_trace_length": 12.0,
+    "min_trace_length": 3,
+    "max_trace_length": 24,
+    "activity_frequency": [
+      { "activity": "Place Order", "frequency": 1200, "percentage": 8.33 }
+    ],
+    "case_duration": {
+      "min_seconds": 300,
+      "max_seconds": 172800,
+      "avg_seconds": 14400.0,
+      "median_seconds": 10800.0
+    },
+    "latency_ms": 210
+  }
   ```
-  data: {"progress": 45, "status": "processing"}
+- **Status codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`, `500 Internal Server Error`
+
+---
+
+## BOS Progress & Streaming
+
+### POST /api/bos/progress
+Receive progress events from pm4py-rust during discovery/conformance operations.
+Events are broadcast to SSE subscribers. This endpoint is called by pm4py-rust, not browsers.
+- **Auth:** JWT Bearer token required (`Authorization: Bearer <token>`)
+- **Request:**
+  ```json
+  {
+    "progress": 50,
+    "algorithm": "inductive_miner",
+    "elapsed_ms": 2500,
+    "session_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
   ```
-- **Status codes:** `200 OK`, `401 Unauthorized`, `404 Not Found`
+  | Field | Type | Required | Notes |
+  |-------|------|----------|-------|
+  | `progress` | uint32 | yes | 0–100 |
+  | `algorithm` | string | yes | Name of running algorithm |
+  | `elapsed_ms` | uint64 | yes | Wall-clock ms since start |
+  | `session_id` | string | no | UUID; auto-generated if omitted |
 
-### POST /api/v1/bos/tx/prepare
-Prepare phase of two-phase commit.
-- **Auth:** Required
-- **Request:** Transaction details
 - **Response:** `200 OK`
-- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+  ```json
+  { "status": "received", "session_id": "550e8400-e29b-41d4-a716-446655440000" }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request` (invalid body or progress > 100), `401 Unauthorized`
 
-### POST /api/v1/bos/tx/commit
-Commit phase of two-phase commit.
-- **Auth:** Required
-- **Request:** Transaction ID
-- **Response:** `200 OK`
-- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+### GET /api/bos/stream/discover/:session_id
+Server-Sent Events stream for real-time discovery progress. Connect from browser to follow a running discovery job.
+- **Auth:** JWT Bearer token required (user must be authenticated)
+- **Path param:** `session_id` — UUID returned by or used in the discovery request
+- **Response:** `200 OK` with `Content-Type: text/event-stream`
+  ```
+  data: {"id":"uuid","event_type":"discovery_progress","session_id":"...","progress":{"events_processed":5000,"percent_complete":42,"current_step":"inductive_miner"},"timestamp_ms":1711500000000}
 
-### POST /api/v1/bos/tx/abort
-Abort transaction (rollback).
-- **Auth:** Required
-- **Request:** Transaction ID
+  data: {"event_type":"discovery_complete","session_id":"...","timestamp_ms":1711500010000}
+  ```
+- **Status codes:** `200 OK` (stream open), `400 Bad Request` (invalid session UUID), `401 Unauthorized`, `500 Internal Server Error`
+
+---
+
+## BOS Transactions (Two-Phase Commit)
+
+These endpoints implement the prepare/commit/abort protocol for distributed process mining transactions across pm4py-rust participants.
+
+### POST /api/bos/tx/prepare
+Initiate prepare phase. Validates input and locks the transaction participant.
+- **Auth:** None required (CSRF skipped)
+- **Request:**
+  ```json
+  {
+    "transaction_id": "uuid",
+    "algorithm": "inductive_miner",
+    "log_data": {
+      "log_path": "/data/events/order-process.json",
+      "format": "json"
+    },
+    "parameters": {
+      "noise_threshold": 0.2,
+      "max_iterations": 100
+    },
+    "timeout_ms": 30000
+  }
+  ```
+  | Field | Type | Required |
+  |-------|------|----------|
+  | `transaction_id` | string | yes |
+  | `algorithm` | string | yes |
+  | `log_data` | object | yes |
+  | `parameters` | object | yes |
+  | `timeout_ms` | int64 | no |
+
 - **Response:** `200 OK`
-- **Status codes:** `200 OK`, `400 Bad Request`, `401 Unauthorized`, `500 Internal Server Error`
+  ```json
+  {
+    "transaction_id": "uuid",
+    "status": "prepared",
+    "vote": "commit",
+    "version": 1,
+    "model": { "model_id": "uuid", "algorithm": "inductive_miner" },
+    "timestamp": "2026-03-27T10:00:00Z"
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `500 Internal Server Error`
+
+### POST /api/bos/tx/commit
+Commit a previously prepared transaction. Must be called after successful prepare.
+- **Auth:** None required (CSRF skipped)
+- **Request:**
+  ```json
+  { "transaction_id": "uuid" }
+  ```
+- **Response:** `200 OK`
+  ```json
+  {
+    "transaction_id": "uuid",
+    "status": "committed",
+    "version": 2,
+    "timestamp": "2026-03-27T10:00:01Z"
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `500 Internal Server Error`
+
+### POST /api/bos/tx/abort
+Abort and roll back a transaction (prepared or in-progress).
+- **Auth:** None required (CSRF skipped)
+- **Request:**
+  ```json
+  {
+    "transaction_id": "uuid",
+    "reason": "participant timeout"
+  }
+  ```
+- **Response:** `200 OK`
+  ```json
+  {
+    "transaction_id": "uuid",
+    "status": "aborted",
+    "version": 2,
+    "timestamp": "2026-03-27T10:00:02Z"
+  }
+  ```
+- **Status codes:** `200 OK`, `400 Bad Request`, `500 Internal Server Error`
+
+### GET /api/bos/tx/status/:xid
+Retrieve current status of a transaction by its ID.
+- **Auth:** None required
+- **Path param:** `xid` — transaction UUID from prepare response
+- **Response:** `200 OK`
+  ```json
+  {
+    "transaction_id": "uuid",
+    "status": "prepared",
+    "started_at": "2026-03-27T10:00:00Z",
+    "timestamp": "2026-03-27T10:00:00Z"
+  }
+  ```
+- **Status codes:** `200 OK`, `404 Not Found`, `500 Internal Server Error`
 
 ---
 
@@ -673,7 +822,6 @@ List all compliance rules (SOC2, HIPAA, GDPR).
   }
   ```
 - **Status codes:** `200 OK`, `401 Unauthorized`, `403 Forbidden`, `500 Internal Server Error`
-- **See also:** SOC2 compliance configuration reference
 
 ### POST /api/v1/compliance/rules/reload
 Hot-reload compliance rules (no restart).
@@ -702,19 +850,7 @@ Retrieve audit trail (SOC2 A1).
 ### GET /api/v1/skills
 List available skills.
 - **Auth:** Required
-- **Response:** `200 OK`
-  ```json
-  {
-    "skills": [
-      {
-        "id": "skill_uuid",
-        "name": "send_email",
-        "description": "Send email via integrated mail service",
-        "category": "communication"
-      }
-    ]
-  }
-  ```
+- **Response:** `200 OK` with skills array
 - **Status codes:** `200 OK`, `401 Unauthorized`, `500 Internal Server Error`
 
 ### POST /api/v1/skills/:id/execute
@@ -745,12 +881,7 @@ Full-text search across all resources.
   ```json
   {
     "results": [
-      {
-        "type": "project",
-        "id": "uuid",
-        "title": "Client Portal",
-        "snippet": "Build client-facing portal..."
-      }
+      { "type": "project", "id": "uuid", "title": "Client Portal", "snippet": "Build client-facing portal..." }
     ],
     "total": 42
   }
@@ -820,7 +951,7 @@ Sync all contexts (real-time).
 
 ## Synchronization (Real-Time)
 
-All sync endpoints follow same pattern:
+All sync endpoints follow the same pattern:
 
 ### GET /api/v1/{resource}/sync
 Sync {resource} changes since last sync.
@@ -848,25 +979,18 @@ Sync {resource} changes since last sync.
 
 ## OSA Health & Config (Public)
 
-### GET /api/v1/osa/health
+### GET /api/osa/health
 Check OSA service health (no auth).
 - **Response:** `200 OK`
   ```json
-  {
-    "status": "healthy",
-    "version": "1.0.0",
-    "uptime_seconds": 86400
-  }
+  { "status": "healthy", "version": "1.0.0", "uptime_seconds": 86400 }
   ```
 
-### POST /api/v1/osa/config
+### POST /api/osa/config
 Send OSA configuration (no auth).
 - **Request:**
   ```json
-  {
-    "agent_pool_size": 10,
-    "timeout_ms": 5000
-  }
+  { "agent_pool_size": 10, "timeout_ms": 5000 }
   ```
 - **Response:** `200 OK`
 
@@ -880,7 +1004,7 @@ Send OSA configuration (no auth).
 | `200 OK` | Request succeeded, response body contains data |
 | `201 Created` | Resource created, response body contains new resource |
 | `204 No Content` | Request succeeded, no response body (e.g., DELETE) |
-| `202 Accepted` | Request accepted for async processing (e.g., discovery job) |
+| `202 Accepted` | Request accepted for async processing |
 
 ### Client Error Codes
 | Code | Meaning |
@@ -895,25 +1019,28 @@ Send OSA configuration (no auth).
 | Code | Meaning |
 |------|---------|
 | `500 Internal Server Error` | Server error, check logs |
-| `503 Service Unavailable` | Service temporarily unavailable (e.g., database down) |
+| `503 Service Unavailable` | Service temporarily unavailable (e.g., pm4py-rust down) |
 
 ---
 
 ## Authentication
 
-All endpoints except `/health`, `/ready`, `/healthz`, `/readyz`, and OAuth callbacks require:
+All endpoints except `/health`, `/ready`, `/healthz`, `/readyz`, OSA health, and OAuth callbacks require:
 
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-**Token Format:** JWT with claims:
+A2A endpoints use a separate shared-secret scheme:
+
+```
+X-Shared-Secret: <SECRET>
+X-Agent-ID: <calling-agent-id>
+```
+
+**JWT Token Format:**
 ```json
-{
-  "sub": "user_id",
-  "email": "user@example.com",
-  "exp": 1234567890
-}
+{ "sub": "user_id", "email": "user@example.com", "exp": 1234567890 }
 ```
 
 ---
@@ -926,3 +1053,4 @@ Authorization: Bearer <JWT_TOKEN>
 - Error codes & troubleshooting
 - Database schema reference
 - Configuration options reference
+- Process mining guide (BOS Gateway + pm4py-rust)

@@ -9,10 +9,24 @@ import (
 	"time"
 )
 
+// requireServices checks that both OSA and BOS are reachable, skipping the test if not.
+func requireServices(t *testing.T, urls ...string) {
+	t.Helper()
+	client := &http.Client{Timeout: 2 * time.Second}
+	for _, u := range urls {
+		resp, err := client.Get(u)
+		if err != nil {
+			t.Skipf("Skipping: service not reachable at %s: %v", u, err)
+		}
+		resp.Body.Close()
+	}
+}
+
 // TestBOSToOSAHandshake tests the BusinessOS -> OSA bidirectional communication
 func TestBOSToOSAHandshake(t *testing.T) {
 	osaURL := "http://localhost:8089"
 	bosURL := "http://localhost:8001"
+	requireServices(t, osaURL+"/api/v1/a2a/agent-card", bosURL+"/api/v1/me")
 
 	// Test 1: OSA service is alive and responds
 	t.Run("OSA_Service_Alive", func(t *testing.T) {
@@ -328,6 +342,7 @@ func TestBOSToOSAHandshake(t *testing.T) {
 func TestCrossSystemDataFlow(t *testing.T) {
 	bosURL := "http://localhost:8001"
 	osaURL := "http://localhost:8089"
+	requireServices(t, bosURL+"/health")
 
 	t.Run("Full_Integration_Chain_Startup", func(t *testing.T) {
 		client := &http.Client{Timeout: 5 * time.Second}
