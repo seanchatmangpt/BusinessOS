@@ -49,22 +49,4 @@ const (
 	// Kind: internal
 	// Stability: development
 	BosWorkspaceOperationSpan = "bos.workspace.operation"
-	// bos_gateway_discover is the span name for "bos.gateway.discover".
-	//
-	// Process discovery request forwarded to pm4py-rust via BOS gateway.
-	// Kind: server
-	// Stability: development
-	BosGatewayDiscoverSpan = "bos.gateway.discover"
-	// bos_gateway_conformance is the span name for "bos.gateway.conformance".
-	//
-	// Conformance checking request forwarded to pm4py-rust via BOS gateway.
-	// Kind: server
-	// Stability: development
-	BosGatewayConformanceSpan = "bos.gateway.conformance"
-	// bos_gateway_statistics is the span name for "bos.gateway.statistics".
-	//
-	// Statistics request forwarded to pm4py-rust via BOS gateway.
-	// Kind: server
-	// Stability: development
-	BosGatewayStatisticsSpan = "bos.gateway.statistics"
 )
