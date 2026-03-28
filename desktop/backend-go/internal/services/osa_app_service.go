@@ -143,9 +143,11 @@ func (s *OSAAppService) runGeneration(
 		s.logger.Warn("failed to send progress event", "error", err)
 	}
 
-	// TODO: Generate prompt from templates (placeholder for now)
-	// This would integrate with the prompt template system
-	generatedPrompt := req.Description
+	// Build a structured prompt from template type, name, and description.
+	generatedPrompt := fmt.Sprintf(
+		"Build a %s application named %q.\n\nRequirements:\n%s",
+		req.TemplateType, req.Name, req.Description,
+	)
 
 	// Send progress update
 	if err := s.sendEvent(eventCh, streaming.StreamEvent{
