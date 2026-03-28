@@ -18,61 +18,61 @@ import (
 // ComplianceService manages in-memory compliance state, audit trail caching,
 // score computation, gap analysis rules, and compliance rule engine.
 type ComplianceService struct {
-	mu           sync.RWMutex
-	status       ComplianceStatus
-	auditCache   map[string][]AuditEntry
-	gaps         map[string][]ComplianceGap
-	lastRefresh  time.Time
-	osaBaseURL   string
-	httpClient   *http.Client
-	logger       *slog.Logger
-	ruleEngine   *RuleEngine
-	ruleLoader   *RuleLoader
+	mu          sync.RWMutex
+	status      ComplianceStatus
+	auditCache  map[string][]AuditEntry
+	gaps        map[string][]ComplianceGap
+	lastRefresh time.Time
+	osaBaseURL  string
+	httpClient  *http.Client
+	logger      *slog.Logger
+	ruleEngine  *RuleEngine
+	ruleLoader  *RuleLoader
 }
 
 // ComplianceStatus represents the overall compliance posture.
 type ComplianceStatus struct {
-	OverallScore float64                        `json:"overall_score"`
-	Domains      map[string]DomainCompliance     `json:"domains"`
-	LastAudit    time.Time                       `json:"last_audit"`
-	Certificates []Certificate                   `json:"certificates"`
+	OverallScore float64                     `json:"overall_score"`
+	Domains      map[string]DomainCompliance `json:"domains"`
+	LastAudit    time.Time                   `json:"last_audit"`
+	Certificates []Certificate               `json:"certificates"`
 }
 
 // DomainCompliance tracks per-domain compliance metrics.
 type DomainCompliance struct {
-	Score       float64 `json:"score"`
-	ChecksPassed int    `json:"checks_passed"`
-	ChecksFailed int    `json:"checks_failed"`
+	Score        float64 `json:"score"`
+	ChecksPassed int     `json:"checks_passed"`
+	ChecksFailed int     `json:"checks_failed"`
 }
 
 // Certificate represents an earned compliance certification.
 type Certificate struct {
-	Name         string    `json:"name"`
-	Framework    string    `json:"framework"`
-	IssuedAt     time.Time `json:"issued_at"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	Status       string    `json:"status"`
+	Name      string    `json:"name"`
+	Framework string    `json:"framework"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Status    string    `json:"status"`
 }
 
 // AuditEntry is a single entry in the hash-chain verified audit trail.
 type AuditEntry struct {
-	ID          string            `json:"id"`
-	SessionID   string            `json:"session_id"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Action      string            `json:"action"`
-	Actor       string            `json:"actor"`
-	ToolName    string            `json:"tool_name,omitempty"`
-	Details     map[string]any    `json:"details,omitempty"`
-	Hash        string            `json:"hash"`
-	PrevHash    string            `json:"prev_hash"`
+	ID        string         `json:"id"`
+	SessionID string         `json:"session_id"`
+	Timestamp time.Time      `json:"timestamp"`
+	Action    string         `json:"action"`
+	Actor     string         `json:"actor"`
+	ToolName  string         `json:"tool_name,omitempty"`
+	Details   map[string]any `json:"details,omitempty"`
+	Hash      string         `json:"hash"`
+	PrevHash  string         `json:"prev_hash"`
 }
 
 // AuditTrailResponse is the paginated response from the audit trail endpoint.
 type AuditTrailResponse struct {
-	Entries  []AuditEntry `json:"entries"`
-	Total    int          `json:"total"`
-	Offset   int          `json:"offset"`
-	Limit    int          `json:"limit"`
+	Entries []AuditEntry `json:"entries"`
+	Total   int          `json:"total"`
+	Offset  int          `json:"offset"`
+	Limit   int          `json:"limit"`
 }
 
 // VerifyResult contains the result of audit chain verification.
@@ -95,10 +95,10 @@ type ComplianceGap struct {
 
 // GapAnalysisResponse contains the full gap analysis for a framework.
 type GapAnalysisResponse struct {
-	Framework string          `json:"framework"`
-	Gaps      []ComplianceGap `json:"gaps"`
-	Score     float64         `json:"score"`
-	AnalyzedAt time.Time      `json:"analyzed_at"`
+	Framework  string          `json:"framework"`
+	Gaps       []ComplianceGap `json:"gaps"`
+	Score      float64         `json:"score"`
+	AnalyzedAt time.Time       `json:"analyzed_at"`
 }
 
 // EvidenceCollectRequest is the body for POST /api/compliance/evidence/collect.
@@ -109,14 +109,14 @@ type EvidenceCollectRequest struct {
 
 // EvidenceItem is a single piece of collected compliance evidence.
 type EvidenceItem struct {
-	ID          string            `json:"id"`
-	Domain      string            `json:"domain"`
-	Period      string            `json:"period"`
-	Type        string            `json:"type"`
-	Description string            `json:"description"`
-	CollectedAt time.Time         `json:"collected_at"`
-	Hash        string            `json:"hash"`
-	Metadata    map[string]any    `json:"metadata,omitempty"`
+	ID          string         `json:"id"`
+	Domain      string         `json:"domain"`
+	Period      string         `json:"period"`
+	Type        string         `json:"type"`
+	Description string         `json:"description"`
+	CollectedAt time.Time      `json:"collected_at"`
+	Hash        string         `json:"hash"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // EvidenceCollectResponse is returned after evidence collection.
@@ -137,12 +137,12 @@ type RemediationRequest struct {
 
 // RemediationTask represents a created remediation task.
 type RemediationTask struct {
-	ID        string `json:"id"`
-	GapID     string `json:"gap_id"`
-	Priority  string `json:"priority"`
-	Assignee  string `json:"assignee"`
-	DueDate   string `json:"due_date"`
-	Status    string `json:"status"`
+	ID        string    `json:"id"`
+	GapID     string    `json:"gap_id"`
+	Priority  string    `json:"priority"`
+	Assignee  string    `json:"assignee"`
+	DueDate   string    `json:"due_date"`
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -152,13 +152,13 @@ func NewComplianceService(osaBaseURL string, logger *slog.Logger) *ComplianceSer
 	ruleLoader := NewRuleLoader("config/compliance-rules.yaml", logger)
 
 	svc := &ComplianceService{
-		osaBaseURL:   osaBaseURL,
-		auditCache:   make(map[string][]AuditEntry),
-		gaps:         make(map[string][]ComplianceGap),
-		httpClient:   &http.Client{Timeout: 15 * time.Second},
-		logger:       logger,
-		ruleEngine:   ruleEngine,
-		ruleLoader:   ruleLoader,
+		osaBaseURL: osaBaseURL,
+		auditCache: make(map[string][]AuditEntry),
+		gaps:       make(map[string][]ComplianceGap),
+		httpClient: &http.Client{Timeout: 15 * time.Second},
+		logger:     logger,
+		ruleEngine: ruleEngine,
+		ruleLoader: ruleLoader,
 	}
 
 	// Set up handlers for rule engine actions
@@ -176,9 +176,9 @@ func NewComplianceService(osaBaseURL string, logger *slog.Logger) *ComplianceSer
 	svc.status = ComplianceStatus{
 		OverallScore: 0,
 		Domains: map[string]DomainCompliance{
-			"data_security":    {Score: 0, ChecksPassed: 0, ChecksFailed: 0},
+			"data_security":     {Score: 0, ChecksPassed: 0, ChecksFailed: 0},
 			"process_integrity": {Score: 0, ChecksPassed: 0, ChecksFailed: 0},
-			"regulatory":       {Score: 0, ChecksPassed: 0, ChecksFailed: 0},
+			"regulatory":        {Score: 0, ChecksPassed: 0, ChecksFailed: 0},
 		},
 		Certificates: []Certificate{},
 	}
@@ -390,9 +390,9 @@ func (s *ComplianceService) GetGapAnalysis(ctx context.Context, framework string
 	score := computeGapScore(gaps)
 
 	return GapAnalysisResponse{
-		Framework: framework,
-		Gaps:      gaps,
-		Score:     score,
+		Framework:  framework,
+		Gaps:       gaps,
+		Score:      score,
 		AnalyzedAt: time.Now(),
 	}, nil
 }
@@ -448,9 +448,9 @@ func (s *ComplianceService) refreshFromOSA(ctx context.Context) error {
 	}
 
 	var osaStatus struct {
-		Score   float64                        `json:"score"`
-		Domains map[string]DomainCompliance     `json:"domains"`
-		AuditAt string                          `json:"last_audit"`
+		Score   float64                     `json:"score"`
+		Domains map[string]DomainCompliance `json:"domains"`
+		AuditAt string                      `json:"last_audit"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&osaStatus); err != nil {
@@ -862,10 +862,10 @@ func (s *ComplianceService) VerifyCompliance(ctx context.Context, req Compliance
 		LastAuditDate:       time.Now().Format(time.RFC3339),
 		Gaps:                gaps,
 		ComplianceStatus: map[string]interface{}{
-			"score":             score,
-			"status":            status,
-			"checked_at":        time.Now(),
-			"workspace_id":      req.WorkspaceID,
+			"score":        score,
+			"status":       status,
+			"checked_at":   time.Now(),
+			"workspace_id": req.WorkspaceID,
 		},
 	}, nil
 }

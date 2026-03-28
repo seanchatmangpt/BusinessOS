@@ -37,10 +37,10 @@ type AppVersionSnapshot struct {
 
 // VersionStats provides statistics about app versions
 type VersionStats struct {
-	TotalVersions  int64     `json:"total_versions"`
-	FirstVersionAt time.Time `json:"first_version_at"`
+	TotalVersions   int64     `json:"total_versions"`
+	FirstVersionAt  time.Time `json:"first_version_at"`
 	LatestVersionAt time.Time `json:"latest_version_at"`
-	UniqueCreators int64     `json:"unique_creators"`
+	UniqueCreators  int64     `json:"unique_creators"`
 }
 
 // SemanticVersion represents a parsed semantic version

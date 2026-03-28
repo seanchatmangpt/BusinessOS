@@ -110,16 +110,16 @@ func TestModelRepository_SaveAndRetrieve(t *testing.T) {
 	arcs := json.RawMessage(`[{"from":"p1","to":"t1","weight":1}]`)
 
 	model := &DiscoveredModel{
-		WorkspaceID:   workspaceID,
-		Name:          "Test Model",
-		Description:   stringPtr("A test Petri net"),
-		ModelType:     "petri_net",
-		Places:        &places,
-		Transitions:   &transitions,
-		Arcs:          &arcs,
-		SourceLogID:   logID,
-		CreatedBy:     stringPtr("test_user"),
-		FitnessScore:  float64Ptr(0.95),
+		WorkspaceID:    workspaceID,
+		Name:           "Test Model",
+		Description:    stringPtr("A test Petri net"),
+		ModelType:      "petri_net",
+		Places:         &places,
+		Transitions:    &transitions,
+		Arcs:           &arcs,
+		SourceLogID:    logID,
+		CreatedBy:      stringPtr("test_user"),
+		FitnessScore:   float64Ptr(0.95),
 		PrecisionScore: float64Ptr(0.88),
 	}
 
@@ -313,16 +313,16 @@ func TestConformanceRepository_SaveAndRetrieve(t *testing.T) {
 	// Create conformance result
 	traceFitness := json.RawMessage(`[{"trace_id":"t1","fitness":0.98}]`)
 	result := &ConformanceResult{
-		WorkspaceID:     workspaceID,
-		ModelID:         modelID,
-		LogID:           logID,
-		ConformanceType: "token_replay",
-		Fitness:         0.95,
-		Precision:       float64Ptr(0.88),
-		IsFitting:       true,
-		TraceFitness:    &traceFitness,
-		TotalTraces:     100,
-		FittingTraces:   95,
+		WorkspaceID:      workspaceID,
+		ModelID:          modelID,
+		LogID:            logID,
+		ConformanceType:  "token_replay",
+		Fitness:          0.95,
+		Precision:        float64Ptr(0.88),
+		IsFitting:        true,
+		TraceFitness:     &traceFitness,
+		TotalTraces:      100,
+		FittingTraces:    95,
 		NonFittingTraces: 5,
 	}
 
@@ -450,14 +450,14 @@ func TestAuditRepository_RecordAndRetrieve(t *testing.T) {
 	newValues := json.RawMessage(`{"fitness":0.95}`)
 
 	entry := &AuditLogEntry{
-		WorkspaceID: workspaceID,
-		EntityType:  "discovered_model",
-		EntityID:    entityID,
-		Operation:   "UPDATE",
-		OldValues:   &oldValues,
-		NewValues:   &newValues,
+		WorkspaceID:  workspaceID,
+		EntityType:   "discovered_model",
+		EntityID:     entityID,
+		Operation:    "UPDATE",
+		OldValues:    &oldValues,
+		NewValues:    &newValues,
 		SourceSystem: "bos",
-		UserID:      stringPtr("test_user"),
+		UserID:       stringPtr("test_user"),
 	}
 
 	// Record entry
@@ -599,10 +599,10 @@ func TestTransactionIsolation(t *testing.T) {
 
 	// Record audit entry
 	entry := &AuditLogEntry{
-		WorkspaceID: workspaceID,
-		EntityType:  "discovered_model",
-		EntityID:    modelID,
-		Operation:   "CREATE",
+		WorkspaceID:  workspaceID,
+		EntityType:   "discovered_model",
+		EntityID:     modelID,
+		Operation:    "CREATE",
 		SourceSystem: "bos",
 	}
 

@@ -130,8 +130,8 @@ func (h *OntologyHandler) Generate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status":       "generated",
-		"queries":      count,
-		"output_dir":   outputDir,
+		"status":     "generated",
+		"queries":    count,
+		"output_dir": outputDir,
 	})
 }

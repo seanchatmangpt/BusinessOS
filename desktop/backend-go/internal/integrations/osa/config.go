@@ -26,10 +26,10 @@ type Config struct {
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		BaseURL:      "http://localhost:8089",
-		Timeout:      30 * time.Second,
-		MaxRetries:   3,
-		RetryDelay:   2 * time.Second,
+		BaseURL:    "http://localhost:8089",
+		Timeout:    30 * time.Second,
+		MaxRetries: 3,
+		RetryDelay: 2 * time.Second,
 	}
 }
 

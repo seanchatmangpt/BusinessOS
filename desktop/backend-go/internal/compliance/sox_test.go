@@ -183,14 +183,14 @@ func TestSOXAuditValidatorBeforeAfterValues(t *testing.T) {
 	ctx := context.Background()
 
 	beforeData := map[string]interface{}{
-		"amount":    1000.00,
+		"amount":   1000.00,
 		"currency": "USD",
-		"status":    "pending",
+		"status":   "pending",
 	}
 	afterData := map[string]interface{}{
-		"amount":    1500.00,
+		"amount":   1500.00,
 		"currency": "USD",
-		"status":    "approved",
+		"status":   "approved",
 	}
 
 	beforeJSON, _ := json.Marshal(beforeData)

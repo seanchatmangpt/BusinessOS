@@ -32,18 +32,18 @@ type SessionStore struct {
 	client     *redis.Client
 	keyPrefix  string
 	ttl        time.Duration
-	hmacSecret []byte // HMAC secret for secure key derivation (prevents enumeration attacks)
+	hmacSecret []byte           // HMAC secret for secure key derivation (prevents enumeration attacks)
 	workerPool *CacheWorkerPool // Optional worker pool for bounded concurrency
 }
 
 // SessionStoreConfig configures the session store
 type SessionStoreConfig struct {
-	KeyPrefix        string        // Prefix for session keys (default: "session:")
-	TTL              time.Duration // Session TTL (default: 24 hours)
-	HMACSecret       string        // HMAC secret for secure key derivation (CRITICAL in production)
-	UseWorkerPool    bool          // Enable worker pool for bounded concurrency (default: false)
-	WorkerPoolSize   int           // Worker pool size (default: 10, only used if UseWorkerPool=true)
-	WorkerQueueSize  int           // Worker queue size (default: 100, only used if UseWorkerPool=true)
+	KeyPrefix       string        // Prefix for session keys (default: "session:")
+	TTL             time.Duration // Session TTL (default: 24 hours)
+	HMACSecret      string        // HMAC secret for secure key derivation (CRITICAL in production)
+	UseWorkerPool   bool          // Enable worker pool for bounded concurrency (default: false)
+	WorkerPoolSize  int           // Worker pool size (default: 10, only used if UseWorkerPool=true)
+	WorkerQueueSize int           // Worker queue size (default: 100, only used if UseWorkerPool=true)
 }
 
 // DefaultSessionStoreConfig returns default configuration

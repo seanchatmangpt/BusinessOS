@@ -14,14 +14,14 @@ import (
 
 // QueryMetadata holds parsed metadata from SPARQL query comments
 type QueryMetadata struct {
-	Name                string   `json:"name"`
-	Category            string   `json:"category"`
-	Description         string   `json:"description"`
-	Params              []string `json:"params"`
-	Returns             string   `json:"returns"`
-	Version             string   `json:"version"`
-	Stability           string   `json:"stability"`
-	RequiresParameters  bool     `json:"requires_parameters"`
+	Name               string   `json:"name"`
+	Category           string   `json:"category"`
+	Description        string   `json:"description"`
+	Params             []string `json:"params"`
+	Returns            string   `json:"returns"`
+	Version            string   `json:"version"`
+	Stability          string   `json:"stability"`
+	RequiresParameters bool     `json:"requires_parameters"`
 }
 
 // ConstructQuery represents a SPARQL CONSTRUCT query with metadata
@@ -39,17 +39,17 @@ type BoundQuery struct {
 
 // RegistryStats holds statistics about the registry
 type RegistryStats struct {
-	TotalQueries           int            `json:"total_queries"`
-	Categories             int            `json:"categories"`
-	QueriesPerCategory     map[string]int `json:"queries_per_category"`
+	TotalQueries       int            `json:"total_queries"`
+	Categories         int            `json:"categories"`
+	QueriesPerCategory map[string]int `json:"queries_per_category"`
 }
 
 // SparqlRegistry manages SPARQL CONSTRUCT queries
 type SparqlRegistry struct {
-	queriesByName      map[string]*ConstructQuery
-	queriesByCategory  map[string][]*ConstructQuery
-	rootDir            string
-	logger             *slog.Logger
+	queriesByName     map[string]*ConstructQuery
+	queriesByCategory map[string][]*ConstructQuery
+	rootDir           string
+	logger            *slog.Logger
 }
 
 // NewSparqlRegistry creates a new registry loader
@@ -68,14 +68,15 @@ func NewSparqlRegistry(logger *slog.Logger) *SparqlRegistry {
 // Load discovers and loads all .rq files from a directory
 //
 // Expected structure:
-//   ontologies/sparql/constructs/
-//   ├── artifacts/
-//   ├── projects/
-//   ├── compliance/
-//   ├── org/
-//   ├── process/
-//   ├── signal/
-//   └── agents/
+//
+//	ontologies/sparql/constructs/
+//	├── artifacts/
+//	├── projects/
+//	├── compliance/
+//	├── org/
+//	├── process/
+//	├── signal/
+//	└── agents/
 func (r *SparqlRegistry) Load(rootDir string) error {
 	if _, err := os.Stat(rootDir); err != nil {
 		return fmt.Errorf("registry root not found: %w", err)
@@ -258,11 +259,12 @@ func (r *SparqlRegistry) Stats() RegistryStats {
 // Bind creates a bound query with parameter values
 //
 // Usage:
-//   bound, err := query.Bind(map[string]string{
-//     "artifactId": "art-123",
-//     "title": "API Spec",
-//   })
-//   sparql := bound.SPARQLWithBindings()
+//
+//	bound, err := query.Bind(map[string]string{
+//	  "artifactId": "art-123",
+//	  "title": "API Spec",
+//	})
+//	sparql := bound.SPARQLWithBindings()
 func (q *ConstructQuery) Bind(params map[string]string) (*BoundQuery, error) {
 	// Validate required parameters
 	if q.Metadata.RequiresParameters {

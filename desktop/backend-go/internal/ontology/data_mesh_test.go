@@ -175,10 +175,10 @@ func TestDiscoverDatasets(t *testing.T) {
 	dm := NewDataMesh(mockOxigraphURL, slog.Default())
 
 	tests := []struct {
-		name       string
-		domainID   string
-		wantError  bool
-		errMsg     string
+		name      string
+		domainID  string
+		wantError bool
+		errMsg    string
 	}{
 		{
 			name:      "discover finance datasets",

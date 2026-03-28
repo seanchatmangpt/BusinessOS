@@ -13,25 +13,25 @@ import (
 
 // Contact represents a synced Google Contact.
 type Contact struct {
-	ID              string          `json:"id"`
-	UserID          string          `json:"user_id"`
-	ResourceName    string          `json:"resource_name"` // people/c12345
-	DisplayName     string          `json:"display_name,omitempty"`
-	GivenName       string          `json:"given_name,omitempty"`
-	FamilyName      string          `json:"family_name,omitempty"`
-	MiddleName      string          `json:"middle_name,omitempty"`
-	Emails          []ContactEmail  `json:"emails,omitempty"`
-	PhoneNumbers    []ContactPhone  `json:"phone_numbers,omitempty"`
-	Addresses       []ContactAddress `json:"addresses,omitempty"`
-	Organization    string          `json:"organization,omitempty"`
-	JobTitle        string          `json:"job_title,omitempty"`
-	Department      string          `json:"department,omitempty"`
-	PhotoURL        string          `json:"photo_url,omitempty"`
-	ContactGroups   []string        `json:"contact_groups,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-	CreatedTime     time.Time       `json:"created_time,omitempty"`
-	ModifiedTime    time.Time       `json:"modified_time,omitempty"`
-	SyncedAt        time.Time       `json:"synced_at"`
+	ID            string                 `json:"id"`
+	UserID        string                 `json:"user_id"`
+	ResourceName  string                 `json:"resource_name"` // people/c12345
+	DisplayName   string                 `json:"display_name,omitempty"`
+	GivenName     string                 `json:"given_name,omitempty"`
+	FamilyName    string                 `json:"family_name,omitempty"`
+	MiddleName    string                 `json:"middle_name,omitempty"`
+	Emails        []ContactEmail         `json:"emails,omitempty"`
+	PhoneNumbers  []ContactPhone         `json:"phone_numbers,omitempty"`
+	Addresses     []ContactAddress       `json:"addresses,omitempty"`
+	Organization  string                 `json:"organization,omitempty"`
+	JobTitle      string                 `json:"job_title,omitempty"`
+	Department    string                 `json:"department,omitempty"`
+	PhotoURL      string                 `json:"photo_url,omitempty"`
+	ContactGroups []string               `json:"contact_groups,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	CreatedTime   time.Time              `json:"created_time,omitempty"`
+	ModifiedTime  time.Time              `json:"modified_time,omitempty"`
+	SyncedAt      time.Time              `json:"synced_at"`
 }
 
 // ContactEmail represents an email address.

@@ -21,16 +21,16 @@ type Trace struct {
 
 // Span represents an individual operation span
 type Span struct {
-	TraceID      string
-	SpanID       string
-	ParentID     string
-	Name         string
-	StartTime    time.Time
-	EndTime      time.Time
-	DurationMs   int64
-	Status       string
-	Attributes   map[string]interface{}
-	Service      string
+	TraceID    string
+	SpanID     string
+	ParentID   string
+	Name       string
+	StartTime  time.Time
+	EndTime    time.Time
+	DurationMs int64
+	Status     string
+	Attributes map[string]interface{}
+	Service    string
 }
 
 // Middleware for distributed tracing

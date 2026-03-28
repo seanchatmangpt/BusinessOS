@@ -19,36 +19,38 @@ import (
 // for specific applications and streams them to connected clients.
 //
 // Example curl command to test SSE streaming:
-//   curl -N -H "Authorization: Bearer <token>" \
-//     http://localhost:8080/api/osa/generate/550e8400-e29b-41d4-a716-446655440000/stream
+//
+//	curl -N -H "Authorization: Bearer <token>" \
+//	  http://localhost:8080/api/osa/generate/550e8400-e29b-41d4-a716-446655440000/stream
 //
 // Example JavaScript EventSource client:
-//   const appId = "550e8400-e29b-41d4-a716-446655440000";
-//   const eventSource = new EventSource(
-//     `/api/osa/generate/${appId}/stream`,
-//     { headers: { "Authorization": "Bearer <token>" } }
-//   );
 //
-//   eventSource.onmessage = (event) => {
-//     const data = JSON.parse(event.data);
-//     console.log(`Progress: ${data.progress_percent}% - ${data.status_message}`);
-//   };
+//	const appId = "550e8400-e29b-41d4-a716-446655440000";
+//	const eventSource = new EventSource(
+//	  `/api/osa/generate/${appId}/stream`,
+//	  { headers: { "Authorization": "Bearer <token>" } }
+//	);
 //
-//   eventSource.addEventListener("build_started", (event) => {
-//     const data = JSON.parse(event.data);
-//     console.log("Build started:", data);
-//   });
+//	eventSource.onmessage = (event) => {
+//	  const data = JSON.parse(event.data);
+//	  console.log(`Progress: ${data.progress_percent}% - ${data.status_message}`);
+//	};
 //
-//   eventSource.addEventListener("build_completed", (event) => {
-//     const data = JSON.parse(event.data);
-//     console.log("Build completed:", data);
-//     eventSource.close();
-//   });
+//	eventSource.addEventListener("build_started", (event) => {
+//	  const data = JSON.parse(event.data);
+//	  console.log("Build started:", data);
+//	});
 //
-//   eventSource.onerror = (error) => {
-//     console.error("SSE error:", error);
-//     eventSource.close();
-//   };
+//	eventSource.addEventListener("build_completed", (event) => {
+//	  const data = JSON.parse(event.data);
+//	  console.log("Build completed:", data);
+//	  eventSource.close();
+//	});
+//
+//	eventSource.onerror = (error) => {
+//	  console.error("SSE error:", error);
+//	  eventSource.close();
+//	};
 type OSAStreamingHandler struct {
 	eventBus *services.BuildEventBus
 	logger   *slog.Logger
@@ -229,10 +231,10 @@ func (h *OSAStreamingHandler) GetAppStreamStats(c *gin.Context) {
 	subscriberCount := h.eventBus.GetSubscriberCountForApp(appID)
 
 	c.JSON(http.StatusOK, gin.H{
-		"app_id":            appID,
-		"subscriber_count":  subscriberCount,
-		"timestamp":         time.Now(),
-		"user_id":           userID,
+		"app_id":           appID,
+		"subscriber_count": subscriberCount,
+		"timestamp":        time.Now(),
+		"user_id":          userID,
 	})
 }
 

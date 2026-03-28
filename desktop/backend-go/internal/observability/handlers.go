@@ -11,8 +11,9 @@ import (
 
 // InstrumentA2AHandler wraps A2A handler functions with tracing.
 // Usage in handlers/a2a.go:
-//   ctx, span := observability.StartA2ASpan(c, "a2a.discover_agent")
-//   defer span.End()
+//
+//	ctx, span := observability.StartA2ASpan(c, "a2a.discover_agent")
+//	defer span.End()
 func StartA2ASpan(c *gin.Context, operation string) (context.Context, trace.Span) {
 	ctx, span := tracer.Start(c.Request.Context(), operation)
 	span.SetAttributes(attribute.String("a2a.operation", operation))
@@ -21,8 +22,9 @@ func StartA2ASpan(c *gin.Context, operation string) (context.Context, trace.Span
 
 // StartCRMSpan creates a span for CRM operations.
 // Usage in handlers/crm_deals.go:
-//   ctx, span := observability.StartCRMSpan(c, "crm.list_deals", "pipelineID", pipelineID)
-//   defer span.End()
+//
+//	ctx, span := observability.StartCRMSpan(c, "crm.list_deals", "pipelineID", pipelineID)
+//	defer span.End()
 func StartCRMSpan(c *gin.Context, operation string, attributes ...string) (context.Context, trace.Span) {
 	ctx, span := tracer.Start(c.Request.Context(), operation)
 	span.SetAttributes(attribute.String("crm.operation", operation))
@@ -39,8 +41,9 @@ func StartCRMSpan(c *gin.Context, operation string, attributes ...string) (conte
 
 // StartProjectSpan creates a span for project operations.
 // Usage in handlers/projects_update.go:
-//   ctx, span := observability.StartProjectSpan(c, "project.create", "userID", userID)
-//   defer span.End()
+//
+//	ctx, span := observability.StartProjectSpan(c, "project.create", "userID", userID)
+//	defer span.End()
 func StartProjectSpan(c *gin.Context, operation string, attributes ...string) (context.Context, trace.Span) {
 	ctx, span := tracer.Start(c.Request.Context(), operation)
 	span.SetAttributes(attribute.String("project.operation", operation))
@@ -57,8 +60,9 @@ func StartProjectSpan(c *gin.Context, operation string, attributes ...string) (c
 
 // StartAuditSpan creates a span for audit trail operations.
 // Usage in handlers/audit_handlers.go:
-//   ctx, span := observability.StartAuditSpan(c, "audit.create_entry", "entityType", "Deal")
-//   defer span.End()
+//
+//	ctx, span := observability.StartAuditSpan(c, "audit.create_entry", "entityType", "Deal")
+//	defer span.End()
 func StartAuditSpan(c *gin.Context, operation string, attributes ...string) (context.Context, trace.Span) {
 	ctx, span := tracer.Start(c.Request.Context(), operation)
 	span.SetAttributes(attribute.String("audit.operation", operation))

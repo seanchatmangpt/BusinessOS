@@ -28,8 +28,8 @@ const (
 	SessionCookieName = "better-auth.session_token"
 
 	// Session configuration
-	SessionMaxAge         = 7 * 24 * time.Hour // 7 days max session lifetime
-	SessionRefreshWindow  = 24 * time.Hour     // Refresh if less than 24h remaining
+	SessionMaxAge         = 7 * 24 * time.Hour  // 7 days max session lifetime
+	SessionRefreshWindow  = 24 * time.Hour      // Refresh if less than 24h remaining
 	SessionAbsoluteMaxAge = 30 * 24 * time.Hour // 30 days absolute maximum
 )
 

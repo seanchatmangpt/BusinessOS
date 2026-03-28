@@ -13,24 +13,24 @@ import (
 // MultiModalSearchService implements the EnhancedSearchService interface
 // Provides hybrid search combining text, images, and semantic understanding
 type MultiModalSearchService struct {
-	pool              *pgxpool.Pool
-	hybridSearch      *HybridSearchService
-	reranker          *ReRankerService
-	imageEmbedding    *ImageEmbeddingService
-	textEmbedding     *EmbeddingService
+	pool           *pgxpool.Pool
+	hybridSearch   *HybridSearchService
+	reranker       *ReRankerService
+	imageEmbedding *ImageEmbeddingService
+	textEmbedding  *EmbeddingService
 }
 
 // MultiModalSearchResult represents a search result that can be text or image
 type MultiModalSearchResult struct {
-	ID           uuid.UUID
-	Type         string  // "text", "image", "hybrid"
-	Score        float64
-	Similarity   float64
+	ID         uuid.UUID
+	Type       string // "text", "image", "hybrid"
+	Score      float64
+	Similarity float64
 
 	// Text result fields
-	ContextID    *uuid.UUID
-	Content      string
-	Title        string
+	ContextID *uuid.UUID
+	Content   string
+	Title     string
 
 	// Image result fields
 	ImageID      *uuid.UUID
@@ -38,28 +38,28 @@ type MultiModalSearchResult struct {
 	ImageCaption string
 
 	// Common fields
-	UserID       string
-	Metadata     map[string]interface{}
-	Source       string // "semantic", "keyword", "image", "hybrid"
+	UserID   string
+	Metadata map[string]interface{}
+	Source   string // "semantic", "keyword", "image", "hybrid"
 }
 
 // SearchOptions configures multimodal search behavior
 type SearchOptions struct {
 	// Weights (must sum to 1.0)
-	SemanticWeight  float64   // Weight for semantic text search
-	KeywordWeight   float64   // Weight for keyword text search
-	ImageWeight     float64   // Weight for image similarity
+	SemanticWeight float64 // Weight for semantic text search
+	KeywordWeight  float64 // Weight for keyword text search
+	ImageWeight    float64 // Weight for image similarity
 
 	// Search behavior
-	ReRankEnabled   bool
-	MaxResults      int
-	MinSimilarity   float64
+	ReRankEnabled bool
+	MaxResults    int
+	MinSimilarity float64
 
 	// Filters
-	IncludeText     bool
-	IncludeImages   bool
-	ContextIDs      []uuid.UUID
-	ProjectIDs      []uuid.UUID
+	IncludeText   bool
+	IncludeImages bool
+	ContextIDs    []uuid.UUID
+	ProjectIDs    []uuid.UUID
 
 	// Re-ranking options
 	RecencyWeight     float64
@@ -111,11 +111,11 @@ func (m *MultiModalSearchService) HybridSearch(ctx context.Context, query string
 
 	// Use existing hybrid search service
 	hybridOpts := HybridSearchOptions{
-		SemanticWeight:   opts.SemanticWeight / (opts.SemanticWeight + opts.KeywordWeight),
-		KeywordWeight:    opts.KeywordWeight / (opts.SemanticWeight + opts.KeywordWeight),
-		MaxResults:       opts.MaxResults,
-		MinSimilarity:    opts.MinSimilarity,
-		RRFConstant:      60,
+		SemanticWeight: opts.SemanticWeight / (opts.SemanticWeight + opts.KeywordWeight),
+		KeywordWeight:  opts.KeywordWeight / (opts.SemanticWeight + opts.KeywordWeight),
+		MaxResults:     opts.MaxResults,
+		MinSimilarity:  opts.MinSimilarity,
+		RRFConstant:    60,
 	}
 
 	results, err := m.hybridSearch.Search(ctx, query, userID, hybridOpts)
@@ -155,11 +155,11 @@ func (m *MultiModalSearchService) ReRank(ctx context.Context, query string, user
 	for _, r := range results {
 		if r.Type == "text" {
 			hybridResults = append(hybridResults, HybridSearchResult{
-				ContextID:     *r.ContextID,
-				Content:       r.Content,
-				ContextName:   r.Title,
-				SemanticScore: r.Similarity,
-				HybridScore:   r.Score,
+				ContextID:      *r.ContextID,
+				Content:        r.Content,
+				ContextName:    r.Title,
+				SemanticScore:  r.Similarity,
+				HybridScore:    r.Score,
 				SearchStrategy: r.Source,
 			})
 		}
@@ -350,11 +350,11 @@ func (m *MultiModalSearchService) searchImagesWithText(ctx context.Context, text
 	var results []MultiModalSearchResult
 	for rows.Next() {
 		var (
-			id         uuid.UUID
-			userIDStr  string
+			id           uuid.UUID
+			userIDStr    string
 			metadataJSON []byte
-			createdAt  interface{}
-			similarity float64
+			createdAt    interface{}
+			similarity   float64
 		)
 
 		err := rows.Scan(&id, &userIDStr, &metadataJSON, &createdAt, &similarity)

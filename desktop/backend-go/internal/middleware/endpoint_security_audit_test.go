@@ -94,13 +94,13 @@ func TestEndpointSecurityAudit_AllProtectedEndpointsRequireAuth(t *testing.T) {
 		secretKey := "test-secret-key-12345"
 
 		testCases := []struct {
-			name      string
+			name       string
 			authHeader string
 		}{
-			{"MissingBearer", "InvalidToken"},                    // No Bearer scheme
-			{"WrongScheme", "Basic dXNlcjpwYXNz"},              // Wrong auth scheme
-			{"NoToken", "Bearer"},                               // Bearer with no token
-			{"MultipleTokens", "Bearer token1 token2"},          // Multiple tokens
+			{"MissingBearer", "InvalidToken"},          // No Bearer scheme
+			{"WrongScheme", "Basic dXNlcjpwYXNz"},      // Wrong auth scheme
+			{"NoToken", "Bearer"},                      // Bearer with no token
+			{"MultipleTokens", "Bearer token1 token2"}, // Multiple tokens
 		}
 
 		for _, tc := range testCases {

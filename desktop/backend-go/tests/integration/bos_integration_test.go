@@ -71,9 +71,9 @@ type BOSSchemaPayload struct {
 
 // TableDefinition represents a table in the schema
 type TableDefinition struct {
-	Name    string                `json:"name"`
-	Columns []ColumnDefinition    `json:"columns"`
-	Indexes []IndexDefinition     `json:"indexes,omitempty"`
+	Name    string             `json:"name"`
+	Columns []ColumnDefinition `json:"columns"`
+	Indexes []IndexDefinition  `json:"indexes,omitempty"`
 }
 
 // ColumnDefinition represents a column in a table
@@ -93,14 +93,14 @@ type IndexDefinition struct {
 
 // BOSImportResponse represents the response from a bos import operation
 type BOSImportResponse struct {
-	Status         string                 `json:"status"`
-	SchemaID       string                 `json:"schema_id"`
-	TablesImported int                    `json:"tables_imported"`
-	RDFTriples     int                    `json:"rdf_triples,omitempty"`
-	ContentHash    string                 `json:"content_hash,omitempty"`
-	DurationMs     int64                  `json:"duration_ms"`
-	Timestamp      string                 `json:"timestamp"`
-	Error          string                 `json:"error,omitempty"`
+	Status         string `json:"status"`
+	SchemaID       string `json:"schema_id"`
+	TablesImported int    `json:"tables_imported"`
+	RDFTriples     int    `json:"rdf_triples,omitempty"`
+	ContentHash    string `json:"content_hash,omitempty"`
+	DurationMs     int64  `json:"duration_ms"`
+	Timestamp      string `json:"timestamp"`
+	Error          string `json:"error,omitempty"`
 }
 
 // BOSExportResponse represents the response from a bos export operation
@@ -129,9 +129,9 @@ type OxigraphQuery struct {
 
 // OxigraphQueryResult represents the result of a SPARQL query
 type OxigraphQueryResult struct {
-	Head    map[string][]string   `json:"head"`
-	Results []map[string]string   `json:"results"`
-	Error   string                `json:"error,omitempty"`
+	Head    map[string][]string `json:"head"`
+	Results []map[string]string `json:"results"`
+	Error   string              `json:"error,omitempty"`
 }
 
 // ============================================================================
@@ -596,9 +596,9 @@ func TestBOSTimingAssertions(t *testing.T) {
 	schema := createFIBOSchema()
 
 	timings := map[string]int64{
-		"import": 500,  // ms
-		"export": 200,  // ms
-		"query":  200,  // ms
+		"import": 500, // ms
+		"export": 200, // ms
+		"query":  200, // ms
 	}
 
 	// Step 1: Test import timing

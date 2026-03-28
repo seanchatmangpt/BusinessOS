@@ -78,13 +78,13 @@ type AvailabilityResponse struct {
 
 // ScheduleRequest contains parameters for proposing meeting times.
 type ScheduleRequest struct {
-	Title           string                `json:"title"`
-	Attendees       []string              `json:"attendees"`
-	DurationMinutes int                   `json:"duration_minutes"`
-	MeetingType     string                `json:"meeting_type,omitempty"` // kickoff, standup, etc.
-	TimePreference  string                `json:"time_preference,omitempty"` // morning, afternoon, any, next_week
+	Title           string                 `json:"title"`
+	Attendees       []string               `json:"attendees"`
+	DurationMinutes int                    `json:"duration_minutes"`
+	MeetingType     string                 `json:"meeting_type,omitempty"`    // kickoff, standup, etc.
+	TimePreference  string                 `json:"time_preference,omitempty"` // morning, afternoon, any, next_week
 	Preferences     *SchedulingPreferences `json:"preferences,omitempty"`
-	DateRange       *DateRange            `json:"date_range,omitempty"` // Optional: defaults to next 7 days
+	DateRange       *DateRange             `json:"date_range,omitempty"` // Optional: defaults to next 7 days
 }
 
 // SchedulingPreferences contains user scheduling preferences.

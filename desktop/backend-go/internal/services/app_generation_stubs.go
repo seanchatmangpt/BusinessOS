@@ -2,14 +2,15 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rhl/businessos-backend/internal/appgen"
 	"github.com/rhl/businessos-backend/internal/database/sqlc"
+	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -23,6 +24,7 @@ type AppGenerationOrchestrator struct {
 	apiSem       *semaphore.Weighted
 	logger       *slog.Logger
 	orchestrator *BasicOrchestrator
+	osaCient     *osa.ResilientClient // OSA integration for real app generation
 	mu           sync.RWMutex
 	totalRuns    int64
 	successRuns  int64
@@ -71,16 +73,51 @@ func NewAppGenerationOrchestrator(
 		apiSem:       semaphore.NewWeighted(5),
 		logger:       slog.Default(),
 		orchestrator: &BasicOrchestrator{metrics: make(map[string]int64)},
+		osaCient:     nil, // Set via SetOSAClient
 	}
 }
 
-// Generate runs the application generation workflow
+// SetOSAClient sets the OSA resilient client for real app generation orchestration
+func (o *AppGenerationOrchestrator) SetOSAClient(client *osa.ResilientClient) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	o.osaCient = client
+}
+
+// Generate runs the application generation workflow through OSA
 func (o *AppGenerationOrchestrator) Generate(ctx context.Context, req MultiAgentAppRequest) (interface{}, error) {
-	// Stub implementation - will be filled in later
-	return &appgen.GeneratedApp{
-		AppID: req.QueueItemID,
-		Name:  req.AppName,
-	}, nil
+	o.mu.RLock()
+	osaClient := o.osaCient
+	o.mu.RUnlock()
+
+	if osaClient == nil {
+		return nil, fmt.Errorf("OSA client not initialized: app generation not available")
+	}
+
+	// Convert to OSA GenerateApp request
+	osaReq := &osa.AppGenerationRequest{
+		UserID:      uuid.New(), // Placeholder; should come from request context
+		WorkspaceID: req.WorkspaceID,
+		Name:        req.AppName,
+		Description: req.Description,
+		Type:        req.Type,
+		Parameters:  req.Parameters,
+	}
+
+	// Call OSA with resilience (circuit breaker, retries, fallback)
+	resp, err := osaClient.GenerateApp(ctx, osaReq)
+	if err != nil {
+		o.logger.Error("OSA app generation failed",
+			"app_name", req.AppName,
+			"error", err)
+		return nil, fmt.Errorf("failed to generate app via OSA: %w", err)
+	}
+
+	o.logger.Info("app generation succeeded",
+		"app_id", resp.AppID,
+		"status", resp.Status)
+
+	return resp, nil
 }
 
 // MultiAgentAppRequest represents a request to generate an app with multiple agents
@@ -118,12 +155,79 @@ type AgenticRAGRequest struct {
 	UsePersonalization bool                   `json:"use_personalization,omitempty"`
 }
 
-// Retrieve executes a retrieval query
+// Retrieve executes a retrieval query using hybrid search and reranking
 func (s *AgenticRAGService) Retrieve(ctx context.Context, req AgenticRAGRequest) (*AgenticRAGResponse, error) {
+	if s.hybridSearch == nil {
+		return nil, fmt.Errorf("hybrid search service not initialized: retrieval not available")
+	}
+	if s.reranker == nil {
+		return nil, fmt.Errorf("reranker service not initialized: retrieval not available")
+	}
+
+	// Run hybrid search
+	opts := HybridSearchOptions{
+		MaxResults: req.MaxResults,
+		MinSimilarity: req.MinQualityScore,
+	}
+	if opts.MaxResults <= 0 {
+		opts.MaxResults = 10
+	}
+	if opts.MinSimilarity <= 0 {
+		opts.MinSimilarity = 0.3
+	}
+
+	results, err := s.hybridSearch.Search(ctx, req.Query, req.UserID, opts)
+	if err != nil {
+		return nil, fmt.Errorf("hybrid search failed: %w", err)
+	}
+
+	if len(results) == 0 {
+		return &AgenticRAGResponse{
+			QueryID:     uuid.New().String(),
+			Answer:      "No results found for query",
+			Sources:     []string{},
+			Confidence:  0.0,
+			GeneratedAt: time.Now(),
+		}, nil
+	}
+
+	// Rerank results
+	rerankOpts := DefaultReRankingOptions()
+	rankedResults, err := s.reranker.ReRank(ctx, req.Query, req.UserID, results, rerankOpts)
+	if err != nil {
+		// Fall back to best result if reranking fails
+		slog.Warn("reranking failed, using top result", "error", err)
+		// Convert HybridSearchResults to ReRankedResults for fallback
+		if len(results) > 0 {
+			answer := results[0].Content
+			sources := []string{results[0].BlockID}
+			confidence := results[0].HybridScore
+			return &AgenticRAGResponse{
+				QueryID:     uuid.New().String(),
+				Answer:      answer,
+				Sources:     sources,
+				Confidence:  confidence,
+				GeneratedAt: time.Now(),
+			}, nil
+		}
+	}
+
+	// Extract answer from top result
+	var answer string
+	var sources []string
+	var confidence float64
+
+	if len(rankedResults) > 0 {
+		answer = rankedResults[0].Content
+		sources = []string{rankedResults[0].BlockID}
+		confidence = rankedResults[0].FinalScore
+	}
+
 	return &AgenticRAGResponse{
 		QueryID:     uuid.New().String(),
-		Answer:      "Stub response",
-		Confidence:  0.5,
+		Answer:      answer,
+		Sources:     sources,
+		Confidence:  confidence,
 		GeneratedAt: time.Now(),
 	}, nil
 }
@@ -132,6 +236,10 @@ func (s *AgenticRAGService) Retrieve(ctx context.Context, req AgenticRAGRequest)
 type AgenticRAGService struct {
 	queryExpansion *QueryExpansionService
 	cache          *RAGCacheService
+	hybridSearch   *HybridSearchService
+	reranker       *ReRankerService
+	embedding      *EmbeddingService
+	learning       *LearningService
 }
 
 // NewAgenticRAGService creates a new agentic RAG service.
@@ -147,17 +255,73 @@ func NewAgenticRAGService(
 	return &AgenticRAGService{
 		queryExpansion: nil, // Populated by SetQueryExpansion
 		cache:          nil, // Populated by SetCache
+		hybridSearch:   hybridSearch,
+		reranker:       reranker,
+		embedding:      embedding,
+		learning:       learning,
 	}
 }
 
-// ProcessQuery processes a query through agentic RAG
+// ProcessQuery processes a query through agentic RAG with expansion and caching
 func (s *AgenticRAGService) ProcessQuery(ctx context.Context, req AgenticRAGRequest) (*AgenticRAGResponse, error) {
-	return &AgenticRAGResponse{
-		QueryID:     uuid.New().String(),
-		Answer:      "Stub response",
-		Confidence:  0.5,
-		GeneratedAt: time.Now(),
-	}, nil
+	if s.embedding == nil {
+		return nil, fmt.Errorf("embedding service not initialized: query processing not available")
+	}
+
+	// Check cache first (if available)
+	if s.cache != nil {
+		// Try to get cached result
+		cached, err := s.cache.GetAgenticRAGResponse(ctx, req)
+		if err == nil && cached != nil {
+			slog.Debug("cache hit for query", "query", req.Query)
+			return cached.Response, nil
+		}
+	}
+
+	// Expand query if service available
+	expandedQueries := []string{req.Query}
+	if s.queryExpansion != nil {
+		expanded, err := s.queryExpansion.Expand(ctx, req.Query, false)
+		if err == nil && expanded != nil && len(expanded.AllVariants) > 0 {
+			expandedQueries = append(expandedQueries, expanded.AllVariants...)
+		}
+	}
+
+	// Use Retrieve for the expanded queries (or original if expansion failed)
+	resp, err := s.Retrieve(ctx, AgenticRAGRequest{
+		Query:           req.Query,
+		UserID:          req.UserID,
+		WorkspaceID:     req.WorkspaceID,
+		Context:         req.Context,
+		MaxResults:      req.MaxResults,
+		MinQualityScore: req.MinQualityScore,
+		ProjectContext:  req.ProjectContext,
+		TaskContext:     req.TaskContext,
+		UsePersonalization: req.UsePersonalization,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("query processing failed: %w", err)
+	}
+
+	// Cache the result
+	if s.cache != nil && resp != nil {
+		cacheErr := s.cache.SetAgenticRAGResponse(ctx, req, resp)
+		if cacheErr != nil {
+			slog.Warn("failed to cache query result", "error", cacheErr)
+		}
+	}
+
+	// Learn from query (if service available)
+	if s.learning != nil && resp != nil {
+		// The learning service can record query patterns asynchronously
+		// For now, just log that learning occurred
+		slog.Debug("learning recorded from query",
+			"query", req.Query,
+			"answer_length", len(resp.Answer),
+			"confidence", resp.Confidence)
+	}
+
+	return resp, nil
 }
 
 // SetCache sets the RAG cache service

@@ -43,7 +43,7 @@ type DealCreateRequest struct {
 
 type DealCreateResponse struct {
 	Deal       map[string]interface{} `json:"deal"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type LeadUpdateRequest struct {
@@ -54,7 +54,7 @@ type LeadUpdateRequest struct {
 
 type LeadUpdateResponse struct {
 	Lead       map[string]interface{} `json:"lead"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type TaskAssignRequest struct {
@@ -65,7 +65,7 @@ type TaskAssignRequest struct {
 
 type TaskAssignResponse struct {
 	Task       map[string]interface{} `json:"task"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type ProgressUpdateRequest struct {
@@ -76,8 +76,8 @@ type ProgressUpdateRequest struct {
 }
 
 type ProgressUpdateResponse struct {
-	Status     string                 `json:"status"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	Status     string             `json:"status"`
+	AuditEntry *models.AuditEntry `json:"audit_entry"`
 }
 
 type AuditQueryResponse struct {

@@ -21,12 +21,12 @@ type CircuitBreaker struct {
 	maxRetryTime     time.Duration
 
 	// State
-	state            CircuitState
-	failures         uint32
-	lastFailureTime  time.Time
-	halfOpenCalls    uint32
-	consecutiveSucc  uint32
-	nextAttemptTime  time.Time
+	state           CircuitState
+	failures        uint32
+	lastFailureTime time.Time
+	halfOpenCalls   uint32
+	consecutiveSucc uint32
+	nextAttemptTime time.Time
 
 	// Metrics
 	metrics *CircuitMetrics
@@ -59,13 +59,13 @@ func (s CircuitState) String() string {
 
 // CircuitMetrics tracks circuit breaker performance
 type CircuitMetrics struct {
-	mu                sync.RWMutex
-	totalRequests     uint64
+	mu                 sync.RWMutex
+	totalRequests      uint64
 	successfulRequests uint64
-	failedRequests    uint64
-	rejectedRequests  uint64
-	stateChanges      uint64
-	lastStateChange   time.Time
+	failedRequests     uint64
+	rejectedRequests   uint64
+	stateChanges       uint64
+	lastStateChange    time.Time
 }
 
 // CircuitBreakerConfig holds configuration for the circuit breaker
@@ -358,12 +358,12 @@ func containsHelper(s, substr string) bool {
 
 // HealthCheckCache caches health check results to avoid hammering the health endpoint
 type HealthCheckCache struct {
-	mu          sync.RWMutex
-	lastCheck   time.Time
-	lastResult  *HealthResponse
-	lastError   error
-	cacheTTL    time.Duration
-	checkFunc   func(context.Context) (*HealthResponse, error)
+	mu         sync.RWMutex
+	lastCheck  time.Time
+	lastResult *HealthResponse
+	lastError  error
+	cacheTTL   time.Duration
+	checkFunc  func(context.Context) (*HealthResponse, error)
 }
 
 // NewHealthCheckCache creates a new health check cache

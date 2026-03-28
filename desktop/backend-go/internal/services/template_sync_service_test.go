@@ -246,11 +246,11 @@ func TestTemplateSyncService_CalculatePriorityScore(t *testing.T) {
 	service := NewTemplateSyncService(nil, logger, "")
 
 	tests := []struct {
-		name          string
-		category      string
-		tags          []string
-		minScore      int
-		maxScore      int
+		name     string
+		category string
+		tags     []string
+		minScore int
+		maxScore int
 	}{
 		{
 			name:     "App generation with full-stack",

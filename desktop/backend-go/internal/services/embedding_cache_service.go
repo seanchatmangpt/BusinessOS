@@ -47,12 +47,12 @@ type CachedEmbeddingData struct {
 
 // EmbeddingCacheConfig configures the embedding cache
 type EmbeddingCacheConfig struct {
-	KeyPrefix      string        // Redis key prefix (default: "embedding:")
-	DefaultTTL     time.Duration // Default TTL for embeddings (default: 24 hours)
-	TextTTL        time.Duration // TTL for text embeddings (default: 24 hours)
-	ImageTTL       time.Duration // TTL for image embeddings (default: 48 hours)
-	Enabled        bool          // Enable/disable caching
-	GracefulFallback bool        // If true, fall back to database on Redis errors
+	KeyPrefix        string        // Redis key prefix (default: "embedding:")
+	DefaultTTL       time.Duration // Default TTL for embeddings (default: 24 hours)
+	TextTTL          time.Duration // TTL for text embeddings (default: 24 hours)
+	ImageTTL         time.Duration // TTL for image embeddings (default: 48 hours)
+	Enabled          bool          // Enable/disable caching
+	GracefulFallback bool          // If true, fall back to database on Redis errors
 }
 
 // DefaultEmbeddingCacheConfig returns sensible defaults

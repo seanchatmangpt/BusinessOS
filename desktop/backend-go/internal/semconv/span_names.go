@@ -7,11 +7,12 @@ package semconv
 // Use these constants instead of raw strings to enforce schema contracts.
 //
 // Example usage:
-//   import "go.opentelemetry.io/otel"
-//   tracer := otel.Tracer("businessos")
-//   ctx, span := tracer.Start(ctx, SpanNameBosComplianceCheck)
-//   defer span.End()
-//   span.SetAttributes(BosComplianceFramework(BosComplianceFrameworkValues.Soc2))
+//
+//	import "go.opentelemetry.io/otel"
+//	tracer := otel.Tracer("businessos")
+//	ctx, span := tracer.Start(ctx, SpanNameBosComplianceCheck)
+//	defer span.End()
+//	span.SetAttributes(BosComplianceFramework(BosComplianceFrameworkValues.Soc2))
 const (
 	// Healing domain
 	SpanNameHealingDiagnosis = "healing.diagnosis"

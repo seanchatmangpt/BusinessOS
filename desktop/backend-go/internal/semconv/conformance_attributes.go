@@ -24,4 +24,3 @@ func ConformanceFitness(val float64) attribute.KeyValue {
 func ConformancePrecision(val float64) attribute.KeyValue {
 	return ConformancePrecisionKey.Float64(val)
 }
-

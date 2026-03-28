@@ -22,8 +22,8 @@ type OntologyEntry struct {
 	Frameworks   []string `yaml:"frameworks,omitempty"`
 	Dependencies []string `yaml:"dependencies,omitempty"`
 	Validation   *struct {
-		EntityCountMin     *int `yaml:"entity_count_min,omitempty"`
-		EntityCountMax     *int `yaml:"entity_count_max,omitempty"`
+		EntityCountMin       *int `yaml:"entity_count_min,omitempty"`
+		EntityCountMax       *int `yaml:"entity_count_max,omitempty"`
 		RelationshipCountMin *int `yaml:"relationship_count_min,omitempty"`
 	} `yaml:"validation,omitempty"`
 	Description *string `yaml:"description,omitempty"`
@@ -45,24 +45,24 @@ type Frameworks struct {
 		Analytics  bool `yaml:"analytics"`
 	} `yaml:"domains"`
 	Extended struct {
-		FIBO      bool `yaml:"fibo"`
+		FIBO       bool `yaml:"fibo"`
 		Healthcare bool `yaml:"healthcare"`
-		Research  bool `yaml:"research"`
+		Research   bool `yaml:"research"`
 	} `yaml:"extended"`
 }
 
 // ValidationConfig represents validation settings
 type ValidationConfig struct {
-	Strict                string `yaml:"strict"`
-	OnMissingRequired     string `yaml:"on_missing_required"`
-	OnVersionMismatch     string `yaml:"on_version_mismatch"`
-	OnCircularDependency  string `yaml:"on_circular_dependency"`
+	Strict               string `yaml:"strict"`
+	OnMissingRequired    string `yaml:"on_missing_required"`
+	OnVersionMismatch    string `yaml:"on_version_mismatch"`
+	OnCircularDependency string `yaml:"on_circular_dependency"`
 }
 
 // OntologyRegistry holds loaded ontology configuration
 type OntologyRegistry struct {
-	mu        sync.RWMutex
-	ConfigName string
+	mu          sync.RWMutex
+	ConfigName  string
 	Environment string
 
 	// Ontology lookup by name
@@ -94,10 +94,10 @@ type OntologyRegistryConfig struct {
 		UpdatedAt   string `yaml:"updated_at,omitempty"`
 	} `yaml:"metadata"`
 	Spec struct {
-		Ontologies []OntologyEntry `yaml:"ontologies"`
+		Ontologies []OntologyEntry   `yaml:"ontologies"`
 		Namespaces map[string]string `yaml:"namespaces,omitempty"`
-		Frameworks Frameworks `yaml:"frameworks,omitempty"`
-		Validation ValidationConfig `yaml:"validation,omitempty"`
+		Frameworks Frameworks        `yaml:"frameworks,omitempty"`
+		Validation ValidationConfig  `yaml:"validation,omitempty"`
 	} `yaml:"spec"`
 }
 

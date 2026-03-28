@@ -32,4 +32,3 @@ func TelemetrySdkName(val string) attribute.KeyValue {
 func TelemetrySdkVersion(val string) attribute.KeyValue {
 	return TelemetrySdkVersionKey.String(val)
 }
-

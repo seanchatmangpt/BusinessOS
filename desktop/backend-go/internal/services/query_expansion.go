@@ -23,8 +23,8 @@ func NewQueryExpansionService(llmService LLMService) *QueryExpansionService {
 // ExpandedQuery represents an expanded query with variants
 type ExpandedQuery struct {
 	Original    string   `json:"original"`
-	Expanded    []string `json:"expanded"`    // Synonym-expanded versions
-	Rewritten   string   `json:"rewritten"`   // LLM-rewritten version
+	Expanded    []string `json:"expanded"`     // Synonym-expanded versions
+	Rewritten   string   `json:"rewritten"`    // LLM-rewritten version
 	AllVariants []string `json:"all_variants"` // All query variants
 }
 
@@ -180,30 +180,30 @@ func (q *QueryExpansionService) SuggestQueries(query string, intent QueryIntent)
 func buildDefaultSynonymMap() map[string][]string {
 	return map[string][]string{
 		// Programming terms
-		"function":      {"method", "procedure", "routine"},
-		"method":        {"function", "procedure"},
-		"class":         {"type", "struct"},
-		"variable":      {"var", "field", "property"},
-		"array":         {"list", "slice", "collection"},
-		"object":        {"instance", "entity"},
-		"error":         {"exception", "failure", "bug"},
-		"fix":           {"resolve", "repair", "correct"},
-		"implement":     {"create", "build", "develop"},
-		"optimize":      {"improve", "enhance", "speed up"},
-		"refactor":      {"restructure", "reorganize", "clean up"},
+		"function":  {"method", "procedure", "routine"},
+		"method":    {"function", "procedure"},
+		"class":     {"type", "struct"},
+		"variable":  {"var", "field", "property"},
+		"array":     {"list", "slice", "collection"},
+		"object":    {"instance", "entity"},
+		"error":     {"exception", "failure", "bug"},
+		"fix":       {"resolve", "repair", "correct"},
+		"implement": {"create", "build", "develop"},
+		"optimize":  {"improve", "enhance", "speed up"},
+		"refactor":  {"restructure", "reorganize", "clean up"},
 
 		// Database terms
-		"database":      {"db", "datastore", "data store"},
-		"table":         {"relation", "entity"},
-		"query":         {"search", "select", "find"},
-		"index":         {"key", "lookup"},
-		"join":          {"merge", "combine"},
+		"database": {"db", "datastore", "data store"},
+		"table":    {"relation", "entity"},
+		"query":    {"search", "select", "find"},
+		"index":    {"key", "lookup"},
+		"join":     {"merge", "combine"},
 
 		// Web/API terms
-		"api":           {"endpoint", "service", "interface"},
-		"endpoint":      {"route", "path", "api"},
-		"request":       {"call", "query"},
-		"response":      {"reply", "result", "output"},
+		"api":            {"endpoint", "service", "interface"},
+		"endpoint":       {"route", "path", "api"},
+		"request":        {"call", "query"},
+		"response":       {"reply", "result", "output"},
 		"authentication": {"auth", "login", "sign-in"},
 		"authorization":  {"access control", "permissions"},
 
@@ -221,24 +221,24 @@ func buildDefaultSynonymMap() map[string][]string {
 		"client":        {"frontend", "user interface", "ui"},
 
 		// Action verbs
-		"create":        {"make", "build", "generate"},
-		"delete":        {"remove", "destroy", "drop"},
-		"update":        {"modify", "change", "edit"},
-		"retrieve":      {"get", "fetch", "obtain"},
-		"save":          {"store", "persist", "write"},
-		"load":          {"read", "fetch", "retrieve"},
+		"create":   {"make", "build", "generate"},
+		"delete":   {"remove", "destroy", "drop"},
+		"update":   {"modify", "change", "edit"},
+		"retrieve": {"get", "fetch", "obtain"},
+		"save":     {"store", "persist", "write"},
+		"load":     {"read", "fetch", "retrieve"},
 
 		// Common adjectives
-		"fast":          {"quick", "rapid", "speedy"},
-		"slow":          {"sluggish", "delayed"},
-		"big":           {"large", "huge", "massive"},
-		"small":         {"tiny", "little", "minimal"},
-		"new":           {"recent", "latest", "fresh"},
-		"old":           {"legacy", "deprecated", "outdated"},
-		"simple":        {"easy", "basic", "straightforward"},
-		"complex":       {"complicated", "advanced", "sophisticated"},
-		"good":          {"better", "optimal", "best"},
-		"bad":           {"poor", "suboptimal", "problematic"},
+		"fast":    {"quick", "rapid", "speedy"},
+		"slow":    {"sluggish", "delayed"},
+		"big":     {"large", "huge", "massive"},
+		"small":   {"tiny", "little", "minimal"},
+		"new":     {"recent", "latest", "fresh"},
+		"old":     {"legacy", "deprecated", "outdated"},
+		"simple":  {"easy", "basic", "straightforward"},
+		"complex": {"complicated", "advanced", "sophisticated"},
+		"good":    {"better", "optimal", "best"},
+		"bad":     {"poor", "suboptimal", "problematic"},
 	}
 }
 

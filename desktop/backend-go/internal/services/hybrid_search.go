@@ -45,11 +45,11 @@ type HybridSearchResult struct {
 // DefaultHybridSearchOptions returns sensible defaults
 func DefaultHybridSearchOptions() HybridSearchOptions {
 	return HybridSearchOptions{
-		SemanticWeight: 0.7,  // Favor semantic understanding
-		KeywordWeight:  0.3,  // But include keyword matches
+		SemanticWeight: 0.7, // Favor semantic understanding
+		KeywordWeight:  0.3, // But include keyword matches
 		MaxResults:     10,
-		RRFConstant:    60,   // Standard RRF constant
-		MinSimilarity:  0.3,  // Filter out very weak matches
+		RRFConstant:    60,  // Standard RRF constant
+		MinSimilarity:  0.3, // Filter out very weak matches
 	}
 }
 
@@ -414,12 +414,12 @@ func (h *HybridSearchService) ExplainSearch(ctx context.Context, query string, u
 	}
 
 	return map[string]interface{}{
-		"query":               query,
-		"total_results":       len(results),
-		"strategy_breakdown":  strategyCounts,
-		"avg_semantic_score":  math.Round(avgSemanticScore*1000) / 1000,
-		"avg_keyword_score":   math.Round(avgKeywordScore*1000) / 1000,
-		"avg_hybrid_score":    math.Round(avgHybridScore*1000) / 1000,
+		"query":              query,
+		"total_results":      len(results),
+		"strategy_breakdown": strategyCounts,
+		"avg_semantic_score": math.Round(avgSemanticScore*1000) / 1000,
+		"avg_keyword_score":  math.Round(avgKeywordScore*1000) / 1000,
+		"avg_hybrid_score":   math.Round(avgHybridScore*1000) / 1000,
 		"options": map[string]interface{}{
 			"semantic_weight": opts.SemanticWeight,
 			"keyword_weight":  opts.KeywordWeight,

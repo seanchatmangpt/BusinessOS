@@ -271,41 +271,41 @@ func JtbdScenarioId(val string) attribute.KeyValue {
 
 // JtbdScenarioIdValues contains the known enum values for jtbd.scenario.id.
 var JtbdScenarioIdValues = struct {
-	AgentDecisionLoop string
-	ProcessDiscovery string
-	ComplianceCheck string
-	CrossSystemHandoff string
-	WorkspaceSync string
-	ConsensusRound string
-	HealingRecovery string
-	A2aDealLifecycle string
-	McpToolExecution string
-	ConformanceDrift string
-	YawlV6Checkpoint string
-	IcpQualification string
+	AgentDecisionLoop         string
+	ProcessDiscovery          string
+	ComplianceCheck           string
+	CrossSystemHandoff        string
+	WorkspaceSync             string
+	ConsensusRound            string
+	HealingRecovery           string
+	A2aDealLifecycle          string
+	McpToolExecution          string
+	ConformanceDrift          string
+	YawlV6Checkpoint          string
+	IcpQualification          string
 	RetrofitComplexityScoring string
 	OutreachSequenceExecution string
-	DealProgression string
-	ContractClosure string
-	ProcessIntelligenceQuery string
+	DealProgression           string
+	ContractClosure           string
+	ProcessIntelligenceQuery  string
 }{
-	AgentDecisionLoop: "agent_decision_loop",
-	ProcessDiscovery: "process_discovery",
-	ComplianceCheck: "compliance_check",
-	CrossSystemHandoff: "cross_system_handoff",
-	WorkspaceSync: "workspace_sync",
-	ConsensusRound: "consensus_round",
-	HealingRecovery: "healing_recovery",
-	A2aDealLifecycle: "a2a_deal_lifecycle",
-	McpToolExecution: "mcp_tool_execution",
-	ConformanceDrift: "conformance_drift",
-	YawlV6Checkpoint: "yawl_v6_checkpoint",
-	IcpQualification: "icp_qualification",
+	AgentDecisionLoop:         "agent_decision_loop",
+	ProcessDiscovery:          "process_discovery",
+	ComplianceCheck:           "compliance_check",
+	CrossSystemHandoff:        "cross_system_handoff",
+	WorkspaceSync:             "workspace_sync",
+	ConsensusRound:            "consensus_round",
+	HealingRecovery:           "healing_recovery",
+	A2aDealLifecycle:          "a2a_deal_lifecycle",
+	McpToolExecution:          "mcp_tool_execution",
+	ConformanceDrift:          "conformance_drift",
+	YawlV6Checkpoint:          "yawl_v6_checkpoint",
+	IcpQualification:          "icp_qualification",
 	RetrofitComplexityScoring: "retrofit_complexity_scoring",
 	OutreachSequenceExecution: "outreach_sequence_execution",
-	DealProgression: "deal_progression",
-	ContractClosure: "contract_closure",
-	ProcessIntelligenceQuery: "process_intelligence_query",
+	DealProgression:           "deal_progression",
+	ContractClosure:           "contract_closure",
+	ProcessIntelligenceQuery:  "process_intelligence_query",
 }
 
 // JtbdScenarioOutcome returns an attribute KeyValue for jtbd.scenario.outcome.
@@ -315,14 +315,14 @@ func JtbdScenarioOutcome(val string) attribute.KeyValue {
 
 // JtbdScenarioOutcomeValues contains the known enum values for jtbd.scenario.outcome.
 var JtbdScenarioOutcomeValues = struct {
-	Success string
-	Failure string
-	Timeout string
+	Success  string
+	Failure  string
+	Timeout  string
 	Fallback string
 }{
-	Success: "success",
-	Failure: "failure",
-	Timeout: "timeout",
+	Success:  "success",
+	Failure:  "failure",
+	Timeout:  "timeout",
 	Fallback: "fallback",
 }
 
@@ -348,15 +348,15 @@ func JtbdScenarioSystem(val string) attribute.KeyValue {
 
 // JtbdScenarioSystemValues contains the known enum values for jtbd.scenario.system.
 var JtbdScenarioSystemValues = struct {
-	Osa string
+	Osa        string
 	Businessos string
-	Canopy string
-	Pm4pyRust string
+	Canopy     string
+	Pm4pyRust  string
 }{
-	Osa: "osa",
+	Osa:        "osa",
 	Businessos: "businessos",
-	Canopy: "canopy",
-	Pm4pyRust: "pm4py_rust",
+	Canopy:     "canopy",
+	Pm4pyRust:  "pm4py_rust",
 }
 
 // JtbdScenarioWave returns an attribute KeyValue for jtbd.scenario.wave.
@@ -393,4 +393,3 @@ func JtbdScenarioTaskId(val string) attribute.KeyValue {
 func JtbdScenarioTraceLink(val string) attribute.KeyValue {
 	return JtbdScenarioTraceLinkKey.String(val)
 }
-

@@ -45,15 +45,15 @@ func BusinessOsComplianceFramework(val string) attribute.KeyValue {
 
 // BusinessOsComplianceFrameworkValues contains the known enum values for business_os.compliance.framework.
 var BusinessOsComplianceFrameworkValues = struct {
-	Soc2 string
+	Soc2  string
 	Hipaa string
-	Gdpr string
-	Sox string
+	Gdpr  string
+	Sox   string
 }{
-	Soc2: "SOC2",
+	Soc2:  "SOC2",
 	Hipaa: "HIPAA",
-	Gdpr: "GDPR",
-	Sox: "SOX",
+	Gdpr:  "GDPR",
+	Sox:   "SOX",
 }
 
 // BusinessOsIntegrationType returns an attribute KeyValue for business_os.integration.type.
@@ -63,14 +63,13 @@ func BusinessOsIntegrationType(val string) attribute.KeyValue {
 
 // BusinessOsIntegrationTypeValues contains the known enum values for business_os.integration.type.
 var BusinessOsIntegrationTypeValues = struct {
-	Webhook string
-	ApiPull string
-	FileSync string
+	Webhook        string
+	ApiPull        string
+	FileSync       string
 	RealtimeStream string
 }{
-	Webhook: "webhook",
-	ApiPull: "api_pull",
-	FileSync: "file_sync",
+	Webhook:        "webhook",
+	ApiPull:        "api_pull",
+	FileSync:       "file_sync",
 	RealtimeStream: "realtime_stream",
 }
-

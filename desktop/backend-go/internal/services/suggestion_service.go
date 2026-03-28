@@ -38,8 +38,8 @@ func NewSuggestionService(pool *pgxpool.Pool) *SuggestionService {
 
 // TaskSuggestion represents a suggested task based on calendar analysis.
 type TaskSuggestion struct {
-	Type           string    `json:"type"`             // meeting_prep, follow_up, deadline, reminder
-	Title          string    `json:"title"`            // Suggested task title
+	Type           string    `json:"type"`  // meeting_prep, follow_up, deadline, reminder
+	Title          string    `json:"title"` // Suggested task title
 	RelatedEventID string    `json:"related_event_id,omitempty"`
 	RelatedEvent   string    `json:"related_event,omitempty"` // Event title for context
 	SuggestedDue   time.Time `json:"suggested_due"`
@@ -405,8 +405,8 @@ func isDuplicate(suggestionTitle string, existingTasks map[string]bool) bool {
 	lowerSuggestion := strings.ToLower(suggestionTitle)
 	for existingTitle := range existingTasks {
 		// If significant overlap, consider it a duplicate
-		if strings.Contains(lowerSuggestion, existingTitle) || 
-		   strings.Contains(existingTitle, lowerSuggestion) {
+		if strings.Contains(lowerSuggestion, existingTitle) ||
+			strings.Contains(existingTitle, lowerSuggestion) {
 			return true
 		}
 	}

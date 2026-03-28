@@ -330,11 +330,11 @@ func TestOnboardingEmailAnalysis(t *testing.T) {
 
 		// Analyze patterns (mock)
 		analysis := map[string]interface{}{
-			"workEmails":       2,
-			"notifications":    1,
-			"keyContacts":      []string{"manager@company.com", "team@company.com"},
-			"commonTopics":     []string{"planning", "deployment", "team updates"},
-			"suggestedRole":    "engineering manager",
+			"workEmails":         2,
+			"notifications":      1,
+			"keyContacts":        []string{"manager@company.com", "team@company.com"},
+			"commonTopics":       []string{"planning", "deployment", "team updates"},
+			"suggestedRole":      "engineering manager",
 			"communicationStyle": "collaborative",
 		}
 

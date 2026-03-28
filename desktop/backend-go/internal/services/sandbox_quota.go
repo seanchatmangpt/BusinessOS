@@ -18,9 +18,9 @@ import (
 
 // Quota enforcement errors
 var (
-	ErrQuotaExceeded       = errors.New("quota exceeded")
-	ErrMemoryLimitExceeded = errors.New("memory limit exceeded")
-	ErrCPULimitExceeded    = errors.New("CPU limit exceeded")
+	ErrQuotaExceeded        = errors.New("quota exceeded")
+	ErrMemoryLimitExceeded  = errors.New("memory limit exceeded")
+	ErrCPULimitExceeded     = errors.New("CPU limit exceeded")
 	ErrStorageLimitExceeded = errors.New("storage limit exceeded")
 	ErrInvalidQuotaRequest  = errors.New("invalid quota request")
 )
@@ -75,12 +75,12 @@ type QuotaUsage struct {
 
 // SandboxResourceUsage tracks resources for a single sandbox.
 type SandboxResourceUsage struct {
-	AppID       uuid.UUID
-	AppName     string
-	Memory      int64
-	CPU         int64
-	Storage     int64
-	Status      SandboxStatus
+	AppID   uuid.UUID
+	AppName string
+	Memory  int64
+	CPU     int64
+	Storage int64
+	Status  SandboxStatus
 }
 
 // QuotaService manages per-user sandbox quotas.
@@ -114,7 +114,7 @@ func NewQuotaService(
 // Returns nil if quota allows the request, otherwise returns a quota error.
 func (s *QuotaService) CheckQuota(ctx context.Context, userID uuid.UUID, requested QuotaRequest) error {
 	if requested.SandboxCount < 0 || requested.MemoryPerSandbox < 0 ||
-	   requested.CPUPerSandbox < 0 || requested.StoragePerSandbox < 0 {
+		requested.CPUPerSandbox < 0 || requested.StoragePerSandbox < 0 {
 		return ErrInvalidQuotaRequest
 	}
 
@@ -170,7 +170,7 @@ func (s *QuotaService) CheckQuota(ctx context.Context, userID uuid.UUID, request
 		s.logger.Info("total memory quota exceeded",
 			"user_id", userID,
 			"current", usage.CurrentTotalMemory,
-			"requested", requested.MemoryPerSandbox * int64(requested.SandboxCount),
+			"requested", requested.MemoryPerSandbox*int64(requested.SandboxCount),
 			"max", quota.MaxTotalMemory)
 		return fmt.Errorf("%w: total memory (current: %d bytes, new total: %d bytes, max: %d bytes)",
 			ErrMemoryLimitExceeded,
@@ -197,7 +197,7 @@ func (s *QuotaService) CheckQuota(ctx context.Context, userID uuid.UUID, request
 		s.logger.Info("storage quota exceeded",
 			"user_id", userID,
 			"current", usage.CurrentTotalStorage,
-			"requested", requested.StoragePerSandbox * int64(requested.SandboxCount),
+			"requested", requested.StoragePerSandbox*int64(requested.SandboxCount),
 			"max", quota.MaxTotalStorage)
 		return fmt.Errorf("%w: (current: %d bytes, new total: %d bytes, max: %d bytes)",
 			ErrStorageLimitExceeded,
@@ -348,9 +348,9 @@ func (s *QuotaService) RemoveUserQuotaOverride(ctx context.Context, userID uuid.
 func (s *QuotaService) getDefaultQuota(userID uuid.UUID) *UserQuota {
 	// Default values
 	maxSandboxes := 5
-	maxMemoryPerSandbox := int64(512 * 1024 * 1024) // 512MB
-	maxCPUPerSandbox := int64(50000)                // 50% of 1 CPU
-	maxTotalMemory := int64(2 * 1024 * 1024 * 1024) // 2GB total
+	maxMemoryPerSandbox := int64(512 * 1024 * 1024)  // 512MB
+	maxCPUPerSandbox := int64(50000)                 // 50% of 1 CPU
+	maxTotalMemory := int64(2 * 1024 * 1024 * 1024)  // 2GB total
 	maxTotalStorage := int64(5 * 1024 * 1024 * 1024) // 5GB total
 
 	// Override from config if set

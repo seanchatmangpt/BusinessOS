@@ -170,7 +170,7 @@ func TestSecurityHeaders_PermissionsPolicy(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	policy := w.Header().Get("Permissions-Policy")
-	
+
 	// All dangerous features should be restricted
 	dangerousFeatures := []string{
 		"geolocation=()",
@@ -179,7 +179,7 @@ func TestSecurityHeaders_PermissionsPolicy(t *testing.T) {
 		"payment=()",
 		"usb=()",
 	}
-	
+
 	for _, feature := range dangerousFeatures {
 		assert.Contains(t, policy, feature, "Permissions-Policy should restrict "+feature)
 	}

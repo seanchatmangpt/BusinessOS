@@ -81,14 +81,14 @@ func (h *HealthcareHandler) TrackPHI(c *gin.Context) {
 
 	// Validate resource type is valid FHIR
 	validTypes := map[string]bool{
-		"Patient":             true,
-		"Observation":         true,
-		"MedicationRequest":   true,
-		"Procedure":           true,
-		"Condition":           true,
-		"AllergyIntolerance":  true,
-		"Encounter":           true,
-		"DiagnosticReport":    true,
+		"Patient":            true,
+		"Observation":        true,
+		"MedicationRequest":  true,
+		"Procedure":          true,
+		"Condition":          true,
+		"AllergyIntolerance": true,
+		"Encounter":          true,
+		"DiagnosticReport":   true,
 	}
 	if !validTypes[req.ResourceType] {
 		utils.RespondBadRequest(c, h.logger, "unsupported FHIR resource type: "+req.ResourceType)
@@ -113,10 +113,10 @@ func (h *HealthcareHandler) TrackPHI(c *gin.Context) {
 
 // GetPHIAuditTrailResponse is the response for GET /api/healthcare/phi/:id/audit.
 type GetPHIAuditTrailResponse struct {
-	ResourceID string                    `json:"resource_id"`
+	ResourceID string                   `json:"resource_id"`
 	AuditTrail []ontology.PHIAuditEntry `json:"audit_trail"`
-	Count      int                       `json:"count"`
-	Period     string                    `json:"period"`
+	Count      int                      `json:"count"`
+	Period     string                   `json:"period"`
 }
 
 // GetPHIAuditTrail handles GET /api/healthcare/phi/:id/audit.
@@ -186,9 +186,9 @@ func (h *HealthcareHandler) DeletePHI(c *gin.Context) {
 
 	if !result.FullyDeleted {
 		c.JSON(http.StatusConflict, gin.H{
-			"error":           "deletion incomplete",
+			"error":             "deletion incomplete",
 			"remaining_triples": result.TripleCount,
-			"verified_at":    result.VerifiedAt,
+			"verified_at":       result.VerifiedAt,
 		})
 		return
 	}

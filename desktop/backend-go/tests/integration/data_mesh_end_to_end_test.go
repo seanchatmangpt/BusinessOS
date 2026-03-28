@@ -39,13 +39,13 @@ import (
 
 // DataDomain represents a data mesh domain
 type DataDomain struct {
-	DomainID    string       `json:"domain_id"`
-	DomainName  string       `json:"domain_name"`
-	DomainType  string       `json:"domain_type"` // finance, legal, operations, etc
-	Owner       string       `json:"owner"`
-	Datasets    []DataAsset  `json:"datasets"`
-	CreatedAt   string       `json:"created_at,omitempty"`
-	Error       string       `json:"error,omitempty"`
+	DomainID   string      `json:"domain_id"`
+	DomainName string      `json:"domain_name"`
+	DomainType string      `json:"domain_type"` // finance, legal, operations, etc
+	Owner      string      `json:"owner"`
+	Datasets   []DataAsset `json:"datasets"`
+	CreatedAt  string      `json:"created_at,omitempty"`
+	Error      string      `json:"error,omitempty"`
 }
 
 // DataAsset represents a dataset in the mesh
@@ -63,22 +63,22 @@ type DataAsset struct {
 
 // DataContract represents a contract for dataset consumption
 type DataContract struct {
-	ContractID  string                 `json:"contract_id"`
-	DatasetID   string                 `json:"dataset_id"`
-	Consumer    string                 `json:"consumer"`
-	SLA         map[string]interface{} `json:"sla,omitempty"`
-	Schema      string                 `json:"schema,omitempty"`
-	CreatedAt   string                 `json:"created_at,omitempty"`
-	Error       string                 `json:"error,omitempty"`
+	ContractID string                 `json:"contract_id"`
+	DatasetID  string                 `json:"dataset_id"`
+	Consumer   string                 `json:"consumer"`
+	SLA        map[string]interface{} `json:"sla,omitempty"`
+	Schema     string                 `json:"schema,omitempty"`
+	CreatedAt  string                 `json:"created_at,omitempty"`
+	Error      string                 `json:"error,omitempty"`
 }
 
 // DataLineage represents lineage information
 type DataLineage struct {
-	DatasetID  string         `json:"dataset_id"`
-	Upstream   []string       `json:"upstream,omitempty"`
-	Downstream []string       `json:"downstream,omitempty"`
+	DatasetID  string                 `json:"dataset_id"`
+	Upstream   []string               `json:"upstream,omitempty"`
+	Downstream []string               `json:"downstream,omitempty"`
 	Transforms map[string]interface{} `json:"transforms,omitempty"`
-	LastUpdate string         `json:"last_update,omitempty"`
+	LastUpdate string                 `json:"last_update,omitempty"`
 }
 
 // TestDataMesh_001_RegisterFinanceDomain tests registering a finance domain
@@ -249,12 +249,12 @@ func TestDataMesh_004_PublishDataset(t *testing.T) {
 		Description: "Centralized counterparty information across all deals",
 		Tags:        []string{"critical", "shared"},
 		Metadata: map[string]interface{}{
-			"row_count":     45000,
-			"last_updated":  "2026-03-26T00:00:00Z",
+			"row_count":        45000,
+			"last_updated":     "2026-03-26T00:00:00Z",
 			"update_frequency": "daily",
 		},
 		AccessControl: map[string]interface{}{
-			"owner_only":  false,
+			"owner_only":    false,
 			"required_role": "finance-analyst",
 		},
 	}
@@ -291,8 +291,8 @@ func TestDataMesh_005_DiscoverDatasets(t *testing.T) {
 	t.Parallel()
 
 	query := map[string]interface{}{
-		"tag":      "critical",
-		"type":     "finance",
+		"tag":             "critical",
+		"type":            "finance",
 		"includes_schema": "true",
 	}
 
@@ -365,9 +365,9 @@ func TestDataMesh_007_ValidateDataContract(t *testing.T) {
 		DatasetID:  "deals-registry",
 		Consumer:   "compliance-engine",
 		SLA: map[string]interface{}{
-			"max_latency_ms": 5000,
+			"max_latency_ms":       5000,
 			"availability_percent": 99.9,
-			"max_downtime_hours": 4,
+			"max_downtime_hours":   4,
 		},
 	}
 

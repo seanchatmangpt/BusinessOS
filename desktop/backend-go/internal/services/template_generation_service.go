@@ -37,16 +37,16 @@ type GeneratedFile struct {
 
 // GenerationResult represents the result of generating an app from a template
 type GenerationResult struct {
-	AppID          uuid.UUID       `json:"app_id"`
-	AppName        string          `json:"app_name"`
-	TemplateID     uuid.UUID       `json:"template_id"`
-	TemplateName   string          `json:"template_name"`
-	WorkspaceID    uuid.UUID       `json:"workspace_id"`
-	Files          []GeneratedFile `json:"files"`
-	TotalFiles     int             `json:"total_files"`
-	Status         string          `json:"status"`
-	VersionNumber  string          `json:"version_number"`
-	GeneratedAt    time.Time       `json:"generated_at"`
+	AppID         uuid.UUID       `json:"app_id"`
+	AppName       string          `json:"app_name"`
+	TemplateID    uuid.UUID       `json:"template_id"`
+	TemplateName  string          `json:"template_name"`
+	WorkspaceID   uuid.UUID       `json:"workspace_id"`
+	Files         []GeneratedFile `json:"files"`
+	TotalFiles    int             `json:"total_files"`
+	Status        string          `json:"status"`
+	VersionNumber string          `json:"version_number"`
+	GeneratedAt   time.Time       `json:"generated_at"`
 }
 
 // NewTemplateGenerationService creates a new template generation service

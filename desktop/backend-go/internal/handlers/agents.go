@@ -37,12 +37,12 @@ type AgentListResponse struct {
 
 // Agent represents an active agent in the system.
 type Agent struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Type        string `json:"type"` // osa, businessos, canopy, pm4py-rust
-	Status      string `json:"status"`
-	LastHeartbeat string `json:"last_heartbeat"`
-	Capabilities []string `json:"capabilities"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Type          string   `json:"type"` // osa, businessos, canopy, pm4py-rust
+	Status        string   `json:"status"`
+	LastHeartbeat string   `json:"last_heartbeat"`
+	Capabilities  []string `json:"capabilities"`
 }
 
 // ListAgents returns all active agents from the ontology.

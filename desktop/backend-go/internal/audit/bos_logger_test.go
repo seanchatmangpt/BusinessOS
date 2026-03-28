@@ -105,7 +105,7 @@ func TestChainLinkIntegrity(t *testing.T) {
 func TestHashHelpers(t *testing.T) {
 	// Test toJSON helper
 	payload := map[string]interface{}{
-		"algorithm":       "alpha",
+		"algorithm":        "alpha",
 		"activities_count": 12,
 	}
 
@@ -132,22 +132,22 @@ func TestAuditEventStructure(t *testing.T) {
 	resourceType := "process_model"
 
 	event := &AuditEvent{
-		EventID:           uuid.New(),
-		SequenceNumber:    1,
-		EventType:         "conformance_checked",
-		EventCategory:     "ProcessMining",
-		Timestamp:         time.Now().UTC(),
-		Severity:          "info",
-		UserID:            &userID,
-		ResourceType:      &resourceType,
-		ResourceID:        &resourceID,
-		EntryHash:         "abc123",
-		PreviousHash:      "def456",
-		PIIDetected:       false,
-		LegalHold:         false,
-		GDPRClassification: stringPtr("processing_activity"),
+		EventID:              uuid.New(),
+		SequenceNumber:       1,
+		EventType:            "conformance_checked",
+		EventCategory:        "ProcessMining",
+		Timestamp:            time.Now().UTC(),
+		Severity:             "info",
+		UserID:               &userID,
+		ResourceType:         &resourceType,
+		ResourceID:           &resourceID,
+		EntryHash:            "abc123",
+		PreviousHash:         "def456",
+		PIIDetected:          false,
+		LegalHold:            false,
+		GDPRClassification:   stringPtr("processing_activity"),
 		DataSubjectsAffected: int32Ptr(5000),
-		Payload:           []byte(`{"fitness":0.95}`),
+		Payload:              []byte(`{"fitness":0.95}`),
 	}
 
 	// Verify all fields properly set
@@ -162,13 +162,13 @@ func TestAuditEventStructure(t *testing.T) {
 // TestComplexEventPayload verifies complex nested payloads are handled.
 func TestComplexEventPayload(t *testing.T) {
 	payload := map[string]interface{}{
-		"model_id":        uuid.New(),
-		"log_id":          uuid.New(),
-		"fitness":         0.95,
-		"precision":       0.92,
-		"generalization":  0.88,
+		"model_id":       uuid.New(),
+		"log_id":         uuid.New(),
+		"fitness":        0.95,
+		"precision":      0.92,
+		"generalization": 0.88,
 		"nested": map[string]interface{}{
-			"activities": []string{"A", "B", "C"},
+			"activities":  []string{"A", "B", "C"},
 			"transitions": 15,
 		},
 	}
@@ -351,12 +351,12 @@ func TestComplianceFieldPopulation(t *testing.T) {
 
 	// Model discovery event (ProcessMining)
 	event1 := &AuditEvent{
-		EventType:              "model_discovered",
-		EventCategory:          "ProcessMining",
-		UserID:                 &userID,
-		GDPRClassification:     stringPtr("processing_activity"),
-		DataSubjectsAffected:   nil,
-		PIIDetected:            false,
+		EventType:            "model_discovered",
+		EventCategory:        "ProcessMining",
+		UserID:               &userID,
+		GDPRClassification:   stringPtr("processing_activity"),
+		DataSubjectsAffected: nil,
+		PIIDetected:          false,
 	}
 
 	assert.Equal(t, "processing_activity", *event1.GDPRClassification)
@@ -364,12 +364,12 @@ func TestComplianceFieldPopulation(t *testing.T) {
 
 	// GDPR deletion event (Compliance)
 	event2 := &AuditEvent{
-		EventType:              "data_deletion",
-		EventCategory:          "Compliance",
-		UserID:                 &userID,
-		GDPRClassification:     stringPtr("right_to_be_forgotten"),
-		DataSubjectsAffected:   int32Ptr(1),
-		PIIDetected:            true,
+		EventType:            "data_deletion",
+		EventCategory:        "Compliance",
+		UserID:               &userID,
+		GDPRClassification:   stringPtr("right_to_be_forgotten"),
+		DataSubjectsAffected: int32Ptr(1),
+		PIIDetected:          true,
 	}
 
 	assert.Equal(t, "right_to_be_forgotten", *event2.GDPRClassification)

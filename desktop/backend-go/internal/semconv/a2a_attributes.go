@@ -343,11 +343,11 @@ func A2aBatchDeliveryPolicy(val string) attribute.KeyValue {
 
 // A2aBatchDeliveryPolicyValues contains the known enum values for a2a.batch.delivery_policy.
 var A2aBatchDeliveryPolicyValues = struct {
-	AtMostOnce string
+	AtMostOnce  string
 	AtLeastOnce string
 	ExactlyOnce string
 }{
-	AtMostOnce: "at_most_once",
+	AtMostOnce:  "at_most_once",
 	AtLeastOnce: "at_least_once",
 	ExactlyOnce: "exactly_once",
 }
@@ -374,15 +374,15 @@ func A2aBidStrategy(val string) attribute.KeyValue {
 
 // A2aBidStrategyValues contains the known enum values for a2a.bid.strategy.
 var A2aBidStrategyValues = struct {
-	LowestCost string
-	HighestTrust string
+	LowestCost      string
+	HighestTrust    string
 	FastestResponse string
-	Balanced string
+	Balanced        string
 }{
-	LowestCost: "lowest_cost",
-	HighestTrust: "highest_trust",
+	LowestCost:      "lowest_cost",
+	HighestTrust:    "highest_trust",
 	FastestResponse: "fastest_response",
-	Balanced: "balanced",
+	Balanced:        "balanced",
 }
 
 // A2aBidWinnerId returns an attribute KeyValue for a2a.bid.winner_id.
@@ -415,12 +415,12 @@ var A2aCapabilityNegotiationOutcomeValues = struct {
 	Accepted string
 	Rejected string
 	Deferred string
-	Partial string
+	Partial  string
 }{
 	Accepted: "accepted",
 	Rejected: "rejected",
 	Deferred: "deferred",
-	Partial: "partial",
+	Partial:  "partial",
 }
 
 // A2aCapabilityNegotiationRounds returns an attribute KeyValue for a2a.capability.negotiation.rounds.
@@ -455,15 +455,15 @@ func A2aContractAmendmentReason(val string) attribute.KeyValue {
 
 // A2aContractAmendmentReasonValues contains the known enum values for a2a.contract.amendment.reason.
 var A2aContractAmendmentReasonValues = struct {
-	ScopeChange string
-	PriceAdjustment string
+	ScopeChange       string
+	PriceAdjustment   string
 	TimelineExtension string
-	QualityRevision string
+	QualityRevision   string
 }{
-	ScopeChange: "scope_change",
-	PriceAdjustment: "price_adjustment",
+	ScopeChange:       "scope_change",
+	PriceAdjustment:   "price_adjustment",
 	TimelineExtension: "timeline_extension",
-	QualityRevision: "quality_revision",
+	QualityRevision:   "quality_revision",
 }
 
 // A2aContractAmendmentVersion returns an attribute KeyValue for a2a.contract.amendment.version.
@@ -483,12 +483,12 @@ func A2aContractDisputeReason(val string) attribute.KeyValue {
 
 // A2aContractDisputeReasonValues contains the known enum values for a2a.contract.dispute.reason.
 var A2aContractDisputeReasonValues = struct {
-	Breach string
-	Ambiguity string
+	Breach       string
+	Ambiguity    string
 	ForceMajeure string
 }{
-	Breach: "breach",
-	Ambiguity: "ambiguity",
+	Breach:       "breach",
+	Ambiguity:    "ambiguity",
 	ForceMajeure: "force_majeure",
 }
 
@@ -499,13 +499,13 @@ func A2aContractDisputeStatus(val string) attribute.KeyValue {
 
 // A2aContractDisputeStatusValues contains the known enum values for a2a.contract.dispute.status.
 var A2aContractDisputeStatusValues = struct {
-	Open string
+	Open        string
 	Arbitrating string
-	Resolved string
+	Resolved    string
 }{
-	Open: "open",
+	Open:        "open",
 	Arbitrating: "arbitrating",
-	Resolved: "resolved",
+	Resolved:    "resolved",
 }
 
 // A2aContractExecutionProgressPct returns an attribute KeyValue for a2a.contract.execution.progress_pct.
@@ -520,15 +520,15 @@ func A2aContractExecutionStatus(val string) attribute.KeyValue {
 
 // A2aContractExecutionStatusValues contains the known enum values for a2a.contract.execution.status.
 var A2aContractExecutionStatusValues = struct {
-	Running string
+	Running   string
 	Completed string
-	Failed string
-	Disputed string
+	Failed    string
+	Disputed  string
 }{
-	Running: "running",
+	Running:   "running",
 	Completed: "completed",
-	Failed: "failed",
-	Disputed: "disputed",
+	Failed:    "failed",
+	Disputed:  "disputed",
 }
 
 // A2aContractExpiryMs returns an attribute KeyValue for a2a.contract.expiry_ms.
@@ -573,17 +573,17 @@ func A2aDealStatus(val string) attribute.KeyValue {
 
 // A2aDealStatusValues contains the known enum values for a2a.deal.status.
 var A2aDealStatusValues = struct {
-	Pending string
-	Active string
+	Pending   string
+	Active    string
 	Completed string
 	Cancelled string
-	Disputed string
+	Disputed  string
 }{
-	Pending: "pending",
-	Active: "active",
+	Pending:   "pending",
+	Active:    "active",
 	Completed: "completed",
 	Cancelled: "cancelled",
-	Disputed: "disputed",
+	Disputed:  "disputed",
 }
 
 // A2aDealType returns an attribute KeyValue for a2a.deal.type.
@@ -608,16 +608,16 @@ func A2aDisputeReason(val string) attribute.KeyValue {
 
 // A2aDisputeReasonValues contains the known enum values for a2a.dispute.reason.
 var A2aDisputeReasonValues = struct {
-	Quality string
+	Quality   string
 	SlaBreach string
-	Payment string
-	Fraud string
+	Payment   string
+	Fraud     string
 	Technical string
 }{
-	Quality: "quality",
+	Quality:   "quality",
 	SlaBreach: "sla_breach",
-	Payment: "payment",
-	Fraud: "fraud",
+	Payment:   "payment",
+	Fraud:     "fraud",
 	Technical: "technical",
 }
 
@@ -633,12 +633,12 @@ func A2aDisputeResolutionStatus(val string) attribute.KeyValue {
 
 // A2aDisputeResolutionStatusValues contains the known enum values for a2a.dispute.resolution_status.
 var A2aDisputeResolutionStatusValues = struct {
-	Pending string
-	Resolved string
+	Pending   string
+	Resolved  string
 	Escalated string
 }{
-	Pending: "pending",
-	Resolved: "resolved",
+	Pending:   "pending",
+	Resolved:  "resolved",
 	Escalated: "escalated",
 }
 
@@ -660,14 +660,14 @@ func A2aEscrowReleaseCondition(val string) attribute.KeyValue {
 // A2aEscrowReleaseConditionValues contains the known enum values for a2a.escrow.release_condition.
 var A2aEscrowReleaseConditionValues = struct {
 	Completion string
-	Timeout string
-	Manual string
-	Dispute string
+	Timeout    string
+	Manual     string
+	Dispute    string
 }{
 	Completion: "completion",
-	Timeout: "timeout",
-	Manual: "manual",
-	Dispute: "dispute",
+	Timeout:    "timeout",
+	Manual:     "manual",
+	Dispute:    "dispute",
 }
 
 // A2aEscrowReleaseMs returns an attribute KeyValue for a2a.escrow.release_ms.
@@ -683,14 +683,14 @@ func A2aEscrowReleaseReason(val string) attribute.KeyValue {
 // A2aEscrowReleaseReasonValues contains the known enum values for a2a.escrow.release_reason.
 var A2aEscrowReleaseReasonValues = struct {
 	Completion string
-	Timeout string
-	Dispute string
-	Manual string
+	Timeout    string
+	Dispute    string
+	Manual     string
 }{
 	Completion: "completion",
-	Timeout: "timeout",
-	Dispute: "dispute",
-	Manual: "manual",
+	Timeout:    "timeout",
+	Dispute:    "dispute",
+	Manual:     "manual",
 }
 
 // A2aEscrowReleasedAmount returns an attribute KeyValue for a2a.escrow.released_amount.
@@ -705,13 +705,13 @@ func A2aEscrowStatus(val string) attribute.KeyValue {
 
 // A2aEscrowStatusValues contains the known enum values for a2a.escrow.status.
 var A2aEscrowStatusValues = struct {
-	Pending string
-	Held string
+	Pending  string
+	Held     string
 	Released string
 	Disputed string
 }{
-	Pending: "pending",
-	Held: "held",
+	Pending:  "pending",
+	Held:     "held",
 	Released: "released",
 	Disputed: "disputed",
 }
@@ -738,12 +738,12 @@ func A2aMessageEncoding(val string) attribute.KeyValue {
 
 // A2aMessageEncodingValues contains the known enum values for a2a.message.encoding.
 var A2aMessageEncodingValues = struct {
-	Json string
-	Msgpack string
+	Json     string
+	Msgpack  string
 	Protobuf string
 }{
-	Json: "json",
-	Msgpack: "msgpack",
+	Json:     "json",
+	Msgpack:  "msgpack",
 	Protobuf: "protobuf",
 }
 
@@ -760,14 +760,14 @@ func A2aMessagePriority(val string) attribute.KeyValue {
 // A2aMessagePriorityValues contains the known enum values for a2a.message.priority.
 var A2aMessagePriorityValues = struct {
 	Critical string
-	High string
-	Normal string
-	Low string
+	High     string
+	Normal   string
+	Low      string
 }{
 	Critical: "critical",
-	High: "high",
-	Normal: "normal",
-	Low: "low",
+	High:     "high",
+	Normal:   "normal",
+	Low:      "low",
 }
 
 // A2aMessageSizeBytes returns an attribute KeyValue for a2a.message.size_bytes.
@@ -793,16 +793,16 @@ func A2aNegotiationState(val string) attribute.KeyValue {
 // A2aNegotiationStateValues contains the known enum values for a2a.negotiation.state.
 var A2aNegotiationStateValues = struct {
 	Proposed string
-	Counter string
+	Counter  string
 	Accepted string
 	Rejected string
-	Expired string
+	Expired  string
 }{
 	Proposed: "proposed",
-	Counter: "counter",
+	Counter:  "counter",
 	Accepted: "accepted",
 	Rejected: "rejected",
-	Expired: "expired",
+	Expired:  "expired",
 }
 
 // A2aNegotiationStatus returns an attribute KeyValue for a2a.negotiation.status.
@@ -812,21 +812,21 @@ func A2aNegotiationStatus(val string) attribute.KeyValue {
 
 // A2aNegotiationStatusValues contains the known enum values for a2a.negotiation.status.
 var A2aNegotiationStatusValues = struct {
-	Pending string
-	InProgress string
-	Accepted string
-	Rejected string
+	Pending      string
+	InProgress   string
+	Accepted     string
+	Rejected     string
 	CounterOffer string
-	Expired string
-	Timeout string
+	Expired      string
+	Timeout      string
 }{
-	Pending: "pending",
-	InProgress: "in_progress",
-	Accepted: "accepted",
-	Rejected: "rejected",
+	Pending:      "pending",
+	InProgress:   "in_progress",
+	Accepted:     "accepted",
+	Rejected:     "rejected",
 	CounterOffer: "counter_offer",
-	Expired: "expired",
-	Timeout: "timeout",
+	Expired:      "expired",
+	Timeout:      "timeout",
 }
 
 // A2aNegotiationTimeoutMs returns an attribute KeyValue for a2a.negotiation.timeout_ms.
@@ -856,15 +856,15 @@ func A2aPenaltyReason(val string) attribute.KeyValue {
 
 // A2aPenaltyReasonValues contains the known enum values for a2a.penalty.reason.
 var A2aPenaltyReasonValues = struct {
-	SlaViolation string
+	SlaViolation   string
 	QualityFailure string
-	Timeout string
-	Fraud string
+	Timeout        string
+	Fraud          string
 }{
-	SlaViolation: "sla_violation",
+	SlaViolation:   "sla_violation",
 	QualityFailure: "quality_failure",
-	Timeout: "timeout",
-	Fraud: "fraud",
+	Timeout:        "timeout",
+	Fraud:          "fraud",
 }
 
 // A2aProtocolDeprecated returns an attribute KeyValue for a2a.protocol.deprecated.
@@ -899,15 +899,15 @@ func A2aReputationCategory(val string) attribute.KeyValue {
 
 // A2aReputationCategoryValues contains the known enum values for a2a.reputation.category.
 var A2aReputationCategoryValues = struct {
-	Trusted string
-	Neutral string
+	Trusted   string
+	Neutral   string
 	Probation string
-	Banned string
+	Banned    string
 }{
-	Trusted: "trusted",
-	Neutral: "neutral",
+	Trusted:   "trusted",
+	Neutral:   "neutral",
 	Probation: "probation",
-	Banned: "banned",
+	Banned:    "banned",
 }
 
 // A2aReputationDecayDelta returns an attribute KeyValue for a2a.reputation.decay.delta.
@@ -927,13 +927,13 @@ func A2aReputationDecayTrigger(val string) attribute.KeyValue {
 
 // A2aReputationDecayTriggerValues contains the known enum values for a2a.reputation.decay.trigger.
 var A2aReputationDecayTriggerValues = struct {
-	Time string
+	Time        string
 	Interaction string
-	Violation string
+	Violation   string
 }{
-	Time: "time",
+	Time:        "time",
 	Interaction: "interaction",
-	Violation: "violation",
+	Violation:   "violation",
 }
 
 // A2aReputationDecayFactor returns an attribute KeyValue for a2a.reputation.decay_factor.
@@ -973,14 +973,14 @@ func A2aRoutingStrategy(val string) attribute.KeyValue {
 
 // A2aRoutingStrategyValues contains the known enum values for a2a.routing.strategy.
 var A2aRoutingStrategyValues = struct {
-	BestMatch string
-	RoundRobin string
-	LoadBalanced string
+	BestMatch     string
+	RoundRobin    string
+	LoadBalanced  string
 	PriorityQueue string
 }{
-	BestMatch: "best_match",
-	RoundRobin: "round_robin",
-	LoadBalanced: "load_balanced",
+	BestMatch:     "best_match",
+	RoundRobin:    "round_robin",
+	LoadBalanced:  "load_balanced",
 	PriorityQueue: "priority_queue",
 }
 
@@ -1042,14 +1042,14 @@ func A2aTaskPriority(val string) attribute.KeyValue {
 // A2aTaskPriorityValues contains the known enum values for a2a.task.priority.
 var A2aTaskPriorityValues = struct {
 	Critical string
-	High string
-	Normal string
-	Low string
+	High     string
+	Normal   string
+	Low      string
 }{
 	Critical: "critical",
-	High: "high",
-	Normal: "normal",
-	Low: "low",
+	High:     "high",
+	Normal:   "normal",
+	Low:      "low",
 }
 
 // A2aTrustConsensusThreshold returns an attribute KeyValue for a2a.trust.consensus_threshold.
@@ -1086,4 +1086,3 @@ func A2aTrustScore(val float64) attribute.KeyValue {
 func A2aTrustUpdatedAtMs(val int64) attribute.KeyValue {
 	return A2aTrustUpdatedAtMsKey.Int64(val)
 }
-

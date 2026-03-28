@@ -33,21 +33,21 @@ func TestVerifyFrameworks(t *testing.T) {
 	handler := NewComplianceAPIHandler(engine, slog.Default())
 
 	tests := []struct {
-		name               string
-		frameworks         []string
-		expectedStatus     int
+		name                string
+		frameworks          []string
+		expectedStatus      int
 		expectedFieldsExist []string
 	}{
 		{
-			name:       "verify SOC2",
-			frameworks: []string{"SOC2"},
-			expectedStatus: http.StatusOK,
+			name:                "verify SOC2",
+			frameworks:          []string{"SOC2"},
+			expectedStatus:      http.StatusOK,
 			expectedFieldsExist: []string{"status", "overall_score", "frameworks", "timestamp"},
 		},
 		{
-			name:       "verify multiple frameworks",
-			frameworks: []string{"SOC2", "GDPR", "HIPAA"},
-			expectedStatus: http.StatusOK,
+			name:                "verify multiple frameworks",
+			frameworks:          []string{"SOC2", "GDPR", "HIPAA"},
+			expectedStatus:      http.StatusOK,
 			expectedFieldsExist: []string{"status", "overall_score", "frameworks"},
 		},
 		{
@@ -176,10 +176,10 @@ func TestListFrameworkControls(t *testing.T) {
 	handler := NewComplianceAPIHandler(engine, slog.Default())
 
 	tests := []struct {
-		name               string
-		framework          string
-		severityFilter     string
-		expectedStatus     int
+		name                string
+		framework           string
+		severityFilter      string
+		expectedStatus      int
 		expectedMinControls int
 	}{
 		{

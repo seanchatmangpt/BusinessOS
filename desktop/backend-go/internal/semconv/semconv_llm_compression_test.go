@@ -45,10 +45,10 @@ func TestLLMContextCompressionStrategyAttributeExists(t *testing.T) {
 func TestLLMContextCompressionStrategyIsEnum(t *testing.T) {
 	// Verify enum values exist
 	values := map[string]string{
-		"summarize":     LlmContextCompressionStrategyValues.Summarize,
-		"truncate":      LlmContextCompressionStrategyValues.Truncate,
+		"summarize":      LlmContextCompressionStrategyValues.Summarize,
+		"truncate":       LlmContextCompressionStrategyValues.Truncate,
 		"sliding_window": LlmContextCompressionStrategyValues.SlidingWindow,
-		"selective":     LlmContextCompressionStrategyValues.Selective,
+		"selective":      LlmContextCompressionStrategyValues.Selective,
 	}
 
 	expectedCount := 4

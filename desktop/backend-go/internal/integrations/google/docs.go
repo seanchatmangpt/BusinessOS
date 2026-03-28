@@ -14,18 +14,18 @@ import (
 
 // GoogleDoc represents a synced Google Doc.
 type GoogleDoc struct {
-	ID           string       `json:"id"`
-	UserID       string       `json:"user_id"`
-	DocumentID   string       `json:"document_id"`
-	DriveFileID  string       `json:"drive_file_id,omitempty"`
-	Title        string       `json:"title"`
-	BodyText     string       `json:"body_text,omitempty"`
-	WordCount    int          `json:"word_count"`
-	Headers      []DocHeader  `json:"headers,omitempty"`
-	Locale       string       `json:"locale,omitempty"`
-	CreatedTime  time.Time    `json:"created_time,omitempty"`
-	ModifiedTime time.Time    `json:"modified_time,omitempty"`
-	SyncedAt     time.Time    `json:"synced_at"`
+	ID           string      `json:"id"`
+	UserID       string      `json:"user_id"`
+	DocumentID   string      `json:"document_id"`
+	DriveFileID  string      `json:"drive_file_id,omitempty"`
+	Title        string      `json:"title"`
+	BodyText     string      `json:"body_text,omitempty"`
+	WordCount    int         `json:"word_count"`
+	Headers      []DocHeader `json:"headers,omitempty"`
+	Locale       string      `json:"locale,omitempty"`
+	CreatedTime  time.Time   `json:"created_time,omitempty"`
+	ModifiedTime time.Time   `json:"modified_time,omitempty"`
+	SyncedAt     time.Time   `json:"synced_at"`
 }
 
 // DocHeader represents a header/heading in a document.

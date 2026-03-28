@@ -169,14 +169,14 @@ func AgentBudgetTier(val string) attribute.KeyValue {
 // AgentBudgetTierValues contains the known enum values for agent.budget.tier.
 var AgentBudgetTierValues = struct {
 	Critical string
-	High string
-	Normal string
-	Low string
+	High     string
+	Normal   string
+	Low      string
 }{
 	Critical: "critical",
-	High: "high",
-	Normal: "normal",
-	Low: "low",
+	High:     "high",
+	Normal:   "normal",
+	Low:      "low",
 }
 
 // AgentCapabilityCatalogId returns an attribute KeyValue for agent.capability.catalog_id.
@@ -201,12 +201,12 @@ func AgentCapabilityScope(val string) attribute.KeyValue {
 
 // AgentCapabilityScopeValues contains the known enum values for agent.capability.scope.
 var AgentCapabilityScopeValues = struct {
-	Local string
-	Cluster string
+	Local     string
+	Cluster   string
 	Federated string
 }{
-	Local: "local",
-	Cluster: "cluster",
+	Local:     "local",
+	Cluster:   "cluster",
 	Federated: "federated",
 }
 
@@ -227,17 +227,17 @@ func AgentDecisionType(val string) attribute.KeyValue {
 
 // AgentDecisionTypeValues contains the known enum values for agent.decision.type.
 var AgentDecisionTypeValues = struct {
-	Action string
+	Action     string
 	Delegation string
 	Escalation string
-	Defer string
-	Reject string
+	Defer      string
+	Reject     string
 }{
-	Action: "action",
+	Action:     "action",
 	Delegation: "delegation",
 	Escalation: "escalation",
-	Defer: "defer",
-	Reject: "reject",
+	Defer:      "defer",
+	Reject:     "reject",
 }
 
 // AgentExecutionCriticalPathMs returns an attribute KeyValue for agent.execution.critical_path_ms.
@@ -268,14 +268,14 @@ func AgentHandoffReason(val string) attribute.KeyValue {
 // AgentHandoffReasonValues contains the known enum values for agent.handoff.reason.
 var AgentHandoffReasonValues = struct {
 	Capability string
-	Load string
-	Timeout string
-	Priority string
+	Load       string
+	Timeout    string
+	Priority   string
 }{
 	Capability: "capability",
-	Load: "load",
-	Timeout: "timeout",
-	Priority: "priority",
+	Load:       "load",
+	Timeout:    "timeout",
+	Priority:   "priority",
 }
 
 // AgentHandoffStateTransferMs returns an attribute KeyValue for agent.handoff.state_transfer_ms.
@@ -336,14 +336,14 @@ func AgentMemoryType(val string) attribute.KeyValue {
 // AgentMemoryTypeValues contains the known enum values for agent.memory.type.
 var AgentMemoryTypeValues = struct {
 	ShortTerm string
-	LongTerm string
-	Episodic string
-	Semantic string
+	LongTerm  string
+	Episodic  string
+	Semantic  string
 }{
 	ShortTerm: "short_term",
-	LongTerm: "long_term",
-	Episodic: "episodic",
-	Semantic: "semantic",
+	LongTerm:  "long_term",
+	Episodic:  "episodic",
+	Semantic:  "semantic",
 }
 
 // AgentMessageCount returns an attribute KeyValue for agent.message.count.
@@ -368,12 +368,12 @@ func AgentOutcome(val string) attribute.KeyValue {
 
 // AgentOutcomeValues contains the known enum values for agent.outcome.
 var AgentOutcomeValues = struct {
-	Success string
-	Failure string
+	Success   string
+	Failure   string
 	Escalated string
 }{
-	Success: "success",
-	Failure: "failure",
+	Success:   "success",
+	Failure:   "failure",
 	Escalated: "escalated",
 }
 
@@ -389,15 +389,15 @@ func AgentPipelineRetryPolicy(val string) attribute.KeyValue {
 
 // AgentPipelineRetryPolicyValues contains the known enum values for agent.pipeline.retry_policy.
 var AgentPipelineRetryPolicyValues = struct {
-	None string
-	FixedDelay string
+	None               string
+	FixedDelay         string
 	ExponentialBackoff string
-	CircuitBreaker string
+	CircuitBreaker     string
 }{
-	None: "none",
-	FixedDelay: "fixed_delay",
+	None:               "none",
+	FixedDelay:         "fixed_delay",
 	ExponentialBackoff: "exponential_backoff",
-	CircuitBreaker: "circuit_breaker",
+	CircuitBreaker:     "circuit_breaker",
 }
 
 // AgentPipelineStage returns an attribute KeyValue for agent.pipeline.stage.
@@ -452,13 +452,13 @@ func AgentSpawnStrategy(val string) attribute.KeyValue {
 
 // AgentSpawnStrategyValues contains the known enum values for agent.spawn.strategy.
 var AgentSpawnStrategyValues = struct {
-	OnDemand string
+	OnDemand  string
 	PreWarmed string
-	Pooled string
+	Pooled    string
 }{
-	OnDemand: "on_demand",
+	OnDemand:  "on_demand",
 	PreWarmed: "pre_warmed",
-	Pooled: "pooled",
+	Pooled:    "pooled",
 }
 
 // AgentTaskStatus returns an attribute KeyValue for agent.task.status.
@@ -468,16 +468,16 @@ func AgentTaskStatus(val string) attribute.KeyValue {
 
 // AgentTaskStatusValues contains the known enum values for agent.task.status.
 var AgentTaskStatusValues = struct {
-	Pending string
-	Running string
+	Pending   string
+	Running   string
 	Completed string
-	Failed string
+	Failed    string
 	Cancelled string
 }{
-	Pending: "pending",
-	Running: "running",
+	Pending:   "pending",
+	Running:   "running",
 	Completed: "completed",
-	Failed: "failed",
+	Failed:    "failed",
 	Cancelled: "cancelled",
 }
 
@@ -498,17 +498,17 @@ func AgentTopologyType(val string) attribute.KeyValue {
 
 // AgentTopologyTypeValues contains the known enum values for agent.topology.type.
 var AgentTopologyTypeValues = struct {
-	Pipeline string
-	FanOut string
+	Pipeline     string
+	FanOut       string
 	Hierarchical string
-	Mesh string
-	Star string
+	Mesh         string
+	Star         string
 }{
-	Pipeline: "pipeline",
-	FanOut: "fan_out",
+	Pipeline:     "pipeline",
+	FanOut:       "fan_out",
 	Hierarchical: "hierarchical",
-	Mesh: "mesh",
-	Star: "star",
+	Mesh:         "mesh",
+	Star:         "star",
 }
 
 // AgentVersion returns an attribute KeyValue for agent.version.
@@ -530,4 +530,3 @@ func AgentWorkflowCheckpointStep(val int64) attribute.KeyValue {
 func AgentWorkflowResumeCount(val int64) attribute.KeyValue {
 	return AgentWorkflowResumeCountKey.Int64(val)
 }
-

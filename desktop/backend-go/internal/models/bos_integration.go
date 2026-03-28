@@ -32,18 +32,18 @@ func (e BosError) Error() string {
 
 // Error codes
 const (
-	ErrInvalidActivity      = "INVALID_ACTIVITY"
-	ErrInvalidTimestamp     = "INVALID_TIMESTAMP"
-	ErrInvalidUUID          = "INVALID_UUID"
-	ErrInvalidTraceID       = "INVALID_TRACE_ID"
-	ErrMaxSizeExceeded      = "MAX_SIZE_EXCEEDED"
-	ErrEmptyCollection      = "EMPTY_COLLECTION"
-	ErrValidationFailed     = "VALIDATION_FAILED"
-	ErrReferenceNotFound    = "REFERENCE_NOT_FOUND"
-	ErrOutOfRange           = "OUT_OF_RANGE"
-	ErrMarshaling           = "MARSHALING_ERROR"
-	ErrUnmarshaling         = "UNMARSHALING_ERROR"
-	ErrUUID                 = "INVALID_UUID_FORMAT"
+	ErrInvalidActivity   = "INVALID_ACTIVITY"
+	ErrInvalidTimestamp  = "INVALID_TIMESTAMP"
+	ErrInvalidUUID       = "INVALID_UUID"
+	ErrInvalidTraceID    = "INVALID_TRACE_ID"
+	ErrMaxSizeExceeded   = "MAX_SIZE_EXCEEDED"
+	ErrEmptyCollection   = "EMPTY_COLLECTION"
+	ErrValidationFailed  = "VALIDATION_FAILED"
+	ErrReferenceNotFound = "REFERENCE_NOT_FOUND"
+	ErrOutOfRange        = "OUT_OF_RANGE"
+	ErrMarshaling        = "MARSHALING_ERROR"
+	ErrUnmarshaling      = "UNMARSHALING_ERROR"
+	ErrUUID              = "INVALID_UUID_FORMAT"
 )
 
 // ============================================================================
@@ -533,15 +533,15 @@ func (c *ConformanceResult) Fitness() float64 {
 
 // LogStatistics represents aggregated log statistics
 type LogStatistics struct {
-	NumTraces           int              `json:"num_traces"`
-	NumEvents           int              `json:"num_events"`
-	NumVariants         int              `json:"num_variants"`
-	AvgTraceLength      float64          `json:"avg_trace_length"`
-	MinTraceLength      int              `json:"min_trace_length"`
-	MaxTraceLength      int              `json:"max_trace_length"`
-	Activities          []string         `json:"activities"`
-	ActivityFrequencies map[string]int   `json:"activity_frequencies"`
-	Variants            map[string]int   `json:"variants"`
+	NumTraces           int            `json:"num_traces"`
+	NumEvents           int            `json:"num_events"`
+	NumVariants         int            `json:"num_variants"`
+	AvgTraceLength      float64        `json:"avg_trace_length"`
+	MinTraceLength      int            `json:"min_trace_length"`
+	MaxTraceLength      int            `json:"max_trace_length"`
+	Activities          []string       `json:"activities"`
+	ActivityFrequencies map[string]int `json:"activity_frequencies"`
+	Variants            map[string]int `json:"variants"`
 }
 
 // ============================================================================
@@ -567,10 +567,10 @@ func isValidUUID(u string) bool {
 // EventLogToConformanceCheckRequest converts EventLog to a format suitable for PM algorithms
 func EventLogToConformanceCheckRequest(log *EventLog) map[string]interface{} {
 	return map[string]interface{}{
-		"num_traces":      len(log.Traces),
-		"num_events":      log.NumEvents(),
-		"traces":          log.Traces,
-		"metadata":        log.Attributes,
+		"num_traces": len(log.Traces),
+		"num_events": log.NumEvents(),
+		"traces":     log.Traces,
+		"metadata":   log.Attributes,
 	}
 }
 

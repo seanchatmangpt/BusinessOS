@@ -318,15 +318,15 @@ func LlmContextCompressionStrategy(val string) attribute.KeyValue {
 
 // LlmContextCompressionStrategyValues contains the known enum values for llm.context.compression.strategy.
 var LlmContextCompressionStrategyValues = struct {
-	Summarize string
-	Truncate string
+	Summarize     string
+	Truncate      string
 	SlidingWindow string
-	Selective string
+	Selective     string
 }{
-	Summarize: "summarize",
-	Truncate: "truncate",
+	Summarize:     "summarize",
+	Truncate:      "truncate",
 	SlidingWindow: "sliding_window",
-	Selective: "selective",
+	Selective:     "selective",
 }
 
 // LlmContextCompressionTokensSaved returns an attribute KeyValue for llm.context.compression.tokens_saved.
@@ -351,17 +351,17 @@ func LlmAdapterType(val string) attribute.KeyValue {
 
 // LlmAdapterTypeValues contains the known enum values for llm.adapter.type.
 var LlmAdapterTypeValues = struct {
-	Lora string
-	Prefix string
+	Lora         string
+	Prefix       string
 	PromptTuning string
-	Adapter string
-	Ia3 string
+	Adapter      string
+	Ia3          string
 }{
-	Lora: "lora",
-	Prefix: "prefix",
+	Lora:         "lora",
+	Prefix:       "prefix",
 	PromptTuning: "prompt_tuning",
-	Adapter: "adapter",
-	Ia3: "ia3",
+	Adapter:      "adapter",
+	Ia3:          "ia3",
 }
 
 // LlmBatchAvgLatencyMs returns an attribute KeyValue for llm.batch.avg_latency_ms.
@@ -386,13 +386,13 @@ func LlmBatchPriority(val string) attribute.KeyValue {
 
 // LlmBatchPriorityValues contains the known enum values for llm.batch.priority.
 var LlmBatchPriorityValues = struct {
-	High string
+	High   string
 	Normal string
-	Low string
+	Low    string
 }{
-	High: "high",
+	High:   "high",
 	Normal: "normal",
-	Low: "low",
+	Low:    "low",
 }
 
 // LlmBatchRequestCount returns an attribute KeyValue for llm.batch.request_count.
@@ -407,12 +407,12 @@ func LlmCacheEvictionReason(val string) attribute.KeyValue {
 
 // LlmCacheEvictionReasonValues contains the known enum values for llm.cache.eviction_reason.
 var LlmCacheEvictionReasonValues = struct {
-	TtlExpired string
-	Capacity string
+	TtlExpired  string
+	Capacity    string
 	Invalidated string
 }{
-	TtlExpired: "ttl_expired",
-	Capacity: "capacity",
+	TtlExpired:  "ttl_expired",
+	Capacity:    "capacity",
 	Invalidated: "invalidated",
 }
 
@@ -463,16 +463,16 @@ func LlmContextOverflowStrategy(val string) attribute.KeyValue {
 
 // LlmContextOverflowStrategyValues contains the known enum values for llm.context.overflow_strategy.
 var LlmContextOverflowStrategyValues = struct {
-	Truncate string
-	Summarize string
-	Compress string
-	Reject string
+	Truncate      string
+	Summarize     string
+	Compress      string
+	Reject        string
 	SlidingWindow string
 }{
-	Truncate: "truncate",
-	Summarize: "summarize",
-	Compress: "compress",
-	Reject: "reject",
+	Truncate:      "truncate",
+	Summarize:     "summarize",
+	Compress:      "compress",
+	Reject:        "reject",
 	SlidingWindow: "sliding_window",
 }
 
@@ -553,12 +553,12 @@ func LlmFeedbackThumbs(val string) attribute.KeyValue {
 
 // LlmFeedbackThumbsValues contains the known enum values for llm.feedback.thumbs.
 var LlmFeedbackThumbsValues = struct {
-	Up string
-	Down string
+	Up      string
+	Down    string
 	Neutral string
 }{
-	Up: "up",
-	Down: "down",
+	Up:      "up",
+	Down:    "down",
 	Neutral: "neutral",
 }
 
@@ -579,14 +579,14 @@ func LlmFewShotSelectionStrategy(val string) attribute.KeyValue {
 
 // LlmFewShotSelectionStrategyValues contains the known enum values for llm.few_shot.selection_strategy.
 var LlmFewShotSelectionStrategyValues = struct {
-	Random string
+	Random     string
 	Similarity string
-	Diverse string
+	Diverse    string
 	Stratified string
 }{
-	Random: "random",
+	Random:     "random",
 	Similarity: "similarity",
-	Diverse: "diverse",
+	Diverse:    "diverse",
 	Stratified: "stratified",
 }
 
@@ -632,14 +632,14 @@ func LlmFunctionCallRoutingStrategy(val string) attribute.KeyValue {
 
 // LlmFunctionCallRoutingStrategyValues contains the known enum values for llm.function_call.routing_strategy.
 var LlmFunctionCallRoutingStrategyValues = struct {
-	Direct string
-	Fallback string
-	Parallel string
+	Direct     string
+	Fallback   string
+	Parallel   string
 	Sequential string
 }{
-	Direct: "direct",
-	Fallback: "fallback",
-	Parallel: "parallel",
+	Direct:     "direct",
+	Fallback:   "fallback",
+	Parallel:   "parallel",
 	Sequential: "sequential",
 }
 
@@ -655,17 +655,17 @@ func LlmGuardrailType(val string) attribute.KeyValue {
 
 // LlmGuardrailTypeValues contains the known enum values for llm.guardrail.type.
 var LlmGuardrailTypeValues = struct {
-	ContentFilter string
-	PiiDetection string
-	PromptInjection string
+	ContentFilter      string
+	PiiDetection       string
+	PromptInjection    string
 	HallucinationCheck string
-	RateLimit string
+	RateLimit          string
 }{
-	ContentFilter: "content_filter",
-	PiiDetection: "pii_detection",
-	PromptInjection: "prompt_injection",
+	ContentFilter:      "content_filter",
+	PiiDetection:       "pii_detection",
+	PromptInjection:    "prompt_injection",
 	HallucinationCheck: "hallucination_check",
-	RateLimit: "rate_limit",
+	RateLimit:          "rate_limit",
 }
 
 // LlmLatencyMs returns an attribute KeyValue for llm.latency_ms.
@@ -715,16 +715,16 @@ func LlmModelFamily(val string) attribute.KeyValue {
 
 // LlmModelFamilyValues contains the known enum values for llm.model_family.
 var LlmModelFamilyValues = struct {
-	Gpt string
-	Claude string
-	Gemini string
-	Llama string
+	Gpt     string
+	Claude  string
+	Gemini  string
+	Llama   string
 	Mistral string
 }{
-	Gpt: "gpt",
-	Claude: "claude",
-	Gemini: "gemini",
-	Llama: "llama",
+	Gpt:     "gpt",
+	Claude:  "claude",
+	Gemini:  "gemini",
+	Llama:   "llama",
 	Mistral: "mistral",
 }
 
@@ -740,16 +740,16 @@ func LlmMultimodalInputType(val string) attribute.KeyValue {
 
 // LlmMultimodalInputTypeValues contains the known enum values for llm.multimodal.input_type.
 var LlmMultimodalInputTypeValues = struct {
-	Text string
-	Image string
-	Audio string
-	Video string
+	Text     string
+	Image    string
+	Audio    string
+	Video    string
 	Document string
 }{
-	Text: "text",
-	Image: "image",
-	Audio: "audio",
-	Video: "video",
+	Text:     "text",
+	Image:    "image",
+	Audio:    "audio",
+	Video:    "video",
 	Document: "document",
 }
 
@@ -845,17 +845,17 @@ func LlmStopReason(val string) attribute.KeyValue {
 
 // LlmStopReasonValues contains the known enum values for llm.stop_reason.
 var LlmStopReasonValues = struct {
-	MaxTokens string
+	MaxTokens    string
 	StopSequence string
-	Length string
-	EndTurn string
-	ToolUse string
+	Length       string
+	EndTurn      string
+	ToolUse      string
 }{
-	MaxTokens: "max_tokens",
+	MaxTokens:    "max_tokens",
 	StopSequence: "stop_sequence",
-	Length: "length",
-	EndTurn: "end_turn",
-	ToolUse: "tool_use",
+	Length:       "length",
+	EndTurn:      "end_turn",
+	ToolUse:      "tool_use",
 }
 
 // LlmStreamingChunkCount returns an attribute KeyValue for llm.streaming.chunk_count.
@@ -885,14 +885,14 @@ func LlmStructuredOutputFormat(val string) attribute.KeyValue {
 
 // LlmStructuredOutputFormatValues contains the known enum values for llm.structured_output.format.
 var LlmStructuredOutputFormatValues = struct {
-	Json string
-	Xml string
-	Yaml string
+	Json     string
+	Xml      string
+	Yaml     string
 	Markdown string
 }{
-	Json: "json",
-	Xml: "xml",
-	Yaml: "yaml",
+	Json:     "json",
+	Xml:      "xml",
+	Yaml:     "yaml",
 	Markdown: "markdown",
 }
 
@@ -953,15 +953,15 @@ func LlmToolOrchestrationStrategy(val string) attribute.KeyValue {
 
 // LlmToolOrchestrationStrategyValues contains the known enum values for llm.tool.orchestration.strategy.
 var LlmToolOrchestrationStrategyValues = struct {
-	Sequential string
-	Parallel string
+	Sequential  string
+	Parallel    string
 	Conditional string
-	Retry string
+	Retry       string
 }{
-	Sequential: "sequential",
-	Parallel: "parallel",
+	Sequential:  "sequential",
+	Parallel:    "parallel",
 	Conditional: "conditional",
-	Retry: "retry",
+	Retry:       "retry",
 }
 
 // LlmToolOrchestrationSuccessRate returns an attribute KeyValue for llm.tool.orchestration.success_rate.
@@ -981,13 +981,13 @@ func LlmValidationErrorType(val string) attribute.KeyValue {
 
 // LlmValidationErrorTypeValues contains the known enum values for llm.validation.error_type.
 var LlmValidationErrorTypeValues = struct {
-	Format string
-	TypeMismatch string
+	Format        string
+	TypeMismatch  string
 	RequiredField string
 	EnumViolation string
 }{
-	Format: "format",
-	TypeMismatch: "type",
+	Format:        "format",
+	TypeMismatch:  "type",
 	RequiredField: "required",
 	EnumViolation: "enum",
 }
@@ -1001,4 +1001,3 @@ func LlmValidationPassRate(val float64) attribute.KeyValue {
 func LlmValidationSchemaId(val string) attribute.KeyValue {
 	return LlmValidationSchemaIdKey.String(val)
 }
-

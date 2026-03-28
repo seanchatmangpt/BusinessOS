@@ -11,8 +11,8 @@ import (
 
 // UserRoleContext represents the role-based context for an agent
 type UserRoleContext struct {
-	UserID          string    `json:"user_id"`
-	WorkspaceID     uuid.UUID `json:"workspace_id"`
+	UserID      string    `json:"user_id"`
+	WorkspaceID uuid.UUID `json:"workspace_id"`
 
 	// Role Info
 	RoleName        string `json:"role_name"`
@@ -46,10 +46,10 @@ func NewRoleContextService(pool *pgxpool.Pool) *RoleContextService {
 // GetUserRoleContext retrieves the complete role context for a user
 func (s *RoleContextService) GetUserRoleContext(ctx context.Context, userID string, workspaceID uuid.UUID) (*UserRoleContext, error) {
 	roleCtx := &UserRoleContext{
-		UserID:       userID,
-		WorkspaceID:  workspaceID,
-		Permissions:  make(map[string]map[string]interface{}),
-		ProjectRoles: make(map[uuid.UUID]string),
+		UserID:         userID,
+		WorkspaceID:    workspaceID,
+		Permissions:    make(map[string]map[string]interface{}),
+		ProjectRoles:   make(map[uuid.UUID]string),
 		ExpertiseAreas: make([]string, 0),
 	}
 

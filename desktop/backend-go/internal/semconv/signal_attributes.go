@@ -123,15 +123,15 @@ func SignalEncoding(val string) attribute.KeyValue {
 
 // SignalEncodingValues contains the known enum values for signal.encoding.
 var SignalEncodingValues = struct {
-	Json string
+	Json     string
 	Protobuf string
-	Msgpack string
-	Plain string
+	Msgpack  string
+	Plain    string
 }{
-	Json: "json",
+	Json:     "json",
 	Protobuf: "protobuf",
-	Msgpack: "msgpack",
-	Plain: "plain",
+	Msgpack:  "msgpack",
+	Plain:    "plain",
 }
 
 // SignalFormat returns an attribute KeyValue for signal.format.
@@ -142,22 +142,22 @@ func SignalFormat(val string) attribute.KeyValue {
 // SignalFormatValues contains the known enum values for signal.format.
 var SignalFormatValues = struct {
 	Markdown string
-	Code string
-	Json string
-	Yaml string
-	Html string
-	Text string
-	Table string
-	Diagram string
+	Code     string
+	Json     string
+	Yaml     string
+	Html     string
+	Text     string
+	Table    string
+	Diagram  string
 }{
 	Markdown: "markdown",
-	Code: "code",
-	Json: "json",
-	Yaml: "yaml",
-	Html: "html",
-	Text: "text",
-	Table: "table",
-	Diagram: "diagram",
+	Code:     "code",
+	Json:     "json",
+	Yaml:     "yaml",
+	Html:     "html",
+	Text:     "text",
+	Table:    "table",
+	Diagram:  "diagram",
 }
 
 // SignalGenre returns an attribute KeyValue for signal.genre.
@@ -167,27 +167,27 @@ func SignalGenre(val string) attribute.KeyValue {
 
 // SignalGenreValues contains the known enum values for signal.genre.
 var SignalGenreValues = struct {
-	Spec string
-	Brief string
-	Report string
-	Plan string
-	Adr string
-	Email string
+	Spec       string
+	Brief      string
+	Report     string
+	Plan       string
+	Adr        string
+	Email      string
 	CodeReview string
-	Pitch string
-	Decision string
-	Analysis string
+	Pitch      string
+	Decision   string
+	Analysis   string
 }{
-	Spec: "spec",
-	Brief: "brief",
-	Report: "report",
-	Plan: "plan",
-	Adr: "adr",
-	Email: "email",
+	Spec:       "spec",
+	Brief:      "brief",
+	Report:     "report",
+	Plan:       "plan",
+	Adr:        "adr",
+	Email:      "email",
 	CodeReview: "code_review",
-	Pitch: "pitch",
-	Decision: "decision",
-	Analysis: "analysis",
+	Pitch:      "pitch",
+	Decision:   "decision",
+	Analysis:   "analysis",
 }
 
 // SignalHopCount returns an attribute KeyValue for signal.hop_count.
@@ -207,23 +207,23 @@ func SignalMode(val string) attribute.KeyValue {
 
 // SignalModeValues contains the known enum values for signal.mode.
 var SignalModeValues = struct {
-	Linguistic string
-	Visual string
-	Code string
-	Data string
-	Mixed string
-	Cognitive string
+	Linguistic  string
+	Visual      string
+	Code        string
+	Data        string
+	Mixed       string
+	Cognitive   string
 	Operational string
-	Reactive string
+	Reactive    string
 }{
-	Linguistic: "linguistic",
-	Visual: "visual",
-	Code: "code",
-	Data: "data",
-	Mixed: "mixed",
-	Cognitive: "cognitive",
+	Linguistic:  "linguistic",
+	Visual:      "visual",
+	Code:        "code",
+	Data:        "data",
+	Mixed:       "mixed",
+	Cognitive:   "cognitive",
 	Operational: "operational",
-	Reactive: "reactive",
+	Reactive:    "reactive",
 }
 
 // SignalNoiseLevel returns an attribute KeyValue for signal.noise_level.
@@ -239,14 +239,14 @@ func SignalPriority(val string) attribute.KeyValue {
 // SignalPriorityValues contains the known enum values for signal.priority.
 var SignalPriorityValues = struct {
 	Critical string
-	High string
-	Normal string
-	Low string
+	High     string
+	Normal   string
+	Low      string
 }{
 	Critical: "critical",
-	High: "high",
-	Normal: "normal",
-	Low: "low",
+	High:     "high",
+	Normal:   "normal",
+	Low:      "low",
 }
 
 // SignalQualityDegraded returns an attribute KeyValue for signal.quality.degraded.
@@ -291,16 +291,16 @@ func SignalType(val string) attribute.KeyValue {
 
 // SignalTypeValues contains the known enum values for signal.type.
 var SignalTypeValues = struct {
-	Direct string
-	Inform string
-	Commit string
-	Decide string
+	Direct  string
+	Inform  string
+	Commit  string
+	Decide  string
 	Express string
 }{
-	Direct: "direct",
-	Inform: "inform",
-	Commit: "commit",
-	Decide: "decide",
+	Direct:  "direct",
+	Inform:  "inform",
+	Commit:  "commit",
+	Decide:  "decide",
 	Express: "express",
 }
 
@@ -308,4 +308,3 @@ var SignalTypeValues = struct {
 func SignalWeight(val float64) attribute.KeyValue {
 	return SignalWeightKey.Float64(val)
 }
-

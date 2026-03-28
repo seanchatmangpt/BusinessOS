@@ -30,13 +30,13 @@ type GoogleSheet struct {
 
 // SheetInfo represents information about a sheet within a spreadsheet.
 type SheetInfo struct {
-	SheetID    int64  `json:"sheet_id"`
-	Title      string `json:"title"`
-	Index      int64  `json:"index"`
-	SheetType  string `json:"sheet_type"` // GRID, OBJECT, etc.
-	RowCount   int64  `json:"row_count,omitempty"`
-	ColumnCount int64 `json:"column_count,omitempty"`
-	Hidden     bool   `json:"hidden"`
+	SheetID     int64  `json:"sheet_id"`
+	Title       string `json:"title"`
+	Index       int64  `json:"index"`
+	SheetType   string `json:"sheet_type"` // GRID, OBJECT, etc.
+	RowCount    int64  `json:"row_count,omitempty"`
+	ColumnCount int64  `json:"column_count,omitempty"`
+	Hidden      bool   `json:"hidden"`
 }
 
 // NamedRange represents a named range in a spreadsheet.

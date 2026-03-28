@@ -200,7 +200,7 @@ func (m *MCPService) getDynamicMCPTools(ctx context.Context) []MCPTool {
 				Name:        fmt.Sprintf("%s.%s", srv.Name, ct.Name),
 				Description: ct.Description,
 				Parameters:  ct.InputSchema,
-				Source:       fmt.Sprintf("mcp:%s", srv.Name),
+				Source:      fmt.Sprintf("mcp:%s", srv.Name),
 			})
 		}
 	}

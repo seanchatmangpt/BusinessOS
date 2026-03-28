@@ -13,36 +13,36 @@ import (
 
 // DriveFile represents a synced Google Drive file.
 type DriveFile struct {
-	ID               string            `json:"id"`
-	UserID           string            `json:"user_id"`
-	FileID           string            `json:"file_id"`
-	Name             string            `json:"name"`
-	MimeType         string            `json:"mime_type,omitempty"`
-	FileExtension    string            `json:"file_extension,omitempty"`
-	SizeBytes        int64             `json:"size_bytes,omitempty"`
-	ParentFolderID   string            `json:"parent_folder_id,omitempty"`
-	ParentFolderName string            `json:"parent_folder_name,omitempty"`
-	Path             string            `json:"path,omitempty"`
-	Shared           bool              `json:"shared"`
-	SharingUser      string            `json:"sharing_user,omitempty"`
-	Permissions      []FilePermission  `json:"permissions,omitempty"`
-	WebViewLink      string            `json:"web_view_link,omitempty"`
-	WebContentLink   string            `json:"web_content_link,omitempty"`
-	ThumbnailLink    string            `json:"thumbnail_link,omitempty"`
-	IconLink         string            `json:"icon_link,omitempty"`
-	CreatedTime      time.Time         `json:"created_time,omitempty"`
-	ModifiedTime     time.Time         `json:"modified_time,omitempty"`
-	ViewedByMeTime   time.Time         `json:"viewed_by_me_time,omitempty"`
-	Owners           []FileOwner       `json:"owners,omitempty"`
+	ID                string           `json:"id"`
+	UserID            string           `json:"user_id"`
+	FileID            string           `json:"file_id"`
+	Name              string           `json:"name"`
+	MimeType          string           `json:"mime_type,omitempty"`
+	FileExtension     string           `json:"file_extension,omitempty"`
+	SizeBytes         int64            `json:"size_bytes,omitempty"`
+	ParentFolderID    string           `json:"parent_folder_id,omitempty"`
+	ParentFolderName  string           `json:"parent_folder_name,omitempty"`
+	Path              string           `json:"path,omitempty"`
+	Shared            bool             `json:"shared"`
+	SharingUser       string           `json:"sharing_user,omitempty"`
+	Permissions       []FilePermission `json:"permissions,omitempty"`
+	WebViewLink       string           `json:"web_view_link,omitempty"`
+	WebContentLink    string           `json:"web_content_link,omitempty"`
+	ThumbnailLink     string           `json:"thumbnail_link,omitempty"`
+	IconLink          string           `json:"icon_link,omitempty"`
+	CreatedTime       time.Time        `json:"created_time,omitempty"`
+	ModifiedTime      time.Time        `json:"modified_time,omitempty"`
+	ViewedByMeTime    time.Time        `json:"viewed_by_me_time,omitempty"`
+	Owners            []FileOwner      `json:"owners,omitempty"`
 	LastModifyingUser *FileOwner       `json:"last_modifying_user,omitempty"`
-	SyncedAt         time.Time         `json:"synced_at"`
+	SyncedAt          time.Time        `json:"synced_at"`
 }
 
 // FilePermission represents a permission on a file.
 type FilePermission struct {
 	ID          string `json:"id"`
-	Type        string `json:"type"`        // user, group, domain, anyone
-	Role        string `json:"role"`        // owner, organizer, fileOrganizer, writer, commenter, reader
+	Type        string `json:"type"` // user, group, domain, anyone
+	Role        string `json:"role"` // owner, organizer, fileOrganizer, writer, commenter, reader
 	EmailAddr   string `json:"email_address,omitempty"`
 	DisplayName string `json:"display_name,omitempty"`
 }

@@ -228,11 +228,11 @@ func setupTestRouter() *gin.Engine {
 	// Mock process-leads endpoint
 	router.GET("/api/crm/process-leads", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"success":      true,
-			"created_count": 35,
+			"success":         true,
+			"created_count":   35,
 			"escalated_count": 8,
-			"skipped_count": 7,
-			"success_rate": 0.814, // 35 / (35 + 8)
+			"skipped_count":   7,
+			"success_rate":    0.814, // 35 / (35 + 8)
 		})
 	})
 
@@ -271,7 +271,7 @@ func setupTestRouter() *gin.Engine {
 	// Mock respond to decision endpoint
 	router.POST("/api/sorx/decisions/:id/respond", func(c *gin.Context) {
 		var req struct {
-			Decision string `json:"decision"`
+			Decision string                 `json:"decision"`
 			Inputs   map[string]interface{} `json:"inputs"`
 		}
 		c.ShouldBindJSON(&req)

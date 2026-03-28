@@ -351,12 +351,12 @@ func ConsensusEpochKeyRotationReason(val string) attribute.KeyValue {
 
 // ConsensusEpochKeyRotationReasonValues contains the known enum values for consensus.epoch.key_rotation_reason.
 var ConsensusEpochKeyRotationReasonValues = struct {
-	Scheduled string
-	Compromise string
+	Scheduled        string
+	Compromise       string
 	MembershipChange string
 }{
-	Scheduled: "scheduled",
-	Compromise: "compromise",
+	Scheduled:        "scheduled",
+	Compromise:       "compromise",
 	MembershipChange: "membership_change",
 }
 
@@ -402,13 +402,13 @@ func ConsensusEpochTransitionTrigger(val string) attribute.KeyValue {
 
 // ConsensusEpochTransitionTriggerValues contains the known enum values for consensus.epoch.transition.trigger.
 var ConsensusEpochTransitionTriggerValues = struct {
-	Timeout string
+	Timeout      string
 	QuorumChange string
-	KeyRotation string
+	KeyRotation  string
 }{
-	Timeout: "timeout",
+	Timeout:      "timeout",
 	QuorumChange: "quorum_change",
-	KeyRotation: "key_rotation",
+	KeyRotation:  "key_rotation",
 }
 
 // ConsensusFailureCount returns an attribute KeyValue for consensus.failure.count.
@@ -434,12 +434,12 @@ func ConsensusForkResolutionStrategy(val string) attribute.KeyValue {
 // ConsensusForkResolutionStrategyValues contains the known enum values for consensus.fork.resolution_strategy.
 var ConsensusForkResolutionStrategyValues = struct {
 	LongestChain string
-	HighestVote string
-	EpochBased string
+	HighestVote  string
+	EpochBased   string
 }{
 	LongestChain: "longest_chain",
-	HighestVote: "highest_vote",
-	EpochBased: "epoch_based",
+	HighestVote:  "highest_vote",
+	EpochBased:   "epoch_based",
 }
 
 // ConsensusLatencyMs returns an attribute KeyValue for consensus.latency_ms.
@@ -520,11 +520,11 @@ func ConsensusNetworkRecoveryStrategy(val string) attribute.KeyValue {
 // ConsensusNetworkRecoveryStrategyValues contains the known enum values for consensus.network.recovery.strategy.
 var ConsensusNetworkRecoveryStrategyValues = struct {
 	Reconnect string
-	Rejoin string
+	Rejoin    string
 	Bootstrap string
 }{
 	Reconnect: "reconnect",
-	Rejoin: "rejoin",
+	Rejoin:    "rejoin",
 	Bootstrap: "bootstrap",
 }
 
@@ -543,12 +543,12 @@ var ConsensusNetworkTopologyTypeValues = struct {
 	Ring string
 	Mesh string
 	Star string
-	Bus string
+	Bus  string
 }{
 	Ring: "ring",
 	Mesh: "mesh",
 	Star: "star",
-	Bus: "bus",
+	Bus:  "bus",
 }
 
 // ConsensusNode returns an attribute KeyValue for consensus.node.
@@ -573,15 +573,15 @@ func ConsensusPartitionHealStrategy(val string) attribute.KeyValue {
 
 // ConsensusPartitionHealStrategyValues contains the known enum values for consensus.partition.heal_strategy.
 var ConsensusPartitionHealStrategyValues = struct {
-	MajorityWins string
-	EpochFence string
+	MajorityWins      string
+	EpochFence        string
 	LeaderArbitration string
-	Rollback string
+	Rollback          string
 }{
-	MajorityWins: "majority_wins",
-	EpochFence: "epoch_fence",
+	MajorityWins:      "majority_wins",
+	EpochFence:        "epoch_fence",
 	LeaderArbitration: "leader_arbitration",
-	Rollback: "rollback",
+	Rollback:          "rollback",
 }
 
 // ConsensusPartitionIsolationMs returns an attribute KeyValue for consensus.partition.isolation_ms.
@@ -607,12 +607,12 @@ func ConsensusPartitionStrategy(val string) attribute.KeyValue {
 // ConsensusPartitionStrategyValues contains the known enum values for consensus.partition.strategy.
 var ConsensusPartitionStrategyValues = struct {
 	MajorityWins string
-	EpochBased string
-	Manual string
+	EpochBased   string
+	Manual       string
 }{
 	MajorityWins: "majority_wins",
-	EpochBased: "epoch_based",
-	Manual: "manual",
+	EpochBased:   "epoch_based",
+	Manual:       "manual",
 }
 
 // ConsensusPhase returns an attribute KeyValue for consensus.phase.
@@ -622,16 +622,16 @@ func ConsensusPhase(val string) attribute.KeyValue {
 
 // ConsensusPhaseValues contains the known enum values for consensus.phase.
 var ConsensusPhaseValues = struct {
-	Prepare string
-	PreCommit string
-	Commit string
-	Decide string
+	Prepare    string
+	PreCommit  string
+	Commit     string
+	Decide     string
 	ViewChange string
 }{
-	Prepare: "prepare",
-	PreCommit: "pre_commit",
-	Commit: "commit",
-	Decide: "decide",
+	Prepare:    "prepare",
+	PreCommit:  "pre_commit",
+	Commit:     "commit",
+	Decide:     "decide",
 	ViewChange: "view_change",
 }
 
@@ -657,11 +657,11 @@ func ConsensusQuorumHealth(val string) attribute.KeyValue {
 
 // ConsensusQuorumHealthValues contains the known enum values for consensus.quorum.health.
 var ConsensusQuorumHealthValues = struct {
-	Healthy string
+	Healthy  string
 	Degraded string
 	Critical string
 }{
-	Healthy: "healthy",
+	Healthy:  "healthy",
 	Degraded: "degraded",
 	Critical: "critical",
 }
@@ -678,14 +678,14 @@ func ConsensusQuorumShrinkReason(val string) attribute.KeyValue {
 
 // ConsensusQuorumShrinkReasonValues contains the known enum values for consensus.quorum.shrink.reason.
 var ConsensusQuorumShrinkReasonValues = struct {
-	NodeFailure string
+	NodeFailure  string
 	ConfigChange string
-	Rebalance string
+	Rebalance    string
 	Decommission string
 }{
-	NodeFailure: "node_failure",
+	NodeFailure:  "node_failure",
 	ConfigChange: "config_change",
-	Rebalance: "rebalance",
+	Rebalance:    "rebalance",
 	Decommission: "decommission",
 }
 
@@ -733,13 +733,13 @@ func ConsensusRoundType(val string) attribute.KeyValue {
 var ConsensusRoundTypeValues = struct {
 	Prepare string
 	Promise string
-	Accept string
-	Learn string
+	Accept  string
+	Learn   string
 }{
 	Prepare: "prepare",
 	Promise: "promise",
-	Accept: "accept",
-	Learn: "learn",
+	Accept:  "accept",
+	Learn:   "learn",
 }
 
 // ConsensusSafetyCheckIntervalMs returns an attribute KeyValue for consensus.safety.check_interval_ms.
@@ -769,13 +769,13 @@ func ConsensusSafetyViolationSeverity(val string) attribute.KeyValue {
 
 // ConsensusSafetyViolationSeverityValues contains the known enum values for consensus.safety.violation.severity.
 var ConsensusSafetyViolationSeverityValues = struct {
-	Warning string
+	Warning  string
 	Critical string
-	Fatal string
+	Fatal    string
 }{
-	Warning: "warning",
+	Warning:  "warning",
 	Critical: "critical",
-	Fatal: "fatal",
+	Fatal:    "fatal",
 }
 
 // ConsensusSafetyViolationType returns an attribute KeyValue for consensus.safety.violation.type.
@@ -785,11 +785,11 @@ func ConsensusSafetyViolationType(val string) attribute.KeyValue {
 
 // ConsensusSafetyViolationTypeValues contains the known enum values for consensus.safety.violation.type.
 var ConsensusSafetyViolationTypeValues = struct {
-	DoubleVote string
+	DoubleVote   string
 	Equivocation string
 	QuorumBreach string
 }{
-	DoubleVote: "double_vote",
+	DoubleVote:   "double_vote",
 	Equivocation: "equivocation",
 	QuorumBreach: "quorum_breach",
 }
@@ -832,12 +832,12 @@ func ConsensusThresholdVoteType(val string) attribute.KeyValue {
 // ConsensusThresholdVoteTypeValues contains the known enum values for consensus.threshold.vote_type.
 var ConsensusThresholdVoteTypeValues = struct {
 	Supermajority string
-	Simple string
-	Unanimous string
+	Simple        string
+	Unanimous     string
 }{
 	Supermajority: "supermajority",
-	Simple: "simple",
-	Unanimous: "unanimous",
+	Simple:        "simple",
+	Unanimous:     "unanimous",
 }
 
 // ConsensusThresholdYeaCount returns an attribute KeyValue for consensus.threshold.yea_count.
@@ -882,17 +882,17 @@ func ConsensusViewChangeReason(val string) attribute.KeyValue {
 
 // ConsensusViewChangeReasonValues contains the known enum values for consensus.view_change.reason.
 var ConsensusViewChangeReasonValues = struct {
-	Timeout string
-	LeaderFailure string
+	Timeout          string
+	LeaderFailure    string
 	NetworkPartition string
-	Manual string
-	Equivocation string
+	Manual           string
+	Equivocation     string
 }{
-	Timeout: "timeout",
-	LeaderFailure: "leader_failure",
+	Timeout:          "timeout",
+	LeaderFailure:    "leader_failure",
 	NetworkPartition: "network_partition",
-	Manual: "manual",
-	Equivocation: "equivocation",
+	Manual:           "manual",
+	Equivocation:     "equivocation",
 }
 
 // ConsensusViewNumber returns an attribute KeyValue for consensus.view_number.
@@ -909,4 +909,3 @@ func ConsensusViewTimeoutMs(val int64) attribute.KeyValue {
 func ConsensusVoteCount(val int64) attribute.KeyValue {
 	return ConsensusVoteCountKey.Int64(val)
 }
-

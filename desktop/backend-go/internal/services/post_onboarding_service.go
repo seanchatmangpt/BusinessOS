@@ -19,11 +19,11 @@ type PostOnboardingService struct {
 
 // OnboardingProfile represents user's onboarding data
 type OnboardingProfile struct {
-	WorkspaceID            uuid.UUID
-	BusinessType           string
-	TeamSize               string
-	OwnerRole              string
-	MainChallenge          string
+	WorkspaceID             uuid.UUID
+	BusinessType            string
+	TeamSize                string
+	OwnerRole               string
+	MainChallenge           string
 	RecommendedIntegrations []string
 }
 
@@ -302,7 +302,7 @@ func (s *PostOnboardingService) queueTemplateGeneration(
 ) error {
 	// Create generation context (snapshot of onboarding data)
 	context := map[string]interface{}{
-		"business_type":           profile.BusinessType,
+		"business_type":            profile.BusinessType,
 		"team_size":                profile.TeamSize,
 		"owner_role":               profile.OwnerRole,
 		"main_challenge":           profile.MainChallenge,

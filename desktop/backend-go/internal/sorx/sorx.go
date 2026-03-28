@@ -47,18 +47,18 @@ type ExecuteRequest struct {
 
 // ExecuteResponse represents a response from skill execution
 type ExecuteResponse struct {
-	Success      bool                   `json:"success"`
-	Output       map[string]interface{} `json:"output"`
-	Error        string                 `json:"error,omitempty"`
-	ID           string                 `json:"id"`
-	SkillID      string                 `json:"skill_id"`
-	Status       string                 `json:"status"`
-	CurrentStep  int                    `json:"current_step"`
-	Params       map[string]interface{} `json:"params"`
-	Result       interface{}            `json:"result"`
-	StepResults  map[string]interface{} `json:"step_results"`
-	StartedAt    string                 `json:"started_at"`
-	CompletedAt  string                 `json:"completed_at"`
+	Success     bool                   `json:"success"`
+	Output      map[string]interface{} `json:"output"`
+	Error       string                 `json:"error,omitempty"`
+	ID          string                 `json:"id"`
+	SkillID     string                 `json:"skill_id"`
+	Status      string                 `json:"status"`
+	CurrentStep int                    `json:"current_step"`
+	Params      map[string]interface{} `json:"params"`
+	Result      interface{}            `json:"result"`
+	StepResults map[string]interface{} `json:"step_results"`
+	StartedAt   string                 `json:"started_at"`
+	CompletedAt string                 `json:"completed_at"`
 }
 
 // ExecuteSkill executes a skill
@@ -85,23 +85,23 @@ func (e *Engine) ListSkills() []*SkillDefinition {
 
 // SkillDefinition represents a skill definition
 type SkillDefinition struct {
-	ID                   string   `json:"id"`
-	Name                 string   `json:"name"`
-	Description          string   `json:"description"`
-	Category             string   `json:"category"`
-	RequiredIntegrations []string `json:"required_integrations"`
+	ID                   string                   `json:"id"`
+	Name                 string                   `json:"name"`
+	Description          string                   `json:"description"`
+	Category             string                   `json:"category"`
+	RequiredIntegrations []string                 `json:"required_integrations"`
 	Steps                []map[string]interface{} `json:"steps"`
 }
 
 // SkillCommand represents a skill command
 type SkillCommand struct {
-	Name    string
+	Name        string
 	DisplayName string
 	Description string
-	Icon    string
-	Category string
-	SkillID string
-	Params  map[string]interface{}
+	Icon        string
+	Category    string
+	SkillID     string
+	Params      map[string]interface{}
 }
 
 // GetSkillCommand retrieves a skill command by name

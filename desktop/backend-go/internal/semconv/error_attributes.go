@@ -19,14 +19,13 @@ func ErrorType(val string) attribute.KeyValue {
 
 // ErrorTypeValues contains the known enum values for error.type.
 var ErrorTypeValues = struct {
-	Timeout string
-	Cancelled string
-	Internal string
+	Timeout     string
+	Cancelled   string
+	Internal    string
 	Unavailable string
 }{
-	Timeout: "timeout",
-	Cancelled: "cancelled",
-	Internal: "internal",
+	Timeout:     "timeout",
+	Cancelled:   "cancelled",
+	Internal:    "internal",
 	Unavailable: "unavailable",
 }
-

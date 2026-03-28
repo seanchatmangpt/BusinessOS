@@ -29,7 +29,6 @@ func NewOSAWorkspaceInitService(pool *pgxpool.Pool, logger *slog.Logger) *OSAWor
 	}
 }
 
-
 // DefaultWorkspaceLayout returns the default 2D layout configuration
 func (s *OSAWorkspaceInitService) DefaultWorkspaceLayout() map[string]interface{} {
 	return map[string]interface{}{
@@ -70,8 +69,8 @@ func (s *OSAWorkspaceInitService) DefaultWorkspaceSettings() map[string]interfac
 			"warnings":      true,
 		},
 		"terminal": map[string]interface{}{
-			"fontSize":   14,
-			"fontFamily": "Monaco, monospace",
+			"fontSize":    14,
+			"fontFamily":  "Monaco, monospace",
 			"cursorBlink": true,
 		},
 		"fileExplorer": map[string]interface{}{
