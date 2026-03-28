@@ -100,7 +100,7 @@ func (s *OllamaService) StreamChat(ctx context.Context, messages []ChatMessage, 
 
 	slog.Info("[OllamaService] StreamChat called with model", "value", s.model)
 
-	go func() {
+	go func(ctx context.Context) {
 		defer close(chunks)
 		defer close(errs)
 
@@ -178,7 +178,7 @@ func (s *OllamaService) StreamChat(ctx context.Context, messages []ChatMessage, 
 		if err := scanner.Err(); err != nil {
 			errs <- fmt.Errorf("error reading response: %w", err)
 		}
-	}()
+	}(ctx)
 
 	return chunks, errs
 }
@@ -351,7 +351,7 @@ func (s *OllamaService) StreamChatWithUsage(ctx context.Context, messages []Chat
 		Errors: errs,
 	}
 
-	go func() {
+	go func(ctx context.Context) {
 		defer close(chunks)
 		defer close(errs)
 
@@ -442,7 +442,7 @@ func (s *OllamaService) StreamChatWithUsage(ctx context.Context, messages []Chat
 			Model:        s.model,
 			Provider:     "ollama",
 		})
-	}()
+	}(ctx)
 
 	return result
 }
