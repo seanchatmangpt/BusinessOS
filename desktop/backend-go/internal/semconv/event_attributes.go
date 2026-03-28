@@ -75,14 +75,14 @@ func EventDeliveryStatus(val string) attribute.KeyValue {
 // EventDeliveryStatusValues contains the known enum values for event.delivery.status.
 var EventDeliveryStatusValues = struct {
 	Delivered string
-	Failed    string
-	Retrying  string
-	Dropped   string
+	Failed string
+	Retrying string
+	Dropped string
 }{
 	Delivered: "delivered",
-	Failed:    "failed",
-	Retrying:  "retrying",
-	Dropped:   "dropped",
+	Failed: "failed",
+	Retrying: "retrying",
+	Dropped: "dropped",
 }
 
 // EventDomain returns an attribute KeyValue for event.domain.
@@ -92,17 +92,17 @@ func EventDomain(val string) attribute.KeyValue {
 
 // EventDomainValues contains the known enum values for event.domain.
 var EventDomainValues = struct {
-	Agent      string
+	Agent string
 	Compliance string
-	Healing    string
-	Workflow   string
-	System     string
+	Healing string
+	Workflow string
+	System string
 }{
-	Agent:      "agent",
+	Agent: "agent",
 	Compliance: "compliance",
-	Healing:    "healing",
-	Workflow:   "workflow",
-	System:     "system",
+	Healing: "healing",
+	Workflow: "workflow",
+	System: "system",
 }
 
 // EventHandlerCount returns an attribute KeyValue for event.handler.count.
@@ -132,16 +132,16 @@ func EventRoutingStrategy(val string) attribute.KeyValue {
 
 // EventRoutingStrategyValues contains the known enum values for event.routing.strategy.
 var EventRoutingStrategyValues = struct {
-	Broadcast    string
-	Unicast      string
-	Multicast    string
-	TopicBased   string
+	Broadcast string
+	Unicast string
+	Multicast string
+	TopicBased string
 	ContentBased string
 }{
-	Broadcast:    "broadcast",
-	Unicast:      "unicast",
-	Multicast:    "multicast",
-	TopicBased:   "topic_based",
+	Broadcast: "broadcast",
+	Unicast: "unicast",
+	Multicast: "multicast",
+	TopicBased: "topic_based",
 	ContentBased: "content_based",
 }
 
@@ -158,14 +158,14 @@ func EventSeverity(val string) attribute.KeyValue {
 // EventSeverityValues contains the known enum values for event.severity.
 var EventSeverityValues = struct {
 	Debug string
-	Info  string
-	Warn  string
+	Info string
+	Warn string
 	Error string
 	Fatal string
 }{
 	Debug: "debug",
-	Info:  "info",
-	Warn:  "warn",
+	Info: "info",
+	Warn: "warn",
 	Error: "error",
 	Fatal: "fatal",
 }
@@ -194,3 +194,4 @@ func EventTargetService(val string) attribute.KeyValue {
 func EventVersion(val string) attribute.KeyValue {
 	return EventVersionKey.String(val)
 }
+

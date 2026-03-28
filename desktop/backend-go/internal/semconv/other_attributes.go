@@ -66,11 +66,11 @@ func FixResult(val string) attribute.KeyValue {
 var FixResultValues = struct {
 	Success string
 	Partial string
-	Failed  string
+	Failed string
 }{
 	Success: "success",
 	Partial: "partial",
-	Failed:  "failed",
+	Failed: "failed",
 }
 
 // Node returns an attribute KeyValue for node.
@@ -116,3 +116,4 @@ var VerificationStatusValues = struct {
 func Version(val string) attribute.KeyValue {
 	return VersionKey.String(val)
 }
+

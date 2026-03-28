@@ -53,15 +53,15 @@ func ConversationMessageRole(val string) attribute.KeyValue {
 
 // ConversationMessageRoleValues contains the known enum values for conversation.message.role.
 var ConversationMessageRoleValues = struct {
-	User      string
+	User string
 	Assistant string
-	System    string
-	Tool      string
+	System string
+	Tool string
 }{
-	User:      "user",
+	User: "user",
 	Assistant: "assistant",
-	System:    "system",
-	Tool:      "tool",
+	System: "system",
+	Tool: "tool",
 }
 
 // ConversationModel returns an attribute KeyValue for conversation.model.
@@ -76,17 +76,17 @@ func ConversationPhase(val string) attribute.KeyValue {
 
 // ConversationPhaseValues contains the known enum values for conversation.phase.
 var ConversationPhaseValues = struct {
-	Init     string
-	Active   string
-	Waiting  string
+	Init string
+	Active string
+	Waiting string
 	Complete string
-	Error    string
+	Error string
 }{
-	Init:     "init",
-	Active:   "active",
-	Waiting:  "waiting",
+	Init: "init",
+	Active: "active",
+	Waiting: "waiting",
 	Complete: "complete",
-	Error:    "error",
+	Error: "error",
 }
 
 // ConversationSummaryTokens returns an attribute KeyValue for conversation.summary.tokens.
@@ -108,3 +108,4 @@ func ConversationTurnCount(val int64) attribute.KeyValue {
 func ConversationUserId(val string) attribute.KeyValue {
 	return ConversationUserIdKey.String(val)
 }
+

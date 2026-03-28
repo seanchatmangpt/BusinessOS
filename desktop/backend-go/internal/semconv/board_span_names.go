@@ -19,6 +19,12 @@ const (
 	// Kind: internal
 	// Stability: development
 	BoardConwayCheckSummarySpan = "board.conway_check_summary"
+	// board_kpi_compute is the span name for "board.kpi_compute".
+	//
+	// Board KPIs computed from process mining event log
+	// Kind: internal
+	// Stability: development
+	BoardKpiComputeSpan = "board.kpi_compute"
 	// board_structural_escalation is the span name for "board.structural_escalation".
 	//
 	// Board escalation emitted for a structural (Conway) violation

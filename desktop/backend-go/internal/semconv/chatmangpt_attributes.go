@@ -69,12 +69,12 @@ func ChatmangptDeployment(val string) attribute.KeyValue {
 // ChatmangptDeploymentValues contains the known enum values for chatmangpt.deployment.
 var ChatmangptDeploymentValues = struct {
 	Development string
-	Staging     string
-	Production  string
+	Staging string
+	Production string
 }{
 	Development: "development",
-	Staging:     "staging",
-	Production:  "production",
+	Staging: "staging",
+	Production: "production",
 }
 
 // ChatmangptRunCorrelationId returns an attribute KeyValue for chatmangpt.run.correlation_id.
@@ -90,14 +90,14 @@ func ChatmangptServiceTier(val string) attribute.KeyValue {
 // ChatmangptServiceTierValues contains the known enum values for chatmangpt.service.tier.
 var ChatmangptServiceTierValues = struct {
 	Critical string
-	High     string
-	Normal   string
-	Low      string
+	High string
+	Normal string
+	Low string
 }{
 	Critical: "critical",
-	High:     "high",
-	Normal:   "normal",
-	Low:      "low",
+	High: "high",
+	Normal: "normal",
+	Low: "low",
 }
 
 // ChatmangptSessionId returns an attribute KeyValue for chatmangpt.session.id.
@@ -129,3 +129,4 @@ func ChatmangptVersion(val string) attribute.KeyValue {
 func ChatmangptWave(val int64) attribute.KeyValue {
 	return ChatmangptWaveKey.Int64(val)
 }
+

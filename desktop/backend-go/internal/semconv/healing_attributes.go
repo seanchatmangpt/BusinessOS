@@ -339,14 +339,14 @@ func HealingRetryAdaptiveStrategy(val string) attribute.KeyValue {
 // HealingRetryAdaptiveStrategyValues contains the known enum values for healing.retry.adaptive.strategy.
 var HealingRetryAdaptiveStrategyValues = struct {
 	Exponential string
-	Linear      string
-	Fibonacci   string
-	Constant    string
+	Linear string
+	Fibonacci string
+	Constant string
 }{
 	Exponential: "exponential",
-	Linear:      "linear",
-	Fibonacci:   "fibonacci",
-	Constant:    "constant",
+	Linear: "linear",
+	Fibonacci: "fibonacci",
+	Constant: "constant",
 }
 
 // HealingAdaptiveLearningRate returns an attribute KeyValue for healing.adaptive.learning_rate.
@@ -387,14 +387,14 @@ func HealingAnomalyDetectionMethod(val string) attribute.KeyValue {
 // HealingAnomalyDetectionMethodValues contains the known enum values for healing.anomaly.detection_method.
 var HealingAnomalyDetectionMethodValues = struct {
 	Statistical string
-	Ml          string
-	RuleBased   string
-	Hybrid      string
+	Ml string
+	RuleBased string
+	Hybrid string
 }{
 	Statistical: "statistical",
-	Ml:          "ml",
-	RuleBased:   "rule_based",
-	Hybrid:      "hybrid",
+	Ml: "ml",
+	RuleBased: "rule_based",
+	Hybrid: "hybrid",
 }
 
 // HealingAnomalyScore returns an attribute KeyValue for healing.anomaly.score.
@@ -429,16 +429,16 @@ func HealingBackpressureLevel(val string) attribute.KeyValue {
 
 // HealingBackpressureLevelValues contains the known enum values for healing.backpressure.level.
 var HealingBackpressureLevelValues = struct {
-	None     string
-	Low      string
-	Medium   string
-	High     string
+	None string
+	Low string
+	Medium string
+	High string
 	Critical string
 }{
-	None:     "none",
-	Low:      "low",
-	Medium:   "medium",
-	High:     "high",
+	None: "none",
+	Low: "low",
+	Medium: "medium",
+	High: "high",
 	Critical: "critical",
 }
 
@@ -499,12 +499,12 @@ func HealingCircuitBreakerState(val string) attribute.KeyValue {
 
 // HealingCircuitBreakerStateValues contains the known enum values for healing.circuit_breaker.state.
 var HealingCircuitBreakerStateValues = struct {
-	Closed   string
-	Open     string
+	Closed string
+	Open string
 	HalfOpen string
 }{
-	Closed:   "closed",
-	Open:     "open",
+	Closed: "closed",
+	Open: "open",
 	HalfOpen: "half_open",
 }
 
@@ -525,15 +525,15 @@ func HealingColdStandbyReadiness(val string) attribute.KeyValue {
 
 // HealingColdStandbyReadinessValues contains the known enum values for healing.cold_standby.readiness.
 var HealingColdStandbyReadinessValues = struct {
-	Cold    string
+	Cold string
 	Warming string
-	Ready   string
-	Failed  string
+	Ready string
+	Failed string
 }{
-	Cold:    "cold",
+	Cold: "cold",
 	Warming: "warming",
-	Ready:   "ready",
-	Failed:  "failed",
+	Ready: "ready",
+	Failed: "failed",
 }
 
 // HealingColdStandbyWarmupMs returns an attribute KeyValue for healing.cold_standby.warmup_ms.
@@ -558,15 +558,15 @@ func HealingDiagnosisStage(val string) attribute.KeyValue {
 
 // HealingDiagnosisStageValues contains the known enum values for healing.diagnosis_stage.
 var HealingDiagnosisStageValues = struct {
-	Detection      string
+	Detection string
 	Classification string
-	Verification   string
-	Escalation     string
+	Verification string
+	Escalation string
 }{
-	Detection:      "detection",
+	Detection: "detection",
 	Classification: "classification",
-	Verification:   "verification",
-	Escalation:     "escalation",
+	Verification: "verification",
+	Escalation: "escalation",
 }
 
 // HealingEscalationLevel returns an attribute KeyValue for healing.escalation.level.
@@ -576,15 +576,15 @@ func HealingEscalationLevel(val string) attribute.KeyValue {
 
 // HealingEscalationLevelValues contains the known enum values for healing.escalation.level.
 var HealingEscalationLevelValues = struct {
-	None     string
-	Warn     string
+	None string
+	Warn string
 	Critical string
-	Page     string
+	Page string
 }{
-	None:     "none",
-	Warn:     "warn",
+	None: "none",
+	Warn: "warn",
 	Critical: "critical",
-	Page:     "page",
+	Page: "page",
 }
 
 // HealingEscalationReason returns an attribute KeyValue for healing.escalation_reason.
@@ -614,15 +614,15 @@ func HealingFailoverType(val string) attribute.KeyValue {
 
 // HealingFailoverTypeValues contains the known enum values for healing.failover.type.
 var HealingFailoverTypeValues = struct {
-	WarmToCold    string
+	WarmToCold string
 	PrimaryToWarm string
 	PrimaryToCold string
-	Geographic    string
+	Geographic string
 }{
-	WarmToCold:    "warm_to_cold",
+	WarmToCold: "warm_to_cold",
 	PrimaryToWarm: "primary_to_warm",
 	PrimaryToCold: "primary_to_cold",
-	Geographic:    "geographic",
+	Geographic: "geographic",
 }
 
 // HealingFailureMode returns an attribute KeyValue for healing.failure_mode.
@@ -632,21 +632,21 @@ func HealingFailureMode(val string) attribute.KeyValue {
 
 // HealingFailureModeValues contains the known enum values for healing.failure_mode.
 var HealingFailureModeValues = struct {
-	Deadlock         string
-	Timeout          string
-	RaceCondition    string
-	MemoryLeak       string
+	Deadlock string
+	Timeout string
+	RaceCondition string
+	MemoryLeak string
 	CascadingFailure string
-	Stagnation       string
-	Livelock         string
+	Stagnation string
+	Livelock string
 }{
-	Deadlock:         "deadlock",
-	Timeout:          "timeout",
-	RaceCondition:    "race_condition",
-	MemoryLeak:       "memory_leak",
+	Deadlock: "deadlock",
+	Timeout: "timeout",
+	RaceCondition: "race_condition",
+	MemoryLeak: "memory_leak",
 	CascadingFailure: "cascading_failure",
-	Stagnation:       "stagnation",
-	Livelock:         "livelock",
+	Stagnation: "stagnation",
+	Livelock: "livelock",
 }
 
 // HealingFingerprint returns an attribute KeyValue for healing.fingerprint.
@@ -663,11 +663,11 @@ func HealingFixResult(val string) attribute.KeyValue {
 var HealingFixResultValues = struct {
 	Success string
 	Partial string
-	Failed  string
+	Failed string
 }{
 	Success: "success",
 	Partial: "partial",
-	Failed:  "failed",
+	Failed: "failed",
 }
 
 // HealingInterventionDurationMs returns an attribute KeyValue for healing.intervention.duration_ms.
@@ -682,14 +682,14 @@ func HealingInterventionOutcome(val string) attribute.KeyValue {
 
 // HealingInterventionOutcomeValues contains the known enum values for healing.intervention.outcome.
 var HealingInterventionOutcomeValues = struct {
-	Success   string
-	Partial   string
-	Failed    string
+	Success string
+	Partial string
+	Failed string
 	Escalated string
 }{
-	Success:   "success",
-	Partial:   "partial",
-	Failed:    "failed",
+	Success: "success",
+	Partial: "partial",
+	Failed: "failed",
 	Escalated: "escalated",
 }
 
@@ -706,14 +706,14 @@ func HealingInterventionType(val string) attribute.KeyValue {
 // HealingInterventionTypeValues contains the known enum values for healing.intervention.type.
 var HealingInterventionTypeValues = struct {
 	Automatic string
-	Manual    string
-	Assisted  string
-	Deferred  string
+	Manual string
+	Assisted string
+	Deferred string
 }{
 	Automatic: "automatic",
-	Manual:    "manual",
-	Assisted:  "assisted",
-	Deferred:  "deferred",
+	Manual: "manual",
+	Assisted: "assisted",
+	Deferred: "deferred",
 }
 
 // HealingIteration returns an attribute KeyValue for healing.iteration.
@@ -733,13 +733,13 @@ func HealingLoadSheddingStrategy(val string) attribute.KeyValue {
 
 // HealingLoadSheddingStrategyValues contains the known enum values for healing.load_shedding.strategy.
 var HealingLoadSheddingStrategyValues = struct {
-	Random   string
+	Random string
 	Priority string
-	Oldest   string
+	Oldest string
 }{
-	Random:   "random",
+	Random: "random",
 	Priority: "priority",
-	Oldest:   "oldest",
+	Oldest: "oldest",
 }
 
 // HealingLoadSheddingThreshold returns an attribute KeyValue for healing.load_shedding.threshold.
@@ -854,15 +854,15 @@ func HealingQuarantineReason(val string) attribute.KeyValue {
 
 // HealingQuarantineReasonValues contains the known enum values for healing.quarantine.reason.
 var HealingQuarantineReasonValues = struct {
-	Anomaly     string
-	Compliance  string
+	Anomaly string
+	Compliance string
 	CascadeRisk string
-	Manual      string
+	Manual string
 }{
-	Anomaly:     "anomaly",
-	Compliance:  "compliance",
+	Anomaly: "anomaly",
+	Compliance: "compliance",
 	CascadeRisk: "cascade_risk",
-	Manual:      "manual",
+	Manual: "manual",
 }
 
 // HealingRateLimitBurstSize returns an attribute KeyValue for healing.rate_limit.burst_size.
@@ -897,17 +897,17 @@ func HealingRecoveryStrategy(val string) attribute.KeyValue {
 
 // HealingRecoveryStrategyValues contains the known enum values for healing.recovery_strategy.
 var HealingRecoveryStrategyValues = struct {
-	Restart      string
-	Rollback     string
+	Restart string
+	Rollback string
 	CircuitBreak string
-	Isolate      string
-	Degrade      string
+	Isolate string
+	Degrade string
 }{
-	Restart:      "restart",
-	Rollback:     "rollback",
+	Restart: "restart",
+	Rollback: "rollback",
 	CircuitBreak: "circuit_break",
-	Isolate:      "isolate",
-	Degrade:      "degrade",
+	Isolate: "isolate",
+	Degrade: "degrade",
 }
 
 // HealingReflexArc returns an attribute KeyValue for healing.reflex_arc.
@@ -922,14 +922,14 @@ func HealingRepairStrategy(val string) attribute.KeyValue {
 
 // HealingRepairStrategyValues contains the known enum values for healing.repair.strategy.
 var HealingRepairStrategyValues = struct {
-	Restart   string
-	Rollback  string
-	Failover  string
+	Restart string
+	Rollback string
+	Failover string
 	Rebalance string
 }{
-	Restart:   "restart",
-	Rollback:  "rollback",
-	Failover:  "failover",
+	Restart: "restart",
+	Rollback: "rollback",
+	Failover: "failover",
 	Rebalance: "rebalance",
 }
 
@@ -950,12 +950,12 @@ func HealingRollbackStrategy(val string) attribute.KeyValue {
 
 // HealingRollbackStrategyValues contains the known enum values for healing.rollback.strategy.
 var HealingRollbackStrategyValues = struct {
-	Checkpoint  string
-	Snapshot    string
+	Checkpoint string
+	Snapshot string
 	Incremental string
 }{
-	Checkpoint:  "checkpoint",
-	Snapshot:    "snapshot",
+	Checkpoint: "checkpoint",
+	Snapshot: "snapshot",
 	Incremental: "incremental",
 }
 
@@ -1016,12 +1016,12 @@ func HealingSurgeMitigationStrategy(val string) attribute.KeyValue {
 
 // HealingSurgeMitigationStrategyValues contains the known enum values for healing.surge.mitigation_strategy.
 var HealingSurgeMitigationStrategyValues = struct {
-	Shed     string
-	Queue    string
+	Shed string
+	Queue string
 	Throttle string
 }{
-	Shed:     "shed",
-	Queue:    "queue",
+	Shed: "shed",
+	Queue: "queue",
 	Throttle: "throttle",
 }
 
@@ -1057,12 +1057,12 @@ func HealingVerificationStatus(val string) attribute.KeyValue {
 
 // HealingVerificationStatusValues contains the known enum values for healing.verification.status.
 var HealingVerificationStatusValues = struct {
-	Pass         string
-	Fail         string
+	Pass string
+	Fail string
 	Inconclusive string
 }{
-	Pass:         "pass",
-	Fail:         "fail",
+	Pass: "pass",
+	Fail: "fail",
 	Inconclusive: "inconclusive",
 }
 
@@ -1083,12 +1083,12 @@ func HealingWarmStandbyReadiness(val string) attribute.KeyValue {
 
 // HealingWarmStandbyReadinessValues contains the known enum values for healing.warm_standby.readiness.
 var HealingWarmStandbyReadinessValues = struct {
-	Ready       string
-	Warming     string
+	Ready string
+	Warming string
 	Unavailable string
 }{
-	Ready:       "ready",
-	Warming:     "warming",
+	Ready: "ready",
+	Warming: "warming",
 	Unavailable: "unavailable",
 }
 
@@ -1096,3 +1096,4 @@ var HealingWarmStandbyReadinessValues = struct {
 func HealingWarmStandbyReplicaCount(val int64) attribute.KeyValue {
 	return HealingWarmStandbyReplicaCountKey.Int64(val)
 }
+

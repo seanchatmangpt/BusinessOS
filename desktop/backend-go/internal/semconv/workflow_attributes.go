@@ -105,12 +105,12 @@ func WorkflowEngine(val string) attribute.KeyValue {
 
 // WorkflowEngineValues contains the known enum values for workflow.engine.
 var WorkflowEngineValues = struct {
-	Canopy     string
-	Yawl       string
+	Canopy string
+	Yawl string
 	BusinessOs string
 }{
-	Canopy:     "canopy",
-	Yawl:       "yawl",
+	Canopy: "canopy",
+	Yawl: "yawl",
 	BusinessOs: "business_os",
 }
 
@@ -151,12 +151,12 @@ func WorkflowMergePolicy(val string) attribute.KeyValue {
 
 // WorkflowMergePolicyValues contains the known enum values for workflow.merge.policy.
 var WorkflowMergePolicyValues = struct {
-	First     string
-	All       string
+	First string
+	All string
 	Threshold string
 }{
-	First:     "first",
-	All:       "all",
+	First: "first",
+	All: "all",
 	Threshold: "threshold",
 }
 
@@ -177,52 +177,52 @@ func WorkflowPattern(val string) attribute.KeyValue {
 
 // WorkflowPatternValues contains the known enum values for workflow.pattern.
 var WorkflowPatternValues = struct {
-	Sequence            string
-	ParallelSplit       string
-	Synchronization     string
-	ExclusiveChoice     string
-	MultiChoice         string
-	StructuredLoop      string
-	DeferredChoice      string
-	Milestone           string
-	Discriminator       string
-	NOutOfM             string
-	PartialJoin         string
-	CancelRegion        string
+	Sequence string
+	ParallelSplit string
+	Synchronization string
+	ExclusiveChoice string
+	MultiChoice string
+	StructuredLoop string
+	DeferredChoice string
+	Milestone string
+	Discriminator string
+	NOutOfM string
+	PartialJoin string
+	CancelRegion string
 	InterleavedParallel string
-	CriticalSection     string
-	Recursion           string
-	TransientTrigger    string
-	PersistentTrigger   string
-	EventBasedChoice    string
-	CancelActivity      string
-	MultiInstanceSync   string
-	SimpleMerge         string
-	MultipleInstance    string
+	CriticalSection string
+	Recursion string
+	TransientTrigger string
+	PersistentTrigger string
+	EventBasedChoice string
+	CancelActivity string
+	MultiInstanceSync string
+	SimpleMerge string
+	MultipleInstance string
 	StructuredSyncMerge string
 }{
-	Sequence:            "sequence",
-	ParallelSplit:       "parallel_split",
-	Synchronization:     "synchronization",
-	ExclusiveChoice:     "exclusive_choice",
-	MultiChoice:         "multi_choice",
-	StructuredLoop:      "structured_loop",
-	DeferredChoice:      "deferred_choice",
-	Milestone:           "milestone",
-	Discriminator:       "discriminator",
-	NOutOfM:             "n_out_of_m",
-	PartialJoin:         "partial_join",
-	CancelRegion:        "cancel_region",
+	Sequence: "sequence",
+	ParallelSplit: "parallel_split",
+	Synchronization: "synchronization",
+	ExclusiveChoice: "exclusive_choice",
+	MultiChoice: "multi_choice",
+	StructuredLoop: "structured_loop",
+	DeferredChoice: "deferred_choice",
+	Milestone: "milestone",
+	Discriminator: "discriminator",
+	NOutOfM: "n_out_of_m",
+	PartialJoin: "partial_join",
+	CancelRegion: "cancel_region",
 	InterleavedParallel: "interleaved_parallel",
-	CriticalSection:     "critical_section",
-	Recursion:           "recursion",
-	TransientTrigger:    "transient_trigger",
-	PersistentTrigger:   "persistent_trigger",
-	EventBasedChoice:    "event_based_choice",
-	CancelActivity:      "cancel_activity",
-	MultiInstanceSync:   "multi_instance_sync",
-	SimpleMerge:         "simple_merge",
-	MultipleInstance:    "multiple_instance",
+	CriticalSection: "critical_section",
+	Recursion: "recursion",
+	TransientTrigger: "transient_trigger",
+	PersistentTrigger: "persistent_trigger",
+	EventBasedChoice: "event_based_choice",
+	CancelActivity: "cancel_activity",
+	MultiInstanceSync: "multi_instance_sync",
+	SimpleMerge: "simple_merge",
+	MultipleInstance: "multiple_instance",
 	StructuredSyncMerge: "structured_sync_merge",
 }
 
@@ -243,17 +243,17 @@ func WorkflowState(val string) attribute.KeyValue {
 
 // WorkflowStateValues contains the known enum values for workflow.state.
 var WorkflowStateValues = struct {
-	Pending   string
-	Active    string
+	Pending string
+	Active string
 	Completed string
-	Failed    string
+	Failed string
 	Cancelled string
 	Suspended string
 }{
-	Pending:   "pending",
-	Active:    "active",
+	Pending: "pending",
+	Active: "active",
 	Completed: "completed",
-	Failed:    "failed",
+	Failed: "failed",
 	Cancelled: "cancelled",
 	Suspended: "suspended",
 }
@@ -285,19 +285,20 @@ func WorkflowTriggerType(val string) attribute.KeyValue {
 
 // WorkflowTriggerTypeValues contains the known enum values for workflow.trigger_type.
 var WorkflowTriggerTypeValues = struct {
-	Timer     string
-	Event     string
-	Signal    string
-	Manual    string
-	Message   string
-	External  string
+	Timer string
+	Event string
+	Signal string
+	Manual string
+	Message string
+	External string
 	Condition string
 }{
-	Timer:     "timer",
-	Event:     "event",
-	Signal:    "signal",
-	Manual:    "manual",
-	Message:   "message",
-	External:  "external",
+	Timer: "timer",
+	Event: "event",
+	Signal: "signal",
+	Manual: "manual",
+	Message: "message",
+	External: "external",
 	Condition: "condition",
 }
+

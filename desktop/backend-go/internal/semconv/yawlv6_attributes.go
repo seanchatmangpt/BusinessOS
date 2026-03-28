@@ -32,3 +32,4 @@ func Yawlv6TestsFailed(val int64) attribute.KeyValue {
 func Yawlv6TestsPassed(val int64) attribute.KeyValue {
 	return Yawlv6TestsPassedKey.Int64(val)
 }
+
