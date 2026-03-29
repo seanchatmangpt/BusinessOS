@@ -132,9 +132,9 @@ func (h *OSAPromptTemplatesHandler) TemplateHealthCheck(c *gin.Context) {
 		"message":          "OSA prompt builder operational",
 		"system_templates": 5,
 		"features": map[string]bool{
-			"system_templates":    true,
-			"custom_templates":    true,
-			"template_versioning": true,
+			"system_templates":      true,
+			"custom_templates":      true,
+			"template_versioning":   true,
 			"variable_substitution": true,
 		},
 	})

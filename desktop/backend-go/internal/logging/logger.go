@@ -179,9 +179,9 @@ func SanitizeSQL(query string) string {
 	// Replace common SQL patterns with placeholders
 	patterns := map[string]string{
 		// String literals
-		`'[^']*'`:           "'[REDACTED]'",
+		`'[^']*'`: "'[REDACTED]'",
 		// Numeric parameters
-		`\$\d+\s*=\s*\d+`:   "$N = [REDACTED]",
+		`\$\d+\s*=\s*\d+`: "$N = [REDACTED]",
 		// Email patterns in WHERE clauses
 		`email\s*=\s*'[^']*'`: "email = '[REDACTED]'",
 		// Token patterns

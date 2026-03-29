@@ -16,14 +16,14 @@ import (
 
 // ImageEmbeddingService handles generating embeddings for images using CLIP models
 type ImageEmbeddingService struct {
-	pool              *pgxpool.Pool
-	httpClient        *http.Client
-	provider          string // "openai", "replicate", "local"
-	apiKey            string
-	modelName         string
-	dimensions        int
-	localBaseURL      string // For local CLIP server
-	embeddingCache    *EmbeddingCacheAdapter // Cache for image embeddings
+	pool           *pgxpool.Pool
+	httpClient     *http.Client
+	provider       string // "openai", "replicate", "local"
+	apiKey         string
+	modelName      string
+	dimensions     int
+	localBaseURL   string                 // For local CLIP server
+	embeddingCache *EmbeddingCacheAdapter // Cache for image embeddings
 }
 
 // ImageEmbeddingConfig configures the image embedding service
@@ -38,16 +38,16 @@ type ImageEmbeddingConfig struct {
 
 // ImageEmbeddingResult represents an image with its embedding
 type ImageEmbeddingResult struct {
-	ID           uuid.UUID
-	UserID       string
-	ImageURL     string
-	ImageData    []byte
-	Embedding    []float32
-	Caption      string
-	Metadata     map[string]interface{}
-	ContextID    *uuid.UUID
-	ProjectID    *uuid.UUID
-	CreatedAt    time.Time
+	ID        uuid.UUID
+	UserID    string
+	ImageURL  string
+	ImageData []byte
+	Embedding []float32
+	Caption   string
+	Metadata  map[string]interface{}
+	ContextID *uuid.UUID
+	ProjectID *uuid.UUID
+	CreatedAt time.Time
 }
 
 // NewImageEmbeddingService creates a new image embedding service

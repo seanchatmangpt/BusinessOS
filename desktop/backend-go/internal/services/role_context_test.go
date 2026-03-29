@@ -40,11 +40,11 @@ func TestRoleContextService_GetUserRoleContext(t *testing.T) {
 // TestUserRoleContext_HasPermission tests permission checking
 func TestUserRoleContext_HasPermission(t *testing.T) {
 	roleCtx := &UserRoleContext{
-		UserID:         "user-123",
-		WorkspaceID:    uuid.New(),
-		RoleName:       "member",
+		UserID:          "user-123",
+		WorkspaceID:     uuid.New(),
+		RoleName:        "member",
 		RoleDisplayName: "Member",
-		HierarchyLevel: 4,
+		HierarchyLevel:  4,
 		Permissions: map[string]map[string]interface{}{
 			"projects": {
 				"create": true,

@@ -68,11 +68,11 @@ func TestSession_IsIdle(t *testing.T) {
 
 func TestSession_ValidateIP(t *testing.T) {
 	tests := []struct {
-		name       string
-		sessionIP  string
-		clientIP   string
-		config     *SessionSecurityConfig
-		wantValid  bool
+		name      string
+		sessionIP string
+		clientIP  string
+		config    *SessionSecurityConfig
+		wantValid bool
 	}{
 		{
 			name:      "ip binding disabled",

@@ -34,6 +34,34 @@ impl Default for ServeConfig {
     }
 }
 
+/// Configuration for the SPARQL proxy sidecar.
+///
+/// The proxy listens on `port` (default 7879) and forwards requests to the
+/// real Oxigraph instance at `oxigraph_url` (default http://localhost:7878).
+/// Every forwarded request emits a `bos.rdf.query` or `bos.rdf.write` span.
+#[derive(Debug, Clone)]
+pub struct SparqlProxyConfig {
+    /// Host to bind to [default: 127.0.0.1]
+    pub host: String,
+    /// Port to bind to [default: 7879]
+    pub port: u16,
+    /// Optional RDF file to preload (for serve compatibility; unused in proxy mode)
+    pub rdf_path: Option<String>,
+    /// Upstream Oxigraph base URL [default: http://localhost:7878]
+    pub oxigraph_url: String,
+}
+
+impl Default for SparqlProxyConfig {
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            port: 7879,
+            rdf_path: None,
+            oxigraph_url: "http://localhost:7878".to_string(),
+        }
+    }
+}
+
 /// Serve the workspace ontology as a SPARQL endpoint.
 ///
 /// Starts a minimal HTTP server that accepts:
@@ -171,6 +199,160 @@ fn handle_connection(store: &TripleStore, stream: std::net::TcpStream) -> Result
         _ => "HTTP/1.1 405 Method Not Allowed\r\n\r\n".to_string(),
     };
     let _ = write!(stream, "{}", response);
+    Ok(())
+}
+
+/// Serve the bos SPARQL proxy sidecar.
+///
+/// Listens on `config.port` (default 7879) and transparently forwards:
+/// - `POST /query` → upstream Oxigraph `/query` (emits `bos.rdf.query` span)
+/// - `PUT  /store` → upstream Oxigraph `/store` (emits `bos.rdf.write` span)
+///
+/// W3C `traceparent` is read from incoming headers and propagated to Oxigraph.
+/// Blocks the calling thread until SIGINT / SIGTERM.
+pub fn serve_sparql_proxy(config: SparqlProxyConfig) -> Result<()> {
+    let addr = format!("{}:{}", config.host, config.port);
+    let listener = TcpListener::bind(&addr)
+        .with_context(|| format!("Failed to bind SPARQL proxy to {}", addr))?;
+
+    eprintln!(
+        "bos SPARQL proxy listening on http://{} → {}",
+        addr, config.oxigraph_url
+    );
+    eprintln!("Press Ctrl+C to stop.");
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                let upstream = config.oxigraph_url.clone();
+                if let Err(e) = handle_proxy_connection(stream, &upstream) {
+                    tracing::debug!("Proxy connection error: {}", e);
+                }
+            }
+            Err(e) => tracing::debug!("Proxy accept error: {}", e),
+        }
+    }
+    Ok(())
+}
+
+fn handle_proxy_connection(
+    mut stream: std::net::TcpStream,
+    oxigraph_url: &str,
+) -> Result<()> {
+    use std::io::{BufRead, Write};
+
+    let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(10)));
+    let _ = stream.set_write_timeout(Some(std::time::Duration::from_secs(10)));
+
+    let mut reader = std::io::BufReader::new(&stream);
+    let mut request_line = String::new();
+    reader.read_line(&mut request_line)?;
+
+    let parts: Vec<&str> = request_line.split_whitespace().collect();
+    if parts.len() < 2 {
+        let _ = write!(stream, "HTTP/1.1 400 Bad Request\r\n\r\n");
+        return Ok(());
+    }
+
+    let method = parts[0].to_string();
+    let path = parts[1].to_string();
+
+    // Collect headers
+    let mut headers: Vec<(String, String)> = Vec::new();
+    let mut content_length = 0usize;
+    let mut traceparent = String::new();
+    loop {
+        let mut line = String::new();
+        reader.read_line(&mut line)?;
+        if line == "\r\n" || line == "\n" {
+            break;
+        }
+        if let Some(idx) = line.find(':') {
+            let key = line[..idx].trim().to_lowercase();
+            let val = line[idx + 1..].trim().to_string();
+            if key == "content-length" {
+                content_length = val.parse::<usize>().unwrap_or(0);
+            }
+            if key == "traceparent" {
+                traceparent = val.clone();
+            }
+            headers.push((line[..idx].trim().to_string(), val));
+        }
+    }
+
+    // Read body
+    let mut body = vec![0u8; content_length];
+    if content_length > 0 {
+        std::io::Read::read_exact(&mut reader, &mut body)?;
+    }
+
+    // Determine span name and upstream path
+    let (span_name, upstream_path) = match (method.as_str(), path.as_str()) {
+        ("POST", p) if p.starts_with("/query") => ("bos.rdf.query", format!("{}/query", oxigraph_url)),
+        ("PUT", p) if p.starts_with("/store") => ("bos.rdf.write", format!("{}/store{}", oxigraph_url, &p[6..])),
+        ("GET", p) if p.starts_with("/query") => ("bos.rdf.query", format!("{}/query{}", oxigraph_url, &p[6..])),
+        _ => ("bos.rdf.proxy", format!("{}{}", oxigraph_url, path)),
+    };
+
+    let _span = tracing::info_span!(
+        target: "bos",
+        "bos.rdf.proxy",
+        otel.name = span_name,
+        rdf.sparql.endpoint = oxigraph_url,
+        traceparent = %traceparent,
+    ).entered();
+
+    // Forward to Oxigraph using a blocking reqwest call
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+
+    let mut req = match method.as_str() {
+        "GET"    => client.get(&upstream_path),
+        "POST"   => client.post(&upstream_path).body(body),
+        "PUT"    => client.put(&upstream_path).body(body),
+        "DELETE" => client.delete(&upstream_path),
+        _        => client.get(&upstream_path),
+    };
+
+    // Forward original headers (excluding hop-by-hop)
+    for (k, v) in &headers {
+        let kl = k.to_lowercase();
+        if !matches!(kl.as_str(), "host" | "connection" | "transfer-encoding") {
+            req = req.header(k.as_str(), v.as_str());
+        }
+    }
+
+    // Inject traceparent if available
+    if !traceparent.is_empty() {
+        req = req.header("traceparent", traceparent.as_str());
+    }
+
+    let resp = req.send();
+
+    let (status, resp_body, content_type) = match resp {
+        Ok(r) => {
+            let status = r.status().as_u16();
+            let ct = r.headers()
+                .get("content-type")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("application/octet-stream")
+                .to_string();
+            let body = r.bytes().unwrap_or_default().to_vec();
+            (status, body, ct)
+        }
+        Err(e) => {
+            let msg = format!("Upstream error: {}", e);
+            (502u16, msg.into_bytes(), "text/plain".to_string())
+        }
+    };
+
+    let response_header = format!(
+        "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nAccess-Control-Allow-Origin: *\r\n\r\n",
+        status, content_type, resp_body.len()
+    );
+    let _ = write!(stream, "{}", response_header);
+    let _ = std::io::Write::write_all(&mut stream, &resp_body);
     Ok(())
 }
 

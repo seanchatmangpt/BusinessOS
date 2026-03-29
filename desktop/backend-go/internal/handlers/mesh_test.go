@@ -147,10 +147,10 @@ func TestDefineContractHandler(t *testing.T) {
 		{
 			name: "define valid contract",
 			payload: map[string]interface{}{
-				"domain_id":    "domain_finance",
-				"name":         "Transaction Contract",
-				"description":  "Standard transaction contract",
-				"entities":     []string{"http://data.example.com/entity/Transaction"},
+				"domain_id":   "domain_finance",
+				"name":        "Transaction Contract",
+				"description": "Standard transaction contract",
+				"entities":    []string{"http://data.example.com/entity/Transaction"},
 				"constraints": []map[string]string{
 					{
 						"name":        "Amount Required",

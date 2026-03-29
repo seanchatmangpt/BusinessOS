@@ -59,7 +59,8 @@ func (h *MCPHandler) ExecuteMCPTool(c *gin.Context) {
 	}
 
 	var req struct {
-		Tool      string                 `json:"tool" binding:"required"`
+		Tool      string                 `json:"tool"`
+		ToolName  string                 `json:"tool_name"`
 		Arguments map[string]interface{} `json:"arguments"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -67,12 +68,20 @@ func (h *MCPHandler) ExecuteMCPTool(c *gin.Context) {
 		utils.RespondBadRequest(c, slog.Default(), err.Error())
 		return
 	}
+	toolKey := req.Tool
+	if toolKey == "" {
+		toolKey = req.ToolName
+	}
+	if toolKey == "" {
+		utils.RespondBadRequest(c, slog.Default(), "tool or tool_name is required")
+		return
+	}
 
 	mcpService := h.createMCPService(user.ID)
-	result, err := mcpService.ExecuteTool(c.Request.Context(), req.Tool, req.Arguments)
+	result, err := mcpService.ExecuteTool(c.Request.Context(), toolKey, req.Arguments)
 	if err != nil {
 		slog.ErrorContext(c.Request.Context(), "MCP tool execution failed",
-			"tool", req.Tool,
+			"tool", toolKey,
 			"user_id", user.ID,
 			"error", err)
 		utils.RespondBadRequest(c, slog.Default(), err.Error())

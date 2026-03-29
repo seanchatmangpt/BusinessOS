@@ -44,22 +44,22 @@ func (h *BOSTransactionHandler) RegisterRoutes(r *gin.RouterGroup) {
 
 // PrepareRequestPayload represents an incoming prepare request
 type PrepareRequestPayload struct {
-	TransactionID string                            `json:"transaction_id" binding:"required"`
-	Algorithm     string                            `json:"algorithm" binding:"required"`
-	LogData       transactions.LogData              `json:"log_data" binding:"required"`
-	Parameters    transactions.AlgorithmParams      `json:"parameters" binding:"required"`
-	TimeoutMS     int64                             `json:"timeout_ms,omitempty"`
+	TransactionID string                       `json:"transaction_id" binding:"required"`
+	Algorithm     string                       `json:"algorithm" binding:"required"`
+	LogData       transactions.LogData         `json:"log_data" binding:"required"`
+	Parameters    transactions.AlgorithmParams `json:"parameters" binding:"required"`
+	TimeoutMS     int64                        `json:"timeout_ms,omitempty"`
 }
 
 // PrepareResponsePayload is the HTTP response for prepare
 type PrepareResponsePayload struct {
-	TransactionID string                  `json:"transaction_id"`
-	Status        string                  `json:"status"`
-	Vote          string                  `json:"vote,omitempty"`
-	Version       int                     `json:"version"`
-	Model         *transactions.ModelInfo `json:"model,omitempty"`
+	TransactionID string                       `json:"transaction_id"`
+	Status        string                       `json:"status"`
+	Vote          string                       `json:"vote,omitempty"`
+	Version       int                          `json:"version"`
+	Model         *transactions.ModelInfo      `json:"model,omitempty"`
 	Error         *transactions.ParticipantErr `json:"error,omitempty"`
-	Timestamp     time.Time               `json:"timestamp"`
+	Timestamp     time.Time                    `json:"timestamp"`
 }
 
 // CommitRequestPayload represents an incoming commit request

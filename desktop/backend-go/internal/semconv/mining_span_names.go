@@ -13,5 +13,4 @@ const (
 	// Kind: internal
 	// Stability: development
 	ProcessMiningDeclareCheckSpan = "process.mining.declare.check"
-	// prediction_make and social_network_analyze: see process_span_names.go (full process mining catalog).
 )

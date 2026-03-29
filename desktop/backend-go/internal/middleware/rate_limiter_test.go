@@ -30,8 +30,8 @@ func TestNewHTTPRateLimiter(t *testing.T) {
 
 func TestHTTPRateLimiter_IPBasedLimiting(t *testing.T) {
 	config := &RateLimiterConfig{
-		RequestsPerSecond:     10,  // 10 req/sec
-		BurstSize:             2,   // burst of 2
+		RequestsPerSecond:     10, // 10 req/sec
+		BurstSize:             2,  // burst of 2
 		UserRequestsPerSecond: 20,
 		UserBurstSize:         4,
 		CleanupInterval:       5 * time.Minute,
@@ -301,7 +301,7 @@ func TestRateLimitMiddleware_Block(t *testing.T) {
 
 	config := &RateLimiterConfig{
 		RequestsPerSecond:     10,
-		BurstSize:             2,  // Very small burst
+		BurstSize:             2, // Very small burst
 		UserRequestsPerSecond: 20,
 		UserBurstSize:         4,
 		CleanupInterval:       5 * time.Minute,
@@ -347,7 +347,7 @@ func TestRateLimitMiddleware_ExcludedPath(t *testing.T) {
 
 	config := &RateLimiterConfig{
 		RequestsPerSecond:     10,
-		BurstSize:             1,  // Very small burst
+		BurstSize:             1, // Very small burst
 		UserRequestsPerSecond: 20,
 		UserBurstSize:         2,
 		CleanupInterval:       5 * time.Minute,
@@ -431,11 +431,11 @@ func TestGetGlobalHTTPRateLimiter_Singleton(t *testing.T) {
 
 func TestGetClientIP(t *testing.T) {
 	tests := []struct {
-		name           string
-		remoteAddr     string
-		xForwardedFor  string
-		xRealIP        string
-		expectedIP     string
+		name          string
+		remoteAddr    string
+		xForwardedFor string
+		xRealIP       string
+		expectedIP    string
 	}{
 		{
 			name:       "RemoteAddr only",
@@ -443,10 +443,10 @@ func TestGetClientIP(t *testing.T) {
 			expectedIP: "192.168.1.1",
 		},
 		{
-			name:          "X-Real-IP header",
-			remoteAddr:    "192.168.1.1:12345",
-			xRealIP:       "203.0.113.1",
-			expectedIP:    "203.0.113.1",
+			name:       "X-Real-IP header",
+			remoteAddr: "192.168.1.1:12345",
+			xRealIP:    "203.0.113.1",
+			expectedIP: "203.0.113.1",
 		},
 		{
 			name:          "X-Forwarded-For single IP",

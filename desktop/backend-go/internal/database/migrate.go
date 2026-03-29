@@ -34,10 +34,10 @@ type MigrationFile struct {
 
 // MigrationRunner manages database schema evolution
 type MigrationRunner struct {
-	pool           *pgxpool.Pool
-	migrationsDir  string
-	schemaTable    string
-	logger         *slog.Logger
+	pool          *pgxpool.Pool
+	migrationsDir string
+	schemaTable   string
+	logger        *slog.Logger
 }
 
 // NewMigrationRunner creates a new migration runner

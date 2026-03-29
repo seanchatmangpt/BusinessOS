@@ -8,6 +8,12 @@
  */
 
 import { api } from "$lib/api";
+import {
+  discoverProcessMap,
+  getDashboardKPI,
+  EMPTY_EVENT_LOG,
+} from "$lib/api/pm4py";
+import type { PetriNetJson } from "$lib/api/pm4py";
 import type {
   FocusItem,
   DashboardProjectRow,
@@ -15,6 +21,40 @@ import type {
   DashboardActivityRow,
   ProcessMiningKPIData,
 } from "./types";
+
+const SAMPLE_EVENT_LOG = {
+  traces: [
+    {
+      case_id: "case_001",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-01T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-01T10:00:00Z" },
+        { activity: "Approve", timestamp: "2024-01-01T11:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-01T12:00:00Z" },
+      ],
+    },
+    {
+      case_id: "case_002",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-02T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-02T10:00:00Z" },
+        { activity: "Reject", timestamp: "2024-01-02T11:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-02T12:00:00Z" },
+      ],
+    },
+    {
+      case_id: "case_003",
+      events: [
+        { activity: "Submit Request", timestamp: "2024-01-03T09:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-03T10:30:00Z" },
+        { activity: "Request Info", timestamp: "2024-01-03T11:00:00Z" },
+        { activity: "Review Request", timestamp: "2024-01-03T14:00:00Z" },
+        { activity: "Approve", timestamp: "2024-01-03T15:00:00Z" },
+        { activity: "Close", timestamp: "2024-01-03T16:00:00Z" },
+      ],
+    },
+  ],
+};
 
 function createDashboardDataStore() {
   // ── Loading / error ──────────────────────────────────────────────────────────
@@ -31,6 +71,7 @@ function createDashboardDataStore() {
   // ── Process Mining KPI ───────────────────────────────────────────────────────
   let processMiningKPI = $state<ProcessMiningKPIData | null>(null);
   let isProcessMiningKPILoading = $state(false);
+  let discoveredPetriNet = $state<PetriNetJson | null>(null);
 
   // ── Load ─────────────────────────────────────────────────────────────────────
 
@@ -146,18 +187,55 @@ function createDashboardDataStore() {
   async function loadProcessMiningKPI(eventLog?: unknown): Promise<void> {
     isProcessMiningKPILoading = true;
     try {
-      const resp = await fetch("/api/pm4py/dashboard-kpi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_log: eventLog ?? { traces: [] } }),
-      });
-      if (resp.ok) {
-        processMiningKPI = (await resp.json()) as ProcessMiningKPIData;
-      }
+      // Use the typed API function — maps snake_case response to ProcessMiningKPIData.
+      const raw = await getDashboardKPI(
+        eventLog ?? EMPTY_EVENT_LOG,
+        discoveredPetriNet ?? undefined,
+      );
+      processMiningKPI = {
+        conformanceFitness: raw.conformance_fitness,
+        conformancePrecision: raw.conformance_precision,
+        isConformant: raw.is_conformant,
+        variantCount: raw.variant_count,
+        topVariants: raw.top_variants,
+        bottleneckActivities: raw.bottleneck_activities,
+        activityFrequencies: raw.activity_frequencies,
+        eventCount: raw.event_count,
+        traceCount: raw.trace_count,
+        fetchedAt: raw.fetched_at,
+      } satisfies ProcessMiningKPIData;
     } catch {
       // Silently fail — pm4py not running is expected in dev
     } finally {
       isProcessMiningKPILoading = false;
+    }
+  }
+
+  async function discoverProcess(eventLog?: unknown): Promise<void> {
+    const logToDiscover = eventLog ?? SAMPLE_EVENT_LOG;
+    try {
+      // POST /api/v1/pm4py/discover — PM4PyRustHandler proxies to pm4py-rust.
+      // Response: DiscoveryResponse { petri_net, algorithm, execution_time_ms, ... }
+      const result = await discoverProcessMap(logToDiscover);
+      if (result?.petri_net) {
+        // The Go server returns label as *string (nullable); cast via unknown to
+        // allow the null-coalesce without TS strict-mode complaints.
+        type RawTransition = { id: string; name: string; label: string | null | undefined };
+        discoveredPetriNet = {
+          places: result.petri_net.places,
+          transitions: (result.petri_net.transitions as unknown as RawTransition[]).map((t) => ({
+            id: t.id,
+            name: t.name,
+            label: t.label ?? t.name,
+          })),
+          arcs: result.petri_net.arcs,
+          // initial_place / final_place are *string in Go — may be null at runtime
+          initial_place: (result.petri_net.initial_place as string | null | undefined) ?? "",
+          final_place: (result.petri_net.final_place as string | null | undefined) ?? "",
+        } satisfies PetriNetJson;
+      }
+    } catch {
+      // Silently fail — pm4py not running is expected in dev
     }
   }
 
@@ -234,6 +312,13 @@ function createDashboardDataStore() {
       isProcessMiningKPILoading = v;
     },
 
+    get discoveredPetriNet() {
+      return discoveredPetriNet;
+    },
+    set discoveredPetriNet(v: PetriNetJson | null) {
+      discoveredPetriNet = v;
+    },
+
     loadDashboard,
     handleFocusToggle,
     handleFocusAdd,
@@ -242,6 +327,7 @@ function createDashboardDataStore() {
     handleTaskToggle,
     handleEnergySet,
     loadProcessMiningKPI,
+    discoverProcess,
   };
 }
 

@@ -30,11 +30,11 @@ func TestJTBDScenario8A2ADealLifecycleSpan(t *testing.T) {
 	defer cancel()
 
 	dealParams := map[string]interface{}{
-		"agent_id":           "seller-agent-1",
-		"counterparty_id":    "buyer-agent-2",
-		"item_name":          "custom-workflow",
-		"price_usd":          50.0,
-		"description":        "Process mining workflow",
+		"agent_id":        "seller-agent-1",
+		"counterparty_id": "buyer-agent-2",
+		"item_name":       "custom-workflow",
+		"price_usd":       50.0,
+		"description":     "Process mining workflow",
 	}
 
 	// Act: Call scenario implementation (doesn't exist yet — RED)
@@ -81,15 +81,15 @@ func TestJTBDScenario8DealValidation(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name        string
-		params      map[string]interface{}
-		wantErr     bool
-		errMessage  string
+		name       string
+		params     map[string]interface{}
+		wantErr    bool
+		errMessage string
 	}{
 		{
 			name: "invalid agent_id empty",
 			params: map[string]interface{}{
-				"agent_id":        "",  // Invalid
+				"agent_id":        "", // Invalid
 				"counterparty_id": "buyer-1",
 				"item_name":       "workflow",
 				"price_usd":       100.0,
@@ -103,7 +103,7 @@ func TestJTBDScenario8DealValidation(t *testing.T) {
 				"agent_id":        "seller-1",
 				"counterparty_id": "buyer-1",
 				"item_name":       "workflow",
-				"price_usd":       -50.0,  // Invalid
+				"price_usd":       -50.0, // Invalid
 			},
 			wantErr:    true,
 			errMessage: "invalid_price",
@@ -213,7 +213,7 @@ func TestJTBDScenario9ToolValidation(t *testing.T) {
 			name: "invalid tool_name empty",
 			request: map[string]interface{}{
 				"agent_id":   "code-review-1",
-				"tool_name":  "",  // Invalid
+				"tool_name":  "", // Invalid
 				"parameters": map[string]interface{}{},
 			},
 			wantErr:    true,
@@ -224,7 +224,7 @@ func TestJTBDScenario9ToolValidation(t *testing.T) {
 			request: map[string]interface{}{
 				"agent_id":   "code-review-1",
 				"tool_name":  "analyzer",
-				"parameters": "not_a_map",  // Invalid
+				"parameters": "not_a_map", // Invalid
 			},
 			wantErr:    true,
 			errMessage: "invalid_parameters",
@@ -320,7 +320,7 @@ func TestJTBDScenario10ConformanceValidation(t *testing.T) {
 			name: "invalid model_id empty",
 			request: map[string]interface{}{
 				"agent_id":  "discovery-1",
-				"model_id":  "",  // Invalid
+				"model_id":  "", // Invalid
 				"event_log": []map[string]interface{}{{"activity": "test"}},
 			},
 			wantErr:    true,
@@ -331,7 +331,7 @@ func TestJTBDScenario10ConformanceValidation(t *testing.T) {
 			request: map[string]interface{}{
 				"agent_id":  "discovery-1",
 				"model_id":  "model_v1",
-				"event_log": []map[string]interface{}{},  // Invalid: empty
+				"event_log": []map[string]interface{}{}, // Invalid: empty
 			},
 			wantErr:    true,
 			errMessage: "empty_event_log",
@@ -394,13 +394,13 @@ func (s JTBDScenario8) ExecuteDealLifecycle(ctx context.Context, params map[stri
 		latency = time.Millisecond
 	}
 	return map[string]interface{}{
-		"deal_id":       "jtbd-deal-8",
-		"agent_id":      agentID,
-		"status":        "active",
-		"span_emitted":  true,
-		"outcome":       "success",
-		"system":        "businessos",
-		"latency_ms":    int64(latency / time.Millisecond),
+		"deal_id":      "jtbd-deal-8",
+		"agent_id":     agentID,
+		"status":       "active",
+		"span_emitted": true,
+		"outcome":      "success",
+		"system":       "businessos",
+		"latency_ms":   int64(latency / time.Millisecond),
 	}, nil
 }
 
@@ -449,12 +449,12 @@ func (s JTBDScenario10) ExecuteConformanceCheck(ctx context.Context, params map[
 		return nil, errors.New("empty_event_log")
 	}
 	return map[string]interface{}{
-		"model_id":        modelID,
-		"fitness_score":   0.85,
-		"drift_detected":  false,
-		"span_emitted":    true,
-		"outcome":         "success",
-		"system":          "businessos",
+		"model_id":       modelID,
+		"fitness_score":  0.85,
+		"drift_detected": false,
+		"span_emitted":   true,
+		"outcome":        "success",
+		"system":         "businessos",
 	}, nil
 }
 

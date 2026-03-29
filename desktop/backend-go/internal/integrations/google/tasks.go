@@ -24,22 +24,22 @@ type TaskList struct {
 
 // GoogleTask represents a Google Task.
 type GoogleTask struct {
-	ID           string    `json:"id"`
-	UserID       string    `json:"user_id"`
-	TaskID       string    `json:"task_id"`
-	TaskListID   string    `json:"task_list_id"`
-	Title        string    `json:"title"`
-	Notes        string    `json:"notes,omitempty"`
-	Status       string    `json:"status"` // needsAction, completed
-	Due          time.Time `json:"due,omitempty"`
-	Completed    time.Time `json:"completed,omitempty"`
-	Deleted      bool      `json:"deleted"`
-	Hidden       bool      `json:"hidden"`
-	ParentTaskID string    `json:"parent_task_id,omitempty"`
-	Position     string    `json:"position,omitempty"`
+	ID           string     `json:"id"`
+	UserID       string     `json:"user_id"`
+	TaskID       string     `json:"task_id"`
+	TaskListID   string     `json:"task_list_id"`
+	Title        string     `json:"title"`
+	Notes        string     `json:"notes,omitempty"`
+	Status       string     `json:"status"` // needsAction, completed
+	Due          time.Time  `json:"due,omitempty"`
+	Completed    time.Time  `json:"completed,omitempty"`
+	Deleted      bool       `json:"deleted"`
+	Hidden       bool       `json:"hidden"`
+	ParentTaskID string     `json:"parent_task_id,omitempty"`
+	Position     string     `json:"position,omitempty"`
 	Links        []TaskLink `json:"links,omitempty"`
-	Updated      time.Time `json:"updated,omitempty"`
-	SyncedAt     time.Time `json:"synced_at"`
+	Updated      time.Time  `json:"updated,omitempty"`
+	SyncedAt     time.Time  `json:"synced_at"`
 }
 
 // TaskLink represents a link associated with a task.

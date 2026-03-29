@@ -92,9 +92,9 @@ func (h *PM4PyRustHandler) Discover(c *gin.Context) {
 
 // ConformanceCheckRequest represents a conformance check request
 type ConformanceCheckRequest struct {
-	EventLog json.RawMessage            `json:"event_log" binding:"required"`
-	PetriNet pm4py_rust.PetriNetJSON    `json:"petri_net" binding:"required"`
-	Method   string                     `json:"method,omitempty"`
+	EventLog json.RawMessage         `json:"event_log" binding:"required"`
+	PetriNet pm4py_rust.PetriNetJSON `json:"petri_net" binding:"required"`
+	Method   string                  `json:"method,omitempty"`
 }
 
 // CheckConformance checks conformance of an event log against a Petri net
@@ -131,10 +131,10 @@ func (h *PM4PyRustHandler) CheckConformance(c *gin.Context) {
 
 // StatisticsAnalysisRequest represents a statistics request
 type StatisticsAnalysisRequest struct {
-	EventLog              json.RawMessage `json:"event_log" binding:"required"`
-	IncludeVariants       bool            `json:"include_variants,omitempty"`
-	IncludeResourceMetrics bool           `json:"include_resource_metrics,omitempty"`
-	IncludeBottlenecks    bool            `json:"include_bottlenecks,omitempty"`
+	EventLog               json.RawMessage `json:"event_log" binding:"required"`
+	IncludeVariants        bool            `json:"include_variants,omitempty"`
+	IncludeResourceMetrics bool            `json:"include_resource_metrics,omitempty"`
+	IncludeBottlenecks     bool            `json:"include_bottlenecks,omitempty"`
 }
 
 // Statistics analyzes an event log for statistical metrics
@@ -154,10 +154,10 @@ func (h *PM4PyRustHandler) Statistics(c *gin.Context) {
 	}
 
 	statsReq := &pm4py_rust.StatisticsRequest{
-		EventLog:              req.EventLog,
-		IncludeVariants:       req.IncludeVariants,
+		EventLog:               req.EventLog,
+		IncludeVariants:        req.IncludeVariants,
 		IncludeResourceMetrics: req.IncludeResourceMetrics,
-		IncludeBottlenecks:    req.IncludeBottlenecks,
+		IncludeBottlenecks:     req.IncludeBottlenecks,
 	}
 
 	resp, err := h.client.StatisticsRequest(c.Request.Context(), statsReq)

@@ -423,4 +423,3 @@ func setupTestDB(ctx context.Context, t *testing.T) *pgxpool.Pool {
 
 	return pool
 }
-

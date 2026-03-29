@@ -21,17 +21,17 @@ import (
 // AuditEvent represents a single audit log entry.
 type AuditEvent struct {
 	// Chain integrity
-	EventID        uuid.UUID       `json:"event_id"`
-	SequenceNumber int64           `json:"sequence_number"`
-	EntryHash      string          `json:"entry_hash"`
-	PreviousHash   string          `json:"previous_hash"`
-	MerkleTreeHash *string         `json:"merkle_tree_hash,omitempty"`
+	EventID        uuid.UUID `json:"event_id"`
+	SequenceNumber int64     `json:"sequence_number"`
+	EntryHash      string    `json:"entry_hash"`
+	PreviousHash   string    `json:"previous_hash"`
+	MerkleTreeHash *string   `json:"merkle_tree_hash,omitempty"`
 
 	// Event metadata
-	EventType      string    `json:"event_type"`
-	EventCategory  string    `json:"event_category"`
-	Timestamp      time.Time `json:"timestamp"`
-	Severity       string    `json:"severity"`
+	EventType     string    `json:"event_type"`
+	EventCategory string    `json:"event_category"`
+	Timestamp     time.Time `json:"timestamp"`
+	Severity      string    `json:"severity"`
 
 	// Actor context
 	UserID    *uuid.UUID `json:"user_id,omitempty"`
@@ -40,7 +40,7 @@ type AuditEvent struct {
 	UserAgent *string    `json:"user_agent,omitempty"`
 
 	// Resource context
-	ResourceType *string   `json:"resource_type,omitempty"`
+	ResourceType *string    `json:"resource_type,omitempty"`
 	ResourceID   *uuid.UUID `json:"resource_id,omitempty"`
 	WorkspaceID  *uuid.UUID `json:"workspace_id,omitempty"`
 
@@ -48,12 +48,12 @@ type AuditEvent struct {
 	Payload json.RawMessage `json:"payload"`
 
 	// Compliance metadata
-	GDPRClassification     *string `json:"gdpr_classification,omitempty"`
-	DataSubjectsAffected   *int32  `json:"data_subjects_affected,omitempty"`
-	PIIDetected            bool    `json:"pii_detected"`
-	LegalHold              bool    `json:"legal_hold"`
-	RetentionExpiresAt     *time.Time `json:"retention_expires_at,omitempty"`
-	DeletionBlockedUntil   *time.Time `json:"deletion_blocked_until,omitempty"`
+	GDPRClassification   *string    `json:"gdpr_classification,omitempty"`
+	DataSubjectsAffected *int32     `json:"data_subjects_affected,omitempty"`
+	PIIDetected          bool       `json:"pii_detected"`
+	LegalHold            bool       `json:"legal_hold"`
+	RetentionExpiresAt   *time.Time `json:"retention_expires_at,omitempty"`
+	DeletionBlockedUntil *time.Time `json:"deletion_blocked_until,omitempty"`
 }
 
 // AuditLogger provides audit event recording and verification.
@@ -77,20 +77,20 @@ func (al *AuditLogger) LogModelDiscovered(
 	durationMs int64,
 ) (uuid.UUID, error) {
 	payload := map[string]interface{}{
-		"log_source":      logSource,
-		"algorithm":       algorithm,
-		"result_hash":     resultHash,
+		"log_source":       logSource,
+		"algorithm":        algorithm,
+		"result_hash":      resultHash,
 		"activities_count": activitiesCount,
-		"duration_ms":     durationMs,
+		"duration_ms":      durationMs,
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:              "model_discovered",
-		EventCategory:          "ProcessMining",
-		UserID:                 &userID,
-		Severity:               "info",
-		GDPRClassification:     stringPtr("processing_activity"),
-		Payload:                toJSON(payload),
+		EventType:          "model_discovered",
+		EventCategory:      "ProcessMining",
+		UserID:             &userID,
+		Severity:           "info",
+		GDPRClassification: stringPtr("processing_activity"),
+		Payload:            toJSON(payload),
 	})
 }
 
@@ -108,24 +108,24 @@ func (al *AuditLogger) LogConformanceChecked(
 	resourceType := "process_model"
 
 	payload := map[string]interface{}{
-		"model_id":        modelID,
-		"log_id":          logID,
-		"fitness":         fitness,
-		"precision":       precision,
-		"generalization":  generalization,
+		"model_id":           modelID,
+		"log_id":             logID,
+		"fitness":            fitness,
+		"precision":          precision,
+		"generalization":     generalization,
 		"log_entries_tested": logEntriesTested,
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:              "conformance_checked",
-		EventCategory:          "ProcessMining",
-		UserID:                 &userID,
-		ResourceType:           &resourceType,
-		ResourceID:             &modelID,
-		Severity:               "info",
-		GDPRClassification:     stringPtr("processing_activity"),
-		DataSubjectsAffected:   &logEntriesTested,
-		Payload:                toJSON(payload),
+		EventType:            "conformance_checked",
+		EventCategory:        "ProcessMining",
+		UserID:               &userID,
+		ResourceType:         &resourceType,
+		ResourceID:           &modelID,
+		Severity:             "info",
+		GDPRClassification:   stringPtr("processing_activity"),
+		DataSubjectsAffected: &logEntriesTested,
+		Payload:              toJSON(payload),
 	})
 }
 
@@ -147,15 +147,15 @@ func (al *AuditLogger) LogStatisticsComputed(
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:              "statistics_computed",
-		EventCategory:          "ProcessMining",
-		UserID:                 &userID,
-		ResourceType:           &resourceType,
-		ResourceID:             &logID,
-		Severity:               "info",
-		GDPRClassification:     stringPtr("analytics"),
-		DataSubjectsAffected:   &sampleSize,
-		Payload:                toJSON(payload),
+		EventType:            "statistics_computed",
+		EventCategory:        "ProcessMining",
+		UserID:               &userID,
+		ResourceType:         &resourceType,
+		ResourceID:           &logID,
+		Severity:             "info",
+		GDPRClassification:   stringPtr("analytics"),
+		DataSubjectsAffected: &sampleSize,
+		Payload:              toJSON(payload),
 	})
 }
 
@@ -175,15 +175,15 @@ func (al *AuditLogger) LogAccessGranted(
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:              "access_granted",
-		EventCategory:          "Compliance",
-		UserID:                 &adminID,
-		ResourceType:           &resourceType,
-		ResourceID:             &resourceID,
-		Severity:               "info",
-		GDPRClassification:     stringPtr("access_control"),
-		DataSubjectsAffected:   int32Ptr(1),
-		Payload:                toJSON(payload),
+		EventType:            "access_granted",
+		EventCategory:        "Compliance",
+		UserID:               &adminID,
+		ResourceType:         &resourceType,
+		ResourceID:           &resourceID,
+		Severity:             "info",
+		GDPRClassification:   stringPtr("access_control"),
+		DataSubjectsAffected: int32Ptr(1),
+		Payload:              toJSON(payload),
 	})
 }
 
@@ -204,15 +204,15 @@ func (al *AuditLogger) LogAccessRevoked(
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:              "access_revoked",
-		EventCategory:          "Compliance",
-		UserID:                 &adminID,
-		ResourceType:           &resourceType,
-		ResourceID:             &resourceID,
-		Severity:               "warning",
-		GDPRClassification:     stringPtr("access_control"),
-		DataSubjectsAffected:   int32Ptr(1),
-		Payload:                toJSON(payload),
+		EventType:            "access_revoked",
+		EventCategory:        "Compliance",
+		UserID:               &adminID,
+		ResourceType:         &resourceType,
+		ResourceID:           &resourceID,
+		Severity:             "warning",
+		GDPRClassification:   stringPtr("access_control"),
+		DataSubjectsAffected: int32Ptr(1),
+		Payload:              toJSON(payload),
 	})
 }
 
@@ -234,16 +234,16 @@ func (al *AuditLogger) LogDataDeletion(
 
 	// GDPR deletion should be marked critical
 	event := AuditEvent{
-		EventType:              "data_deletion",
-		EventCategory:          "Compliance",
-		UserID:                 &adminID,
-		ResourceType:           &resourceType,
-		ResourceID:             &resourceID,
-		Severity:               "critical",
-		GDPRClassification:     stringPtr("right_to_be_forgotten"),
-		DataSubjectsAffected:   int32Ptr(1),
-		PIIDetected:            true,
-		Payload:                toJSON(payload),
+		EventType:            "data_deletion",
+		EventCategory:        "Compliance",
+		UserID:               &adminID,
+		ResourceType:         &resourceType,
+		ResourceID:           &resourceID,
+		Severity:             "critical",
+		GDPRClassification:   stringPtr("right_to_be_forgotten"),
+		DataSubjectsAffected: int32Ptr(1),
+		PIIDetected:          true,
+		Payload:              toJSON(payload),
 	}
 
 	eventID, err := al.recordEvent(ctx, event)
@@ -253,7 +253,7 @@ func (al *AuditLogger) LogDataDeletion(
 
 	// Set deletion-related retention metadata
 	now := time.Now()
-	retentionExpires := now.AddDate(7, 0, 0) // 7 years per GDPR
+	retentionExpires := now.AddDate(7, 0, 0)      // 7 years per GDPR
 	deletionBlockedUntil := now.AddDate(0, 0, 30) // 30 day grace period
 
 	query := `
@@ -280,18 +280,18 @@ func (al *AuditLogger) LogAuthenticationFailure(
 	failureReason string,
 ) (uuid.UUID, error) {
 	payload := map[string]interface{}{
-		"username_hash": usernameHash,
-		"ip_address":    ipAddress,
+		"username_hash":  usernameHash,
+		"ip_address":     ipAddress,
 		"failure_reason": failureReason,
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:      "authentication_failure",
-		EventCategory:  "Security",
-		IPAddress:      &ipAddress,
-		Severity:       "warning",
+		EventType:          "authentication_failure",
+		EventCategory:      "Security",
+		IPAddress:          &ipAddress,
+		Severity:           "warning",
 		GDPRClassification: stringPtr("security_event"),
-		Payload:        toJSON(payload),
+		Payload:            toJSON(payload),
 	})
 }
 
@@ -307,12 +307,12 @@ func (al *AuditLogger) LogPrivilegeEscalationAttempt(
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:      "privilege_escalation_attempt",
-		EventCategory:  "Security",
-		UserID:         &userID,
-		Severity:       "critical",
+		EventType:          "privilege_escalation_attempt",
+		EventCategory:      "Security",
+		UserID:             &userID,
+		Severity:           "critical",
 		GDPRClassification: stringPtr("security_event"),
-		Payload:        toJSON(payload),
+		Payload:            toJSON(payload),
 	})
 }
 
@@ -329,12 +329,12 @@ func (al *AuditLogger) LogSuspiciousActivity(
 	}
 
 	return al.recordEvent(ctx, AuditEvent{
-		EventType:      "suspicious_activity_detected",
-		EventCategory:  "Security",
-		UserID:         &userID,
-		Severity:       "warning",
+		EventType:          "suspicious_activity_detected",
+		EventCategory:      "Security",
+		UserID:             &userID,
+		Severity:           "warning",
 		GDPRClassification: stringPtr("security_event"),
-		Payload:        toJSON(payload),
+		Payload:            toJSON(payload),
 	})
 }
 

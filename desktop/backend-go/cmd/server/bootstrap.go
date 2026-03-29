@@ -15,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/redis/go-redis/v9"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"github.com/rhl/businessos-backend/internal/carrier"
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/container"
@@ -27,6 +26,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/integrations/osa"
 	"github.com/rhl/businessos-backend/internal/middleware"
 	"github.com/rhl/businessos-backend/internal/observability"
+	canopyintegration "github.com/rhl/businessos-backend/internal/integrations/canopy"
 	"github.com/rhl/businessos-backend/internal/ontology"
 	redisClient "github.com/rhl/businessos-backend/internal/redis"
 	"github.com/rhl/businessos-backend/internal/security"
@@ -36,6 +36,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/subconscious"
 	"github.com/rhl/businessos-backend/internal/terminal"
 	"github.com/rhl/businessos-backend/internal/workers"
+	"go.opentelemetry.io/otel/sdk/trace"
 )
 
 // AppServices holds all initialized application state. It is the single
@@ -43,10 +44,10 @@ import (
 // down cleanly without relying on closure captures.
 type AppServices struct {
 	// Core
-	cfg        *config.Config
-	instanceID string
-	router     *gin.Engine
-	handlers   *handlers.Handlers
+	cfg            *config.Config
+	instanceID     string
+	router         *gin.Engine
+	handlers       *handlers.Handlers
 	tracerProvider *trace.TracerProvider
 
 	// Database
@@ -109,6 +110,11 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 		cfg.RedisKeyHMACSecret,
 	); err != nil {
 		return nil, fmt.Errorf("SECURITY ERROR: %w", err)
+	}
+
+	// Harden: reject unsigned webhooks in production
+	if os.Getenv("OSA_ALLOW_UNSIGNED_WEBHOOKS") == "true" && os.Getenv("ENVIRONMENT") == "production" {
+		slog.Error("SECURITY: OSA_ALLOW_UNSIGNED_WEBHOOKS=true is not allowed in production. Webhook signature verification is mandatory.")
 	}
 
 	if cfg.TokenEncryptionKey != "" {
@@ -324,7 +330,8 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	// ===== OPENTELEMETRY TRACING =====
 	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	if otelEndpoint == "" {
-		otelEndpoint = "localhost:4317" // Default OTLP gRPC receiver
+		// OTLP/HTTP (Jaeger all-in-one exposes HTTP on 4318; 4317 is gRPC).
+		otelEndpoint = "localhost:4318"
 	}
 	tp, err := observability.InitTracer(ctx, otelEndpoint)
 	if err != nil {
@@ -354,6 +361,16 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	globalRateLimiter := middleware.GetGlobalHTTPRateLimiter()
 	router.Use(middleware.RateLimitMiddleware(globalRateLimiter))
 	slog.Info("Rate limiting enabled (100 req/s per IP, 200 req/s per user)")
+
+	// ===== GLOBAL CONCURRENCY CONTROL =====
+	maxConcurrent := cfg.GlobalMaxConcurrent
+	if maxConcurrent <= 0 {
+		maxConcurrent = 200 // Default to 200 if not set
+		slog.Info("Global concurrency limit not configured, using default", "default", 200)
+	}
+	middleware.InitGlobalSemaphore(maxConcurrent, nil) // nil: no telemetry instance yet
+	router.Use(middleware.ConcurrencyLimitMiddleware())
+	slog.Info("Global concurrency control enabled", "max_concurrent", maxConcurrent)
 
 	// ===== SERVICES (require DB) =====
 	// These are only initialized when DB is available. If not, we return early
@@ -549,10 +566,10 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 	if embeddingService != nil {
 		memoryExtractor = services.NewMemoryExtractorService(app.pool, embeddingService)
 		if cfg.GroqAPIKey != "" {
-			groqLLM := services.NewGroqService(cfg, "llama-3.1-8b-instant")
+			groqLLM := services.NewGroqService(cfg, "openai/gpt-oss-20b")
 			if groqLLM.HealthCheck(ctx) {
 				memoryExtractor.SetLLMService(groqLLM)
-				slog.Info("Memory extractor initialized with LLM-enhanced extraction", "model", "llama-3.1-8b-instant")
+				slog.Info("Memory extractor initialized with LLM-enhanced extraction", "model", "openai/gpt-oss-20b")
 			} else {
 				slog.Info("Memory extractor initialized (regex-only, Groq unavailable)")
 			}
@@ -569,21 +586,30 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 
 	// ===== BOARD CHAIR L0 SYNC =====
 	// Continuously mirrors BusinessOS case + handoff data into Oxigraph as L0 RDF facts.
+	// All Oxigraph access is routed through the bos CLI (BOS_PATH, BOS_MAPPING_FILE).
 	// OSA MaterializationScheduler depends on this data for L1/L2/L3 CONSTRUCT levels.
 	// Armstrong: goroutine supervised by context cancellation; crashes are visible in logs.
-	// WvdA: bounded query (LIMIT 10000), 30s HTTP timeout, 15min refresh interval.
-	if app.sqlDB != nil {
-		oxigraphURL := os.Getenv("OXIGRAPH_URL")
-		if oxigraphURL == "" {
-			oxigraphURL = "http://localhost:7878"
-		}
-		l0Sync := ontology.NewBoardchairL0Sync(app.sqlDB, oxigraphURL)
-		app.l0Sync = l0Sync
-		go l0Sync.Start(ctx)
-		slog.Info("board.l0_sync started", "oxigraph_url", oxigraphURL)
-	} else {
-		slog.Info("board.l0_sync disabled (no sql.DB available)")
+	// WvdA: subprocess bounded by 30s timeout, 15min refresh interval.
+	bosPath := os.Getenv("BOS_PATH")
+	if bosPath == "" {
+		bosPath = "bos"
 	}
+	bosMappingFile := os.Getenv("BOS_MAPPING_FILE")
+	dbURL := os.Getenv("DATABASE_URL")
+	l0Sync := ontology.NewBoardchairL0Sync(bosPath, bosMappingFile, dbURL)
+	app.l0Sync = l0Sync
+
+	// Wire optional Canopy intelligence push (fire-and-forget after each sync).
+	if canopyCfg := canopyintegration.LoadConfig(); canopyCfg != nil {
+		canopyClient := canopyintegration.NewClient(canopyCfg)
+		l0Sync.SetCanopyPusher(canopyClient)
+		slog.Info("canopy intelligence push enabled", "base_url", canopyCfg.BaseURL)
+	} else {
+		slog.Info("canopy intelligence push disabled (set CANOPY_BASE_URL + CANOPY_BOS_SECRET to enable)")
+	}
+
+	go l0Sync.Start(ctx)
+	slog.Info("board.l0_sync started", "bos_path", bosPath, "mapping_file", bosMappingFile)
 
 	// ===== OSA INTEGRATION =====
 	var osaClient *osa.ResilientClient
@@ -689,8 +715,17 @@ func bootstrap(ctx context.Context) (*AppServices, error) {
 
 	app.osaQueueWorker = osaQueueWorker
 
+	// ===== FIBO DEALS SERVICE =====
+	// Route SPARQL queries through the bos sidecar proxy (:7879) not raw Oxigraph.
+	bosSparqlEndpoint := os.Getenv("BOS_SPARQL_ENDPOINT")
+	if bosSparqlEndpoint == "" {
+		bosSparqlEndpoint = "http://localhost:7879"
+	}
+	fiboDealsService := services.NewFIBODealsService(bosSparqlEndpoint)
+	slog.Info("FIBO deals service initialized", "sparql_endpoint", bosSparqlEndpoint)
+
 	// ===== HANDLERS =====
-	h := handlers.NewHandlers(app.pool, cfg, app.containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService, notificationService, osaClient, osaSyncService)
+	h := handlers.NewHandlers(app.pool, cfg, app.containerMgr, sessionCache, terminalPubSub, embeddingService, contextBuilder, tieredContextService, notificationService, osaClient, osaSyncService, fiboDealsService)
 	app.handlers = h
 
 	if webPushService != nil {

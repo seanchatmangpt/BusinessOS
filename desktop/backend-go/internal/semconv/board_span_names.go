@@ -19,6 +19,18 @@ const (
 	// Kind: internal
 	// Stability: development
 	BoardConwayCheckSummarySpan = "board.conway_check_summary"
+	// board_kpi_compute is the span name for "board.kpi_compute".
+	//
+	// Board KPIs computed from process mining event log
+	// Kind: internal
+	// Stability: development
+	BoardKpiComputeSpan = "board.kpi_compute"
+	// board_l0_sync is the span name for "board.l0_sync".
+	//
+	// Periodic L0 sync — exports BusinessOS cases and handoffs to Oxigraph as RDF facts via bos CLI.
+	// Kind: internal
+	// Stability: development
+	BoardL0SyncSpan = "board.l0_sync"
 	// board_structural_escalation is the span name for "board.structural_escalation".
 	//
 	// Board escalation emitted for a structural (Conway) violation

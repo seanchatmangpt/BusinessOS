@@ -51,8 +51,8 @@ type AuditEntry struct {
 
 // GovernanceTierInfo provides metadata about governance approval requirements.
 type GovernanceTierInfo struct {
-	SNScore    float64
-	Tier       string
+	SNScore          float64
+	Tier             string
 	RequiresApproval bool
 	ApprovalRole     string
 }
@@ -64,21 +64,21 @@ type GovernanceTierInfo struct {
 func DetermineGovernanceTier(snScore float64) GovernanceTierInfo {
 	if snScore > 0.8 {
 		return GovernanceTierInfo{
-			SNScore:    snScore,
-			Tier:       "auto",
+			SNScore:          snScore,
+			Tier:             "auto",
 			RequiresApproval: false,
 		}
 	} else if snScore >= 0.7 {
 		return GovernanceTierInfo{
-			SNScore:    snScore,
-			Tier:       "human",
+			SNScore:          snScore,
+			Tier:             "human",
 			RequiresApproval: true,
 			ApprovalRole:     "manager",
 		}
 	}
 	return GovernanceTierInfo{
-		SNScore:    snScore,
-		Tier:       "board",
+		SNScore:          snScore,
+		Tier:             "board",
 		RequiresApproval: true,
 		ApprovalRole:     "ceo",
 	}

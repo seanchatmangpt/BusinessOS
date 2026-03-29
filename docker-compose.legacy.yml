@@ -1,3 +1,12 @@
+# =============================================================================
+# DEPRECATED: Use docker-compose.yml instead. This file is kept for reference only.
+#
+# Known issues in this legacy file:
+#   - OSA references wrong path (../OSA-5) and port (3003 vs 8089)
+#   - Backend healthcheck used /health instead of /healthz (fixed in this copy)
+#   - Same container_names as docker-compose.yml (collision risk if both run)
+# =============================================================================
+
 version: '3.8'
 
 services:
@@ -9,7 +18,7 @@ services:
     container_name: businessos-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
@@ -112,7 +121,7 @@ services:
     networks:
       - businessos-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -199,6 +208,3 @@ volumes:
 networks:
   businessos-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

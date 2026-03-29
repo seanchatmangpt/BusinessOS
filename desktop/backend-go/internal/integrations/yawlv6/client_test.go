@@ -3,6 +3,9 @@ package yawlv6_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -79,4 +82,186 @@ func TestConformanceResult_JSONRoundTrip(t *testing.T) {
 	assert.Equal(t, 0.95, result.Fitness)
 	assert.Equal(t, []string{"v1"}, result.Violations)
 	assert.True(t, result.IsSound)
+}
+
+// TestHealth_ReachableServer_ReturnsNoError tests that Health() succeeds
+// when the YAWL engine responds with 200 at /health.jsp.
+func TestHealth_ReachableServer_ReturnsNoError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/health.jsp", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"running","version":"6.0","engine_running":true}`))
+	}))
+	defer srv.Close()
+
+	t.Setenv("YAWLV6_URL", srv.URL)
+	c := yawlv6.NewClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err := c.Health(ctx)
+	assert.NoError(t, err, "Health should return nil error when engine responds 200")
+}
+
+// TestCheckConformance_ValidSpec_ReturnsResult tests that CheckConformance
+// successfully parses the YAWL engine response and returns the result.
+func TestCheckConformance_ValidSpec_ReturnsResult(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/process-mining/conformance", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"fitness":0.95,"violations":[],"is_sound":true}`))
+	}))
+	defer srv.Close()
+
+	t.Setenv("YAWLV6_URL", srv.URL)
+	c := yawlv6.NewClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	result, err := c.CheckConformance(ctx, "<specificationSet/>", []byte(`[]`))
+	require.NoError(t, err)
+	assert.Equal(t, 0.95, result.Fitness)
+	assert.True(t, result.IsSound)
+	assert.Empty(t, result.Violations)
+}
+
+// TestCheckConformance_ServerError_ReturnsError tests that CheckConformance
+// returns an error when the server returns a non-JSON response body.
+// (CheckConformance does not check status code; only json.Unmarshal failure triggers error.)
+func TestCheckConformance_ServerError_ReturnsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal server error"))
+	}))
+	defer srv.Close()
+
+	t.Setenv("YAWLV6_URL", srv.URL)
+	c := yawlv6.NewClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := c.CheckConformance(ctx, "<specificationSet/>", []byte(`[]`))
+	assert.Error(t, err, "CheckConformance should return error when server returns non-JSON body")
+}
+
+// TestLoadSpec_ValidFile_ReturnsContent tests that LoadSpec successfully reads
+// a YAWL spec XML file from the local directory structure and returns its content.
+func TestLoadSpec_ValidFile_ReturnsContent(t *testing.T) {
+	// Create the directory structure LoadSpec expects.
+	specsDir := t.TempDir()
+	catDir := specsDir + "/wcp-patterns/basic"
+	err := os.MkdirAll(catDir, 0o755)
+	require.NoError(t, err)
+
+	content := `<?xml version="1.0"?><specificationSet><specification uri="WCP01"/></specificationSet>`
+	err = os.WriteFile(catDir+"/WCP01_sequence.xml", []byte(content), 0o644)
+	require.NoError(t, err)
+
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	result, err := c.LoadSpec("WCP-1")
+	require.NoError(t, err)
+	assert.Contains(t, result, "<specificationSet>")
+}
+
+// TestLoadSpec_MissingFile_ReturnsError tests that LoadSpec returns an error
+// when the spec file does not exist in the expected directory structure.
+func TestLoadSpec_MissingFile_ReturnsError(t *testing.T) {
+	// Point to an empty specs directory — no wcp-patterns subdirs exist.
+	specsDir := t.TempDir()
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	_, err := c.LoadSpec("WCP-99")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestListPatterns_ReturnsAllSpecs verifies that ListPatterns discovers all XML files
+// in wcp-patterns/* subdirectories, parsing ID and name from filenames.
+func TestListPatterns_ReturnsAllSpecs(t *testing.T) {
+	specsDir := t.TempDir()
+	catDir := specsDir + "/wcp-patterns/basic"
+	require.NoError(t, os.MkdirAll(catDir, 0o755))
+	require.NoError(t, os.WriteFile(catDir+"/WCP01_Sequence.xml", []byte("<spec/>"), 0o644))
+	require.NoError(t, os.WriteFile(catDir+"/WCP02_ParallelSplit.xml", []byte("<spec/>"), 0o644))
+
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	entries, err := c.ListPatterns()
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	assert.Equal(t, "WCP-1", entries[0].ID)
+	assert.Equal(t, "Sequence", entries[0].Name)
+	assert.Equal(t, "basic", entries[0].Category)
+	assert.Equal(t, "WCP-2", entries[1].ID)
+}
+
+// TestListPatterns_EmptyDir_ReturnsEmpty verifies that ListPatterns returns an empty
+// slice when no wcp-patterns directories exist.
+func TestListPatterns_EmptyDir_ReturnsEmpty(t *testing.T) {
+	specsDir := t.TempDir()
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	entries, err := c.ListPatterns()
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}
+
+// TestLoadRealData_ValidFile_ReturnsXML verifies that LoadRealData reads a real-data spec.
+func TestLoadRealData_ValidFile_ReturnsXML(t *testing.T) {
+	specsDir := t.TempDir()
+	realDir := specsDir + "/real-data"
+	require.NoError(t, os.MkdirAll(realDir, 0o755))
+	content := `<?xml version="1.0"?><specificationSet><specification uri="RepairProcess"/></specificationSet>`
+	require.NoError(t, os.WriteFile(realDir+"/RepairProcess.yawl.xml", []byte(content), 0o644))
+
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	xml, err := c.LoadRealData("repair-process")
+	require.NoError(t, err)
+	assert.Contains(t, xml, "RepairProcess")
+}
+
+// TestLoadRealData_UnknownName_ReturnsError verifies that LoadRealData rejects unknown names.
+func TestLoadRealData_UnknownName_ReturnsError(t *testing.T) {
+	specsDir := t.TempDir()
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	_, err := c.LoadRealData("unknown-dataset")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown real-data dataset")
+}
+
+// TestListRealData_ValidDir_ReturnsEntries verifies that ListRealData discovers
+// all known real-data files present on disk.
+func TestListRealData_ValidDir_ReturnsEntries(t *testing.T) {
+	specsDir := t.TempDir()
+	realDir := specsDir + "/real-data"
+	require.NoError(t, os.MkdirAll(realDir, 0o755))
+	require.NoError(t, os.WriteFile(realDir+"/OrderManagement.yawl.xml", []byte("<spec/>"), 0o644))
+	require.NoError(t, os.WriteFile(realDir+"/RepairProcess.yawl.xml", []byte("<spec/>"), 0o644))
+
+	t.Setenv("YAWLV6_SPECS_PATH", specsDir)
+	c := yawlv6.NewClient()
+
+	entries, err := c.ListRealData()
+	require.NoError(t, err)
+	require.Len(t, entries, 2)
+	names := make([]string, len(entries))
+	for i, e := range entries {
+		names[i] = e.Name
+	}
+	assert.ElementsMatch(t, []string{"order-management", "repair-process"}, names)
 }

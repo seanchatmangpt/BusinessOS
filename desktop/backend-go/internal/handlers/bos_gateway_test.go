@@ -35,21 +35,38 @@ func bosMockPM4PyServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		pn := map[string]interface{}{
+			"places": []interface{}{
+				map[string]interface{}{"id": "p1", "name": "start", "initial_marking": 1},
+				map[string]interface{}{"id": "p2", "name": "end", "initial_marking": 0},
+			},
+			"transitions": []interface{}{
+				map[string]interface{}{"id": "t1", "name": "a", "label": nil},
+			},
+			"arcs": []interface{}{
+				map[string]interface{}{"from": "p1", "to": "t1", "weight": 1},
+				map[string]interface{}{"from": "t1", "to": "p2", "weight": 1},
+			},
+			"initial_place": nil,
+			"final_place":   nil,
+		}
 		switch {
-		case r.URL.Path == "/discover":
+		case r.URL.Path == pm4pyPathDiscoveryAlpha:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"model_id": "model_test_001", "algorithm": "inductive_miner",
-				"transitions": 8, "places": 5,
-				"model_data": map[string]interface{}{"places": 5, "transitions": 8},
+				"model_id":    "model_test_001",
+				"algorithm":   "inductive_miner",
+				"petri_net":   pn,
+				"trace_count": 2.0,
+				"event_count": 4.0,
 			})
-		case r.URL.Path == "/conformance":
+		case r.URL.Path == pm4pyPathConformanceTokenReplay:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"traces_checked": 125, "fitting_traces": 120,
 				"fitness": 0.96, "precision": 0.92, "generalization": 0.88, "simplicity": 0.91,
 			})
-		case r.URL.Path == "/statistics":
+		case r.URL.Path == pm4pyPathStatistics:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"log_name": "sample_log.xes", "num_traces": 500, "num_events": 2450,
@@ -59,6 +76,11 @@ func bosMockPM4PyServer(t *testing.T) *httptest.Server {
 					"min_seconds": 60, "max_seconds": 3600,
 					"avg_seconds": 1200.5, "median_seconds": 900.0,
 				},
+			})
+		case r.URL.Path == pm4pyPathParseXES:
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"traces": []interface{}{},
 			})
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -742,4 +764,133 @@ func TestConformanceResponse_AllFieldsPopulated(t *testing.T) {
 	assert.True(t, resp.Generalization > 0)
 	assert.True(t, resp.Simplicity > 0)
 	assert.True(t, resp.LatencyMs >= 0)
+}
+
+// ============================================================================
+// CANOPY WEBHOOK TESTS
+// ============================================================================
+
+func TestDiscover_CanopyWebhook_FiresOnSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	logPath := bosCreateTempEventLogFile(t)
+	pm4pyMock := bosMockPM4PyServer(t)
+	t.Cleanup(pm4pyMock.Close)
+
+	webhookReceived := make(chan struct{})
+	var capturedPayload map[string]interface{}
+
+	canopyMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewDecoder(r.Body).Decode(&capturedPayload)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"ok": "true"})
+		close(webhookReceived)
+	}))
+	t.Cleanup(canopyMock.Close)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewBOSGatewayHandler(nil, logger)
+	handler.pm4pyURL = pm4pyMock.URL
+	handler.canopyWebhookURL = canopyMock.URL
+
+	router := gin.New()
+	api := router.Group("/api")
+	RegisterBOSGatewayRoutes(api, handler)
+
+	body := bosMustMarshal(t, BOSDiscoverRequest{LogPath: logPath, Algorithm: "inductive_miner"})
+	httpReq := httptest.NewRequest("POST", "/api/bos/discover", bytes.NewBufferString(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httpReq)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	select {
+	case <-webhookReceived:
+		// success
+	case <-time.After(2 * time.Second):
+		t.Fatal("canopy webhook not received within 2s")
+	}
+
+	assert.NotEmpty(t, capturedPayload["model_id"])
+	assert.NotEmpty(t, capturedPayload["algorithm"])
+	assert.NotNil(t, capturedPayload["activities_count"])
+	assert.Equal(t, float64(-1), capturedPayload["fitness_score"]) // -1.0 = not-yet-computed sentinel
+}
+
+func TestDiscover_CanopyWebhook_SkippedWhenURLEmpty(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	logPath := bosCreateTempEventLogFile(t)
+	pm4pyMock := bosMockPM4PyServer(t)
+	t.Cleanup(pm4pyMock.Close)
+
+	canopyHits := 0
+	canopyMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		canopyHits++
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(canopyMock.Close)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewBOSGatewayHandler(nil, logger)
+	handler.pm4pyURL = pm4pyMock.URL
+	// canopyWebhookURL intentionally left empty
+
+	router := gin.New()
+	api := router.Group("/api")
+	RegisterBOSGatewayRoutes(api, handler)
+
+	body := bosMustMarshal(t, BOSDiscoverRequest{LogPath: logPath, Algorithm: "inductive_miner"})
+	httpReq := httptest.NewRequest("POST", "/api/bos/discover", bytes.NewBufferString(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httpReq)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	time.Sleep(100 * time.Millisecond)
+	assert.Equal(t, 0, canopyHits)
+}
+
+func TestDiscover_CanopyWebhook_FailureDoesNotAffectAPIResponse(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	logPath := bosCreateTempEventLogFile(t)
+	pm4pyMock := bosMockPM4PyServer(t)
+	t.Cleanup(pm4pyMock.Close)
+
+	webhookReceived := make(chan struct{})
+	canopyMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		close(webhookReceived)
+	}))
+	t.Cleanup(canopyMock.Close)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewBOSGatewayHandler(nil, logger)
+	handler.pm4pyURL = pm4pyMock.URL
+	handler.canopyWebhookURL = canopyMock.URL
+
+	router := gin.New()
+	api := router.Group("/api")
+	RegisterBOSGatewayRoutes(api, handler)
+
+	body := bosMustMarshal(t, BOSDiscoverRequest{LogPath: logPath, Algorithm: "inductive_miner"})
+	httpReq := httptest.NewRequest("POST", "/api/bos/discover", bytes.NewBufferString(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httpReq)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	select {
+	case <-webhookReceived:
+		// correct
+	case <-time.After(2 * time.Second):
+		t.Fatal("canopy webhook goroutine did not run within 2s")
+	}
 }

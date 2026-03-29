@@ -32,9 +32,9 @@ func NewInvalidationService(redis *redis.Client, logger *slog.Logger) *Invalidat
 // InvalidateConversation invalidates all caches related to a conversation
 func (s *InvalidationService) InvalidateConversation(ctx context.Context, conversationID uuid.UUID) error {
 	patterns := []string{
-		fmt.Sprintf("conv:%s:*", conversationID),                    // All conversation data
-		fmt.Sprintf("conv:%s:messages", conversationID),             // Message history
-		fmt.Sprintf("conv:%s:messages:page:*", conversationID),      // Paginated messages
+		fmt.Sprintf("conv:%s:*", conversationID),               // All conversation data
+		fmt.Sprintf("conv:%s:messages", conversationID),        // Message history
+		fmt.Sprintf("conv:%s:messages:page:*", conversationID), // Paginated messages
 		// REMOVED: fmt.Sprintf("conversations:*") - overly-broad wildcard causing cache stampede
 		// Only invalidate conversation-specific data, not all users' conversation lists
 	}
@@ -45,7 +45,7 @@ func (s *InvalidationService) InvalidateConversation(ctx context.Context, conver
 // InvalidateConversationList invalidates conversation list cache for a user
 func (s *InvalidationService) InvalidateConversationList(ctx context.Context, userID uuid.UUID) error {
 	patterns := []string{
-		fmt.Sprintf("conversations:%s:*", userID),                   // All conversation list pages
+		fmt.Sprintf("conversations:%s:*", userID), // All conversation list pages
 	}
 
 	return s.invalidatePatterns(ctx, patterns)
@@ -58,10 +58,10 @@ func (s *InvalidationService) InvalidateConversationList(ctx context.Context, us
 // InvalidateMemory invalidates caches for a specific memory
 func (s *InvalidationService) InvalidateMemory(ctx context.Context, memoryID uuid.UUID) error {
 	patterns := []string{
-		fmt.Sprintf("memory:%s", memoryID),                          // Single memory
+		fmt.Sprintf("memory:%s", memoryID), // Single memory
 		// REMOVED: fmt.Sprintf("memories:*") - overly-broad wildcard causing cache stampede
 		// Only invalidate memory-specific data, not all users' memory lists
-		fmt.Sprintf("embed:memory:%s", memoryID),                    // Memory embedding
+		fmt.Sprintf("embed:memory:%s", memoryID), // Memory embedding
 	}
 
 	return s.invalidatePatterns(ctx, patterns)
@@ -88,7 +88,7 @@ func (s *InvalidationService) InvalidateMemoryList(ctx context.Context, userID u
 func (s *InvalidationService) InvalidateArtifact(ctx context.Context, artifactID uuid.UUID, userID uuid.UUID) error {
 	patterns := []string{
 		fmt.Sprintf("artifact:%s", artifactID),
-		fmt.Sprintf("artifacts:%s:*", userID),                       // User's artifact lists
+		fmt.Sprintf("artifacts:%s:*", userID), // User's artifact lists
 	}
 
 	return s.invalidatePatterns(ctx, patterns)
@@ -111,7 +111,7 @@ func (s *InvalidationService) InvalidateArtifactsByConversation(ctx context.Cont
 func (s *InvalidationService) InvalidateTask(ctx context.Context, taskID uuid.UUID, userID uuid.UUID) error {
 	patterns := []string{
 		fmt.Sprintf("task:%s", taskID),
-		fmt.Sprintf("tasks:%s:*", userID),                           // User's task lists
+		fmt.Sprintf("tasks:%s:*", userID), // User's task lists
 	}
 
 	return s.invalidatePatterns(ctx, patterns)
@@ -291,9 +291,9 @@ func (s *InvalidationService) scanPattern(ctx context.Context, pattern string) (
 
 // InvalidationEvent represents a cache invalidation event
 type InvalidationEvent struct {
-	Type      string    `json:"type"`       // conversation, memory, artifact, task, etc.
-	EntityID  string    `json:"entity_id"`  // UUID of the entity
-	UserID    string    `json:"user_id"`    // User who triggered invalidation
+	Type      string    `json:"type"`      // conversation, memory, artifact, task, etc.
+	EntityID  string    `json:"entity_id"` // UUID of the entity
+	UserID    string    `json:"user_id"`   // User who triggered invalidation
 	Timestamp time.Time `json:"timestamp"`
 }
 

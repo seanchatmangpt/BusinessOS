@@ -150,8 +150,12 @@ func (p *DocumentProcessor) ReprocessDocument(ctx context.Context, userID string
 	// Update status
 	p.pool.Exec(ctx, `UPDATE uploaded_documents SET processing_status = 'processing', updated_at = NOW() WHERE id = $1`, docID)
 
-	// Reprocess
-	go p.processDocumentAsync(docID, content)
+	// Reprocess with bounded timeout
+	go func() {
+		asyncCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		p.processDocumentAsync(asyncCtx, docID, content)
+	}()
 
 	return nil
 }

@@ -57,7 +57,7 @@ func TestWorkerPoolGoroutineCleanup(t *testing.T) {
 
 	// Create worker pool with 10 workers
 	const numWorkers = 10
-	pool := NewWorkerPool(ctx, numWorkers)
+	_ = NewWorkerPool(ctx, numWorkers)
 
 	// Allow goroutines time to start
 	time.Sleep(50 * time.Millisecond)
@@ -122,7 +122,7 @@ func TestWorkerPoolContextCancellation(t *testing.T) {
 
 	baselineGoroutines := runtime.NumGoroutine()
 
-	pool := NewWorkerPool(ctx, 5)
+	_ = NewWorkerPool(ctx, 5)
 	time.Sleep(50 * time.Millisecond)
 	afterStart := runtime.NumGoroutine()
 
@@ -183,7 +183,7 @@ func TestWorkerPoolNoDeadlockOnShutdown(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	pool := NewWorkerPool(ctx, 5)
+	_ = NewWorkerPool(ctx, 5)
 	time.Sleep(50 * time.Millisecond)
 
 	// Shutdown with timeout to detect deadlock
@@ -241,7 +241,7 @@ func TestWorkerPoolFIRST_Independent_1(t *testing.T) {
 
 	baselineGoroutines := runtime.NumGoroutine()
 
-	pool := NewWorkerPool(ctx, 5)
+	_ = NewWorkerPool(ctx, 5)
 	time.Sleep(50 * time.Millisecond)
 
 	cancel()
@@ -262,7 +262,7 @@ func TestWorkerPoolFIRST_Independent_2(t *testing.T) {
 
 	baselineGoroutines := runtime.NumGoroutine()
 
-	pool := NewWorkerPool(ctx, 3) // Different size, independent setup
+	_ = NewWorkerPool(ctx, 3) // Different size, independent setup
 	time.Sleep(50 * time.Millisecond)
 
 	cancel()
@@ -284,7 +284,7 @@ func TestWorkerPoolFIRST_Repeatable(t *testing.T) {
 
 		baselineGoroutines := runtime.NumGoroutine()
 
-		pool := NewWorkerPool(ctx, 5)
+		_ = NewWorkerPool(ctx, 5)
 		time.Sleep(50 * time.Millisecond)
 		afterStart := runtime.NumGoroutine()
 
@@ -341,7 +341,7 @@ func TestWorkerPoolWaitGroupTracking(t *testing.T) {
 	defer cancel()
 
 	// Pool should have internal WaitGroup to track all workers
-	pool := NewWorkerPool(ctx, 5)
+	_ = NewWorkerPool(ctx, 5)
 	time.Sleep(50 * time.Millisecond)
 
 	// WaitGroup should have count=5 (5 workers)
@@ -375,7 +375,7 @@ func TestWorkerPoolChannelClosureHandling(t *testing.T) {
 
 	baselineGoroutines := runtime.NumGoroutine()
 
-	pool := NewWorkerPool(ctx, 5)
+	_ = NewWorkerPool(ctx, 5)
 	time.Sleep(50 * time.Millisecond)
 
 	// Closing context should close internal channels
@@ -405,12 +405,12 @@ func NewWorkerPool(ctx context.Context, numWorkers int) *WorkerPool {
 
 // WorkerPool is a stub for testing goroutine cleanup patterns.
 type WorkerPool struct {
-	ctx        context.Context
-	workers    int
-	taskQueue  chan func()
-	wg         sync.WaitGroup
+	ctx          context.Context
+	workers      int
+	taskQueue    chan func()
+	wg           sync.WaitGroup
 	shuttingDown bool
-	mu         sync.Mutex
+	mu           sync.Mutex
 }
 
 func (p *WorkerPool) init() {
@@ -449,10 +449,20 @@ func (p *WorkerPool) Submit(task func()) bool {
 		return false
 	}
 
+	// Check context cancellation first (deterministic, not random select)
+	select {
+	case <-p.ctx.Done():
+		p.shuttingDown = true
+		return false
+	default:
+	}
+
+	// Try non-blocking send to queue
 	select {
 	case p.taskQueue <- task:
 		return true
 	case <-p.ctx.Done():
+		p.shuttingDown = true
 		return false
 	default:
 		return false

@@ -36,12 +36,12 @@ type HIPAARuleValidator struct {
 	breachNotifications  atomic.Int64
 
 	// Configuration
-	retentionDays     int
-	tlsMinVersion     uint16
-	encryptionAlgo    string
-	logger            *slog.Logger
-	breachCallbacks   []BreachCallback
-	auditMaxEntries   int
+	retentionDays   int
+	tlsMinVersion   uint16
+	encryptionAlgo  string
+	logger          *slog.Logger
+	breachCallbacks []BreachCallback
+	auditMaxEntries int
 }
 
 // BreachCallback is called when an unencrypted transmission is detected.
@@ -101,11 +101,11 @@ func (v *HIPAARuleValidator) RegisterAuthorizedUser(userID string, roles []strin
 	}
 
 	validRoles := map[string]bool{
-		"hipaa_admin":    true,
-		"hipaa_user":     true,
-		"hipaa_auditor":  true,
-		"phi_viewer":     true,
-		"phi_editor":     true,
+		"hipaa_admin":   true,
+		"hipaa_user":    true,
+		"hipaa_auditor": true,
+		"phi_viewer":    true,
+		"phi_editor":    true,
 	}
 
 	for _, role := range roles {
@@ -140,11 +140,11 @@ func (v *HIPAARuleValidator) ValidateAccessControl(ctx context.Context, userID, 
 
 	// Check role-action compatibility
 	validActions := map[string]map[string]bool{
-		"hipaa_admin": {"read": true, "write": true, "delete": true, "access": true},
-		"hipaa_user": {"read": true, "write": true, "access": true},
+		"hipaa_admin":   {"read": true, "write": true, "delete": true, "access": true},
+		"hipaa_user":    {"read": true, "write": true, "access": true},
 		"hipaa_auditor": {"read": true, "access": true},
-		"phi_viewer": {"read": true, "access": true},
-		"phi_editor": {"read": true, "write": true, "access": true},
+		"phi_viewer":    {"read": true, "access": true},
+		"phi_editor":    {"read": true, "write": true, "access": true},
 	}
 
 	hasPermission := false

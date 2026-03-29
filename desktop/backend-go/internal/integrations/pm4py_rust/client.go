@@ -57,8 +57,8 @@ func NewClientWithConfig(baseURL string, config ClientConfig) *Client {
 				Timeout:   timeout,
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
-			IdleConnTimeout:     90 * time.Second,
-			TLSHandshakeTimeout: timeout,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   timeout,
 			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
@@ -119,10 +119,10 @@ type PetriNetJSON struct {
 
 // PlaceJSON represents a Petri net place
 type PlaceJSON struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	InitialMarking  int    `json:"initial_marking"`
-	FinalMarking    *int   `json:"final_marking,omitempty"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	InitialMarking int    `json:"initial_marking"`
+	FinalMarking   *int   `json:"final_marking,omitempty"`
 }
 
 // TransitionJSON represents a Petri net transition
@@ -155,12 +155,12 @@ type ConformanceRequest struct {
 
 // ConformanceResponse contains conformance checking results
 type ConformanceResponse struct {
-	IsConformant  bool   `json:"is_conformant"`
-	Fitness       float64 `json:"fitness"`
-	Precision     float64 `json:"precision"`
+	IsConformant   bool    `json:"is_conformant"`
+	Fitness        float64 `json:"fitness"`
+	Precision      float64 `json:"precision"`
 	Generalization float64 `json:"generalization"`
-	Method        string  `json:"method"`
-	ExecutionTime uint64  `json:"execution_time_ms"`
+	Method         string  `json:"method"`
+	ExecutionTime  uint64  `json:"execution_time_ms"`
 }
 
 // StatisticsRequest analyzes an event log for statistics
@@ -172,23 +172,23 @@ func (c *Client) StatisticsRequest(ctx context.Context, req *StatisticsRequest) 
 
 // StatisticsRequest represents the statistics API request
 type StatisticsRequest struct {
-	EventLog              json.RawMessage `json:"event_log"`
-	IncludeVariants       bool            `json:"include_variants,omitempty"`
-	IncludeResourceMetrics bool           `json:"include_resource_metrics,omitempty"`
-	IncludeBottlenecks    bool            `json:"include_bottlenecks,omitempty"`
+	EventLog               json.RawMessage `json:"event_log"`
+	IncludeVariants        bool            `json:"include_variants,omitempty"`
+	IncludeResourceMetrics bool            `json:"include_resource_metrics,omitempty"`
+	IncludeBottlenecks     bool            `json:"include_bottlenecks,omitempty"`
 }
 
 // StatisticsResponse contains statistical analysis results
 type StatisticsResponse struct {
-	TraceCount           int                      `json:"trace_count"`
-	EventCount           int                      `json:"event_count"`
-	UniqueActivities     int                      `json:"unique_activities"`
-	ActivityFrequencies  map[string]int           `json:"activity_frequencies,omitempty"`
-	VariantCount         int                      `json:"variant_count"`
-	VariantFrequencies   map[string]int           `json:"variant_frequencies,omitempty"`
-	BottleneckActivities []string                 `json:"bottleneck_activities,omitempty"`
-	ResourceCount        *int                     `json:"resource_count,omitempty"`
-	ExecutionTime        uint64                   `json:"execution_time_ms"`
+	TraceCount           int            `json:"trace_count"`
+	EventCount           int            `json:"event_count"`
+	UniqueActivities     int            `json:"unique_activities"`
+	ActivityFrequencies  map[string]int `json:"activity_frequencies,omitempty"`
+	VariantCount         int            `json:"variant_count"`
+	VariantFrequencies   map[string]int `json:"variant_frequencies,omitempty"`
+	BottleneckActivities []string       `json:"bottleneck_activities,omitempty"`
+	ResourceCount        *int           `json:"resource_count,omitempty"`
+	ExecutionTime        uint64         `json:"execution_time_ms"`
 }
 
 // APIError represents an error response from pm4py-rust

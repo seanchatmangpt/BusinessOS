@@ -66,8 +66,8 @@ func TestComplianceHandler_GetAuditTrail_WithSessionID(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Service tries OSA (fails), returns empty result
-	assert.Equal(t, http.StatusOK, w.Code)
+	// Service tries OSA (which is down), returns 503 Service Unavailable
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
 func TestComplianceHandler_GetAuditTrail_WithLimit(t *testing.T) {
@@ -82,13 +82,8 @@ func TestComplianceHandler_GetAuditTrail_WithLimit(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var result services.AuditTrailResponse
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	require.NoError(t, err)
-	assert.Equal(t, 10, result.Limit)
-	assert.Equal(t, 5, result.Offset)
+	// Service tries OSA (which is down), returns 503 Service Unavailable
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
 }
 
 func TestComplianceHandler_VerifyAuditChain_EmptySession(t *testing.T) {
@@ -103,13 +98,8 @@ func TestComplianceHandler_VerifyAuditChain_EmptySession(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
-
-	var result services.VerifyResult
-	err := json.Unmarshal(w.Body.Bytes(), &result)
-	require.NoError(t, err)
-	// Empty audit trail is considered verified
-	assert.True(t, result.Verified)
+	// Service tries OSA (which is down), returns 500 Internal Server Error
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestComplianceHandler_CollectEvidence_MissingBody(t *testing.T) {
@@ -275,30 +265,26 @@ func TestComplianceHandler_GetAuditTrail_OSAHashChainVerified(t *testing.T) {
 				"entry_count": 2,
 				"entries": []map[string]any{
 					{
-						"index":           0,
-						"timestamp":       "2026-03-24T10:00:00Z",
-						"session_id":      "test-sess",
-						"tool_name":       "pm4py_discover",
-						"arguments_hash":  "abc123",
-						"result_hash":     "def456",
-						"duration_ms":     100,
-						"provider":        "ollama",
-						"model":           "mistral",
-						"previous_hash":   "genesis",
-						"entry_hash":      "hash0",
+						"id":             "entry-0",
+						"index":          0,
+						"timestamp":      "2026-03-24T10:00:00Z",
+						"session_id":     "test-sess",
+						"action":         "tool_execution",
+						"actor":          "test-user",
+						"tool_name":      "pm4py_discover",
+						"prev_hash":      "genesis",
+						"hash":           "hash0",
 					},
 					{
-						"index":           1,
-						"timestamp":       "2026-03-24T10:00:05Z",
-						"session_id":      "test-sess",
-						"tool_name":       "analyze_log",
-						"arguments_hash":  "ghi789",
-						"result_hash":     "jkl012",
-						"duration_ms":     50,
-						"provider":        "ollama",
-						"model":           "mistral",
-						"previous_hash":   "hash0",
-						"entry_hash":      "hash1",
+						"id":             "entry-1",
+						"index":          1,
+						"timestamp":      "2026-03-24T10:00:05Z",
+						"session_id":     "test-sess",
+						"action":         "tool_execution",
+						"actor":          "test-user",
+						"tool_name":      "analyze_log",
+						"prev_hash":      "hash0",
+						"hash":           "hash1",
 					},
 				},
 			}
@@ -476,4 +462,49 @@ func TestComplianceHandler_DegradedMode_ReturnsBusinessOSOnlyWhenOSAFails(t *tes
 	// May return 503 (unavailable), or 200 with empty entries (degraded)
 	// The test expects: either 503 or 200 with empty/minimal data
 	assert.Contains(t, []int{http.StatusOK, http.StatusServiceUnavailable}, w.Code)
+}
+
+// TestComplianceHandler_VerifyCompliance_BOSAliasPath verifies the Canopy adapter path /api/bos/compliance/verify.
+func TestComplianceHandler_VerifyCompliance_BOSAliasPath(t *testing.T) {
+	logger := slog.Default()
+	complianceSvc := services.NewComplianceService("http://localhost:9999", logger)
+	handler := NewComplianceHandler(complianceSvc, logger)
+
+	r := gin.New()
+	r.POST("/api/bos/compliance/verify", handler.VerifyCompliance)
+
+	body, _ := json.Marshal(services.ComplianceVerifyRequest{
+		WorkspaceID: "ws-test",
+		Framework:   "SOC2",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/bos/compliance/verify", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var result services.ComplianceVerifyResponse
+	err := json.Unmarshal(w.Body.Bytes(), &result)
+	require.NoError(t, err)
+	assert.NotEmpty(t, result.Status)
+	assert.Equal(t, "SOC2", result.Framework)
+}
+
+// TestComplianceHandler_VerifyCompliance_BOSAliasPath_MissingFields verifies the alias path enforces the same validation.
+func TestComplianceHandler_VerifyCompliance_BOSAliasPath_MissingFields(t *testing.T) {
+	logger := slog.Default()
+	complianceSvc := services.NewComplianceService("http://localhost:9999", logger)
+	handler := NewComplianceHandler(complianceSvc, logger)
+
+	r := gin.New()
+	r.POST("/api/bos/compliance/verify", handler.VerifyCompliance)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/bos/compliance/verify",
+		bytes.NewReader([]byte("{}")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }

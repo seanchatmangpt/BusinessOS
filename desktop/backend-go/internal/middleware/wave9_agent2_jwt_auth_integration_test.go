@@ -37,26 +37,26 @@ import (
 
 // TestSpan represents a simplified OTEL span for testing
 type TestSpan struct {
-	TraceID   string                 `json:"trace_id"`
-	SpanID    string                 `json:"span_id"`
-	SpanName  string                 `json:"span_name"`
-	Service   string                 `json:"service"`
-	Status    string                 `json:"status"` // "ok" or "error"
-	StartTime int64                  `json:"start_time_us"`
-	EndTime   int64                  `json:"end_time_us"`
-	DurationMs int64                 `json:"duration_ms"`
+	TraceID    string                 `json:"trace_id"`
+	SpanID     string                 `json:"span_id"`
+	SpanName   string                 `json:"span_name"`
+	Service    string                 `json:"service"`
+	Status     string                 `json:"status"` // "ok" or "error"
+	StartTime  int64                  `json:"start_time_us"`
+	EndTime    int64                  `json:"end_time_us"`
+	DurationMs int64                  `json:"duration_ms"`
 	Attributes map[string]interface{} `json:"attributes"`
 }
 
 // JWTValidationScenario represents a test scenario for JWT validation
 type JWTValidationScenario struct {
-	Name              string
-	AuthHeader        string
-	ExpectedStatus    int
-	ExpectedSpanName  string
+	Name               string
+	AuthHeader         string
+	ExpectedStatus     int
+	ExpectedSpanName   string
 	ExpectedSpanStatus string // span status: "ok" or "error"
-	VerifyClaimsExist bool
-	Description       string
+	VerifyClaimsExist  bool
+	Description        string
 }
 
 // ============================================================================
@@ -79,12 +79,12 @@ func TestWave9Agent2_NoAuthorizationHeader(t *testing.T) {
 
 	// Create OTEL-like span for this scenario
 	span := &TestSpan{
-		TraceID:    "wave9-agent2-no-header-trace-001",
-		SpanID:     "wave9-agent2-no-header-span-001",
-		SpanName:   "auth.jwt.validate",
-		Service:    "businessos",
-		Status:     "error",
-		StartTime:  time.Now().UnixMicro(),
+		TraceID:   "wave9-agent2-no-header-trace-001",
+		SpanID:    "wave9-agent2-no-header-span-001",
+		SpanName:  "auth.jwt.validate",
+		Service:   "businessos",
+		Status:    "error",
+		StartTime: time.Now().UnixMicro(),
 		Attributes: map[string]interface{}{
 			"auth.header_present": false,
 			"auth.error_type":     "JWT_MISSING",
@@ -162,12 +162,12 @@ func TestWave9Agent2_ExpiredJWTToken(t *testing.T) {
 
 	// Create OTEL-like span for this scenario
 	span := &TestSpan{
-		TraceID:    "wave9-agent2-expired-trace-002",
-		SpanID:     "wave9-agent2-expired-span-002",
-		SpanName:   "auth.jwt.validate",
-		Service:    "businessos",
-		Status:     "error",
-		StartTime:  time.Now().UnixMicro(),
+		TraceID:   "wave9-agent2-expired-trace-002",
+		SpanID:    "wave9-agent2-expired-span-002",
+		SpanName:  "auth.jwt.validate",
+		Service:   "businessos",
+		Status:    "error",
+		StartTime: time.Now().UnixMicro(),
 		Attributes: map[string]interface{}{
 			"auth.header_present": true,
 			"auth.token_valid":    false,
@@ -249,12 +249,12 @@ func TestWave9Agent2_WrongSignatureSecret(t *testing.T) {
 
 	// Create OTEL-like span for this scenario
 	span := &TestSpan{
-		TraceID:    "wave9-agent2-wrong-sig-trace-003",
-		SpanID:     "wave9-agent2-wrong-sig-span-003",
-		SpanName:   "auth.jwt.validate",
-		Service:    "businessos",
-		Status:     "error",
-		StartTime:  time.Now().UnixMicro(),
+		TraceID:   "wave9-agent2-wrong-sig-trace-003",
+		SpanID:    "wave9-agent2-wrong-sig-span-003",
+		SpanName:  "auth.jwt.validate",
+		Service:   "businessos",
+		Status:    "error",
+		StartTime: time.Now().UnixMicro(),
 		Attributes: map[string]interface{}{
 			"auth.header_present":  true,
 			"auth.signature_valid": false,
@@ -335,12 +335,12 @@ func TestWave9Agent2_ValidJWTToken(t *testing.T) {
 	// Create OTEL-like span for this scenario
 	startTime := time.Now().UnixMicro()
 	span := &TestSpan{
-		TraceID:    "wave9-agent2-valid-trace-004",
-		SpanID:     "wave9-agent2-valid-span-004",
-		SpanName:   "auth.jwt.validate",
-		Service:    "businessos",
-		Status:     "ok", // SUCCESS!
-		StartTime:  startTime,
+		TraceID:   "wave9-agent2-valid-trace-004",
+		SpanID:    "wave9-agent2-valid-span-004",
+		SpanName:  "auth.jwt.validate",
+		Service:   "businessos",
+		Status:    "ok", // SUCCESS!
+		StartTime: startTime,
 		Attributes: map[string]interface{}{
 			"auth.header_present":  true,
 			"auth.signature_valid": true,
@@ -402,11 +402,11 @@ func TestWave9Agent2_AllScenariosIntegration(t *testing.T) {
 	secretKey := "test-secret-key-wave9-agent2"
 
 	scenarios := []struct {
-		name              string
-		setupFn           func() (string, *gin.Context, *httptest.ResponseRecorder)
-		expectedStatus    int
+		name               string
+		setupFn            func() (string, *gin.Context, *httptest.ResponseRecorder)
+		expectedStatus     int
 		expectedSpanStatus string
-		assertionsFn      func(*testing.T, *gin.Context, *httptest.ResponseRecorder, *TestSpan)
+		assertionsFn       func(*testing.T, *gin.Context, *httptest.ResponseRecorder, *TestSpan)
 	}{
 		{
 			name: "Scenario 1: No Authorization Header",
@@ -561,13 +561,13 @@ func TestWave9Agent2_AllScenariosIntegration(t *testing.T) {
 
 			// Record result
 			result := map[string]interface{}{
-				"scenario":       scenario.name,
-				"passed":         t.Failed() == false,
-				"http_status":    w.Code,
-				"expected_http":  scenario.expectedStatus,
-				"span_name":      span.SpanName,
-				"span_status":    span.Status,
-				"duration_ms":    span.DurationMs,
+				"scenario":      scenario.name,
+				"passed":        t.Failed() == false,
+				"http_status":   w.Code,
+				"expected_http": scenario.expectedStatus,
+				"span_name":     span.SpanName,
+				"span_status":   span.Status,
+				"duration_ms":   span.DurationMs,
 			}
 
 			results = append(results, result)

@@ -84,15 +84,15 @@ type Task struct {
 	Tags []struct {
 		Name string `json:"name"`
 	} `json:"tags"`
-	Parent      string     `json:"parent"`
-	Subtasks    []Task     `json:"subtasks"`
-	DateCreated string     `json:"date_created"`
-	DateUpdated string     `json:"date_updated"`
-	DateClosed  string     `json:"date_closed"`
-	URL         string     `json:"url"`
-	List        ListRef    `json:"list"`
-	Folder      FolderRef  `json:"folder"`
-	Space       SpaceRef   `json:"space"`
+	Parent      string    `json:"parent"`
+	Subtasks    []Task    `json:"subtasks"`
+	DateCreated string    `json:"date_created"`
+	DateUpdated string    `json:"date_updated"`
+	DateClosed  string    `json:"date_closed"`
+	URL         string    `json:"url"`
+	List        ListRef   `json:"list"`
+	Folder      FolderRef `json:"folder"`
+	Space       SpaceRef  `json:"space"`
 }
 
 // Status represents a task status

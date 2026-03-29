@@ -11,7 +11,7 @@ func TestMaskSessionID(t *testing.T) {
 		checkPrefix bool // Check that prefix is preserved
 	}{
 		{"abc12345-6789-abcd-efgh-ijklmnopqrst", true},
-		{"short", false}, // Too short, gets fully masked
+		{"short", false},    // Too short, gets fully masked
 		{"12345678", false}, // At limit, gets masked
 		{"123456789", true}, // Over limit, prefix preserved
 		{"", false},
@@ -63,12 +63,12 @@ func TestMaskIP(t *testing.T) {
 
 func TestSafeLogFields(t *testing.T) {
 	fields := map[string]interface{}{
-		"username":    "john",
-		"password":    "secret123",
-		"api_key":     "sk-abc123",
-		"session_id":  "uuid-1234",
-		"count":       42,
-		"Bearer":      "token-xyz",
+		"username":     "john",
+		"password":     "secret123",
+		"api_key":      "sk-abc123",
+		"session_id":   "uuid-1234",
+		"count":        42,
+		"Bearer":       "token-xyz",
 		"normal_field": "visible",
 	}
 

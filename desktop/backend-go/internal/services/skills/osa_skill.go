@@ -102,9 +102,9 @@ func (s *OsaSkill) Schema() *SkillSchema {
 					"input":   "Create a task management app with user authentication",
 				},
 				Output: map[string]interface{}{
-					"success":    true,
-					"output":     "Generated task management app with authentication...",
-					"agents_used": []string{"architect", "backend-specialist", "frontend-specialist"},
+					"success":      true,
+					"output":       "Generated task management app with authentication...",
+					"agents_used":  []string{"architect", "backend-specialist", "frontend-specialist"},
 					"execution_ms": 15000,
 				},
 			},
@@ -170,11 +170,11 @@ func (s *OsaSkill) Execute(ctx context.Context, params map[string]interface{}) (
 
 	// Convert response to map for JSON serialization
 	result := map[string]interface{}{
-		"success":        resp.Success,
-		"output":         resp.Output,
-		"agents_used":    resp.AgentsUsed,
-		"execution_ms":   resp.ExecutionTime,
-		"next_step":      resp.NextStep,
+		"success":      resp.Success,
+		"output":       resp.Output,
+		"agents_used":  resp.AgentsUsed,
+		"execution_ms": resp.ExecutionTime,
+		"next_step":    resp.NextStep,
 	}
 
 	// Include additional data if present

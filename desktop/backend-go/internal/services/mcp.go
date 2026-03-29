@@ -166,6 +166,8 @@ func (m *MCPService) GetBuiltinTools() []MCPTool {
 func (m *MCPService) GetAllTools() []MCPTool {
 	tools := m.GetBuiltinTools()
 
+	tools = appendWeaverSemconvTools(context.Background(), tools)
+
 	// Load dynamic MCP server tools
 	dynamicTools := m.getDynamicMCPTools(context.Background())
 	tools = append(tools, dynamicTools...)
@@ -200,7 +202,7 @@ func (m *MCPService) getDynamicMCPTools(ctx context.Context) []MCPTool {
 				Name:        fmt.Sprintf("%s.%s", srv.Name, ct.Name),
 				Description: ct.Description,
 				Parameters:  ct.InputSchema,
-				Source:       fmt.Sprintf("mcp:%s", srv.Name),
+				Source:      fmt.Sprintf("mcp:%s", srv.Name),
 			})
 		}
 	}
@@ -218,6 +220,10 @@ func (m *MCPService) ExecuteTool(ctx context.Context, toolName string, arguments
 
 	if IsNotionTool(toolName) {
 		return m.ExecuteNotionTool(ctx, m.userID, toolName, arguments)
+	}
+
+	if strings.HasPrefix(toolName, weaverSemconvPrefix) {
+		return ExecuteWeaverSemconvTool(ctx, toolName, arguments)
 	}
 
 	// Route namespaced MCP tools (e.g. "github.create_issue") to the correct server

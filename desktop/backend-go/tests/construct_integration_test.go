@@ -97,9 +97,9 @@ func PrepareTestArtifact(t *testing.T, db *MockDB, id string, title string, cont
 	_ = ctx
 
 	artifact := map[string]interface{}{
-		"id":      id,
-		"title":   title,
-		"content": content,
+		"id":         id,
+		"title":      title,
+		"content":    content,
 		"created_at": time.Now(),
 	}
 	err := db.Put("artifacts:"+id, artifact)
@@ -112,9 +112,9 @@ func PrepareTestOrganization(t *testing.T, db *MockDB, id string, name string, p
 	_ = ctx
 
 	org := map[string]interface{}{
-		"id":        id,
-		"name":      name,
-		"parent_id": parentID,
+		"id":         id,
+		"name":       name,
+		"parent_id":  parentID,
 		"created_at": time.Now(),
 	}
 	err := db.Put("organizations:"+id, org)

@@ -13,10 +13,10 @@ import (
 
 // AutoLearningTriggers handles automatic learning from conversations
 type AutoLearningTriggers struct {
-	learningSvc *LearningService
-	memorySvc   *MemoryService
+	learningSvc  *LearningService
+	memorySvc    *MemoryService
 	embeddingSvc *EmbeddingService
-	logger      *slog.Logger
+	logger       *slog.Logger
 }
 
 // NewAutoLearningTriggers creates a new auto-learning triggers service
@@ -35,17 +35,17 @@ func NewAutoLearningTriggers(
 
 // LearningConversationContext holds context for learning from a conversation
 type LearningConversationContext struct {
-	UserID          string
-	WorkspaceID     *uuid.UUID // Added for workspace_memories support
-	ConversationID  uuid.UUID
-	UserMessage     string
-	AgentResponse   string
-	AgentType       string
-	FocusMode       string
-	ProjectID       *uuid.UUID
-	NodeID          *uuid.UUID
-	ContextIDs      []uuid.UUID
-	Timestamp       time.Time
+	UserID         string
+	WorkspaceID    *uuid.UUID // Added for workspace_memories support
+	ConversationID uuid.UUID
+	UserMessage    string
+	AgentResponse  string
+	AgentType      string
+	FocusMode      string
+	ProjectID      *uuid.UUID
+	NodeID         *uuid.UUID
+	ContextIDs     []uuid.UUID
+	Timestamp      time.Time
 }
 
 // ProcessConversationTurn analyzes a conversation turn and extracts learnings
@@ -57,11 +57,13 @@ func (a *AutoLearningTriggers) ProcessConversationTurn(ctx context.Context, conv
 		"agent_type", conv.AgentType,
 	)
 
-	// Run learning extraction in background
-	// Use background context to avoid cancellation when HTTP request completes
+	// Run learning extraction in background with bounded timeout.
+	// Use background context derived from context.Background() with a timeout
+	// to avoid cancellation when HTTP request completes, while still bounding
+	// the goroutine's lifetime.
 	go func() {
-		// Create independent context that won't be canceled when HTTP request ends
-		bgCtx := context.Background()
+		bgCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
 
 		// 1. Extract patterns
 		if err := a.extractPatterns(bgCtx, conv); err != nil {

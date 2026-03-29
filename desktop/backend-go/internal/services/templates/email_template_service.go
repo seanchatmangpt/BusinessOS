@@ -5,8 +5,8 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"log/slog"
 	"html/template"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -19,13 +19,13 @@ var emailTemplates embed.FS
 
 // EmailTemplateService handles email template rendering and sending
 type EmailTemplateService struct {
-	client      *resend.Client
-	fromEmail   string
-	fromName    string
-	appURL      string
-	logoURL     string
-	enabled     bool
-	templates   *template.Template
+	client       *resend.Client
+	fromEmail    string
+	fromName     string
+	appURL       string
+	logoURL      string
+	enabled      bool
+	templates    *template.Template
 	supportEmail string
 }
 
@@ -372,12 +372,12 @@ func (s *EmailTemplateService) SendCommentReply(ctx context.Context, to string, 
 // WelcomeData for welcome email
 type WelcomeData struct {
 	BaseEmailData
-	UserName        string
-	WorkspaceName   string
-	BusinessType    string
+	UserName          string
+	WorkspaceName     string
+	BusinessType      string
 	GettingStartedURL string
-	HelpCenterURL   string
-	CommunityURL    string
+	HelpCenterURL     string
+	CommunityURL      string
 }
 
 // SendWelcome sends a welcome email
@@ -484,7 +484,7 @@ func (s *EmailTemplateService) sendTemplate(ctx context.Context, to, subject, te
 func (s *EmailTemplateService) htmlToPlainText(html string) string {
 	// Remove HTML tags
 	text := html
-	
+
 	// Replace common HTML elements
 	text = strings.ReplaceAll(text, "<br>", "\n")
 	text = strings.ReplaceAll(text, "<br/>", "\n")
@@ -495,7 +495,7 @@ func (s *EmailTemplateService) htmlToPlainText(html string) string {
 	text = strings.ReplaceAll(text, "</h2>", "\n\n")
 	text = strings.ReplaceAll(text, "</li>", "\n")
 	text = strings.ReplaceAll(text, "<li>", "• ")
-	
+
 	// Remove remaining tags
 	for strings.Contains(text, "<") {
 		start := strings.Index(text, "<")
@@ -506,17 +506,17 @@ func (s *EmailTemplateService) htmlToPlainText(html string) string {
 			break
 		}
 	}
-	
+
 	// Clean up whitespace
 	text = strings.TrimSpace(text)
-	
+
 	// Decode HTML entities
 	text = strings.ReplaceAll(text, "&nbsp;", " ")
 	text = strings.ReplaceAll(text, "&amp;", "&")
 	text = strings.ReplaceAll(text, "&lt;", "<")
 	text = strings.ReplaceAll(text, "&gt;", ">")
 	text = strings.ReplaceAll(text, "&quot;", "\"")
-	
+
 	return text
 }
 

@@ -38,21 +38,21 @@ import (
 
 // ComplianceFramework represents a compliance framework
 type ComplianceFramework struct {
-	FrameworkID string                   `json:"framework_id"`
-	FrameworkName string                `json:"framework_name"`
-	FrameworkType string                `json:"framework_type"` // soc2, hipaa, gdpr, sox
+	FrameworkID   string                  `json:"framework_id"`
+	FrameworkName string                  `json:"framework_name"`
+	FrameworkType string                  `json:"framework_type"` // soc2, hipaa, gdpr, sox
 	Requirements  []ComplianceRequirement `json:"requirements"`
-	Enabled       bool                   `json:"enabled"`
-	CreatedAt     string                 `json:"created_at,omitempty"`
-	Error         string                 `json:"error,omitempty"`
+	Enabled       bool                    `json:"enabled"`
+	CreatedAt     string                  `json:"created_at,omitempty"`
+	Error         string                  `json:"error,omitempty"`
 }
 
 // ComplianceRequirement represents a single compliance requirement
 type ComplianceRequirement struct {
-	ID        string `json:"id"`
-	Title     string `json:"title"`
-	Severity  string `json:"severity"` // critical, high, medium, low
-	Category  string `json:"category,omitempty"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Severity    string `json:"severity"` // critical, high, medium, low
+	Category    string `json:"category,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
@@ -65,35 +65,35 @@ type ComplianceCheck struct {
 
 // ComplianceCheckResult represents the result of a compliance check
 type ComplianceCheckResult struct {
-	CheckID      string            `json:"check_id"`
-	ResourceID   string            `json:"resource_id"`
-	FrameworkID  string            `json:"framework_id"`
-	Passed       bool              `json:"passed"`
-	Score        float64           `json:"score"`
-	Violations   []ComplianceViolation `json:"violations,omitempty"`
-	ExecutedAt   string            `json:"executed_at,omitempty"`
-	Error        string            `json:"error,omitempty"`
+	CheckID     string                `json:"check_id"`
+	ResourceID  string                `json:"resource_id"`
+	FrameworkID string                `json:"framework_id"`
+	Passed      bool                  `json:"passed"`
+	Score       float64               `json:"score"`
+	Violations  []ComplianceViolation `json:"violations,omitempty"`
+	ExecutedAt  string                `json:"executed_at,omitempty"`
+	Error       string                `json:"error,omitempty"`
 }
 
 // ComplianceViolation represents a single compliance violation
 type ComplianceViolation struct {
-	RequirementID string `json:"requirement_id"`
-	Severity      string `json:"severity"`
-	Message       string `json:"message"`
+	RequirementID    string   `json:"requirement_id"`
+	Severity         string   `json:"severity"`
+	Message          string   `json:"message"`
 	RemediationSteps []string `json:"remediation_steps,omitempty"`
 }
 
 // ComplianceReport represents a generated compliance report
 type ComplianceReport struct {
-	ReportID     string    `json:"report_id"`
-	FrameworkID  string    `json:"framework_id"`
-	GeneratedAt  string    `json:"generated_at"`
-	TotalChecks  int       `json:"total_checks"`
-	PassedChecks int       `json:"passed_checks"`
-	FailedChecks int       `json:"failed_checks"`
-	ComplianceRate float64 `json:"compliance_rate"`
-	Findings     []ComplianceViolation `json:"findings,omitempty"`
-	Error        string    `json:"error,omitempty"`
+	ReportID       string                `json:"report_id"`
+	FrameworkID    string                `json:"framework_id"`
+	GeneratedAt    string                `json:"generated_at"`
+	TotalChecks    int                   `json:"total_checks"`
+	PassedChecks   int                   `json:"passed_checks"`
+	FailedChecks   int                   `json:"failed_checks"`
+	ComplianceRate float64               `json:"compliance_rate"`
+	Findings       []ComplianceViolation `json:"findings,omitempty"`
+	Error          string                `json:"error,omitempty"`
 }
 
 // TestCompliance_001_RegisterSOC2Framework tests registering SOC2 framework
@@ -415,8 +415,8 @@ func TestCompliance_007_GenerateComplianceReport(t *testing.T) {
 	t.Parallel()
 
 	reportRequest := map[string]interface{}{
-		"framework_id": "soc2-e2e-001",
-		"include_violations": true,
+		"framework_id":            "soc2-e2e-001",
+		"include_violations":      true,
 		"include_recommendations": true,
 	}
 

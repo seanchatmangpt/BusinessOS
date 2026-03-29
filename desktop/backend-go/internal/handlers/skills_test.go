@@ -18,7 +18,7 @@ func init() {
 func TestSkillsHandler_RegisterRoutes_RequiresAuth(t *testing.T) {
 	// Create a mock skills loader
 	loader := services.NewSkillsLoader("") // Empty path will fail to load, which is fine for this test
-	
+
 	// Create handler with nil pool (auth will still be applied, just will fail at DB lookup)
 	handler := NewSkillsHandler(loader, nil, nil)
 
@@ -48,7 +48,7 @@ func TestSkillsHandler_RegisterRoutes_RequiresAuth(t *testing.T) {
 			router.ServeHTTP(w, req)
 
 			// Should return 401 Unauthorized because no auth cookie is provided
-			assert.Equal(t, http.StatusUnauthorized, w.Code, 
+			assert.Equal(t, http.StatusUnauthorized, w.Code,
 				"Route %s should require authentication", tt.path)
 		})
 	}
@@ -57,14 +57,14 @@ func TestSkillsHandler_RegisterRoutes_RequiresAuth(t *testing.T) {
 // TestSkillsHandler_NewSkillsHandler_RequiresPool verifies that handler stores pool for auth
 func TestSkillsHandler_NewSkillsHandler_RequiresPool(t *testing.T) {
 	loader := services.NewSkillsLoader("")
-	
+
 	// Handler should store pool and sessionCache for auth middleware
 	handler := NewSkillsHandler(loader, nil, nil)
-	
+
 	assert.NotNil(t, handler, "Handler should not be nil")
 	assert.Nil(t, handler.pool, "Pool should be nil when passed nil")
 	assert.Nil(t, handler.sessionCache, "SessionCache should be nil when passed nil")
-	
+
 	// Verify the handler has the loader
 	assert.Equal(t, loader, handler.loader, "Loader should be stored correctly")
 }
@@ -73,7 +73,7 @@ func TestSkillsHandler_NewSkillsHandler_RequiresPool(t *testing.T) {
 func TestSkillsHandler_ReloadSkills_AuditLogging(t *testing.T) {
 	// This test verifies that ReloadSkills checks for authenticated user
 	// The actual logging is tested via integration tests
-	
+
 	loader := services.NewSkillsLoader("")
 	handler := NewSkillsHandler(loader, nil, nil)
 
@@ -85,6 +85,6 @@ func TestSkillsHandler_ReloadSkills_AuditLogging(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code, 
+	assert.Equal(t, http.StatusUnauthorized, w.Code,
 		"Reload should require authentication")
 }

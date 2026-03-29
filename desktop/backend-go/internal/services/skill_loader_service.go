@@ -20,20 +20,20 @@ const (
 
 // SORXSkill is a skill definition loaded from the sorx_skills table.
 type SORXSkill struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Tier        string    `json:"tier"`
-	Description string    `json:"description"`
-	Embedding   []float32 `json:"embedding,omitempty"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Tier        string                 `json:"tier"`
+	Description string                 `json:"description"`
+	Embedding   []float32              `json:"embedding,omitempty"`
 	Config      map[string]interface{} `json:"config"`
-	Enabled     bool      `json:"enabled"`
+	Enabled     bool                   `json:"enabled"`
 }
 
 // SkillLoaderService loads SORX skill definitions from the DB and caches them in Redis.
 // On load, it generates pgvector embeddings for any skill that is missing one.
 type SkillLoaderService struct {
 	pool      *pgxpool.Pool
-	redis     *redis.Client   // nil = cache disabled
+	redis     *redis.Client // nil = cache disabled
 	embedding *EmbeddingService
 	logger    *slog.Logger
 }

@@ -2824,7 +2824,6 @@ func TestProcessMiningLogSizeKeyMatchesSchema(t *testing.T) {
 	}
 }
 
-
 func TestProcessMiningThroughputTimeMsKeyValueRoundTrip(t *testing.T) {
 	kv := ProcessMiningThroughputTimeMs(86400000)
 	if string(kv.Key) != "process.mining.throughput_time_ms" {
@@ -2855,7 +2854,6 @@ func TestProcessMiningLogSizeKeyValueRoundTrip(t *testing.T) {
 		t.Errorf("ProcessMiningLogSize value = %d, want %d", kv.Value.AsInt64(), 50000)
 	}
 }
-
 
 func TestProcessMiningReplayFitnessBounded(t *testing.T) {
 	// WvdA soundness: replay fitness score must be in [0.0, 1.0]
@@ -3025,11 +3023,6 @@ func TestLlmRequestIdKeyMatchesSchema(t *testing.T) {
 // Wave 9 Iteration 11: Process mining replay quality metrics
 // ============================================================
 
-
-
-
-
-
 // ============================================================
 // Wave 9 Iteration 11: Consensus quorum health and replica counts
 // ============================================================
@@ -3174,9 +3167,6 @@ func TestAgentMessageCountKeyMatchesSchema(t *testing.T) {
 }
 
 // Process mining streaming and drift detection
-
-
-
 
 // Canopy protocol and sync
 func TestCanopyProtocolVersionKeyMatchesSchema(t *testing.T) {
@@ -4573,12 +4563,9 @@ func TestIter24MCPToolCompositionID(t *testing.T) {
 	assert.Equal(t, "mcp.tool.composition_id", string(McpToolCompositionIdKey))
 }
 
-
-
 func TestIter24MCPToolCompositionLatencyMs(t *testing.T) {
 	assert.Equal(t, "mcp.tool.composition_latency_ms", string(McpToolCompositionLatencyMsKey))
 }
-
 
 func TestIter24A2AContractID(t *testing.T) {
 	assert.Equal(t, "a2a.contract.id", string(A2aContractIdKey))
@@ -4596,35 +4583,21 @@ func TestIter24A2AContractViolationCount(t *testing.T) {
 	assert.Equal(t, "a2a.contract.violation_count", string(A2aContractViolationCountKey))
 }
 
-
 func TestIter24ProcessMiningClusterID(t *testing.T) {
 	assert.Equal(t, "process.mining.cluster.id", string(ProcessMiningClusterIdKey))
 }
-
-
-
-
-
-
 
 func TestIter24HealingSimulationID(t *testing.T) {
 	assert.Equal(t, "healing.simulation.id", string(HealingSimulationIdKey))
 }
 
-
-
-
 func TestIter24LLMValidationSchemaID(t *testing.T) {
 	assert.Equal(t, "llm.validation.schema_id", string(LlmValidationSchemaIdKey))
 }
 
-
 func TestIter25AgentReasoningTraceID(t *testing.T) {
 	assert.Equal(t, "agent.reasoning.trace_id", string(AgentReasoningTraceIdKey))
 }
-
-
-
 
 func TestIter25A2APenaltyAmount(t *testing.T) {
 	assert.Equal(t, "a2a.penalty.amount", string(A2aPenaltyAmountKey))
@@ -4638,23 +4611,13 @@ func TestIter25A2ARewardAmount(t *testing.T) {
 	assert.Equal(t, "a2a.reward.amount", string(A2aRewardAmountKey))
 }
 
-
-
-
 func TestIter25ProcessMiningEnhancementBaseModelID(t *testing.T) {
 	assert.Equal(t, "process.mining.enhancement.base_model_id", string(ProcessMiningEnhancementBaseModelIdKey))
 }
 
-
-
-
-
-
 func TestIter25HealingMemorySnapshotID(t *testing.T) {
 	assert.Equal(t, "healing.memory.snapshot_id", string(HealingMemorySnapshotIdKey))
 }
-
-
 
 func TestIter25LLMMultimodalInputType(t *testing.T) {
 	assert.Equal(t, "llm.multimodal.input_type", string(LlmMultimodalInputTypeKey))
@@ -4667,7 +4630,6 @@ func TestIter25LLMMultimodalModalityCount(t *testing.T) {
 func TestIter25LLMMultimodalInputSizeBytes(t *testing.T) {
 	assert.Equal(t, "llm.multimodal.input_size_bytes", string(LlmMultimodalInputSizeBytesKey))
 }
-
 
 func TestIter26MCPServerHealthStatus(t *testing.T) {
 	assert.Equal(t, "mcp.server.health.status", string(McpServerHealthStatusKey))
@@ -4701,20 +4663,9 @@ func TestIter26A2ADisputeResolutionMs(t *testing.T) {
 	assert.Equal(t, "a2a.dispute.resolution_ms", string(A2aDisputeResolutionMsKey))
 }
 
-
-
-
-
-
-
-
-
 func TestIter26HealingWarmStandbyID(t *testing.T) {
 	assert.Equal(t, "healing.warm_standby.id", string(HealingWarmStandbyIdKey))
 }
-
-
-
 
 func TestIter26LLMFinetuneJobID(t *testing.T) {
 	assert.Equal(t, "llm.finetune.job_id", string(LlmFinetuneJobIdKey))
@@ -4778,12 +4729,6 @@ func TestIter27A2AEscrowReleaseReasonCompletionValue(t *testing.T) {
 	assert.Equal(t, "completion", A2aEscrowReleaseReasonValues.Completion)
 }
 
-
-
-
-
-
-
 func TestIter27RecoveryStrategyReconnectValue(t *testing.T) {
 	assert.Equal(t, "restart", HealingRecoveryStrategyValues.Restart)
 }
@@ -4792,11 +4737,9 @@ func TestIter27HealingCheckpointIDConstant(t *testing.T) {
 	assert.Equal(t, "healing.checkpoint.id", string(HealingCheckpointIdKey))
 }
 
-
 func TestIter27LLMBatchJobIDConstant(t *testing.T) {
 	assert.Equal(t, "llm.batch.job_id", string(LlmBatchJobIdKey))
 }
-
 
 func TestIter27BatchPriorityHighValue(t *testing.T) {
 	assert.Equal(t, "high", LlmBatchPriorityValues.High)

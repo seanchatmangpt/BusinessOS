@@ -122,19 +122,19 @@ func (p *Provider) syncDeals(ctx context.Context, userID, accessToken string) (*
 
 			// Upsert deal
 			result, err := queries.UpsertHubSpotDeal(ctx, sqlc.UpsertHubSpotDealParams{
-				UserID:                userID,
-				HubspotID:             deal.ID,
-				DealName:              getProp("dealname"),
-				Amount:                getNumeric("amount"),
-				Pipeline:              getProp("pipeline"),
-				DealStage:             getProp("dealstage"),
-				CloseDate:             getDate("closedate"),
-				OwnerID:               getProp("hubspot_owner_id"),
-				AssociatedCompanyIds:  emptyArrayJSON,
-				AssociatedContactIds:  emptyArrayJSON,
-				Properties:            propertiesJSON,
-				CreatedAtHubspot:      createdAt,
-				UpdatedAtHubspot:      updatedAt,
+				UserID:               userID,
+				HubspotID:            deal.ID,
+				DealName:             getProp("dealname"),
+				Amount:               getNumeric("amount"),
+				Pipeline:             getProp("pipeline"),
+				DealStage:            getProp("dealstage"),
+				CloseDate:            getDate("closedate"),
+				OwnerID:              getProp("hubspot_owner_id"),
+				AssociatedCompanyIds: emptyArrayJSON,
+				AssociatedContactIds: emptyArrayJSON,
+				Properties:           propertiesJSON,
+				CreatedAtHubspot:     createdAt,
+				UpdatedAtHubspot:     updatedAt,
 			})
 
 			if err != nil {

@@ -33,64 +33,64 @@ const (
 
 // DataSubject represents a data subject (EU resident or GDPR-covered individual)
 type DataSubject struct {
-	ID          string    `json:"id"`
-	Email       string    `json:"email"`
-	FullName    string    `json:"full_name"`
-	CreatedAt   time.Time `json:"created_at"`
-	RestrictedAt *time.Time `json:"restricted_at,omitempty"`
-	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID           string                 `json:"id"`
+	Email        string                 `json:"email"`
+	FullName     string                 `json:"full_name"`
+	CreatedAt    time.Time              `json:"created_at"`
+	RestrictedAt *time.Time             `json:"restricted_at,omitempty"`
+	DeletedAt    *time.Time             `json:"deleted_at,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // PersonalData represents all personal data collected for a data subject
 type PersonalData struct {
-	SubjectID     string                 `json:"subject_id"`
-	Profile       *DataSubject           `json:"profile"`
-	ContactData   map[string]interface{} `json:"contact_data,omitempty"`
-	BehaviorData  map[string]interface{} `json:"behavior_data,omitempty"`
+	SubjectID       string                 `json:"subject_id"`
+	Profile         *DataSubject           `json:"profile"`
+	ContactData     map[string]interface{} `json:"contact_data,omitempty"`
+	BehaviorData    map[string]interface{} `json:"behavior_data,omitempty"`
 	TransactionData map[string]interface{} `json:"transaction_data,omitempty"`
-	SystemData    map[string]interface{} `json:"system_data,omitempty"`
-	ExportedAt    time.Time              `json:"exported_at"`
+	SystemData      map[string]interface{} `json:"system_data,omitempty"`
+	ExportedAt      time.Time              `json:"exported_at"`
 }
 
 // GDPRRequest represents a data subject right request
 type GDPRRequest struct {
-	ID            string    `json:"id"`
-	SubjectID     string    `json:"subject_id"`
-	RequestType   string    `json:"request_type"` // access, be_forgotten, rectification, portability, restrict_processing
-	Timestamp     time.Time `json:"timestamp"`
-	Status        string    `json:"status"` // pending, approved, completed, denied
-	ResponseData  interface{} `json:"response_data,omitempty"`
-	Reason        string    `json:"reason,omitempty"`
-	RequesterEmail string   `json:"requester_email"`
-	Verified      bool      `json:"verified"`
-	DeadlineAt    time.Time `json:"deadline_at"`
+	ID             string      `json:"id"`
+	SubjectID      string      `json:"subject_id"`
+	RequestType    string      `json:"request_type"` // access, be_forgotten, rectification, portability, restrict_processing
+	Timestamp      time.Time   `json:"timestamp"`
+	Status         string      `json:"status"` // pending, approved, completed, denied
+	ResponseData   interface{} `json:"response_data,omitempty"`
+	Reason         string      `json:"reason,omitempty"`
+	RequesterEmail string      `json:"requester_email"`
+	Verified       bool        `json:"verified"`
+	DeadlineAt     time.Time   `json:"deadline_at"`
 }
 
 // GDPRResponse wraps all GDPR operations' responses
 type GDPRResponse struct {
-	RequestID  string    `json:"request_id"`
-	Status     string    `json:"status"`
-	Message    string    `json:"message"`
+	RequestID  string      `json:"request_id"`
+	Status     string      `json:"status"`
+	Message    string      `json:"message"`
 	Data       interface{} `json:"data,omitempty"`
-	Timestamp  time.Time `json:"timestamp"`
-	DeadlineAt time.Time `json:"deadline_at"`
+	Timestamp  time.Time   `json:"timestamp"`
+	DeadlineAt time.Time   `json:"deadline_at"`
 }
 
 // AuditLog for GDPR requests (extends existing audit infrastructure)
 type GDPRAuditLog struct {
-	ID             string                 `json:"id"`
-	RequestID      string                 `json:"request_id"`
-	SubjectID      string                 `json:"subject_id"`
-	RequestType    string                 `json:"request_type"`
-	Action         string                 `json:"action"`
-	Timestamp      time.Time              `json:"timestamp"`
-	Handler        string                 `json:"handler"`
-	Details        map[string]interface{} `json:"details,omitempty"`
+	ID          string                 `json:"id"`
+	RequestID   string                 `json:"request_id"`
+	SubjectID   string                 `json:"subject_id"`
+	RequestType string                 `json:"request_type"`
+	Action      string                 `json:"action"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Handler     string                 `json:"handler"`
+	Details     map[string]interface{} `json:"details,omitempty"`
 	// Hash chain for tamper evidence
-	PreviousHash   string                 `json:"previous_hash"`
-	DataHash       string                 `json:"data_hash"`
-	Signature      string                 `json:"signature"`
+	PreviousHash string `json:"previous_hash"`
+	DataHash     string `json:"data_hash"`
+	Signature    string `json:"signature"`
 }
 
 // GDPRService manages all GDPR data subject rights operations
@@ -99,7 +99,7 @@ type GDPRService struct {
 	logger      *slog.Logger
 	auditLogs   []*GDPRAuditLog
 	dataStore   map[string]*PersonalData // In-memory for demo, replace with DB
-	requests    map[string]*GDPRRequest   // Track all GDPR requests
+	requests    map[string]*GDPRRequest  // Track all GDPR requests
 }
 
 // NewGDPRService creates a new GDPR service with audit capability
@@ -130,14 +130,14 @@ func (gs *GDPRService) AccessRequest(ctx context.Context, subjectID, requesterEm
 
 	// Record the request
 	req := &GDPRRequest{
-		ID:            requestID,
-		SubjectID:     subjectID,
-		RequestType:   RightOfAccess,
-		Timestamp:     now,
-		Status:        "approved",
+		ID:             requestID,
+		SubjectID:      subjectID,
+		RequestType:    RightOfAccess,
+		Timestamp:      now,
+		Status:         "approved",
 		RequesterEmail: requesterEmail,
-		Verified:      true,
-		DeadlineAt:    deadline,
+		Verified:       true,
+		DeadlineAt:     deadline,
 	}
 	gs.requests[requestID] = req
 
@@ -185,7 +185,7 @@ func (gs *GDPRService) ForgetRequest(ctx context.Context, subjectID, requesterEm
 		RequestType:    RightToBeForotten,
 		Timestamp:      now,
 		Status:         "approved",
-		RequesterEmail:  requesterEmail,
+		RequesterEmail: requesterEmail,
 		Verified:       true,
 		DeadlineAt:     deadline,
 	}
@@ -203,9 +203,9 @@ func (gs *GDPRService) ForgetRequest(ctx context.Context, subjectID, requesterEm
 	})
 
 	return &GDPRResponse{
-		RequestID:  requestID,
-		Status:     "completed",
-		Message:    fmt.Sprintf("Personal data for subject %s has been anonymized and will be retained only for legal obligations", subjectID),
+		RequestID: requestID,
+		Status:    "completed",
+		Message:   fmt.Sprintf("Personal data for subject %s has been anonymized and will be retained only for legal obligations", subjectID),
 		Data: map[string]interface{}{
 			"anonymized_records": gs.countDataRecords(deletedData),
 			"retention_period":   "7 years (legal hold)",
@@ -234,7 +234,7 @@ func (gs *GDPRService) RectifyRequest(ctx context.Context, subjectID, requesterE
 		Timestamp:      now,
 		Status:         "approved",
 		ResponseData:   corrections,
-		RequesterEmail:  requesterEmail,
+		RequesterEmail: requesterEmail,
 		Verified:       true,
 		DeadlineAt:     deadline,
 	}
@@ -278,7 +278,7 @@ func (gs *GDPRService) PortabilityRequest(ctx context.Context, subjectID, reques
 		RequestType:    RightOfPortability,
 		Timestamp:      now,
 		Status:         "completed",
-		RequesterEmail:  requesterEmail,
+		RequesterEmail: requesterEmail,
 		Verified:       true,
 		DeadlineAt:     deadline,
 	}
@@ -312,13 +312,13 @@ func (gs *GDPRService) PortabilityRequest(ctx context.Context, subjectID, reques
 	})
 
 	return &GDPRResponse{
-		RequestID:  requestID,
-		Status:     "completed",
-		Message:    fmt.Sprintf("Personal data for subject %s exported in %s format", subjectID, format),
+		RequestID: requestID,
+		Status:    "completed",
+		Message:   fmt.Sprintf("Personal data for subject %s exported in %s format", subjectID, format),
 		Data: map[string]interface{}{
-			"format":    format,
-			"data":      exportedData,
-			"archive":   fmt.Sprintf("gdpr-portability-%s-%d.%s", subjectID, now.Unix(), format),
+			"format":  format,
+			"data":    exportedData,
+			"archive": fmt.Sprintf("gdpr-portability-%s-%d.%s", subjectID, now.Unix(), format),
 		},
 		Timestamp:  now,
 		DeadlineAt: deadline,
@@ -344,7 +344,7 @@ func (gs *GDPRService) RestrictProcessingRequest(ctx context.Context, subjectID,
 		Timestamp:      now,
 		Status:         "approved",
 		Reason:         reason,
-		RequesterEmail:  requesterEmail,
+		RequesterEmail: requesterEmail,
 		Verified:       true,
 		DeadlineAt:     deadline,
 	}
@@ -355,21 +355,21 @@ func (gs *GDPRService) RestrictProcessingRequest(ctx context.Context, subjectID,
 
 	// Log to audit trail
 	gs.logGDPRAudit(requestID, subjectID, RightToRestrictProcessing, "processing_restricted", requesterEmail, map[string]interface{}{
-		"restriction_reason": reason,
+		"restriction_reason":            reason,
 		"automated_processing_disabled": true,
-		"manual_processing_required": true,
-		"restricted_at": now.Format(time.RFC3339),
+		"manual_processing_required":    true,
+		"restricted_at":                 now.Format(time.RFC3339),
 	})
 
 	return &GDPRResponse{
-		RequestID:  requestID,
-		Status:     "completed",
-		Message:    fmt.Sprintf("Processing restricted for subject %s. Automated processing disabled.", subjectID),
+		RequestID: requestID,
+		Status:    "completed",
+		Message:   fmt.Sprintf("Processing restricted for subject %s. Automated processing disabled.", subjectID),
 		Data: map[string]interface{}{
-			"subject_id":                   subjectID,
-			"restriction_active":          true,
+			"subject_id":                    subjectID,
+			"restriction_active":            true,
 			"automated_processing_disabled": true,
-			"reason":                       reason,
+			"reason":                        reason,
 		},
 		Timestamp:  now,
 		DeadlineAt: deadline,
@@ -486,8 +486,8 @@ func (gs *GDPRService) anonymizePersonalData(subjectID string, deletedAt time.Ti
 
 	// Create anonymized copy
 	anonymized := &PersonalData{
-		SubjectID:   "[ANONYMIZED-" + subjectID[:8] + "]",
-		ExportedAt:  deletedAt,
+		SubjectID:  "[ANONYMIZED-" + subjectID[:8] + "]",
+		ExportedAt: deletedAt,
 		Profile: &DataSubject{
 			ID:        "[ANONYMIZED]",
 			Email:     "[ANONYMIZED]",
@@ -592,8 +592,8 @@ func (gs *GDPRService) InsertSampleData(subjectID string) {
 			"preferences": "email_only",
 		},
 		BehaviorData: map[string]interface{}{
-			"last_login":     time.Now().UTC(),
-			"login_count":    10,
+			"last_login":       time.Now().UTC(),
+			"login_count":      10,
 			"preference_theme": "dark",
 		},
 		TransactionData: map[string]interface{}{
@@ -601,7 +601,7 @@ func (gs *GDPRService) InsertSampleData(subjectID string) {
 			"currency":        "EUR",
 		},
 		SystemData: map[string]interface{}{
-			"user_agent":    "Mozilla/5.0...",
+			"user_agent":     "Mozilla/5.0...",
 			"ip_geolocation": "Berlin, Germany",
 		},
 		ExportedAt: time.Now().UTC(),

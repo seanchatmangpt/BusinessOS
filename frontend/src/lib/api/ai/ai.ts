@@ -78,13 +78,19 @@ export async function getAgentPrompt(id: string) {
 }
 
 export async function getTools() {
-  return request<{ tools: Tool[] }>('/mcp/tools');
+  const res = await request<{ tools: Tool[] }>('/mcp/tools');
+  for (const t of res.tools) {
+    if (t.parameters == null && t.input_schema != null) {
+      t.parameters = t.input_schema;
+    }
+  }
+  return res;
 }
 
 export async function executeTool(toolName: string, args: Record<string, unknown>) {
   return request<ToolResponse>('/mcp/execute', {
     method: 'POST',
-    body: { tool_name: toolName, arguments: args }
+    body: { tool: toolName, arguments: args ?? {} }
   });
 }
 

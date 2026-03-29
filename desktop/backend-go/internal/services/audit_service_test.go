@@ -12,14 +12,14 @@ import (
 func TestAuditServiceLogging(t *testing.T) {
 	// Test that audit service can be instantiated
 	// (Actual database integration tests require running PostgreSQL)
-	
+
 	t.Run("create audit service", func(t *testing.T) {
 		// Would require database connection in real test
 		// Demonstrating the API contract
-		
+
 		ctx := context.Background()
 		userID := uuid.New()
-		
+
 		assert.NotEqual(t, uuid.Nil, userID)
 		assert.True(t, len(ctx.Done()) == 0)
 	})
@@ -130,12 +130,12 @@ func TestComplianceReporting(t *testing.T) {
 	t.Run("report metrics", func(t *testing.T) {
 		// Expected metrics in compliance report
 		reportMetrics := map[string]int{
-			"total_events":             1042,
-			"unique_users":             87,
-			"events_with_pii":          156,
-			"events_under_legal_hold":  0,
-			"critical_events":          3,
-			"security_events":          24,
+			"total_events":            1042,
+			"unique_users":            87,
+			"events_with_pii":         156,
+			"events_under_legal_hold": 0,
+			"critical_events":         3,
+			"security_events":         24,
 		}
 
 		assert.Equal(t, reportMetrics["total_events"], 1042)

@@ -26,7 +26,7 @@ import (
 // gateway with an X-Correlation-ID header does not result in a 5xx response.
 // The header must be tolerated by all middleware layers in the gateway.
 func TestGatewayPropagatesCorrelationId(t *testing.T) {
-	if !isPm4PyRunning(t) {
+	if !isPm4pyRunning(t) {
 		t.Skip("Skipping: pm4py-rust not running at " + pm4pyBase)
 	}
 	if !isBosRunning(t) {
@@ -66,7 +66,7 @@ func TestGatewayPropagatesCorrelationId(t *testing.T) {
 // gateway with a W3C traceparent header is accepted without a 5xx response.
 // This ensures the gateway middleware does not reject valid OTEL trace context.
 func TestGatewayPropagatesTraceparent(t *testing.T) {
-	if !isPm4PyRunning(t) {
+	if !isPm4pyRunning(t) {
 		t.Skip("Skipping: pm4py-rust not running at " + pm4pyBase)
 	}
 	if !isBosRunning(t) {

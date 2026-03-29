@@ -38,10 +38,10 @@ type OnboardingChatMessage struct {
 
 // OnboardingChatCompletionRequest for AI API
 type OnboardingChatCompletionRequest struct {
-	Model       string                   `json:"model"`
-	Messages    []OnboardingChatMessage  `json:"messages"`
-	MaxTokens   int                      `json:"max_tokens,omitempty"`
-	Temperature float64                  `json:"temperature,omitempty"`
+	Model       string                  `json:"model"`
+	Messages    []OnboardingChatMessage `json:"messages"`
+	MaxTokens   int                     `json:"max_tokens,omitempty"`
+	Temperature float64                 `json:"temperature,omitempty"`
 }
 
 // ChatCompletionResponse from AI API
@@ -139,7 +139,7 @@ func NewOnboardingAIService() *OnboardingAIService {
 	} else if apiKey := os.Getenv("GROQ_API_KEY"); apiKey != "" {
 		service.provider = "groq"
 		service.apiKey = apiKey
-		service.model = getEnvOrDefault("GROQ_MODEL", "llama-3.3-70b-versatile")
+		service.model = getEnvOrDefault("GROQ_MODEL", "openai/gpt-oss-20b")
 		service.baseURL = "https://api.groq.com/openai/v1"
 	}
 
@@ -183,14 +183,14 @@ func (s *OnboardingAIService) ProcessMessage(ctx context.Context, userMessage st
 func (s *OnboardingAIService) callWithRetry(ctx context.Context, messages []OnboardingChatMessage) (*OnboardingAIResponse, error) {
 	maxRetries := 3
 	baseDelay := 500 * time.Millisecond
-	
+
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		// Check context cancellation
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		
+
 		// Call the appropriate API
 		var response *OnboardingAIResponse
 		var err error
@@ -199,18 +199,18 @@ func (s *OnboardingAIService) callWithRetry(ctx context.Context, messages []Onbo
 		} else {
 			response, err = s.callOpenAICompatibleAPI(ctx, messages)
 		}
-		
+
 		if err == nil {
 			return response, nil
 		}
-		
+
 		lastErr = err
-		
+
 		// Don't retry on context errors or if it's the last attempt
 		if ctx.Err() != nil || attempt == maxRetries-1 {
 			break
 		}
-		
+
 		// Exponential backoff: 500ms, 1s, 2s
 		delay := baseDelay * time.Duration(1<<attempt)
 		select {
@@ -220,7 +220,7 @@ func (s *OnboardingAIService) callWithRetry(ctx context.Context, messages []Onbo
 			return nil, ctx.Err()
 		}
 	}
-	
+
 	return nil, fmt.Errorf("AI call failed after %d retries: %w", maxRetries, lastErr)
 }
 
@@ -337,7 +337,7 @@ func (s *OnboardingAIService) callAnthropicAPI(ctx context.Context, messages []O
 func (s *OnboardingAIService) parseAIResponse(content string) (*OnboardingAIResponse, error) {
 	// Try to extract JSON from the response
 	content = strings.TrimSpace(content)
-	
+
 	// Handle markdown code blocks
 	if strings.HasPrefix(content, "```json") {
 		content = strings.TrimPrefix(content, "```json")
@@ -359,7 +359,7 @@ func (s *OnboardingAIService) parseAIResponse(content string) (*OnboardingAIResp
 	// Look for JSON object pattern: starts with { and ends with }
 	jsonStart := strings.Index(content, "{")
 	jsonEnd := strings.LastIndex(content, "}")
-	
+
 	if jsonStart != -1 && jsonEnd != -1 && jsonEnd > jsonStart {
 		jsonContent := content[jsonStart : jsonEnd+1]
 		if err := json.Unmarshal([]byte(jsonContent), &response); err == nil {
@@ -405,7 +405,7 @@ func (s *OnboardingAIService) deterministicResponse(userMessage string, currentS
 			businessType = "other"
 		}
 		response.ExtractedFields["business_type"] = businessType
-		
+
 		if businessType == "freelance" {
 			response.ExtractedFields["team_size"] = "solo"
 			response.AgentMessage = "What's your role?"

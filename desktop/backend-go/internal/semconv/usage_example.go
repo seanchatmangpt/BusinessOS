@@ -59,7 +59,7 @@
 //
 //   - Span naming convention: "bos.<domain>.<operation>"
 //     Examples: "bos.compliance.check", "bos.compliance.reload_rules",
-//               "bos.compliance.get_status", "bos.compliance.audit_chain"
+//     "bos.compliance.get_status", "bos.compliance.audit_chain"
 //
 // Traces are viewable in Jaeger UI at http://localhost:16686 (service: "businessos").
 package semconv

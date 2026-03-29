@@ -40,15 +40,15 @@ func (al *HashChainLogger) LogA2ACall(
 	snScore float64,
 ) (*models.AuditEntry, error) {
 	entry := &models.AuditEntry{
-		ID:           uuid.New().String(),
-		Timestamp:    time.Now().UTC(),
-		Agent:        agent,
-		Action:       action,
-		ResourceType: resourceType,
-		ResourceID:   resourceID,
-		SNScore:      snScore,
+		ID:             uuid.New().String(),
+		Timestamp:      time.Now().UTC(),
+		Agent:          agent,
+		Action:         action,
+		ResourceType:   resourceType,
+		ResourceID:     resourceID,
+		SNScore:        snScore,
 		GovernanceTier: models.GetGovernanceTier(snScore).Tier,
-		Result:       "success",
+		Result:         "success",
 	}
 
 	// Compute this entry's data hash

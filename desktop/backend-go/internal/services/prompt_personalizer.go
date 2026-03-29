@@ -36,9 +36,9 @@ func NewPromptPersonalizer(
 
 // PersonalizationContext holds user-specific personalization data
 type PersonalizationContext struct {
-	ProfileData     *PersonalizationProfile
+	ProfileData      *PersonalizationProfile
 	RelevantMemories []Memory
-	UserFacts       []UserFact
+	UserFacts        []UserFact
 	BehaviorPatterns []BehaviorPattern
 }
 
