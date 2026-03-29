@@ -16,15 +16,27 @@
 //! ```
 
 mod nouns;
+mod telemetry;
 
 fn main() -> clap_noun_verb::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("bos=info".parse().unwrap()),
-        )
-        .without_time()
-        .init();
+    // When WEAVER_LIVE_CHECK=true, telemetry::init_otel() installs the full
+    // subscriber (fmt + OTLP gRPC).  Otherwise install the plain fmt layer
+    // here and return a no-op guard.
+    let _otel = if std::env::var("WEAVER_LIVE_CHECK")
+        .map(|v| v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+    {
+        telemetry::init_otel()
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::from_default_env()
+                    .add_directive("bos=info".parse().unwrap()),
+            )
+            .without_time()
+            .init();
+        telemetry::OtelGuard::noop()
+    };
 
     clap_noun_verb::run()
 }

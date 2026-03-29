@@ -90,10 +90,10 @@ func TestJWTAuth_InvalidFormat(t *testing.T) {
 	secretKey := "test-secret-key-12345"
 
 	testCases := []string{
-		"InvalidToken",                    // Missing Bearer scheme
-		"Bearer",                          // Missing token
-		"Basic dXNlcjpwYXNz",             // Wrong scheme
-		"Bearer token1 token2",            // Multiple tokens
+		"InvalidToken",         // Missing Bearer scheme
+		"Bearer",               // Missing token
+		"Basic dXNlcjpwYXNz",   // Wrong scheme
+		"Bearer token1 token2", // Multiple tokens
 	}
 
 	for _, authHeader := range testCases {
@@ -116,9 +116,9 @@ func TestJWTAuth_InvalidToken(t *testing.T) {
 	secretKey := "test-secret-key-12345"
 
 	testCases := []struct {
-		name     string
-		token    string
-		reason   string
+		name   string
+		token  string
+		reason string
 	}{
 		{
 			name:   "MalformedToken",
@@ -131,8 +131,8 @@ func TestJWTAuth_InvalidToken(t *testing.T) {
 			reason: "token signed with different secret",
 		},
 		{
-			name:   "ExpiredToken",
-			token:  func() string {
+			name: "ExpiredToken",
+			token: func() string {
 				claims := &JWTClaims{
 					UserID: "user123",
 					Email:  "test@example.com",

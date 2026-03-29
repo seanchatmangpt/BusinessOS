@@ -53,21 +53,21 @@ type UpdateMCPServerRequest struct {
 
 // mcpServerResponse is the sanitized response (no encrypted tokens)
 type mcpServerResponse struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description"`
-	ServerURL     string                 `json:"server_url"`
-	Transport     string                 `json:"transport"`
-	AuthType      string                 `json:"auth_type"`
-	HasAuth       bool                   `json:"has_auth"`
-	Headers       map[string]string      `json:"headers"`
-	Enabled       bool                   `json:"enabled"`
+	ID            string                   `json:"id"`
+	Name          string                   `json:"name"`
+	Description   string                   `json:"description"`
+	ServerURL     string                   `json:"server_url"`
+	Transport     string                   `json:"transport"`
+	AuthType      string                   `json:"auth_type"`
+	HasAuth       bool                     `json:"has_auth"`
+	Headers       map[string]string        `json:"headers"`
+	Enabled       bool                     `json:"enabled"`
 	ToolsCache    []services.MCPClientTool `json:"tools_cache"`
-	Status        string                 `json:"status"`
-	LastError     *string                `json:"last_error"`
-	LastConnected *string                `json:"last_connected"`
-	CreatedAt     string                 `json:"created_at"`
-	UpdatedAt     string                 `json:"updated_at"`
+	Status        string                   `json:"status"`
+	LastError     *string                  `json:"last_error"`
+	LastConnected *string                  `json:"last_connected"`
+	CreatedAt     string                   `json:"created_at"`
+	UpdatedAt     string                   `json:"updated_at"`
 }
 
 const maxMCPServersPerUser = 20

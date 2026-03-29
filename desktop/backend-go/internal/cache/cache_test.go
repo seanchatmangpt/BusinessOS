@@ -252,13 +252,13 @@ func TestCacheStats(t *testing.T) {
 	ctx := context.Background()
 
 	// Perform various operations
-	cache.Get(ctx, "nonexistent")                              // miss
-	cache.Set(ctx, "key1", "value1", 1*time.Minute)            // set
-	cache.Get(ctx, "key1")                                     // hit
-	cache.Get(ctx, "key2")                                     // miss
-	cache.Set(ctx, "key2", "value2", 1*time.Minute)            // set
-	cache.Get(ctx, "key2")                                     // hit
-	cache.Delete(ctx, "key1")                                  // delete
+	cache.Get(ctx, "nonexistent")                   // miss
+	cache.Set(ctx, "key1", "value1", 1*time.Minute) // set
+	cache.Get(ctx, "key1")                          // hit
+	cache.Get(ctx, "key2")                          // miss
+	cache.Set(ctx, "key2", "value2", 1*time.Minute) // set
+	cache.Get(ctx, "key2")                          // hit
+	cache.Delete(ctx, "key1")                       // delete
 
 	stats := cache.GetStats()
 	assert.Equal(t, uint64(2), stats.Hits.Load())

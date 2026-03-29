@@ -2,14 +2,14 @@ package services
 
 // TemplateDefinition represents a YAML template with metadata, variables, and template content
 type TemplateDefinition struct {
-	Name        string              `yaml:"name"`
-	DisplayName string              `yaml:"display_name"`
-	Description string              `yaml:"description"`
-	Category    string              `yaml:"category"`
-	Version     string              `yaml:"version"`
-	Tags        []string            `yaml:"tags"`
-	Variables   []TemplateVariable  `yaml:"variables"`
-	Template    string              `yaml:"template"`
+	Name        string             `yaml:"name"`
+	DisplayName string             `yaml:"display_name"`
+	Description string             `yaml:"description"`
+	Category    string             `yaml:"category"`
+	Version     string             `yaml:"version"`
+	Tags        []string           `yaml:"tags"`
+	Variables   []TemplateVariable `yaml:"variables"`
+	Template    string             `yaml:"template"`
 }
 
 // TemplateVariable represents a variable definition in a template

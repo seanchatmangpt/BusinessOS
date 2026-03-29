@@ -100,8 +100,8 @@ type QState struct {
 type SelfImprovementEngine struct {
 	mu     sync.RWMutex
 	qTable map[string]map[ImprovementType]float64 // stateKey -> improvement -> Q-value
-	alpha  float64                                 // learning rate
-	gamma  float64                                 // discount factor
+	alpha  float64                                // learning rate
+	gamma  float64                                // discount factor
 	redis  redis.UniversalClient
 	logger *slog.Logger
 }

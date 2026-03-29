@@ -466,10 +466,10 @@ func TestValidateChunk(t *testing.T) {
 	opts := DefaultChunkOptions()
 
 	testCases := []struct {
-		name    string
-		chunk   Chunk
-		valid   bool
-		errMsg  string
+		name   string
+		chunk  Chunk
+		valid  bool
+		errMsg string
 	}{
 		{
 			name: "valid chunk",

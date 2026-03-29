@@ -107,25 +107,25 @@ func TestGetAuditTrail(t *testing.T) {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"entries": []map[string]interface{}{
 				{
-					"sequence":      1,
-					"timestamp":     time.Now().Add(-5 * time.Minute).Format(time.RFC3339),
-					"action":        "deal_created",
-					"actor":         "deal_analyzer",
-					"hash":          "0xabc123def456",
+					"sequence":        1,
+					"timestamp":       time.Now().Add(-5 * time.Minute).Format(time.RFC3339),
+					"action":          "deal_created",
+					"actor":           "deal_analyzer",
+					"hash":            "0xabc123def456",
 					"signature_valid": true,
 				},
 				{
-					"sequence":      2,
-					"timestamp":     time.Now().Add(-3 * time.Minute).Format(time.RFC3339),
-					"action":        "deal_reviewed",
-					"actor":         "review_agent",
-					"hash":          "0xdef456ghi789",
+					"sequence":        2,
+					"timestamp":       time.Now().Add(-3 * time.Minute).Format(time.RFC3339),
+					"action":          "deal_reviewed",
+					"actor":           "review_agent",
+					"hash":            "0xdef456ghi789",
 					"signature_valid": true,
 				},
 			},
-			"total_count":       2,
+			"total_count":        2,
 			"integrity_verified": true,
-			"limit":             limit,
+			"limit":              limit,
 		})
 	})
 
@@ -212,10 +212,10 @@ func TestCollectEvidence(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusAccepted) // 202 Accepted for async job
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"collection_job_id":     "job-456",
-			"framework":             payload["framework"],
-			"control":               payload["control"],
-			"status":                "in_progress",
+			"collection_job_id":    "job-456",
+			"framework":            payload["framework"],
+			"control":              payload["control"],
+			"status":               "in_progress",
 			"estimated_completion": time.Now().AddDate(0, 0, 1).Format(time.RFC3339),
 		})
 	})
@@ -259,16 +259,16 @@ func TestGetGapAnalysis(t *testing.T) {
 				"framework": fw,
 				"gaps": []map[string]interface{}{
 					{
-						"control":                     "CC6.1",
-						"title":                       "Logical Access Control",
-						"gap":                         "Missing audit logging on admin operations",
-						"severity":                    "high",
-						"remediation_effort_hours":    40,
-						"estimated_cost_usd":         2000,
+						"control":                  "CC6.1",
+						"title":                    "Logical Access Control",
+						"gap":                      "Missing audit logging on admin operations",
+						"severity":                 "high",
+						"remediation_effort_hours": 40,
+						"estimated_cost_usd":       2000,
 					},
 				},
-				"total_gaps":                 1,
-				"total_remediation_hours":    40,
+				"total_gaps":              1,
+				"total_remediation_hours": 40,
 			})
 		})
 
@@ -381,8 +381,8 @@ func TestComplianceVerificationWorkflow(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"entries":             []map[string]interface{}{},
-				"total_count":         0,
+				"entries":            []map[string]interface{}{},
+				"total_count":        0,
 				"integrity_verified": true,
 			})
 		})
@@ -406,9 +406,9 @@ func TestComplianceVerificationWorkflow(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"framework":              "GDPR",
-				"gaps":                   []map[string]interface{}{},
-				"total_gaps":             0,
+				"framework":               "GDPR",
+				"gaps":                    []map[string]interface{}{},
+				"total_gaps":              0,
 				"total_remediation_hours": 0,
 			})
 		})

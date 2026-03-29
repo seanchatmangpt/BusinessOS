@@ -50,15 +50,24 @@ func setupGatewayWithTracing(t *testing.T) (*BOSGatewayHandler, *gin.Engine, *tr
 	mock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/discover":
+		case pm4pyPathDiscoveryAlpha:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"model_id":    "model_tracing_001",
-				"algorithm":   "inductive_miner",
-				"transitions": 8,
-				"places":      5,
+				"model_id":  "model_tracing_001",
+				"algorithm": "inductive_miner",
+				"petri_net": map[string]interface{}{
+					"places": []interface{}{
+						map[string]interface{}{"id": "p1", "name": "s", "initial_marking": 1},
+					},
+					"transitions": []interface{}{
+						map[string]interface{}{"id": "t1", "name": "a", "label": nil},
+					},
+					"arcs": []interface{}{
+						map[string]interface{}{"from": "p1", "to": "t1", "weight": 1},
+					},
+				},
 			})
-		case "/conformance":
+		case pm4pyPathConformanceTokenReplay:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"traces_checked": 150,
@@ -68,7 +77,7 @@ func setupGatewayWithTracing(t *testing.T) (*BOSGatewayHandler, *gin.Engine, *tr
 				"generalization": 0.88,
 				"simplicity":     0.91,
 			})
-		case "/statistics":
+		case pm4pyPathStatistics:
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"log_name":              "test.xes",

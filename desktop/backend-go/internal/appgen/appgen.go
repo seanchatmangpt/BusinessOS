@@ -8,10 +8,10 @@ import (
 type AgentType string
 
 const (
-	AgentFrontend  AgentType = "frontend"
-	AgentBackend   AgentType = "backend"
-	AgentDatabase  AgentType = "database"
-	AgentTest      AgentType = "test"
+	AgentFrontend AgentType = "frontend"
+	AgentBackend  AgentType = "backend"
+	AgentDatabase AgentType = "database"
+	AgentTest     AgentType = "test"
 )
 
 // ProgressEvent represents progress in app generation

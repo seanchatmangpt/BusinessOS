@@ -12,37 +12,37 @@ import (
 
 // ToDoList represents a Microsoft To Do task list.
 type ToDoList struct {
-	ID              string    `json:"id"`
-	UserID          string    `json:"user_id"`
-	ListID          string    `json:"list_id"`
-	DisplayName     string    `json:"display_name"`
-	IsOwner         bool      `json:"is_owner"`
-	IsShared        bool      `json:"is_shared"`
-	WellknownListName string  `json:"wellknown_list_name,omitempty"`
-	SyncedAt        time.Time `json:"synced_at"`
+	ID                string    `json:"id"`
+	UserID            string    `json:"user_id"`
+	ListID            string    `json:"list_id"`
+	DisplayName       string    `json:"display_name"`
+	IsOwner           bool      `json:"is_owner"`
+	IsShared          bool      `json:"is_shared"`
+	WellknownListName string    `json:"wellknown_list_name,omitempty"`
+	SyncedAt          time.Time `json:"synced_at"`
 }
 
 // ToDoTask represents a Microsoft To Do task.
 type ToDoTask struct {
-	ID                string    `json:"id"`
-	UserID            string    `json:"user_id"`
-	TaskID            string    `json:"task_id"`
-	ListID            string    `json:"list_id"`
-	Title             string    `json:"title"`
-	BodyContent       string    `json:"body_content,omitempty"`
-	BodyContentType   string    `json:"body_content_type,omitempty"`
-	Importance        string    `json:"importance,omitempty"`
-	Status            string    `json:"status"`
-	DueDateTime       time.Time `json:"due_datetime,omitempty"`
-	DueTimeZone       string    `json:"due_timezone,omitempty"`
-	StartDateTime     time.Time `json:"start_datetime,omitempty"`
-	CompletedDateTime time.Time `json:"completed_datetime,omitempty"`
-	IsReminderOn      bool      `json:"is_reminder_on"`
-	ReminderDateTime  time.Time `json:"reminder_datetime,omitempty"`
-	Categories        []string  `json:"categories,omitempty"`
-	CreatedDateTime   time.Time `json:"created_datetime,omitempty"`
+	ID                   string    `json:"id"`
+	UserID               string    `json:"user_id"`
+	TaskID               string    `json:"task_id"`
+	ListID               string    `json:"list_id"`
+	Title                string    `json:"title"`
+	BodyContent          string    `json:"body_content,omitempty"`
+	BodyContentType      string    `json:"body_content_type,omitempty"`
+	Importance           string    `json:"importance,omitempty"`
+	Status               string    `json:"status"`
+	DueDateTime          time.Time `json:"due_datetime,omitempty"`
+	DueTimeZone          string    `json:"due_timezone,omitempty"`
+	StartDateTime        time.Time `json:"start_datetime,omitempty"`
+	CompletedDateTime    time.Time `json:"completed_datetime,omitempty"`
+	IsReminderOn         bool      `json:"is_reminder_on"`
+	ReminderDateTime     time.Time `json:"reminder_datetime,omitempty"`
+	Categories           []string  `json:"categories,omitempty"`
+	CreatedDateTime      time.Time `json:"created_datetime,omitempty"`
 	LastModifiedDateTime time.Time `json:"last_modified_datetime,omitempty"`
-	SyncedAt          time.Time `json:"synced_at"`
+	SyncedAt             time.Time `json:"synced_at"`
 }
 
 // ToDoService handles Microsoft To Do operations.
@@ -184,14 +184,14 @@ type SyncTasksResult struct {
 }
 
 type graphToDoTask struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	Body       *struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Body  *struct {
 		Content     string `json:"content"`
 		ContentType string `json:"contentType"`
 	} `json:"body"`
-	Importance string `json:"importance"`
-	Status     string `json:"status"`
+	Importance  string `json:"importance"`
+	Status      string `json:"status"`
 	DueDateTime *struct {
 		DateTime string `json:"dateTime"`
 		TimeZone string `json:"timeZone"`
@@ -204,7 +204,7 @@ type graphToDoTask struct {
 		DateTime string `json:"dateTime"`
 		TimeZone string `json:"timeZone"`
 	} `json:"completedDateTime"`
-	IsReminderOn     bool     `json:"isReminderOn"`
+	IsReminderOn     bool `json:"isReminderOn"`
 	ReminderDateTime *struct {
 		DateTime string `json:"dateTime"`
 		TimeZone string `json:"timeZone"`

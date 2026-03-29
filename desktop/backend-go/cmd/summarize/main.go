@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"flag"
+	"log/slog"
 
 	"github.com/rhl/businessos-backend/internal/config"
 	"github.com/rhl/businessos-backend/internal/database"

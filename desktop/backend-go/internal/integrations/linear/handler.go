@@ -105,9 +105,9 @@ func (h *Handler) HandleCallback(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":          true,
-		"organization":     token.AccountName,
-		"scopes":           token.Scopes,
+		"success":      true,
+		"organization": token.AccountName,
+		"scopes":       token.Scopes,
 	})
 }
 

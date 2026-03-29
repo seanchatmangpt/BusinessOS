@@ -363,7 +363,7 @@ func TestDifferentHTTPMethods(t *testing.T) {
 	router := gin.New()
 	cfg := &InternalAuthConfig{Secret: secret}
 	router.Use(InternalAuthMiddleware(cfg))
-	
+
 	router.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"method": "GET"})
 	})

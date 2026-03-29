@@ -107,7 +107,7 @@ func TestBOSProgressEndpoint_JWTClaimsInContext(t *testing.T) {
 
 	token := generateTestJWT(secretKey, "test_user_123", "test@example.com")
 	req := httptest.NewRequest("POST", "/api/test/jwt-context", nil)
-	req.Header.Set("Authorization", "Bearer " + token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)

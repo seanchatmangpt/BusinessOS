@@ -383,5 +383,5 @@ DB: UPDATE parties SET kyc_status = 'verified' WHERE id = 'p-001'
 
 ---
 
-**Last Updated:** 2026-03-25
+**Last Updated:** 2026-03-27
 **Ontology Version:** 1.0.0

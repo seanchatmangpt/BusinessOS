@@ -127,7 +127,11 @@ func (s *CommentService) CreateComment(ctx context.Context, input CreateCommentI
 	}
 
 	// 3. Trigger notifications
-	go s.triggerCommentNotifications(context.Background(), input, commentID, mentions)
+	go func() {
+		notifCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		s.triggerCommentNotifications(notifCtx, input, commentID, mentions)
+	}()
 
 	// 4. Get author info and return full comment
 	return s.GetCommentByID(ctx, commentID)

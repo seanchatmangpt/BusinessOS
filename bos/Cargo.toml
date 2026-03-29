@@ -1,5 +1,5 @@
 [workspace]
-members = ["cli", "core", "ingest", "config"]
+members = ["cli", "core", "ingest", "config", "src"]
 resolver = "2"
 
 [workspace.package]
@@ -27,6 +27,7 @@ miette = { version = "7.2", features = ["fancy"] }
 # Async
 tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
+async-trait = "0.1"
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
@@ -48,6 +49,12 @@ owo-colors = "4"
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# OpenTelemetry
+opentelemetry          = { version = "0.27", features = ["trace"] }
+opentelemetry_sdk      = { version = "0.27", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp     = { version = "0.27", features = ["grpc-tonic", "trace"] }
+tracing-opentelemetry  = { version = "0.28" }
 
 # Date/time
 chrono = { version = "0.4", features = ["serde"] }

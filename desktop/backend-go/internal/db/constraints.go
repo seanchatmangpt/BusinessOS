@@ -8,12 +8,12 @@ import (
 
 // Deal constraint validation errors
 var (
-	ErrDealAmountNonPositive   = errors.New("deal amount must be positive")
-	ErrDealQualityOutOfBounds  = errors.New("deal quality score must be between 0 and 100")
-	ErrDealMissingDomain       = errors.New("deal must have a domain")
-	ErrDealMissingStatus       = errors.New("deal must have a status")
-	ErrDealTemporalOrdering    = errors.New("created_at cannot be after updated_at")
-	ErrDealStatusInvalid       = errors.New("deal status is invalid")
+	ErrDealAmountNonPositive  = errors.New("deal amount must be positive")
+	ErrDealQualityOutOfBounds = errors.New("deal quality score must be between 0 and 100")
+	ErrDealMissingDomain      = errors.New("deal must have a domain")
+	ErrDealMissingStatus      = errors.New("deal must have a status")
+	ErrDealTemporalOrdering   = errors.New("created_at cannot be after updated_at")
+	ErrDealStatusInvalid      = errors.New("deal status is invalid")
 )
 
 // PHI constraint validation errors
@@ -31,8 +31,8 @@ var (
 
 // Heartbeat constraint validation errors
 var (
-	ErrHeartbeatIntervalTooShort  = errors.New("heartbeat interval must be at least 100ms")
-	ErrHeartbeatIntervalTooLong   = errors.New("heartbeat interval must not exceed 60s (Armstrong Supervision)")
+	ErrHeartbeatIntervalTooShort = errors.New("heartbeat interval must be at least 100ms")
+	ErrHeartbeatIntervalTooLong  = errors.New("heartbeat interval must not exceed 60s (Armstrong Supervision)")
 )
 
 // Workspace constraint validation errors
@@ -113,11 +113,11 @@ func (d *Deal) validateStatus() error {
 		return ErrDealMissingStatus
 	}
 	validStatuses := map[string]bool{
-		"prospect":   true,
+		"prospect":    true,
 		"negotiating": true,
-		"won":        true,
-		"lost":       true,
-		"archived":   true,
+		"won":         true,
+		"lost":        true,
+		"archived":    true,
 	}
 	if !validStatuses[d.Status] {
 		return fmt.Errorf("%w: %s", ErrDealStatusInvalid, d.Status)
@@ -223,10 +223,10 @@ func (dl *DataLineage) validateDepth() error {
 
 // AgentHeartbeat represents periodic liveness check with Armstrong Supervision constraints
 type AgentHeartbeat struct {
-	ID         string        `db:"id"`
-	AgentID    string        `db:"agent_id"`
-	IntervalMs int           `db:"interval_ms"`
-	CreatedAt  time.Time     `db:"created_at"`
+	ID         string    `db:"id"`
+	AgentID    string    `db:"agent_id"`
+	IntervalMs int       `db:"interval_ms"`
+	CreatedAt  time.Time `db:"created_at"`
 }
 
 // ValidateConstraints validates heartbeat configuration

@@ -135,7 +135,7 @@ func (p *Provider) ExchangeCode(ctx context.Context, code string) (*integrations
 	// ClickUp tokens don't expire
 	return &integrations.TokenResponse{
 		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: "", // ClickUp doesn't use refresh tokens
+		RefreshToken: "",                           // ClickUp doesn't use refresh tokens
 		ExpiresAt:    time.Now().AddDate(10, 0, 0), // Tokens don't expire
 		Scopes:       []string{"full_access"},
 		AccountID:    fmt.Sprintf("%d", userInfo.ID),

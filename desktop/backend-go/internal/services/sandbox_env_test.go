@@ -221,13 +221,13 @@ func TestBuildContainerEnv(t *testing.T) {
 
 	// Expected format
 	expectedVars := map[string]bool{
-		"PORT=3000":                   true,
-		"LOG_LEVEL=info":              true,
-		"CUSTOM_VAR=system-value":     true,
-		"APP_ID=" + appID.String():    true,
-		"APP_NAME=" + appName:         true,
-		"USER_ID=" + userID.String():  true,
-		"NODE_ENV=production":         true,
+		"PORT=3000":                  true,
+		"LOG_LEVEL=info":             true,
+		"CUSTOM_VAR=system-value":    true,
+		"APP_ID=" + appID.String():   true,
+		"APP_NAME=" + appName:        true,
+		"USER_ID=" + userID.String(): true,
+		"NODE_ENV=production":        true,
 	}
 
 	// Create service (with nil pool since we're not testing DB operations)

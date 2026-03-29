@@ -43,6 +43,9 @@ const (
 	// JtbdDealStageToKey is the OTel attribute key for jtbd.deal.stage_to.
 	// CRM pipeline stage after progression.
 	JtbdDealStageToKey = attribute.Key("jtbd.deal.stage_to")
+	// JtbdDmaicPhaseNameKey is the OTel attribute key for jtbd.dmaic.phase_name.
+	// DMAIC phase name — identifies the current phase in a DMAIC (Define/Measure/Analyze/Improve/Control) cycle.
+	JtbdDmaicPhaseNameKey = attribute.Key("jtbd.dmaic.phase_name")
 	// JtbdIcpContactsEvaluatedKey is the OTel attribute key for jtbd.icp.contacts_evaluated.
 	// Number of contacts evaluated in ICP qualification.
 	JtbdIcpContactsEvaluatedKey = attribute.Key("jtbd.icp.contacts_evaluated")
@@ -112,21 +115,39 @@ const (
 	// JtbdScenarioErrorReasonKey is the OTel attribute key for jtbd.scenario.error_reason.
 	// Human-readable error description when scenario.outcome is failure or timeout.
 	JtbdScenarioErrorReasonKey = attribute.Key("jtbd.scenario.error_reason")
+	// JtbdDmaicPhaseOutcomeKey is the OTel attribute key for jtbd.dmaic.phase_outcome.
+	// Outcome of the DMAIC phase — completed successfully, failed, or skipped.
+	JtbdDmaicPhaseOutcomeKey = attribute.Key("jtbd.dmaic.phase_outcome")
+	// JtbdDmaicScenarioIdKey is the OTel attribute key for jtbd.dmaic.scenario_id.
+	// JTBD scenario identifier associated with this DMAIC phase transition.
+	JtbdDmaicScenarioIdKey = attribute.Key("jtbd.dmaic.scenario_id")
 	// JtbdScenarioAgentIdKey is the OTel attribute key for jtbd.scenario.agent_id.
 	// Identifier of the agent executing or participating in this scenario step.
 	JtbdScenarioAgentIdKey = attribute.Key("jtbd.scenario.agent_id")
+	// JtbdScenarioFitnessKey is the OTel attribute key for jtbd.scenario.fitness.
+	// Fitness score of the discovered process model against the event log (0.0-1.0). Higher values indicate better replay fitness.
+	JtbdScenarioFitnessKey = attribute.Key("jtbd.scenario.fitness")
 	// JtbdScenarioIterationKey is the OTel attribute key for jtbd.scenario.iteration.
 	// Iteration or attempt number within a repeating loop (e.g., retry attempt, consensus round iteration).
 	JtbdScenarioIterationKey = attribute.Key("jtbd.scenario.iteration")
 	// JtbdScenarioLatencyMsKey is the OTel attribute key for jtbd.scenario.latency_ms.
 	// Measured latency (elapsed time) for this scenario step in milliseconds.
 	JtbdScenarioLatencyMsKey = attribute.Key("jtbd.scenario.latency_ms")
+	// JtbdScenarioModelFormatKey is the OTel attribute key for jtbd.scenario.model_format.
+	// Format of the process model produced or consumed by this scenario step (e.g., "pnml", "bpmn", "dfg").
+	JtbdScenarioModelFormatKey = attribute.Key("jtbd.scenario.model_format")
+	// JtbdScenarioPlaceCountKey is the OTel attribute key for jtbd.scenario.place_count.
+	// Number of places in the Petri net model produced by this scenario step.
+	JtbdScenarioPlaceCountKey = attribute.Key("jtbd.scenario.place_count")
 	// JtbdScenarioTaskIdKey is the OTel attribute key for jtbd.scenario.task_id.
 	// Identifier of the Claude Code task or work item associated with this scenario step.
 	JtbdScenarioTaskIdKey = attribute.Key("jtbd.scenario.task_id")
 	// JtbdScenarioTraceLinkKey is the OTel attribute key for jtbd.scenario.trace_link.
 	// Jaeger trace ID or OpenTelemetry trace link for full observability of this scenario step.
 	JtbdScenarioTraceLinkKey = attribute.Key("jtbd.scenario.trace_link")
+	// JtbdScenarioTransitionCountKey is the OTel attribute key for jtbd.scenario.transition_count.
+	// Number of transitions in the Petri net model produced by this scenario step.
+	JtbdScenarioTransitionCountKey = attribute.Key("jtbd.scenario.transition_count")
 )
 
 // JtbdContractBlockHash returns an attribute KeyValue for jtbd.contract.block_hash.
@@ -187,6 +208,26 @@ func JtbdDealStageFrom(val string) attribute.KeyValue {
 // JtbdDealStageTo returns an attribute KeyValue for jtbd.deal.stage_to.
 func JtbdDealStageTo(val string) attribute.KeyValue {
 	return JtbdDealStageToKey.String(val)
+}
+
+// JtbdDmaicPhaseName returns an attribute KeyValue for jtbd.dmaic.phase_name.
+func JtbdDmaicPhaseName(val string) attribute.KeyValue {
+	return JtbdDmaicPhaseNameKey.String(val)
+}
+
+// JtbdDmaicPhaseNameValues contains the known enum values for jtbd.dmaic.phase_name.
+var JtbdDmaicPhaseNameValues = struct {
+	Define string
+	Measure string
+	Analyze string
+	Improve string
+	Control string
+}{
+	Define: "define",
+	Measure: "measure",
+	Analyze: "analyze",
+	Improve: "improve",
+	Control: "control",
 }
 
 // JtbdIcpContactsEvaluated returns an attribute KeyValue for jtbd.icp.contacts_evaluated.
@@ -369,9 +410,35 @@ func JtbdScenarioErrorReason(val string) attribute.KeyValue {
 	return JtbdScenarioErrorReasonKey.String(val)
 }
 
+// JtbdDmaicPhaseOutcome returns an attribute KeyValue for jtbd.dmaic.phase_outcome.
+func JtbdDmaicPhaseOutcome(val string) attribute.KeyValue {
+	return JtbdDmaicPhaseOutcomeKey.String(val)
+}
+
+// JtbdDmaicPhaseOutcomeValues contains the known enum values for jtbd.dmaic.phase_outcome.
+var JtbdDmaicPhaseOutcomeValues = struct {
+	Completed string
+	Failed string
+	Skipped string
+}{
+	Completed: "completed",
+	Failed: "failed",
+	Skipped: "skipped",
+}
+
+// JtbdDmaicScenarioId returns an attribute KeyValue for jtbd.dmaic.scenario_id.
+func JtbdDmaicScenarioId(val string) attribute.KeyValue {
+	return JtbdDmaicScenarioIdKey.String(val)
+}
+
 // JtbdScenarioAgentId returns an attribute KeyValue for jtbd.scenario.agent_id.
 func JtbdScenarioAgentId(val string) attribute.KeyValue {
 	return JtbdScenarioAgentIdKey.String(val)
+}
+
+// JtbdScenarioFitness returns an attribute KeyValue for jtbd.scenario.fitness.
+func JtbdScenarioFitness(val float64) attribute.KeyValue {
+	return JtbdScenarioFitnessKey.Float64(val)
 }
 
 // JtbdScenarioIteration returns an attribute KeyValue for jtbd.scenario.iteration.
@@ -384,6 +451,16 @@ func JtbdScenarioLatencyMs(val int64) attribute.KeyValue {
 	return JtbdScenarioLatencyMsKey.Int64(val)
 }
 
+// JtbdScenarioModelFormat returns an attribute KeyValue for jtbd.scenario.model_format.
+func JtbdScenarioModelFormat(val string) attribute.KeyValue {
+	return JtbdScenarioModelFormatKey.String(val)
+}
+
+// JtbdScenarioPlaceCount returns an attribute KeyValue for jtbd.scenario.place_count.
+func JtbdScenarioPlaceCount(val int64) attribute.KeyValue {
+	return JtbdScenarioPlaceCountKey.Int64(val)
+}
+
 // JtbdScenarioTaskId returns an attribute KeyValue for jtbd.scenario.task_id.
 func JtbdScenarioTaskId(val string) attribute.KeyValue {
 	return JtbdScenarioTaskIdKey.String(val)
@@ -392,5 +469,10 @@ func JtbdScenarioTaskId(val string) attribute.KeyValue {
 // JtbdScenarioTraceLink returns an attribute KeyValue for jtbd.scenario.trace_link.
 func JtbdScenarioTraceLink(val string) attribute.KeyValue {
 	return JtbdScenarioTraceLinkKey.String(val)
+}
+
+// JtbdScenarioTransitionCount returns an attribute KeyValue for jtbd.scenario.transition_count.
+func JtbdScenarioTransitionCount(val int64) attribute.KeyValue {
+	return JtbdScenarioTransitionCountKey.Int64(val)
 }
 

@@ -501,7 +501,6 @@ func TestIdempotencyStore_WaitForProcessing(t *testing.T) {
 	<-done
 }
 
-
 func TestCacheableStatus(t *testing.T) {
 	config := DefaultIdempotencyConfig()
 

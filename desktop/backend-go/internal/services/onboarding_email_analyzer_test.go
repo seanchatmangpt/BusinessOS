@@ -41,9 +41,9 @@ func TestCalculateSentiment(t *testing.T) {
 
 func TestCalculateImportanceScore(t *testing.T) {
 	domainFreq := map[string]int{
-		"company.com":     15,
-		"client.com":      5,
-		"newsletter.com":  1,
+		"company.com":    15,
+		"client.com":     5,
+		"newsletter.com": 1,
 	}
 
 	tests := []struct {

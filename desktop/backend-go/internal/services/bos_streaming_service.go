@@ -25,12 +25,12 @@ type BOSStreamEvent struct {
 
 // BOSProgressMetrics contains real-time progress information
 type BOSProgressMetrics struct {
-	EventsProcessed   int64   `json:"events_processed"`
-	TotalEvents       *int64  `json:"total_events,omitempty"`
-	PercentComplete   int32   `json:"percent_complete"`
-	CurrentStep       string  `json:"current_step"`
-	ActiveWorkers     int32   `json:"active_workers"`
-	ThroughputEPS     float64 `json:"throughput_eps"`
+	EventsProcessed int64   `json:"events_processed"`
+	TotalEvents     *int64  `json:"total_events,omitempty"`
+	PercentComplete int32   `json:"percent_complete"`
+	CurrentStep     string  `json:"current_step"`
+	ActiveWorkers   int32   `json:"active_workers"`
+	ThroughputEPS   float64 `json:"throughput_eps"`
 }
 
 // BOSAggregatedMetrics contains aggregated processing metrics
@@ -46,23 +46,23 @@ type BOSAggregatedMetrics struct {
 
 // BOSErrorInfo contains error details with recovery information
 type BOSErrorInfo struct {
-	Code        string `json:"code"`
-	Message     string `json:"message"`
-	Recoverable bool   `json:"recoverable"`
-	RetryAttempt *int32 `json:"retry_attempt,omitempty"`
-	MaxRetries  *int32 `json:"max_retries,omitempty"`
-	Details     *string `json:"details,omitempty"`
+	Code         string  `json:"code"`
+	Message      string  `json:"message"`
+	Recoverable  bool    `json:"recoverable"`
+	RetryAttempt *int32  `json:"retry_attempt,omitempty"`
+	MaxRetries   *int32  `json:"max_retries,omitempty"`
+	Details      *string `json:"details,omitempty"`
 }
 
 // BOSStreamSubscriber represents a subscription to BOS events
 type BOSStreamSubscriber struct {
-	ID       string
+	ID        string
 	SessionID uuid.UUID
-	UserID   uuid.UUID
-	Events   chan *BOSStreamEvent
-	ctx      context.Context
-	cancelFn context.CancelFunc
-	done     chan struct{}
+	UserID    uuid.UUID
+	Events    chan *BOSStreamEvent
+	ctx       context.Context
+	cancelFn  context.CancelFunc
+	done      chan struct{}
 	closeOnce sync.Once
 }
 
@@ -73,18 +73,18 @@ func (s *BOSStreamSubscriber) Done() <-chan struct{} {
 
 // BOSSessionMetrics tracks aggregated metrics for a session
 type BOSSessionMetrics struct {
-	SessionID        uuid.UUID
-	UserID           uuid.UUID
-	StartTime        time.Time
-	LastUpdateTime   time.Time
-	Phase            string // discovery, conformance, complete
+	SessionID      uuid.UUID
+	UserID         uuid.UUID
+	StartTime      time.Time
+	LastUpdateTime time.Time
+	Phase          string // discovery, conformance, complete
 
 	// Progress tracking
-	EventsProcessed  atomic.Int64
-	TotalEvents      *int64
-	ProgressPercent  atomic.Int32
-	CurrentStep      string
-	ActiveWorkers    atomic.Int32
+	EventsProcessed atomic.Int64
+	TotalEvents     *int64
+	ProgressPercent atomic.Int32
+	CurrentStep     string
+	ActiveWorkers   atomic.Int32
 
 	// Metrics tracking
 	ElapsedSecs          atomic.Int64
@@ -95,10 +95,10 @@ type BOSSessionMetrics struct {
 	ViolationsFound      atomic.Int64
 
 	// State
-	mu           sync.RWMutex
-	IsCancelled  bool
-	IsComplete   bool
-	LastError    *BOSErrorInfo
+	mu          sync.RWMutex
+	IsCancelled bool
+	IsComplete  bool
+	LastError   *BOSErrorInfo
 }
 
 // BOSStreamingService manages BOS streaming subscriptions and metrics aggregation
@@ -342,14 +342,14 @@ func (s *BOSStreamingService) GetAllActiveSessions() []map[string]interface{} {
 	for sessionID, metrics := range s.sessions {
 		metrics.mu.RLock()
 		sessions = append(sessions, map[string]interface{}{
-			"session_id":      sessionID.String(),
-			"user_id":         metrics.UserID.String(),
-			"start_time":      metrics.StartTime,
-			"phase":           metrics.Phase,
-			"progress_pct":    metrics.ProgressPercent.Load(),
+			"session_id":       sessionID.String(),
+			"user_id":          metrics.UserID.String(),
+			"start_time":       metrics.StartTime,
+			"phase":            metrics.Phase,
+			"progress_pct":     metrics.ProgressPercent.Load(),
 			"events_processed": metrics.EventsProcessed.Load(),
-			"is_cancelled":    metrics.IsCancelled,
-			"is_complete":     metrics.IsComplete,
+			"is_cancelled":     metrics.IsCancelled,
+			"is_complete":      metrics.IsComplete,
 		})
 		metrics.mu.RUnlock()
 	}
@@ -408,6 +408,10 @@ func (s *BOSStreamingService) updateSessionMetrics(sessionID uuid.UUID, event *B
 		storeFloat64(&metrics.PeakThroughputEPS, event.Metrics.PeakThroughputEPS)
 		metrics.VariantsFound.Store(event.Metrics.VariantsFound)
 		metrics.ViolationsFound.Store(event.Metrics.ViolationsFound)
+		// Aggregate TotalProcessed from metrics events
+		if event.Metrics.TotalProcessed > 0 {
+			metrics.EventsProcessed.Store(event.Metrics.TotalProcessed)
+		}
 	}
 
 	if event.Error != nil {

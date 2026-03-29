@@ -13,8 +13,8 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/json"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -37,14 +37,14 @@ const (
 type FinancialResourceType string
 
 const (
-	LedgerEntry    FinancialResourceType = "ledger_entry"
-	Transaction    FinancialResourceType = "transaction"
-	Account        FinancialResourceType = "account"
-	JournalEntry   FinancialResourceType = "journal_entry"
-	PaymentRecord  FinancialResourceType = "payment_record"
-	InvoiceRecord  FinancialResourceType = "invoice_record"
-	ExpenseRecord  FinancialResourceType = "expense_record"
-	BudgetAlloc    FinancialResourceType = "budget_allocation"
+	LedgerEntry   FinancialResourceType = "ledger_entry"
+	Transaction   FinancialResourceType = "transaction"
+	Account       FinancialResourceType = "account"
+	JournalEntry  FinancialResourceType = "journal_entry"
+	PaymentRecord FinancialResourceType = "payment_record"
+	InvoiceRecord FinancialResourceType = "invoice_record"
+	ExpenseRecord FinancialResourceType = "expense_record"
+	BudgetAlloc   FinancialResourceType = "budget_allocation"
 )
 
 // SOXAuditEntry represents an immutable audit trail entry per SOX 404(b)

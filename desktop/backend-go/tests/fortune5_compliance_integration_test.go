@@ -3,14 +3,11 @@ package tests
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -59,9 +56,9 @@ var (
 	pm4pyURL         = os.Getenv("PM4PY_URL")
 
 	// Test data
-	fiboTestData   string
-	hipaaTestData  string
-	shaclShapes    string
+	fiboTestData  []byte
+	hipaaTestData []byte
+	shaclShapes   []byte
 )
 
 func init() {
@@ -99,11 +96,23 @@ func loadTestData() {
 	}
 }
 
+// requireExternalServices skips the test when Oxigraph or BusinessOS are unreachable.
+func requireExternalServices(t *testing.T) {
+	t.Helper()
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get(oxigraphEndpoint + "/query")
+	if err != nil {
+		t.Skipf("Skipping: Oxigraph not reachable at %s: %v", oxigraphEndpoint, err)
+	}
+	resp.Body.Close()
+}
+
 // =============================================================================
 // TEST SCENARIO 1: Deal Creation with FIBO + Compliance Validation
 // =============================================================================
 
 func TestScenario1_DealCreationFiboCompliance(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -186,6 +195,7 @@ func TestScenario1_DealCreationFiboCompliance(t *testing.T) {
 // =============================================================================
 
 func TestScenario2_DataLineageTracking(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -249,6 +259,7 @@ func TestScenario2_DataLineageTracking(t *testing.T) {
 // =============================================================================
 
 func TestScenario3_PolicyEnforcement(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -277,10 +288,10 @@ func TestScenario3_PolicyEnforcement(t *testing.T) {
 
 	// Test case 1: Authorized clinician should have read access to PHI
 	permitted, err := evaluatePolicy(ctx, &PolicyEvaluation{
-		Subject:   "tests:clinician-dr-smith",
-		Action:    "read",
-		Resource:  "tests:phi-patient-record-001",
-		Context:   "treatment",
+		Subject:  "tests:clinician-dr-smith",
+		Action:   "read",
+		Resource: "tests:phi-patient-record-001",
+		Context:  "treatment",
 	})
 	if err != nil {
 		t.Fatalf("policy evaluation error: %v", err)
@@ -291,10 +302,10 @@ func TestScenario3_PolicyEnforcement(t *testing.T) {
 
 	// Test case 2: Unauthorized marketing should NOT have access to PHI
 	permitted, err = evaluatePolicy(ctx, &PolicyEvaluation{
-		Subject:   "tests:marketing-team",
-		Action:    "read",
-		Resource:  "tests:phi-patient-record-001",
-		Context:   "marketing",
+		Subject:  "tests:marketing-team",
+		Action:   "read",
+		Resource: "tests:phi-patient-record-001",
+		Context:  "marketing",
 	})
 	if err != nil {
 		t.Fatalf("policy evaluation error: %v", err)
@@ -311,6 +322,7 @@ func TestScenario3_PolicyEnforcement(t *testing.T) {
 // =============================================================================
 
 func TestScenario4_QualityMetrics(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -359,6 +371,7 @@ func TestScenario4_QualityMetrics(t *testing.T) {
 // =============================================================================
 
 func TestScenario5_AuditTrail(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -424,6 +437,7 @@ func TestScenario5_AuditTrail(t *testing.T) {
 // =============================================================================
 
 func TestScenario6_CrossDomainQuery(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -475,6 +489,7 @@ func TestScenario6_CrossDomainQuery(t *testing.T) {
 // =============================================================================
 
 func TestScenario7_ConsentEnforcement(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -530,6 +545,7 @@ func TestScenario7_ConsentEnforcement(t *testing.T) {
 // =============================================================================
 
 func TestScenario8_PhiTracking(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -601,6 +617,7 @@ func TestScenario8_PhiTracking(t *testing.T) {
 // =============================================================================
 
 func TestScenario9_ConfigurationHotload(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -650,6 +667,7 @@ func TestScenario9_ConfigurationHotload(t *testing.T) {
 // =============================================================================
 
 func TestScenario10_ComplianceReporting(t *testing.T) {
+	requireExternalServices(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -675,10 +693,10 @@ func TestScenario10_ComplianceReporting(t *testing.T) {
 
 	// Assert: Report covers all frameworks
 	frameworks := map[string]bool{
-		"SOC2": false,
+		"SOC2":  false,
 		"HIPAA": false,
-		"GDPR": false,
-		"SOX": false,
+		"GDPR":  false,
+		"SOX":   false,
 	}
 
 	for _, fw := range report.Frameworks {
@@ -768,11 +786,11 @@ func queryDeal(ctx context.Context, dealURI string) (*Deal, error) {
 	}
 
 	return &Deal{
-		Identifier:                  results[0]["identifier"].(string),
-		Amount:                      results[0]["amount"].(float64),
-		Buyer:                       results[0]["buyer"].(string),
-		Seller:                      results[0]["seller"].(string),
-		Checksum:                    results[0]["checksum"].(string),
+		Identifier:                   results[0]["identifier"].(string),
+		Amount:                       results[0]["amount"].(float64),
+		Buyer:                        results[0]["buyer"].(string),
+		Seller:                       results[0]["seller"].(string),
+		Checksum:                     results[0]["checksum"].(string),
 		IsFinancialReportingAffected: results[0]["financial"].(bool),
 		RequiresAuditTrail:           results[0]["audit"].(bool),
 		ProvenanceActivity:           results[0]["provActivity"].(string),
@@ -805,12 +823,12 @@ func queryProvenance(ctx context.Context, entityURI string) ([]ProvenanceEntry, 
 	entries := make([]ProvenanceEntry, len(results))
 	for i, r := range results {
 		entries[i] = ProvenanceEntry{
-			Activity:    r["activity"].(string),
-			Title:       r["title"].(string),
-			StartTime:   r["startTime"].(string),
-			EndTime:     r["endTime"].(string),
-			Actor:       r["actor"].(string),
-			Hash:        r["hash"].(string),
+			Activity:     r["activity"].(string),
+			Title:        r["title"].(string),
+			StartTime:    r["startTime"].(string),
+			EndTime:      r["endTime"].(string),
+			Actor:        r["actor"].(string),
+			Hash:         r["hash"].(string),
 			PreviousHash: r["prevHash"].(string),
 		}
 	}
@@ -878,9 +896,9 @@ func checkConsentForProcessing(ctx context.Context, actor, resource string) bool
 
 func queryPatientRecord(ctx context.Context, recordURI string) (*PatientRecord, error) {
 	return &PatientRecord{
-		AnonymousID:      "ANON-00001",
-		OriginalIDHash:   "sha256-4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-		Classification:   "PHI",
+		AnonymousID:         "ANON-00001",
+		OriginalIDHash:      "sha256-4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+		Classification:      "PHI",
 		RetentionScheduleID: "tests:retention-schedule-phi",
 	}, nil
 }
@@ -888,8 +906,8 @@ func queryPatientRecord(ctx context.Context, recordURI string) (*PatientRecord, 
 func queryAccessLogs(ctx context.Context, resourceURI string) ([]AccessLog, error) {
 	return []AccessLog{
 		{
-			AccessedBy:           "tests:clinician-dr-smith",
-			AccessReason:         "treatment",
+			AccessedBy:            "tests:clinician-dr-smith",
+			AccessReason:          "treatment",
 			AuthorizationVerified: true,
 		},
 	}, nil
@@ -975,14 +993,14 @@ func isValidAnonymousID(id string) bool {
 // =============================================================================
 
 type Deal struct {
-	Identifier                  string
-	Amount                      float64
-	Buyer                       string
-	Seller                      string
-	Checksum                    string
+	Identifier                   string
+	Amount                       float64
+	Buyer                        string
+	Seller                       string
+	Checksum                     string
 	IsFinancialReportingAffected bool
-	RequiresAuditTrail          bool
-	ProvenanceActivity          string
+	RequiresAuditTrail           bool
+	ProvenanceActivity           string
 }
 
 type ProvenanceEntry struct {
@@ -997,6 +1015,7 @@ type ProvenanceEntry struct {
 
 type AuditEntry struct {
 	Activity     string
+	Actor        string
 	Hash         string
 	PreviousHash string
 }
@@ -1021,9 +1040,9 @@ type Consent struct {
 }
 
 type PatientRecord struct {
-	AnonymousID        string
-	OriginalIDHash     string
-	Classification     string
+	AnonymousID         string
+	OriginalIDHash      string
+	Classification      string
 	RetentionScheduleID string
 }
 

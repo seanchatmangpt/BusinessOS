@@ -13,6 +13,7 @@
 		PendingDecision,
 		IntegrationCategory
 	} from '$lib/api/integrations';
+	import SemconvWeaverPanel from '$lib/components/integrations/SemconvWeaverPanel.svelte';
 
 	const session = useSession();
 
@@ -1031,6 +1032,8 @@
 						Add MCP Server
 					</button>
 				</div>
+
+				<SemconvWeaverPanel />
 
 				{#if mcpError}
 					<div class="ih-alert ih-alert--error ih-alert--banner">

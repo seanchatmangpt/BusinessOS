@@ -224,24 +224,24 @@ func TestCOOApprovalSimulation(t *testing.T) {
 // ============================================================================
 
 type ApprovalMetrics struct {
-	StartTime                    time.Time
-	EndTime                      time.Time
-	TotalDuration                time.Duration
-	DecisionsReviewed            int
-	ApprovedCount                int
-	ResponseLatencies            []time.Duration
-	LearningLoopFeedbackCount    int
+	StartTime                 time.Time
+	EndTime                   time.Time
+	TotalDuration             time.Duration
+	DecisionsReviewed         int
+	ApprovedCount             int
+	ResponseLatencies         []time.Duration
+	LearningLoopFeedbackCount int
 }
 
 type COOReport struct {
-	Timestamp                       time.Time
-	AutomationRates                 map[string]float64
-	QueueDepth                      int
-	DecisionResponseLatencies       map[string]interface{}
-	LearningLoopFeedbackCount       int
-	SignalToNoiseGovernanceTier     string
-	LowConfidenceDecisionsRouted    int
-	AgentSuccessMetrics             map[string]interface{}
+	Timestamp                    time.Time
+	AutomationRates              map[string]float64
+	QueueDepth                   int
+	DecisionResponseLatencies    map[string]interface{}
+	LearningLoopFeedbackCount    int
+	SignalToNoiseGovernanceTier  string
+	LowConfidenceDecisionsRouted int
+	AgentSuccessMetrics          map[string]interface{}
 }
 
 func generateCOOReport(
@@ -258,11 +258,11 @@ func generateCOOReport(
 			"assign_tasks":   assignTasks.SuccessRate,
 			"avg_automation": (processLeads.SuccessRate + assignTasks.SuccessRate) / 2,
 		},
-		LearningLoopFeedbackCount: approvalMetrics.LearningLoopFeedbackCount,
+		LearningLoopFeedbackCount:   approvalMetrics.LearningLoopFeedbackCount,
 		SignalToNoiseGovernanceTier: "NORMAL",
 		AgentSuccessMetrics: map[string]interface{}{
-			"crm_created_deals":     processLeads.CreatedCount,
-			"crm_escalated_leads":   processLeads.EscalatedCount,
+			"crm_created_deals":      processLeads.CreatedCount,
+			"crm_escalated_leads":    processLeads.EscalatedCount,
 			"project_assigned_tasks": assignTasks.AssignedCount,
 			"project_skipped_tasks":  assignTasks.SkippedCount,
 		},
@@ -286,7 +286,7 @@ func generateCOOReport(
 	}
 
 	// S/N governance tier routing
-	if (processLeads.SuccessRate + assignTasks.SuccessRate) / 2 < 0.85 {
+	if (processLeads.SuccessRate+assignTasks.SuccessRate)/2 < 0.85 {
 		report.SignalToNoiseGovernanceTier = "CAUTION"
 	}
 
@@ -357,8 +357,8 @@ func seedTestDataFor7Days(ctx context.Context, pool *pgxpool.Pool, userID string
 			INSERT INTO companies (id, user_id, name, health_score, engagement_score, annual_revenue, company_size, lifecycle_stage, created_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, 'prospect', NOW() - INTERVAL '7 days')
 		`, companyID, userID, fmt.Sprintf("Company %d", i),
-			50+i%50, // health: 50-100
-			40+i%60, // engagement: 40-100
+			50+i%50,                   // health: 50-100
+			40+i%60,                   // engagement: 40-100
 			float64(1000000+i*100000), // revenue
 			[]string{"1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"}[i%6])
 		if err != nil {

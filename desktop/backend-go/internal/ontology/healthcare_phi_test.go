@@ -3,6 +3,7 @@ package ontology
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 )
@@ -14,87 +15,150 @@ type MockSPARQLExecutor struct {
 }
 
 func (m *MockSPARQLExecutor) ExecuteConstruct(ctx context.Context, query string) (string, error) {
-	if result, ok := m.constructResults[query]; ok {
-		return result, nil
-	}
-	// Default: return minimal Turtle
-	return `@prefix fhir: <http://hl7.org/fhir/> .
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		if result, ok := m.constructResults[query]; ok {
+			return result, nil
+		}
+		// Default: return minimal Turtle
+		return `@prefix fhir: <http://hl7.org/fhir/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 fhir:test_entity a prov:Entity .`, nil
+	}
 }
 
 func (m *MockSPARQLExecutor) ExecuteAsk(ctx context.Context, query string) (bool, error) {
-	if result, ok := m.askResults[query]; ok {
-		return result, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err()
+	default:
+		if result, ok := m.askResults[query]; ok {
+			return result, nil
+		}
+		return true, nil
 	}
-	return true, nil
 }
 
 func (m *MockSPARQLExecutor) ExecuteSelect(ctx context.Context, query string) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"results": map[string]interface{}{
-			"bindings": []map[string]interface{}{},
-		},
-	}, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return map[string]interface{}{
+			"results": map[string]interface{}{
+				"bindings": []map[string]interface{}{},
+			},
+		}, nil
+	}
 }
 
 // MockRDFStore implements RDFStore for testing
 type MockRDFStore struct {
+	mu            sync.Mutex
 	storedTriples map[string]string
 	tripleCounts  map[string]int
 }
 
 func (m *MockRDFStore) StoreTriples(ctx context.Context, turtleData string) error {
-	m.storedTriples["last"] = turtleData
-	return nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		m.mu.Lock()
+		m.storedTriples["last"] = turtleData
+		m.mu.Unlock()
+		return nil
+	}
 }
 
 func (m *MockRDFStore) QueryTriples(ctx context.Context, query string) (int, error) {
-	return 42, nil // Default: return 42 triples
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		return 42, nil // Default: return 42 triples
+	}
 }
 
 func (m *MockRDFStore) DeleteTriples(ctx context.Context, pattern string) error {
-	return nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (m *MockRDFStore) GetTriplesForEntity(ctx context.Context, entityURI string) (int, error) {
-	if count, ok := m.tripleCounts[entityURI]; ok {
-		return count, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		m.mu.Lock()
+		count, ok := m.tripleCounts[entityURI]
+		m.mu.Unlock()
+		if ok {
+			return count, nil
+		}
+		return 15, nil // Default: 15 triples per entity
 	}
-	return 15, nil // Default: 15 triples per entity
 }
 
 // MockAuditLogger implements AuditLogger for testing
 type MockAuditLogger struct {
+	mu            sync.Mutex
 	loggedEntries []PHIAuditEntry
 }
 
 func (m *MockAuditLogger) LogAccess(ctx context.Context, entry PHIAuditEntry) error {
-	m.loggedEntries = append(m.loggedEntries, entry)
-	return nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		m.mu.Lock()
+		m.loggedEntries = append(m.loggedEntries, entry)
+		m.mu.Unlock()
+		return nil
+	}
 }
 
 func (m *MockAuditLogger) GetAuditTrail(ctx context.Context, patientID string, lastNDays int) ([]PHIAuditEntry, error) {
-	now := time.Now()
-	entries := []PHIAuditEntry{
-		{
-			Timestamp:    now.AddDate(0, 0, -5),
-			Actor:        "doctor@example.com",
-			Action:       "read",
-			ResourceID:   "obs-123",
-			ResourceType: "Observation",
-			Details:      "Patient BP reading",
-		},
-		{
-			Timestamp:    now.AddDate(0, 0, -3),
-			Actor:        "nurse@example.com",
-			Action:       "update",
-			ResourceID:   "med-456",
-			ResourceType: "MedicationRequest",
-			Details:      "Prescription update",
-		},
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		now := time.Now()
+		entries := []PHIAuditEntry{
+			{
+				Timestamp:    now.AddDate(0, 0, -5),
+				Actor:        "doctor@example.com",
+				Action:       "read",
+				ResourceID:   "obs-123",
+				ResourceType: "Observation",
+				Details:      "Patient BP reading",
+			},
+			{
+				Timestamp:    now.AddDate(0, 0, -3),
+				Actor:        "nurse@example.com",
+				Action:       "update",
+				ResourceID:   "med-456",
+				ResourceType: "MedicationRequest",
+				Details:      "Prescription update",
+			},
+		}
+		return entries, nil
 	}
-	return entries, nil
 }
 
 func (m *MockAuditLogger) VerifyAuditIntegrity(ctx context.Context, entries []PHIAuditEntry) (bool, error) {
@@ -261,18 +325,36 @@ type MockSPARQLExecutorDenyConsent struct {
 }
 
 func (m *MockSPARQLExecutorDenyConsent) ExecuteConstruct(ctx context.Context, query string) (string, error) {
-	if result, ok := m.constructResults[query]; ok {
-		return result, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		if result, ok := m.constructResults[query]; ok {
+			return result, nil
+		}
+		return ``, nil
 	}
-	return ``, nil
 }
 
 func (m *MockSPARQLExecutorDenyConsent) ExecuteAsk(ctx context.Context, query string) (bool, error) {
-	return false, nil // Always deny consent
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err()
+	default:
+		return false, nil // Always deny consent
+	}
 }
 
 func (m *MockSPARQLExecutorDenyConsent) ExecuteSelect(ctx context.Context, query string) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return map[string]interface{}{}, nil
+	}
 }
 
 // TestVerifyConsent_Denied tests consent verification when consent is denied.
@@ -375,35 +457,77 @@ type MockRDFStoreFullyDeleted struct {
 }
 
 func (m *MockRDFStoreFullyDeleted) StoreTriples(ctx context.Context, turtleData string) error {
-	m.storedTriples["last"] = turtleData
-	return nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		m.storedTriples["last"] = turtleData
+		return nil
+	}
 }
 
 func (m *MockRDFStoreFullyDeleted) QueryTriples(ctx context.Context, query string) (int, error) {
-	return 0, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		return 0, nil
+	}
 }
 
 func (m *MockRDFStoreFullyDeleted) DeleteTriples(ctx context.Context, pattern string) error {
-	return nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }
 
 func (m *MockRDFStoreFullyDeleted) GetTriplesForEntity(ctx context.Context, entityURI string) (int, error) {
-	return 0, nil // No triples left
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return 0, ctx.Err()
+	default:
+		return 0, nil // No triples left
+	}
 }
 
 // MockSPARQLExecutorDeleted returns false for entity existence
 type MockSPARQLExecutorDeleted struct{}
 
 func (m *MockSPARQLExecutorDeleted) ExecuteConstruct(ctx context.Context, query string) (string, error) {
-	return ``, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return ``, nil
+	}
 }
 
 func (m *MockSPARQLExecutorDeleted) ExecuteAsk(ctx context.Context, query string) (bool, error) {
-	return false, nil // Entity no longer exists
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err()
+	default:
+		return false, nil // Entity no longer exists
+	}
 }
 
 func (m *MockSPARQLExecutorDeleted) ExecuteSelect(ctx context.Context, query string) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return map[string]interface{}{}, nil
+	}
 }
 
 // TestCheckDeletion_FullyDeleted tests deletion verification when resource is fully deleted.
@@ -512,15 +636,33 @@ func TestVerifyHIPAA_Compliant(t *testing.T) {
 type MockSPARQLExecutorNonCompliant struct{}
 
 func (m *MockSPARQLExecutorNonCompliant) ExecuteConstruct(ctx context.Context, query string) (string, error) {
-	return ``, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	default:
+		return ``, nil
+	}
 }
 
 func (m *MockSPARQLExecutorNonCompliant) ExecuteAsk(ctx context.Context, query string) (bool, error) {
-	return false, nil // All checks fail
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return false, ctx.Err()
+	default:
+		return false, nil // All checks fail
+	}
 }
 
 func (m *MockSPARQLExecutorNonCompliant) ExecuteSelect(ctx context.Context, query string) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	// Armstrong compliance: respect context deadline
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return map[string]interface{}{}, nil
+	}
 }
 
 // TestVerifyHIPAA_NonCompliant tests HIPAA compliance check when audit logging fails.

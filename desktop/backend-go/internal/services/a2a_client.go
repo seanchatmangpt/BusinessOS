@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -71,13 +72,22 @@ type AgentConnection struct {
 // It follows Google's A2A specification for agent discovery, task
 // submission, and tool execution over HTTP.
 type A2AClient struct {
-	httpClient *http.Client
-	agents     map[string]*AgentConnection
-	mu         sync.RWMutex
+	httpClient  *http.Client
+	agents      map[string]*AgentConnection
+	mu          sync.RWMutex
+	bypassSSRF  bool // set true only in tests to allow loopback httptest servers
 }
 
 // NewA2AClient creates a new A2A client with sensible defaults.
 func NewA2AClient() *A2AClient {
+	// Get max connections from environment variable with intelligent defaults
+	// Production: 20 connections per host for high concurrency
+	// Development: 5 connections per host for local testing
+	maxConnsPerHost := getEnvInt("A2A_MAX_CONNS", 5)
+	if env := os.Getenv("ENVIRONMENT"); env == "production" {
+		maxConnsPerHost = getEnvInt("A2A_MAX_CONNS", 20)
+	}
+
 	return &A2AClient{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -85,12 +95,20 @@ func NewA2AClient() *A2AClient {
 				MaxIdleConns:        10,
 				IdleConnTimeout:     5 * time.Minute,
 				DisableCompression:  false,
-				MaxConnsPerHost:     5,
-				MaxIdleConnsPerHost: 5,
+				MaxConnsPerHost:     maxConnsPerHost, // Scale via A2A_MAX_CONNS (default: 5 dev, 20 prod)
+				MaxIdleConnsPerHost: maxConnsPerHost,
 			},
 		},
 		agents: make(map[string]*AgentConnection),
 	}
+}
+
+// NewA2AClientForTest creates an A2A client with SSRF validation disabled.
+// Use only in tests where httptest.Server (loopback) URLs are needed.
+func NewA2AClientForTest() *A2AClient {
+	c := NewA2AClient()
+	c.bypassSSRF = true
+	return c
 }
 
 // ---------------------------------------------------------------------------
@@ -102,8 +120,10 @@ func NewA2AClient() *A2AClient {
 func (c *A2AClient) DiscoverAgent(ctx context.Context, agentURL string) (*AgentCard, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	// A2A spec: GET the agent URL to retrieve the AgentCard
@@ -157,8 +177,10 @@ func (c *A2AClient) DiscoverAgent(ctx context.Context, agentURL string) (*AgentC
 func (c *A2AClient) CallAgent(ctx context.Context, agentURL string, message string) (*Task, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	taskURL := agentURL + "/tasks"
@@ -215,8 +237,10 @@ func (c *A2AClient) CallAgent(ctx context.Context, agentURL string, message stri
 func (c *A2AClient) GetAgentTools(ctx context.Context, agentURL string) ([]A2ATool, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	toolsURL := agentURL + "/tools"
@@ -260,8 +284,10 @@ func (c *A2AClient) GetAgentTools(ctx context.Context, agentURL string) ([]A2ATo
 func (c *A2AClient) ExecuteAgentTool(ctx context.Context, agentURL string, toolName string, args map[string]any) (any, error) {
 	agentURL = strings.TrimRight(agentURL, "/")
 
-	if err := ValidateA2AAgentURL(agentURL); err != nil {
-		return nil, fmt.Errorf("invalid agent URL: %w", err)
+	if !c.bypassSSRF {
+		if err := ValidateA2AAgentURL(agentURL); err != nil {
+			return nil, fmt.Errorf("invalid agent URL: %w", err)
+		}
 	}
 
 	toolURL := fmt.Sprintf("%s/tools/%s", agentURL, url.PathEscape(toolName))
@@ -390,3 +416,4 @@ func ValidateA2AAgentURL(rawURL string) error {
 
 	return nil
 }
+

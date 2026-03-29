@@ -508,4 +508,3 @@ func (h *Handler) SyncRecords(c *gin.Context) {
 		"synced":  synced,
 	})
 }
-

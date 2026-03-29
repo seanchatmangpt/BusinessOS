@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestNewComplianceEngine(t *testing.T) {
@@ -197,41 +198,35 @@ func TestConcurrentVerifications(t *testing.T) {
 	engine, err := NewComplianceEngine("/tmp/ontology.ttl", logger)
 	require.NoError(t, err)
 
-	ctx := context.Background()
-	err = engine.Initialize(ctx)
+	baseCtx := context.Background()
+	err = engine.Initialize(baseCtx)
 	require.NoError(t, err)
 
-	done := make(chan bool)
+	// Bounded context: all goroutines must complete within 60 seconds.
+	ctx, cancel := context.WithTimeout(baseCtx, 60*time.Second)
+	defer cancel()
 
-	// Launch concurrent verifications
-	go func() {
-		_, err := engine.VerifySOC2(ctx)
-		assert.NoError(t, err)
-		done <- true
-	}()
+	g, gctx := errgroup.WithContext(ctx)
 
-	go func() {
-		_, err := engine.VerifyGDPR(ctx)
-		assert.NoError(t, err)
-		done <- true
-	}()
+	// Launch concurrent verifications via errgroup for bounded, error-propagating concurrency.
+	g.Go(func() error {
+		_, err := engine.VerifySOC2(gctx)
+		return err
+	})
+	g.Go(func() error {
+		_, err := engine.VerifyGDPR(gctx)
+		return err
+	})
+	g.Go(func() error {
+		_, err := engine.VerifyHIPAA(gctx)
+		return err
+	})
+	g.Go(func() error {
+		_, err := engine.VerifySOX(gctx)
+		return err
+	})
 
-	go func() {
-		_, err := engine.VerifyHIPAA(ctx)
-		assert.NoError(t, err)
-		done <- true
-	}()
-
-	go func() {
-		_, err := engine.VerifySOX(ctx)
-		assert.NoError(t, err)
-		done <- true
-	}()
-
-	// Wait for all goroutines
-	for i := 0; i < 4; i++ {
-		<-done
-	}
+	assert.NoError(t, g.Wait())
 }
 
 func TestFrameworkControlsRetrieval(t *testing.T) {

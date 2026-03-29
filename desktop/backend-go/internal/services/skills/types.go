@@ -44,12 +44,12 @@ type SkillExample struct {
 
 // SkillMetadata provides additional information about a skill
 type SkillMetadata struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Version     string        `json:"version,omitempty"`
-	Author      string        `json:"author,omitempty"`
-	Tags        []string      `json:"tags,omitempty"`
-	Schema      *SkillSchema  `json:"schema,omitempty"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Version     string       `json:"version,omitempty"`
+	Author      string       `json:"author,omitempty"`
+	Tags        []string     `json:"tags,omitempty"`
+	Schema      *SkillSchema `json:"schema,omitempty"`
 }
 
 // SkillExecutionResult wraps the result of skill execution with metadata

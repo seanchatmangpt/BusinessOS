@@ -32,11 +32,11 @@ func NewProvenanceHandler(sparqlClient *ontology.SPARQLClient, logger *slog.Logg
 
 // ProvenanceLineageResponse represents the lineage for an artifact.
 type ProvenanceLineageResponse struct {
-	ArtifactID string              `json:"artifact_id"`
-	ArtifactName string            `json:"artifact_name"`
-	Origins    []ProvenanceEntity `json:"origins"`
-	Derivations []ProvenanceEntity `json:"derivations"`
-	Agents     []ProvenanceAgent  `json:"agents"`
+	ArtifactID   string             `json:"artifact_id"`
+	ArtifactName string             `json:"artifact_name"`
+	Origins      []ProvenanceEntity `json:"origins"`
+	Derivations  []ProvenanceEntity `json:"derivations"`
+	Agents       []ProvenanceAgent  `json:"agents"`
 }
 
 // ProvenanceEntity represents an entity in the provenance chain.
@@ -159,11 +159,11 @@ WHERE {
 // parseProvenanceResult parses SPARQL SELECT results into ProvenanceLineageResponse.
 func parseProvenanceResult(data []byte, artifactID string) ProvenanceLineageResponse {
 	return ProvenanceLineageResponse{
-		ArtifactID:  artifactID,
+		ArtifactID:   artifactID,
 		ArtifactName: artifactID,
-		Origins:     make([]ProvenanceEntity, 0),
-		Derivations: make([]ProvenanceEntity, 0),
-		Agents:      make([]ProvenanceAgent, 0),
+		Origins:      make([]ProvenanceEntity, 0),
+		Derivations:  make([]ProvenanceEntity, 0),
+		Agents:       make([]ProvenanceAgent, 0),
 	}
 }
 

@@ -24,7 +24,7 @@ const (
 type Command struct {
 	ID               uuid.UUID         `json:"id"`
 	UserID           string            `json:"user_id"`
-	Trigger          string            `json:"trigger"`           // e.g., "/review"
+	Trigger          string            `json:"trigger"` // e.g., "/review"
 	DisplayName      string            `json:"display_name"`
 	Description      string            `json:"description"`
 	ActionType       CommandActionType `json:"action_type"`
@@ -363,12 +363,12 @@ func (s *CommandService) getBuiltInCommands() []Command {
 			IsSystem:         true,
 		},
 		{
-			ID:               uuid.MustParse("00000000-0000-0000-0001-000000000004"),
-			UserID:           "SYSTEM",
-			Trigger:          "/summarize",
-			DisplayName:      "Summarize",
-			Description:      "Summarize the conversation",
-			ActionType:       CommandActionTemplate,
+			ID:          uuid.MustParse("00000000-0000-0000-0001-000000000004"),
+			UserID:      "SYSTEM",
+			Trigger:     "/summarize",
+			DisplayName: "Summarize",
+			Description: "Summarize the conversation",
+			ActionType:  CommandActionTemplate,
 			PromptTemplate: `Please provide a concise summary of this conversation, highlighting:
 1. Key topics discussed
 2. Decisions made

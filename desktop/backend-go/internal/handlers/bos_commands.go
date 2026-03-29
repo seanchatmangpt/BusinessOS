@@ -35,13 +35,13 @@ type CommandInvokeRequest struct {
 
 // CommandInvokeResponse represents the result of a command invocation.
 type CommandInvokeResponse struct {
-	Status      string          `json:"status"`
-	Command     string          `json:"command"`
-	Output      json.RawMessage `json:"output"`
-	ErrorMsg    string          `json:"error,omitempty"`
-	DurationMs  int64           `json:"duration_ms"`
-	Timestamp   string          `json:"timestamp"`
-	ExitCode    int             `json:"exit_code"`
+	Status     string          `json:"status"`
+	Command    string          `json:"command"`
+	Output     json.RawMessage `json:"output"`
+	ErrorMsg   string          `json:"error,omitempty"`
+	DurationMs int64           `json:"duration_ms"`
+	Timestamp  string          `json:"timestamp"`
+	ExitCode   int             `json:"exit_code"`
 }
 
 // NewBOSCommandInvoker creates a new BOS command invoker.
@@ -273,9 +273,9 @@ func (inv *BOSCommandInvoker) InvokeQualityCheck(c *gin.Context) {
 // InvokeFingerprint invokes fingerprint calculation.
 func (inv *BOSCommandInvoker) InvokeFingerprint(c *gin.Context) {
 	type FPRequest struct {
-		LogPath        string `json:"log_path" binding:"required"`
-		BaselineModel  string `json:"baseline_model,omitempty"`
-		Format         string `json:"format,omitempty"`
+		LogPath       string `json:"log_path" binding:"required"`
+		BaselineModel string `json:"baseline_model,omitempty"`
+		Format        string `json:"format,omitempty"`
 	}
 
 	var req FPRequest
@@ -289,8 +289,8 @@ func (inv *BOSCommandInvoker) InvokeFingerprint(c *gin.Context) {
 	cmd := CommandInvokeRequest{
 		Command: "fingerprint",
 		Arguments: map[string]interface{}{
-			"log_path":        req.LogPath,
-			"baseline_model":  req.BaselineModel,
+			"log_path":       req.LogPath,
+			"baseline_model": req.BaselineModel,
 		},
 		Format: req.Format,
 	}
@@ -307,10 +307,10 @@ func (inv *BOSCommandInvoker) InvokeFingerprint(c *gin.Context) {
 // InvokeVariability invokes variability analysis.
 func (inv *BOSCommandInvoker) InvokeVariability(c *gin.Context) {
 	type VarRequest struct {
-		LogPath            string  `json:"log_path" binding:"required"`
-		BaselineVariant    string  `json:"baseline_variant,omitempty"`
-		VarianceThreshold  float64 `json:"variance_threshold,omitempty"`
-		Format             string  `json:"format,omitempty"`
+		LogPath           string  `json:"log_path" binding:"required"`
+		BaselineVariant   string  `json:"baseline_variant,omitempty"`
+		VarianceThreshold float64 `json:"variance_threshold,omitempty"`
+		Format            string  `json:"format,omitempty"`
 	}
 
 	var req VarRequest
@@ -361,10 +361,10 @@ func (inv *BOSCommandInvoker) InvokeOrgEvolution(c *gin.Context) {
 	cmd := CommandInvokeRequest{
 		Command: "org_evolution",
 		Arguments: map[string]interface{}{
-			"log_path":     req.LogPath,
-			"start_date":   req.StartDate,
-			"end_date":     req.EndDate,
-			"granularity":  req.Granularity,
+			"log_path":    req.LogPath,
+			"start_date":  req.StartDate,
+			"end_date":    req.EndDate,
+			"granularity": req.Granularity,
 		},
 		Format: req.Format,
 	}
@@ -398,9 +398,9 @@ func (inv *BOSCommandInvoker) InvokeVariantAnalysis(c *gin.Context) {
 	cmd := CommandInvokeRequest{
 		Command: "variant_analysis",
 		Arguments: map[string]interface{}{
-			"log_path":              req.LogPath,
-			"top_n":                 req.TopN,
-			"similarity_threshold":  req.SimilarityThreshold,
+			"log_path":             req.LogPath,
+			"top_n":                req.TopN,
+			"similarity_threshold": req.SimilarityThreshold,
 		},
 		Format: req.Format,
 	}
@@ -444,10 +444,10 @@ func (inv *BOSCommandInvoker) InvokeExportModel(c *gin.Context) {
 	cmd := CommandInvokeRequest{
 		Command: "export_model",
 		Arguments: map[string]interface{}{
-			"source_id":      req.SourceID,
-			"output_path":    req.OutputPath,
-			"format":         req.Format,
-			"with_metadata":  req.WithMetadata,
+			"source_id":     req.SourceID,
+			"output_path":   req.OutputPath,
+			"format":        req.Format,
+			"with_metadata": req.WithMetadata,
 		},
 		Format: "json",
 	}

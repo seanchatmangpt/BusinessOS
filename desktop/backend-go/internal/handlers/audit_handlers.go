@@ -107,9 +107,9 @@ func (h *AuditHandler) VerifyChainIntegrity(c *gin.Context) {
 	verificationTimeMs := time.Since(startTime).Milliseconds()
 
 	c.JSON(http.StatusOK, gin.H{
-		"is_valid":            isValid,
-		"issues":              issues,
-		"verified_entries":    req.ToSequence - req.FromSequence + 1,
+		"is_valid":             isValid,
+		"issues":               issues,
+		"verified_entries":     req.ToSequence - req.FromSequence + 1,
 		"verification_time_ms": verificationTimeMs,
 	})
 }
@@ -163,7 +163,7 @@ func (h *AuditHandler) ExportAuditLogs(c *gin.Context) {
 
 	if req.Format == "csv" {
 		c.Header("Content-Type", "text/csv")
-		c.Header("Content-Disposition", 
+		c.Header("Content-Disposition",
 			fmt.Sprintf("attachment; filename=\"audit_%s.csv\"", time.Now().Format("2006-01-02")))
 
 		writer := csv.NewWriter(c.Writer)
@@ -260,8 +260,8 @@ func (h *AuditHandler) UpdateRetention(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"updated_events":    len(req.EventIDs),
-		"action":            req.Action,
+		"updated_events":     len(req.EventIDs),
+		"action":             req.Action,
 		"legal_hold_applied": req.Action == "legal_hold_apply",
 	})
 }

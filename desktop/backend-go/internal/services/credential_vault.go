@@ -251,7 +251,9 @@ func (s *CredentialVaultService) GetCredential(ctx context.Context, userID, prov
 
 	// Update last used timestamp (async, don't fail on error)
 	go func() {
-		_ = queries.UpdateCredentialLastUsed(context.Background(), sqlc.UpdateCredentialLastUsedParams{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = queries.UpdateCredentialLastUsed(ctx, sqlc.UpdateCredentialLastUsedParams{
 			UserID:     userID,
 			ProviderID: providerID,
 		})

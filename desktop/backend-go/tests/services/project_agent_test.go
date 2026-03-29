@@ -446,4 +446,3 @@ func TestProjectAgentBurndownCalculation(t *testing.T) {
 		t.Logf("Burndown has %d daily data points (expected ~7)", len(burndown.DailyProgress))
 	}
 }
-

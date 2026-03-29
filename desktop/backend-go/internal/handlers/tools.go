@@ -37,14 +37,14 @@ type ToolsListResponse struct {
 
 // Tool represents a tool in the registry.
 type Tool struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	Category    string            `json:"category"` // data, integration, workflow, etc.
-	Version     string            `json:"version"`
-	Endpoint    string            `json:"endpoint"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Category    string                 `json:"category"` // data, integration, workflow, etc.
+	Version     string                 `json:"version"`
+	Endpoint    string                 `json:"endpoint"`
 	Parameters  map[string]interface{} `json:"parameters"`
-	Status      string            `json:"status"` // available, deprecated, beta
+	Status      string                 `json:"status"` // available, deprecated, beta
 }
 
 // ListTools returns all available tools from the registry.

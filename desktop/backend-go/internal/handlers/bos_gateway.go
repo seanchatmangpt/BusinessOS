@@ -6,13 +6,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -22,14 +25,23 @@ import (
 	semconv "github.com/rhl/businessos-backend/internal/semconv"
 )
 
+// pm4py-rust HTTP routes (see pm4py-rust/src/http/businessos_api.rs).
+const (
+	pm4pyPathDiscoveryAlpha         = "/api/discovery/alpha"
+	pm4pyPathConformanceTokenReplay = "/api/conformance/token-replay"
+	pm4pyPathStatistics            = "/api/statistics"
+	pm4pyPathParseXES              = "/api/io/parse-xes"
+)
+
 // BOSGatewayHandler handles BOS CLI ↔ BusinessOS API gateway operations.
 type BOSGatewayHandler struct {
-	pool       *pgxpool.Pool
-	logger     *slog.Logger
-	stats      *GatewayStatistics
-	mu         sync.RWMutex
-	pm4pyURL   string
-	httpClient *http.Client
+	pool             *pgxpool.Pool
+	logger           *slog.Logger
+	stats            *GatewayStatistics
+	mu               sync.RWMutex
+	pm4pyURL         string
+	canopyWebhookURL string
+	httpClient       *http.Client
 }
 
 // GatewayStatistics tracks gateway metrics.
@@ -55,6 +67,9 @@ func NewBOSGatewayHandler(pool *pgxpool.Pool, logger *slog.Logger) *BOSGatewayHa
 		pm4pyURL = envURL
 	}
 
+	canopyWebhookURL := os.Getenv("CANOPY_WEBHOOK_URL")
+	// No default — empty string disables the feature
+
 	return &BOSGatewayHandler{
 		pool:   pool,
 		logger: logger,
@@ -62,7 +77,8 @@ func NewBOSGatewayHandler(pool *pgxpool.Pool, logger *slog.Logger) *BOSGatewayHa
 			StartedAt:     time.Now(),
 			LatencyValues: make([]uint64, 0),
 		},
-		pm4pyURL: pm4pyURL,
+		pm4pyURL:         pm4pyURL,
+		canopyWebhookURL: canopyWebhookURL,
 		// ## Backpressure: HTTP Client Timeout (WvdA deadlock-free)
 		// 30-second timeout prevents unbounded hangs to pm4py-rust.
 		// otelhttp.NewTransport wraps the default transport so that outbound
@@ -209,9 +225,9 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 		"algorithm", req.Algorithm,
 	)
 
-	// Read event log file and validate JSON before forwarding to pm4py-rust.
+	// Read event log (JSON on disk, or XES forwarded to pm4py-rust for parsing).
 	// pm4py-rust expects {event_log: <JSON content>, variant: <string>}.
-	eventLog, err := readEventLog(req.LogPath)
+	eventLog, err := h.loadEventLogForGateway(c.Request.Context(), req.LogPath)
 	if err != nil {
 		h.logger.Warn("discover: failed to read event log file",
 			"log_path", req.LogPath,
@@ -239,7 +255,7 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 	}
 
 	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+"/discover", bytes.NewReader(pm4pyReqBody))
+		h.pm4pyURL+pm4pyPathDiscoveryAlpha, bytes.NewReader(pm4pyReqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 	// Forward correlation_id to pm4py-rust so the full chain shares one ID.
 	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
@@ -279,24 +295,36 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 		return
 	}
 
-	// Build response from pm4py-rust data
 	modelData, _ := json.Marshal(pm4pyResp)
-	transitions := 0
-	if t, ok := pm4pyResp["transitions"].(float64); ok {
-		transitions = int(t)
+
+	modelID := uuid.New().String()
+	if mid, ok := pm4pyResp["model_id"].(string); ok && mid != "" {
+		modelID = mid
 	}
-	places := 0
-	if p, ok := pm4pyResp["transitions"].(float64); ok {
-		places = int(p) // Approximation: use transitions as places
+	algo := req.Algorithm
+	if a, ok := pm4pyResp["algorithm"].(string); ok && a != "" {
+		algo = a
 	}
 
-	modelID := fmt.Sprintf("%v", pm4pyResp["model_id"])
+	places, transitions, arcs := 0, 0, 0
+	if pn, ok := pm4pyResp["petri_net"].(map[string]interface{}); ok {
+		if pl, ok := pn["places"].([]interface{}); ok {
+			places = len(pl)
+		}
+		if tr, ok := pn["transitions"].([]interface{}); ok {
+			transitions = len(tr)
+		}
+		if ar, ok := pn["arcs"].([]interface{}); ok {
+			arcs = len(ar)
+		}
+	}
+
 	response := BOSDiscoverResponse{
 		ModelID:     modelID,
-		Algorithm:   req.Algorithm,
+		Algorithm:   algo,
 		Places:      places,
 		Transitions: transitions,
-		Arcs:        transitions + 2, // Approximation
+		Arcs:        arcs,
 		ModelData:   json.RawMessage(modelData),
 		LatencyMs:   uint64(time.Since(startTime).Milliseconds()),
 	}
@@ -315,11 +343,19 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 		)
 	}
 
+	// Persist discovery result to process_discovery_results (non-fatal — WAL is durability guarantee)
+	if err := h.persistDiscoveryResult(c.Request.Context(), modelID, algo, &response); err != nil {
+		h.logger.Warn("discover: DB persist failed (non-fatal, WAL has the record)",
+			"model_id", modelID,
+			"error", err.Error(),
+		)
+	}
+
 	h.recordRequest(true, response.LatencyMs)
 	span.SetAttributes(
-		attribute.String("bos.model_id", response.ModelID),
-		attribute.String("bos.algorithm", response.Algorithm),
-		attribute.Int64("bos.latency_ms", int64(response.LatencyMs)),
+		semconv.BosGatewayModelId(response.ModelID),
+		semconv.BosGatewayAlgorithm(response.Algorithm),
+		semconv.BosGatewayLatencyMs(int64(response.LatencyMs)),
 	)
 	span.SetStatus(codes.Ok, "")
 	h.logger.Info("discover: completed successfully",
@@ -330,16 +366,24 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 	// ## Asynchronous Cleanup
 	// Schedule WAL cleanup after response is sent (5s delay allows client to confirm receipt).
 	// Non-blocking cleanup: if deletion fails, it's non-critical (duplicate results acceptable).
-	// Schedule WAL cleanup after response is sent
-	go func() {
-		time.Sleep(5 * time.Second)
-		if err := h.cleanupWAL(modelID); err != nil {
-			h.logger.Debug("discover: WAL cleanup failed (non-critical)",
-				"model_id", modelID,
-				"error", err.Error(),
-			)
+	// Schedule WAL cleanup after response is sent; context bounds goroutine lifetime.
+	go func(ctx context.Context) {
+		select {
+		case <-time.After(5 * time.Second):
+			if err := h.cleanupWAL(modelID); err != nil {
+				h.logger.Debug("discover: WAL cleanup failed (non-critical)",
+					"model_id", modelID,
+					"error", err.Error(),
+				)
+			}
+		case <-ctx.Done():
 		}
-	}()
+	}(c.Request.Context())
+
+	// Fire-and-forget: Canopy discovery webhook (WvdA: bounded, no leak)
+	if h.canopyWebhookURL != "" {
+		go h.sendCanopyWebhook(response.ModelID, response.Algorithm, response.Transitions)
+	}
 
 	c.JSON(http.StatusOK, response)
 }
@@ -373,8 +417,7 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 		"model_id", req.ModelID,
 	)
 
-	// Read event log file and validate JSON before forwarding to pm4py-rust.
-	eventLog, err := readEventLog(req.LogPath)
+	eventLog, err := h.loadEventLogForGateway(c.Request.Context(), req.LogPath)
 	if err != nil {
 		h.logger.Warn("conformance: failed to read event log file",
 			"log_path", req.LogPath,
@@ -388,7 +431,7 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 	// Resolve Petri net: prefer model_path file if provided, otherwise recover from WAL.
 	var petriNetRaw json.RawMessage
 	if req.ModelPath != "" {
-		petriNetRaw, err = readEventLog(req.ModelPath)
+		petriNetRaw, err = h.loadEventLogForGateway(c.Request.Context(), req.ModelPath)
 		if err != nil {
 			h.logger.Warn("conformance: failed to read model path file",
 				"model_path", req.ModelPath,
@@ -432,7 +475,7 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 	}
 
 	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+"/conformance", bytes.NewReader(pm4pyReqBody))
+		h.pm4pyURL+pm4pyPathConformanceTokenReplay, bytes.NewReader(pm4pyReqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
 		httpReq.Header.Set("X-Correlation-ID", correlationID)
@@ -471,30 +514,33 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 		return
 	}
 
-	// Build response from pm4py-rust data
-	tracesChecked := uint64(150)
+	tracesChecked := uint64(0)
 	if v, ok := pm4pyResp["traces_checked"].(float64); ok {
 		tracesChecked = uint64(v)
 	}
-	fittingTraces := uint64(144)
+	fittingTraces := uint64(0)
 	if v, ok := pm4pyResp["fitting_traces"].(float64); ok {
 		fittingTraces = uint64(v)
 	}
-	fitness := 0.96
+	fitness := 0.0
 	if v, ok := pm4pyResp["fitness"].(float64); ok {
 		fitness = v
 	}
-	precision := 0.92
+	precision := 0.0
 	if v, ok := pm4pyResp["precision"].(float64); ok {
 		precision = v
 	}
-	generalization := 0.88
+	generalization := 0.0
 	if v, ok := pm4pyResp["generalization"].(float64); ok {
 		generalization = v
 	}
-	simplicity := 0.91
+	simplicity := 0.0
 	if v, ok := pm4pyResp["simplicity"].(float64); ok {
 		simplicity = v
+	}
+	if isConf, ok := pm4pyResp["is_conformant"].(bool); ok && isConf && fittingTraces == 0 && tracesChecked == 0 {
+		fittingTraces = 1
+		tracesChecked = 1
 	}
 
 	response := BOSConformanceResponse{
@@ -507,10 +553,21 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 		LatencyMs:      uint64(time.Since(startTime).Milliseconds()),
 	}
 
+	// Update fitness in process_discovery_results (non-fatal — model_id may not exist yet)
+	if req.ModelID != "" {
+		if err := h.updateDiscoveryFitness(c.Request.Context(), req.ModelID, fitness, 0.0); err != nil {
+			h.logger.Warn("conformance: DB fitness update failed (non-fatal)",
+				"model_id", req.ModelID,
+				"error", err.Error(),
+			)
+		}
+	}
+
 	h.recordRequest(true, response.LatencyMs)
 	span.SetAttributes(
-		attribute.Float64("bos.fitness", response.Fitness),
-		attribute.Int64("bos.latency_ms", int64(response.LatencyMs)),
+		semconv.BosGatewayFitness(response.Fitness),
+		semconv.BosGatewayNumTraces(int64(response.TracesChecked)),
+		semconv.BosGatewayLatencyMs(int64(response.LatencyMs)),
 	)
 	span.SetStatus(codes.Ok, "")
 	h.logger.Info("conformance: completed successfully",
@@ -547,8 +604,7 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 
 	h.logger.Info("statistics: processing request", "log_path", req.LogPath)
 
-	// Read event log file and validate JSON before forwarding to pm4py-rust.
-	eventLog, err := readEventLog(req.LogPath)
+	eventLog, err := h.loadEventLogForGateway(c.Request.Context(), req.LogPath)
 	if err != nil {
 		h.logger.Warn("statistics: failed to read event log file",
 			"log_path", req.LogPath,
@@ -581,7 +637,7 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 	}
 
 	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+"/statistics", bytes.NewReader(pm4pyReqBody))
+		h.pm4pyURL+pm4pyPathStatistics, bytes.NewReader(pm4pyReqBody))
 	httpReq.Header.Set("Content-Type", "application/json")
 	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
 		httpReq.Header.Set("X-Correlation-ID", correlationID)
@@ -620,41 +676,35 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 		return
 	}
 
-	// Extract fields from pm4py-rust response
-	logName := "sample_log.xes"
-	if v, ok := pm4pyResp["log_name"].(string); ok {
+	logName := "event_log"
+	if v, ok := pm4pyResp["log_name"].(string); ok && v != "" {
 		logName = v
 	}
-	numTraces := 500
-	if v, ok := pm4pyResp["num_traces"].(float64); ok {
-		numTraces = int(v)
+	numTraces := intFromJSONFloat(pm4pyResp["trace_count"], 0)
+	numEvents := intFromJSONFloat(pm4pyResp["event_count"], 0)
+	numUniqueActivities := intFromJSONFloat(pm4pyResp["unique_activities"], 0)
+	if numTraces == 0 {
+		numTraces = intFromJSONFloat(pm4pyResp["num_traces"], 0)
 	}
-	numEvents := 2450
-	if v, ok := pm4pyResp["num_events"].(float64); ok {
-		numEvents = int(v)
+	if numEvents == 0 {
+		numEvents = intFromJSONFloat(pm4pyResp["num_events"], 0)
 	}
-	numUniqueActivities := 8
-	if v, ok := pm4pyResp["num_unique_activities"].(float64); ok {
-		numUniqueActivities = int(v)
+	if numUniqueActivities == 0 {
+		numUniqueActivities = intFromJSONFloat(pm4pyResp["num_unique_activities"], 0)
 	}
-	numVariants := 45
-	if v, ok := pm4pyResp["num_variants"].(float64); ok {
-		numVariants = int(v)
+	numVariants := intFromJSONFloat(pm4pyResp["variant_count"], 0)
+	if numVariants == 0 {
+		numVariants = intFromJSONFloat(pm4pyResp["num_variants"], 0)
 	}
-	avgTraceLength := 4.9
+	avgTraceLength := 0.0
 	if v, ok := pm4pyResp["avg_trace_length"].(float64); ok {
 		avgTraceLength = v
+	} else if numTraces > 0 {
+		avgTraceLength = float64(numEvents) / float64(numTraces)
 	}
-	minTraceLength := 2
-	if v, ok := pm4pyResp["min_trace_length"].(float64); ok {
-		minTraceLength = int(v)
-	}
-	maxTraceLength := 12
-	if v, ok := pm4pyResp["max_trace_length"].(float64); ok {
-		maxTraceLength = int(v)
-	}
+	minTraceLength := intFromJSONFloat(pm4pyResp["min_trace_length"], 0)
+	maxTraceLength := intFromJSONFloat(pm4pyResp["max_trace_length"], 0)
 
-	// Parse activity frequency
 	activityFreq := []BOSActivityStatistic{}
 	if freq, ok := pm4pyResp["activity_frequency"].([]interface{}); ok {
 		for _, item := range freq {
@@ -677,6 +727,28 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 					Percentage: percentage,
 				})
 			}
+		}
+	} else if af, ok := pm4pyResp["activity_frequencies"].(map[string]interface{}); ok {
+		total := 0
+		for _, v := range af {
+			if n, ok := v.(float64); ok {
+				total += int(n)
+			}
+		}
+		for act, v := range af {
+			freq := 0
+			if n, ok := v.(float64); ok {
+				freq = int(n)
+			}
+			pct := 0.0
+			if total > 0 {
+				pct = 100.0 * float64(freq) / float64(total)
+			}
+			activityFreq = append(activityFreq, BOSActivityStatistic{
+				Activity:   act,
+				Frequency:  freq,
+				Percentage: pct,
+			})
 		}
 	}
 
@@ -718,8 +790,8 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 
 	h.recordRequest(true, response.LatencyMs)
 	span.SetAttributes(
-		attribute.Int("bos.num_traces", response.NumTraces),
-		attribute.Int64("bos.latency_ms", int64(response.LatencyMs)),
+		semconv.BosGatewayNumTraces(int64(response.NumTraces)),
+		semconv.BosGatewayLatencyMs(int64(response.LatencyMs)),
 	)
 	span.SetStatus(codes.Ok, "")
 	h.logger.Info("statistics: completed successfully",
@@ -766,6 +838,109 @@ func (h *BOSGatewayHandler) GetStatus(c *gin.Context) {
 // ============================================================================
 // INTERNAL HELPERS
 // ============================================================================
+
+// sendCanopyWebhook fires a POST to the Canopy discovery webhook.
+// Called as a goroutine. Owns its own 10s context deadline — always exits.
+// Failure is logged but not propagated; this is an advisory notification.
+func (h *BOSGatewayHandler) sendCanopyWebhook(modelID, algorithm string, activitiesCount int) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	payload := map[string]interface{}{
+		"model_id":         modelID,
+		"algorithm":        algorithm,
+		"activities_count": activitiesCount,
+		"fitness_score":    -1.0, // -1.0 = not-yet-computed sentinel; updated after conformance check
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		h.logger.Error("canopy webhook: failed to marshal payload",
+			"model_id", modelID,
+			"error", err.Error(),
+		)
+		return
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		h.canopyWebhookURL, bytes.NewReader(body))
+	if err != nil {
+		h.logger.Error("canopy webhook: failed to build request",
+			"model_id", modelID,
+			"error", err.Error(),
+		)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		h.logger.Warn("canopy webhook: POST failed (non-fatal)",
+			"model_id", modelID,
+			"canopy_url", h.canopyWebhookURL,
+			"error", err.Error(),
+		)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		h.logger.Warn("canopy webhook: non-2xx response (non-fatal)",
+			"model_id", modelID,
+			"status", resp.StatusCode,
+		)
+		return
+	}
+
+	h.logger.Info("canopy webhook: delivery confirmed",
+		"model_id", modelID,
+		"status", resp.StatusCode,
+	)
+}
+
+// loadEventLogForGateway loads a JSON event log from disk, or parses .xes via pm4py-rust.
+func (h *BOSGatewayHandler) loadEventLogForGateway(ctx context.Context, logPath string) (json.RawMessage, error) {
+	if logPath == "" {
+		return nil, fmt.Errorf("log_path is empty")
+	}
+	if strings.HasSuffix(strings.ToLower(logPath), ".xes") {
+		data, err := os.ReadFile(logPath)
+		if err != nil {
+			return nil, fmt.Errorf("read XES file %q: %w", logPath, err)
+		}
+		parseURL := strings.TrimSuffix(h.pm4pyURL, "/") + pm4pyPathParseXES
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, parseURL, bytes.NewReader(data))
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/xml")
+		resp, err := h.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("pm4py XES parse request: %w", err)
+		}
+		defer resp.Body.Close()
+		raw, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("pm4py XES parse returned %d: %s", resp.StatusCode, string(raw))
+		}
+		if !json.Valid(raw) {
+			return nil, fmt.Errorf("pm4py XES parse returned non-JSON")
+		}
+		return json.RawMessage(raw), nil
+	}
+	return readEventLog(logPath)
+}
+
+func intFromJSONFloat(v interface{}, def int) int {
+	f, ok := v.(float64)
+	if !ok {
+		return def
+	}
+	return int(f)
+}
 
 // readEventLog reads a file at logPath, validates it is valid JSON, and returns
 // the raw JSON bytes. Returns an error if the file cannot be read or is not
@@ -910,5 +1085,68 @@ func (h *BOSGatewayHandler) cleanupWAL(modelID string) error {
 		return fmt.Errorf("cleanup WAL file: %w", err)
 	}
 	h.logger.Debug("cleaned up WAL entry", "model_id", modelID)
+	return nil
+}
+
+// ============================================================================
+// PROCESS DISCOVERY RESULTS — DB PERSISTENCE (Phase 4c)
+// ============================================================================
+
+// persistDiscoveryResult inserts a new row into process_discovery_results with
+// fitness=-1.0 (the "not-yet-computed" sentinel). Called after WAL write in Discover.
+// Uses workspace_id=00000000-0000-0000-0000-000000000000 as a default placeholder;
+// ON CONFLICT DO NOTHING makes it idempotent for retried requests.
+// WvdA: 5s timeout — non-fatal, WAL is the durability guarantee.
+func (h *BOSGatewayHandler) persistDiscoveryResult(ctx context.Context, modelID, algo string, resp *BOSDiscoverResponse) error {
+	if h.pool == nil {
+		return fmt.Errorf("database pool unavailable")
+	}
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	rawResult, _ := json.Marshal(map[string]interface{}{
+		"model_id":    resp.ModelID,
+		"algorithm":   resp.Algorithm,
+		"places":      resp.Places,
+		"transitions": resp.Transitions,
+		"arcs":        resp.Arcs,
+		"latency_ms":  resp.LatencyMs,
+	})
+
+	_, err := h.pool.Exec(dbCtx, `
+		INSERT INTO process_discovery_results
+		    (workspace_id, model_id, algorithm, activities_count, fitness, raw_result)
+		VALUES
+		    ('00000000-0000-0000-0000-000000000000'::uuid, $1, $2, $3, -1.0, $4)
+		ON CONFLICT (workspace_id, model_id) DO NOTHING
+	`, modelID, algo, resp.Transitions, json.RawMessage(rawResult))
+	if err != nil {
+		return fmt.Errorf("persist discovery result: %w", err)
+	}
+	h.logger.Debug("discovery result persisted", "model_id", modelID, "algo", algo)
+	return nil
+}
+
+// updateDiscoveryFitness updates the fitness score for a model after conformance check.
+// fitness is in [0.0, 1.0]. avgCycleTimeHours is set to 0.0 when not available from
+// conformance response (the L0 sync job will fill it in from process_cases later).
+// WvdA: 5s timeout — non-fatal, conformance response is returned regardless.
+func (h *BOSGatewayHandler) updateDiscoveryFitness(ctx context.Context, modelID string, fitness, avgCycleTimeHours float64) error {
+	if h.pool == nil {
+		return fmt.Errorf("database pool unavailable")
+	}
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	_, err := h.pool.Exec(dbCtx, `
+		UPDATE process_discovery_results
+		SET fitness = $1, avg_cycle_time_hours = $2
+		WHERE workspace_id = '00000000-0000-0000-0000-000000000000'::uuid
+		  AND model_id = $3
+	`, fitness, avgCycleTimeHours, modelID)
+	if err != nil {
+		return fmt.Errorf("update discovery fitness: %w", err)
+	}
+	h.logger.Debug("discovery fitness updated", "model_id", modelID, "fitness", fitness)
 	return nil
 }

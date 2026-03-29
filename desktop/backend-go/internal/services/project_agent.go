@@ -34,26 +34,26 @@ type ProgressMetrics struct {
 
 // DailyReport represents a daily project status report
 type DailyReport struct {
-	ProjectID      string `json:"project_id"`
-	ProjectName    string `json:"project_name"`
-	GeneratedAt    string `json:"generated_at"`
-	MetricsSummary string `json:"metrics_summary"`
+	ProjectID      string   `json:"project_id"`
+	ProjectName    string   `json:"project_name"`
+	GeneratedAt    string   `json:"generated_at"`
+	MetricsSummary string   `json:"metrics_summary"`
 	KeyAlerts      []string `json:"key_alerts"`
 }
 
 // BurndownData represents burndown chart data
 type BurndownData struct {
-	ProjectID       string             `json:"project_id"`
-	DailyProgress   []DailyBurndownPoint `json:"daily_progress"`
-	ProjectedDays   int                `json:"projected_days"`
-	CompletionDate  string             `json:"completion_date"`
+	ProjectID      string               `json:"project_id"`
+	DailyProgress  []DailyBurndownPoint `json:"daily_progress"`
+	ProjectedDays  int                  `json:"projected_days"`
+	CompletionDate string               `json:"completion_date"`
 }
 
 // DailyBurndownPoint represents a single day's burndown
 type DailyBurndownPoint struct {
-	Date              string `json:"date"`
-	RemainingTasks    int    `json:"remaining_tasks"`
-	CompletedTasks    int    `json:"completed_tasks"`
+	Date              string  `json:"date"`
+	RemainingTasks    int     `json:"remaining_tasks"`
+	CompletedTasks    int     `json:"completed_tasks"`
 	CompletionPercent float64 `json:"completion_percent"`
 }
 

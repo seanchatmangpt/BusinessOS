@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"crypto/hmac"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -43,7 +45,7 @@ type DealCreateRequest struct {
 
 type DealCreateResponse struct {
 	Deal       map[string]interface{} `json:"deal"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type LeadUpdateRequest struct {
@@ -54,7 +56,7 @@ type LeadUpdateRequest struct {
 
 type LeadUpdateResponse struct {
 	Lead       map[string]interface{} `json:"lead"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type TaskAssignRequest struct {
@@ -65,7 +67,7 @@ type TaskAssignRequest struct {
 
 type TaskAssignResponse struct {
 	Task       map[string]interface{} `json:"task"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	AuditEntry *models.AuditEntry     `json:"audit_entry"`
 }
 
 type ProgressUpdateRequest struct {
@@ -76,8 +78,8 @@ type ProgressUpdateRequest struct {
 }
 
 type ProgressUpdateResponse struct {
-	Status     string                 `json:"status"`
-	AuditEntry *models.AuditEntry      `json:"audit_entry"`
+	Status     string             `json:"status"`
+	AuditEntry *models.AuditEntry `json:"audit_entry"`
 }
 
 type AuditQueryResponse struct {
@@ -92,20 +94,11 @@ type AuditQueryResponse struct {
 // requireSharedSecret middleware checks X-Shared-Secret header
 func (h *A2ARoutesHandler) requireSharedSecret() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		secret := c.GetHeader("X-Shared-Secret")
-		if secret == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "X-Shared-Secret header required",
-			})
+		if err := h.checkAuth(c); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			c.Abort()
 			return
 		}
-
-		// In production, validate against a secure config
-		if secret != "test-secret" && secret != "" {
-			// For testing, accept "test-secret"; in prod, check against env/vault
-		}
-
 		c.Next()
 	}
 }
@@ -364,11 +357,23 @@ func (h *A2ARoutesHandler) QueryAudit(c *gin.Context) {
 // Helper Methods
 // ============================================================================
 
-// checkAuth verifies shared secret authentication
+// checkAuth verifies shared secret authentication using constant-time comparison.
+// Reads expected secret from BOS_A2A_SHARED_SECRET env var.
+// In development (env var unset), logs a warning and allows any non-empty secret.
 func (h *A2ARoutesHandler) checkAuth(c *gin.Context) error {
 	secret := c.GetHeader("X-Shared-Secret")
 	if secret == "" {
 		return fmt.Errorf("X-Shared-Secret header required")
+	}
+	expected := os.Getenv("BOS_A2A_SHARED_SECRET")
+	if expected == "" {
+		// No secret configured — allow in dev mode, warn loudly
+		slog.Warn("BOS_A2A_SHARED_SECRET not set; skipping secret validation (dev mode only)")
+		return nil
+	}
+	// Constant-time comparison to prevent timing attacks
+	if !hmac.Equal([]byte(secret), []byte(expected)) {
+		return fmt.Errorf("invalid shared secret")
 	}
 	return nil
 }

@@ -144,9 +144,9 @@ func (w *WhisperService) Transcribe(ctx context.Context, audioData io.Reader, fo
 
 		ffmpegArgs := []string{
 			"-i", audioFile.Name(),
-			"-ar", "16000",  // 16kHz sample rate (optimal for whisper)
-			"-ac", "1",      // Mono
-			"-y",            // Overwrite
+			"-ar", "16000", // 16kHz sample rate (optimal for whisper)
+			"-ac", "1", // Mono
+			"-y", // Overwrite
 			wavFile,
 		}
 
@@ -170,7 +170,7 @@ func (w *WhisperService) Transcribe(ctx context.Context, audioData io.Reader, fo
 	args := []string{
 		"-m", w.modelPath,
 		"-f", inputFile,
-		"-otxt",         // Output as text
+		"-otxt",                               // Output as text
 		"-of", outputFile[:len(outputFile)-4], // Output file without extension
 	}
 

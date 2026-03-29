@@ -54,12 +54,12 @@ func TestGetBoardIntelligence_ReturnsJSON(t *testing.T) {
 		w.Header().Set("Content-Type", "application/sparql-results+json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(sparqlSelectJSON(map[string]string{
-			"orgHealthSummary":       "0.82",
-			"velocityTrend":          "improving",
-			"complianceStatus":       "compliant",
-			"issuesAutoResolved":     "12",
+			"orgHealthSummary":        "0.82",
+			"velocityTrend":           "improving",
+			"complianceStatus":        "compliant",
+			"issuesAutoResolved":      "12",
 			"issuesPendingEscalation": "2",
-			"derivationLevel":        "L3",
+			"derivationLevel":         "L3",
 		})))
 	}))
 	defer mockOxigraph.Close()

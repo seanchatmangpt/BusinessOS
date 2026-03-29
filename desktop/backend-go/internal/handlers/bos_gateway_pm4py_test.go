@@ -43,8 +43,8 @@ func startPM4PyMockServer(t *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Mock pm4py-rust received: %s %s", r.Method, r.URL.Path)
 
-		// Mock /discover endpoint — expects {event_log: JSON, variant: string}
-		if r.URL.Path == "/discover" && r.Method == "POST" {
+		// Mock pm4py-rust /api/discovery/alpha — expects {event_log: JSON, variant: string}
+		if r.URL.Path == pm4pyPathDiscoveryAlpha && r.Method == "POST" {
 			var req struct {
 				EventLog json.RawMessage `json:"event_log"`
 				Variant  string          `json:"variant"`
@@ -59,24 +59,25 @@ func startPM4PyMockServer(t *testing.T) *httptest.Server {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"model_id":     "petri_net_abc123",
-				"algorithm":    req.Variant,
-				"activities":   []string{"create_case", "assign_case", "process_case", "close_case"},
-				"transitions":  8,
-				"source_place": "start",
-				"sink_place":   "end",
-				"model_data": map[string]interface{}{
-					"type":       "petri_net",
-					"nodes":      5,
-					"edges":      12,
-					"activities": []string{"create_case", "assign_case", "process_case", "close_case"},
+				"model_id":  "petri_net_abc123",
+				"algorithm": req.Variant,
+				"activities": []interface{}{"create_case", "close_case"},
+				"petri_net": map[string]interface{}{
+					"places": []interface{}{
+						map[string]interface{}{"id": "p1", "name": "s", "initial_marking": 1},
+					},
+					"transitions": []interface{}{
+						map[string]interface{}{"id": "t1", "name": "a", "label": nil},
+					},
+					"arcs": []interface{}{
+						map[string]interface{}{"from": "p1", "to": "t1", "weight": 1},
+					},
 				},
 			})
 			return
 		}
 
-		// Mock /conformance endpoint — expects {event_log: JSON, petri_net: JSON, method: string}
-		if r.URL.Path == "/conformance" && r.Method == "POST" {
+		if r.URL.Path == pm4pyPathConformanceTokenReplay && r.Method == "POST" {
 			var req struct {
 				EventLog json.RawMessage `json:"event_log"`
 				PetriNet json.RawMessage `json:"petri_net"`
@@ -102,8 +103,7 @@ func startPM4PyMockServer(t *testing.T) *httptest.Server {
 			return
 		}
 
-		// Mock /statistics endpoint — expects {event_log: JSON, include_variants: bool, ...}
-		if r.URL.Path == "/statistics" && r.Method == "POST" {
+		if r.URL.Path == pm4pyPathStatistics && r.Method == "POST" {
 			var req struct {
 				EventLog               json.RawMessage `json:"event_log"`
 				IncludeVariants        bool            `json:"include_variants"`

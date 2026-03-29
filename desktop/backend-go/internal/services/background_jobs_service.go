@@ -23,21 +23,21 @@ type BackgroundJobsService struct {
 }
 
 type BackgroundJob struct {
-	ID            uuid.UUID              `json:"id"`
-	JobType       string                 `json:"job_type"`
-	Payload       map[string]interface{} `json:"payload"`
-	ScheduledAt   time.Time              `json:"scheduled_at"`
-	Priority      int                    `json:"priority"`
-	Status        string                 `json:"status"` // pending, running, completed, failed, cancelled
-	StartedAt     *time.Time             `json:"started_at,omitempty"`
-	CompletedAt   *time.Time             `json:"completed_at,omitempty"`
-	WorkerID      *string                `json:"worker_id,omitempty"`
-	LockedUntil   *time.Time             `json:"locked_until,omitempty"`
-	AttemptCount  int                    `json:"attempt_count"`
-	MaxAttempts   int                    `json:"max_attempts"`
-	LastError     *string                `json:"last_error,omitempty"`
-	Result        map[string]interface{} `json:"result,omitempty"`
-	CreatedAt     time.Time              `json:"created_at"`
+	ID           uuid.UUID              `json:"id"`
+	JobType      string                 `json:"job_type"`
+	Payload      map[string]interface{} `json:"payload"`
+	ScheduledAt  time.Time              `json:"scheduled_at"`
+	Priority     int                    `json:"priority"`
+	Status       string                 `json:"status"` // pending, running, completed, failed, cancelled
+	StartedAt    *time.Time             `json:"started_at,omitempty"`
+	CompletedAt  *time.Time             `json:"completed_at,omitempty"`
+	WorkerID     *string                `json:"worker_id,omitempty"`
+	LockedUntil  *time.Time             `json:"locked_until,omitempty"`
+	AttemptCount int                    `json:"attempt_count"`
+	MaxAttempts  int                    `json:"max_attempts"`
+	LastError    *string                `json:"last_error,omitempty"`
+	Result       map[string]interface{} `json:"result,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
 }
 
 type ScheduledJob struct {

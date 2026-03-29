@@ -6,9 +6,9 @@ import (
 
 func TestSanitizeForJSON(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		wantNot  []string // strings that should NOT appear in output
+		name    string
+		input   string
+		wantNot []string // strings that should NOT appear in output
 	}{
 		{
 			name:    "Event handler in img tag",
@@ -144,8 +144,7 @@ func TestContainsXSSPattern(t *testing.T) {
 
 // Helper function to check if string contains substring (case-insensitive would be better)
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (
-		s[:len(substr)] == substr ||
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr ||
 		s[len(s)-len(substr):] == substr ||
 		containsMiddle(s, substr)))
 }

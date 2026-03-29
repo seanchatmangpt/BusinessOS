@@ -4,8 +4,12 @@
 package osasdk
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 )
 
@@ -19,15 +23,15 @@ type Event struct {
 type EventType string
 
 const (
-	EventThinking       EventType = "thinking"
-	EventResponse      EventType = "response"
-	EventSkillStarted  EventType = "skill_started"
-	EventSkillCompleted EventType = "skill_completed"
-	EventSkillFailed    EventType = "skill_failed"
-	EventError         EventType = "error"
-	EventConnected     EventType = "connected"
-	EventSignal        EventType = "signal"
-	EventStreamingToken EventType = "streaming_token"
+	EventThinking        EventType = "thinking"
+	EventResponse        EventType = "response"
+	EventSkillStarted    EventType = "skill_started"
+	EventSkillCompleted  EventType = "skill_completed"
+	EventSkillFailed     EventType = "skill_failed"
+	EventError           EventType = "error"
+	EventConnected       EventType = "connected"
+	EventSignal          EventType = "signal"
+	EventStreamingToken  EventType = "streaming_token"
 )
 
 // Client is the OSA cloud client interface.
@@ -145,12 +149,12 @@ type GenerateFromTemplateRequest struct {
 
 // SwarmRequest initiates a multi-agent swarm
 type SwarmRequest struct {
-	Pattern    string                 `json:"pattern"`
-	Task       string                 `json:"task"`
-	Agents     []string               `json:"agents"`
-	Config     map[string]interface{} `json:"config,omitempty"`
-	MaxAgents  int                    `json:"max_agents,omitempty"`
-	SessionID  string                 `json:"session_id,omitempty"`
+	Pattern   string                 `json:"pattern"`
+	Task      string                 `json:"task"`
+	Agents    []string               `json:"agents"`
+	Config    map[string]interface{} `json:"config,omitempty"`
+	MaxAgents int                    `json:"max_agents,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
 }
 
 // SwarmResponse is returned from swarm launch
@@ -163,26 +167,26 @@ type SwarmResponse struct {
 
 // SwarmStatus contains the status of a swarm
 type SwarmStatus struct {
-	SwarmID    string                 `json:"swarm_id"`
-	Status     string                 `json:"status"`
-	Progress   int                    `json:"progress"`
-	Agents     []string               `json:"agents"`
-	Results    map[string]interface{} `json:"results,omitempty"`
-	Error      string                 `json:"error,omitempty"`
-	CreatedAt  time.Time              `json:"created_at"`
-	UpdatedAt  time.Time              `json:"updated_at"`
-	CompletedAt *time.Time            `json:"completed_at,omitempty"`
+	SwarmID     string                 `json:"swarm_id"`
+	Status      string                 `json:"status"`
+	Progress    int                    `json:"progress"`
+	Agents      []string               `json:"agents"`
+	Results     map[string]interface{} `json:"results,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 }
 
 // Instruction is sent to a fleet agent
 type Instruction struct {
-	ID         string                 `json:"id"`
-	Action     string                 `json:"action"`
-	Params     map[string]interface{} `json:"params"`
+	ID          string                 `json:"id"`
+	Action      string                 `json:"action"`
+	Params      map[string]interface{} `json:"params"`
 	SpecVersion string                 `json:"spec_version,omitempty"`
-	Type       string                 `json:"type,omitempty"`
-	Source     string                 `json:"source,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
+	Type        string                 `json:"type,omitempty"`
+	Source      string                 `json:"source,omitempty"`
+	Data        map[string]interface{} `json:"data,omitempty"`
 }
 
 // ToolDefinition describes an available tool
@@ -228,7 +232,7 @@ func (e *APIError) Error() string {
 	return e.ErrorCode
 }
 
-// NewLocalClient creates a new local OSA client
+// NewLocalClient creates a new local OSA client backed by real HTTP calls.
 func NewLocalClient(cfg LocalConfig) (Client, error) {
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = "http://localhost:8089"
@@ -237,16 +241,22 @@ func NewLocalClient(cfg LocalConfig) (Client, error) {
 		cfg.Timeout = 30 * time.Second
 	}
 	return &cloudClient{
-		baseURL: cfg.BaseURL,
-		timeout: cfg.Timeout,
+		baseURL:      cfg.BaseURL,
+		timeout:      cfg.Timeout,
+		sharedSecret: cfg.SharedSecret,
+		httpClient: &http.Client{
+			Timeout: cfg.Timeout,
+		},
 	}, nil
 }
 
-// cloudClient is a minimal HTTP-based implementation of the OSA client.
+// cloudClient is an HTTP-based implementation of the OSA client interface.
 type cloudClient struct {
-	apiKey  string
-	baseURL string
-	timeout time.Duration
+	apiKey       string
+	sharedSecret string
+	baseURL      string
+	timeout      time.Duration
+	httpClient   *http.Client
 }
 
 // NewCloudClient creates a new OSA cloud client.
@@ -265,113 +275,187 @@ func NewCloudClient(cfg CloudConfig) (Client, error) {
 		apiKey:  cfg.APIKey,
 		baseURL: cfg.BaseURL,
 		timeout: cfg.Timeout,
+		httpClient: &http.Client{
+			Timeout: cfg.Timeout,
+		},
 	}, nil
+}
+
+
+// doRequest performs an HTTP request and decodes the JSON response.
+// On non-2xx status it returns an *APIError.
+func (c *cloudClient) doRequest(ctx context.Context, method, path string, body interface{}, out interface{}) error {
+	var bodyReader io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("marshal request: %w", err)
+		}
+		bodyReader = bytes.NewReader(b)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bodyReader)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	} else if c.sharedSecret != "" {
+		// Local mode: use shared secret as bearer token so downstream tests/
+		// services can verify requests are from an authorised BOS instance.
+		req.Header.Set("Authorization", "Bearer "+c.sharedSecret)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// Try to extract error details from response body
+		var errResp struct {
+			Error   string `json:"error"`
+			Details string `json:"details"`
+			Code    string `json:"code"`
+		}
+		details := ""
+		if jsonErr := json.Unmarshal(respBody, &errResp); jsonErr == nil {
+			if errResp.Details != "" {
+				details = errResp.Details
+			} else if errResp.Error != "" {
+				details = errResp.Error
+			}
+		}
+		return &APIError{
+			StatusCode: resp.StatusCode,
+			ErrorCode:  fmt.Sprintf("HTTP %d", resp.StatusCode),
+			Details:    details,
+		}
+	}
+
+	if out != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, out); err != nil {
+			return fmt.Errorf("decode response: %w", err)
+		}
+	}
+	return nil
 }
 
 func (c *cloudClient) Health(ctx context.Context) (*HealthResponse, error) {
-	// In local mode (OSA_MODE=local), return a healthy status without
-	// making network calls. The cloud sync service handles mode checking.
-	return &HealthResponse{
-		Status:    "ok",
-		Version:   "local-stub",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}, nil
+	var result HealthResponse
+	if err := c.doRequest(ctx, http.MethodGet, "/health", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 func (c *cloudClient) Orchestrate(ctx context.Context, req OrchestrateRequest) (*OrchestrateResponse, error) {
-	// In local mode, return a mock response. The actual OSA integration
-	// happens via HTTP to localhost:9089, not through this SDK path.
-	return &OrchestrateResponse{
-		SessionID: fmt.Sprintf("local-manifest-%d", time.Now().Unix()),
-		Status:    "completed",
-	}, nil
+	var result OrchestrateResponse
+	if err := c.doRequest(ctx, http.MethodPost, "/api/v1/orchestrate", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// GenerateApp implementation
 func (c *cloudClient) GenerateApp(ctx context.Context, req AppGenerationRequest) (*AppGenerationResponse, error) {
-	return &AppGenerationResponse{
-		AppID:  fmt.Sprintf("app-%d", time.Now().Unix()),
-		Status: "generating",
-	}, nil
+	var result AppGenerationResponse
+	if err := c.doRequest(ctx, http.MethodPost, "/api/v1/generate", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// GetAppStatus implementation
 func (c *cloudClient) GetAppStatus(ctx context.Context, appID string) (*AppStatusResponse, error) {
-	return &AppStatusResponse{
-		AppID:  appID,
-		Status: "completed",
-	}, nil
+	var result AppStatusResponse
+	if err := c.doRequest(ctx, http.MethodGet, "/api/v1/apps/"+appID+"/status", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// GetWorkspaces implementation
 func (c *cloudClient) GetWorkspaces(ctx context.Context) (*WorkspacesResponse, error) {
-	return &WorkspacesResponse{
-		Workspaces: []Workspace{},
-		Total:      0,
-	}, nil
+	var result WorkspacesResponse
+	if err := c.doRequest(ctx, http.MethodGet, "/api/v1/workspaces", nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// GenerateAppFromTemplate implementation
 func (c *cloudClient) GenerateAppFromTemplate(ctx context.Context, req GenerateFromTemplateRequest) (*AppGenerationResponse, error) {
-	return &AppGenerationResponse{
-		AppID:  fmt.Sprintf("app-%d", time.Now().Unix()),
-		Status: "generating",
-	}, nil
+	var result AppGenerationResponse
+	if err := c.doRequest(ctx, http.MethodPost, "/api/v1/generate/template", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// Stream implementation
 func (c *cloudClient) Stream(ctx context.Context, sessionID string) (<-chan Event, error) {
 	ch := make(chan Event)
 	close(ch)
 	return ch, nil
 }
 
-// LaunchSwarm implementation
 func (c *cloudClient) LaunchSwarm(ctx context.Context, req SwarmRequest) (*SwarmResponse, error) {
-	return &SwarmResponse{
-		SwarmID: fmt.Sprintf("swarm-%d", time.Now().Unix()),
-		Status:  "running",
-		Started: time.Now(),
-	}, nil
+	var result SwarmResponse
+	if err := c.doRequest(ctx, http.MethodPost, "/api/v1/swarms", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// ListSwarms implementation
 func (c *cloudClient) ListSwarms(ctx context.Context) ([]SwarmStatus, error) {
-	return []SwarmStatus{}, nil
+	var result []SwarmStatus
+	if err := c.doRequest(ctx, http.MethodGet, "/api/v1/swarms", nil, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-// GetSwarm implementation
 func (c *cloudClient) GetSwarm(ctx context.Context, swarmID string) (*SwarmStatus, error) {
-	return &SwarmStatus{
-		SwarmID: swarmID,
-		Status:  "running",
-	}, nil
+	var result SwarmStatus
+	if err := c.doRequest(ctx, http.MethodGet, "/api/v1/swarms/"+swarmID, nil, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// CancelSwarm implementation
 func (c *cloudClient) CancelSwarm(ctx context.Context, swarmID string) error {
-	return nil
+	return c.doRequest(ctx, http.MethodDelete, "/api/v1/swarms/"+swarmID, nil, nil)
 }
 
-// DispatchInstruction implementation
 func (c *cloudClient) DispatchInstruction(ctx context.Context, agentID string, instruction Instruction) error {
-	return nil
+	return c.doRequest(ctx, http.MethodPost, "/api/v1/agents/"+agentID+"/instructions", instruction, nil)
 }
 
-// ListTools implementation
 func (c *cloudClient) ListTools(ctx context.Context) ([]ToolDefinition, error) {
-	return []ToolDefinition{}, nil
+	var result []ToolDefinition
+	if err := c.doRequest(ctx, http.MethodGet, "/api/v1/tools", nil, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-// ExecuteTool implementation
 func (c *cloudClient) ExecuteTool(ctx context.Context, toolName string, params map[string]interface{}) (*ToolResult, error) {
-	return &ToolResult{
-		Success: true,
-		Output:  make(map[string]interface{}),
-	}, nil
+	var result ToolResult
+	body := map[string]interface{}{
+		"tool":   toolName,
+		"params": params,
+	}
+	if err := c.doRequest(ctx, http.MethodPost, "/api/v1/tools/execute", body, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
-// Close releases resources held by the client.
 func (c *cloudClient) Close() error {
 	return nil
 }

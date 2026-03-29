@@ -147,13 +147,13 @@ func TestBuildEnvironmentVars(t *testing.T) {
 
 	// Check required environment variables
 	expected := map[string]bool{
-		"APP_ID=" + appID.String():   false,
-		"APP_NAME=test-app":          false,
-		"USER_ID=" + userID.String(): false,
-		"PORT=3000":                   false,
-		"NODE_ENV=production":         false,
+		"APP_ID=" + appID.String():             false,
+		"APP_NAME=test-app":                    false,
+		"USER_ID=" + userID.String():           false,
+		"PORT=3000":                            false,
+		"NODE_ENV=production":                  false,
 		"DATABASE_URL=postgres://localhost/db": false,
-		"API_KEY=secret123": false, // Note: api-key becomes API_KEY
+		"API_KEY=secret123":                    false, // Note: api-key becomes API_KEY
 	}
 
 	for _, env := range envVars {

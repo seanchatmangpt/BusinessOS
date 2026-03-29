@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,8 +89,16 @@ func (s *OSAAppService) GenerateApp(ctx context.Context, req *GenerateAppRequest
 	// Create event channel
 	eventCh := make(chan streaming.StreamEvent, 10)
 
-	// Launch generation in background
-	go s.runGeneration(ctx, req, workspaceID, eventCh)
+	// Launch generation in background with bounded timeout.
+	// The goroutine gets its own derived context so that a parent
+	// cancellation (e.g. HTTP request disconnect) does not leave the
+	// generation workflow in a partial state. The 10-minute timeout
+	// provides an upper-bound for the entire generation pipeline.
+	go func() {
+		genCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		s.runGeneration(genCtx, req, workspaceID, eventCh)
+	}()
 
 	return eventCh, nil
 }
@@ -104,30 +113,34 @@ func (s *OSAAppService) runGeneration(
 	defer close(eventCh)
 
 	// Send initial event
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Initializing app generation...",
 		Data: map[string]interface{}{
 			"percent": 10,
 			"phase":   "initializing",
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send initial event", "error", err)
+	}
 
 	// Create database record
 	appID, err := s.createAppRecord(ctx, req, workspaceID)
 	if err != nil {
 		s.logger.Error("failed to create app record", "error", err)
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("Failed to create app record: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
 	s.logger.Info("created app record", "app_id", appID)
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Generating prompt from template...",
 		Data: map[string]interface{}{
@@ -135,21 +148,24 @@ func (s *OSAAppService) runGeneration(
 			"phase":   "prompt_generation",
 			"app_id":  appID.String(),
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
-	// TODO: Generate prompt from templates (placeholder for now)
-	// This would integrate with the prompt template system
-	generatedPrompt := req.Description
+	// Build a structured prompt from template type, name, description, and parameters.
+	generatedPrompt := s.buildGenerationPrompt(req)
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "Calling OSA API to generate app...",
 		Data: map[string]interface{}{
 			"percent": 40,
 			"phase":   "calling_osa",
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
 	// Call OSA client
 	osaReq := &osa.AppGenerationRequest{
@@ -166,17 +182,19 @@ func (s *OSAAppService) runGeneration(
 		s.logger.Error("OSA API call failed", "error", err)
 		// Update status to failed
 		_ = s.updateAppStatus(ctx, appID, "failed")
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("OSA API call failed: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
 	s.logger.Info("OSA API responded", "osa_app_id", osaResp.AppID, "status", osaResp.Status)
 
 	// Send progress update
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    "progress",
 		Content: "App generation in progress...",
 		Data: map[string]interface{}{
@@ -184,16 +202,20 @@ func (s *OSAAppService) runGeneration(
 			"phase":      "generating",
 			"osa_app_id": osaResp.AppID,
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send progress event", "error", err)
+	}
 
 	// Poll for status until complete (with timeout)
 	if err := s.pollGenerationStatus(ctx, osaResp.AppID, req.UserID, appID, eventCh); err != nil {
 		s.logger.Error("generation polling failed", "error", err)
 		_ = s.updateAppStatus(ctx, appID, "failed")
-		s.sendEvent(eventCh, streaming.StreamEvent{
+		if sendErr := s.sendEvent(eventCh, streaming.StreamEvent{
 			Type:    streaming.EventTypeError,
 			Content: fmt.Sprintf("Generation polling failed: %v", err),
-		})
+		}); sendErr != nil {
+			s.logger.Warn("failed to send error event", "error", sendErr)
+		}
 		return
 	}
 
@@ -203,7 +225,7 @@ func (s *OSAAppService) runGeneration(
 	}
 
 	// Send completion event
-	s.sendEvent(eventCh, streaming.StreamEvent{
+	if err := s.sendEvent(eventCh, streaming.StreamEvent{
 		Type:    streaming.EventTypeDone,
 		Content: "App generation completed successfully",
 		Data: map[string]interface{}{
@@ -213,7 +235,9 @@ func (s *OSAAppService) runGeneration(
 			"osa_app_id":     osaResp.AppID,
 			"deployment_url": osaResp.Data["deployment_url"],
 		},
-	})
+	}); err != nil {
+		s.logger.Warn("failed to send completion event", "error", err)
+	}
 }
 
 // pollGenerationStatus polls OSA API for generation progress
@@ -253,7 +277,7 @@ func (s *OSAAppService) pollGenerationStatus(
 				progressPercent = 95
 			}
 
-			s.sendEvent(eventCh, streaming.StreamEvent{
+			if err := s.sendEvent(eventCh, streaming.StreamEvent{
 				Type:    "progress",
 				Content: status.CurrentStep,
 				Data: map[string]interface{}{
@@ -261,7 +285,9 @@ func (s *OSAAppService) pollGenerationStatus(
 					"phase":   status.Status,
 					"step":    status.CurrentStep,
 				},
-			})
+			}); err != nil {
+				s.logger.Warn("failed to send poll progress event", "error", err)
+			}
 
 			// Check completion
 			if status.Status == "completed" {
@@ -339,22 +365,27 @@ func (s *OSAAppService) updateAppStatus(ctx context.Context, appID uuid.UUID, st
 	return err
 }
 
-// sendEvent safely sends an event to the channel
-func (s *OSAAppService) sendEvent(eventCh chan<- streaming.StreamEvent, event streaming.StreamEvent) {
+// sendEvent safely sends an event to the channel and returns an error if the
+// event could not be delivered (channel full or channel closed/panicked).
+// Callers must check the returned error.
+func (s *OSAAppService) sendEvent(eventCh chan<- streaming.StreamEvent, event streaming.StreamEvent) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			err = fmt.Errorf("panic while sending event type %s: %v", event.Type, r)
 			if s.logger != nil {
-				s.logger.Warn("recovered from panic while sending event", "panic", r)
+				s.logger.Warn("recovered from panic while sending event", "panic", r, "event_type", event.Type)
 			}
 		}
 	}()
 
 	select {
 	case eventCh <- event:
+		return nil
 	default:
 		if s.logger != nil {
-			s.logger.Warn("event channel full, dropping event")
+			s.logger.Warn("event channel full, dropping event", "event_type", event.Type)
 		}
+		return fmt.Errorf("event channel full, dropping event type %s", event.Type)
 	}
 }
 
@@ -380,4 +411,46 @@ func (s *OSAAppService) ListUserApps(ctx context.Context, userID uuid.UUID) ([]s
 		return nil, fmt.Errorf("failed to list apps: %w", err)
 	}
 	return apps, nil
+}
+
+// buildGenerationPrompt constructs a prompt for OSA app generation.
+// It attempts to use the prompt template system first; if no matching
+// template is found, it falls back to a structured prompt built from the
+// request fields.
+func (s *OSAAppService) buildGenerationPrompt(req *GenerateAppRequest) string {
+	// Try the prompt template system if a template type was specified.
+	if req.TemplateType != "" {
+		tplSvc := NewTemplateLoaderService(GetTemplatesDirectory())
+		tmpl, err := tplSvc.LoadTemplate(req.TemplateType)
+		if err == nil && tmpl != nil && tmpl.Template != "" {
+			s.logger.Info("using prompt template for generation",
+				"template", req.TemplateType,
+			)
+			return tmpl.Template
+		}
+		s.logger.Debug("no template found for type, building default prompt",
+			"template_type", req.TemplateType,
+			"error", err,
+		)
+	}
+
+	// Fallback: build a structured prompt from request fields.
+	var b strings.Builder
+	b.WriteString("Generate a ")
+	b.WriteString(req.TemplateType)
+	b.WriteString(" application named \"")
+	b.WriteString(req.Name)
+	b.WriteString("\".\n\nRequirements:\n")
+	b.WriteString(req.Description)
+	if len(req.Parameters) > 0 {
+		b.WriteString("\n\nParameters:\n")
+		for k, v := range req.Parameters {
+			b.WriteString("- ")
+			b.WriteString(k)
+			b.WriteString(": ")
+			b.WriteString(fmt.Sprintf("%v", v))
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }

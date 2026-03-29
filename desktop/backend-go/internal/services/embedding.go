@@ -20,13 +20,13 @@ import (
 
 // EmbeddingService handles vector embeddings for semantic search
 type EmbeddingService struct {
-	pool              *pgxpool.Pool
-	ollamaURL         string
-	model             string
-	httpClient        *http.Client
-	dimensions        int
-	cache             *RAGCacheService            // Optional cache for embeddings (legacy)
-	embeddingCache    *EmbeddingCacheAdapter      // New embedding cache with Redis backend
+	pool           *pgxpool.Pool
+	ollamaURL      string
+	model          string
+	httpClient     *http.Client
+	dimensions     int
+	cache          *RAGCacheService       // Optional cache for embeddings (legacy)
+	embeddingCache *EmbeddingCacheAdapter // New embedding cache with Redis backend
 }
 
 // EmbeddingBlock represents a document block for embedding

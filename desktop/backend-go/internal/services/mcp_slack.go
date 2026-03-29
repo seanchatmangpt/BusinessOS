@@ -142,12 +142,12 @@ type SlackChannelForAI struct {
 
 // SlackMessageForAI represents a message in AI-friendly format
 type SlackMessageForAI struct {
-	Timestamp string `json:"timestamp"`
-	User      string `json:"user"`
-	UserName  string `json:"user_name,omitempty"`
-	Text      string `json:"text"`
-	ThreadTS  string `json:"thread_ts,omitempty"`
-	ReplyCount int   `json:"reply_count,omitempty"`
+	Timestamp  string `json:"timestamp"`
+	User       string `json:"user"`
+	UserName   string `json:"user_name,omitempty"`
+	Text       string `json:"text"`
+	ThreadTS   string `json:"thread_ts,omitempty"`
+	ReplyCount int    `json:"reply_count,omitempty"`
 }
 
 // SlackUserForAI represents a user in AI-friendly format

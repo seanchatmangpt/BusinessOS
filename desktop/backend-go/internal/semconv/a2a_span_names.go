@@ -1,6 +1,12 @@
 package semconv
 
 const (
+	// a2a_agent_card_serve is the span name for "a2a.agent_card.serve".
+	//
+	// Span emitted when the agent card endpoint is served.
+	// Kind: server
+	// Stability: development
+	A2aAgentCardServeSpan = "a2a.agent_card.serve"
 	// a2a_auction_run is the span name for "a2a.auction.run".
 	//
 	// Running an A2A capability auction — agents bid for task allocation based on capability and cost.
@@ -19,6 +25,13 @@ const (
 	// Kind: client
 	// Stability: development
 	A2aCallSpan = "a2a.call"
+	// a2a_cancel is the span name for "a2a.cancel".
+	//
+	// Canceling an A2A task via tasks/cancel JSON-RPC call. Emitted by Canopy.Telemetry.A2AHandler when a task cancel request is processed.
+
+	// Kind: client
+	// Stability: development
+	A2aCancelSpan = "a2a.cancel"
 	// a2a_capability_match is the span name for "a2a.capability.match".
 	//
 	// Matching a capability request to available agents — selecting best provider.
@@ -97,12 +110,25 @@ const (
 	// Kind: producer
 	// Stability: development
 	A2aKnowledgeTransferSpan = "a2a.knowledge.transfer"
+	// a2a_message is the span name for "a2a.message".
+	//
+	// Receiving an A2A message/send JSON-RPC call via A2A.Plug. Emitted by Canopy.Telemetry.A2AHandler when the server receives a message.
+
+	// Kind: server
+	// Stability: development
+	A2aMessageSpan = "a2a.message"
 	// a2a_message_batch is the span name for "a2a.message.batch".
 	//
 	// Batched delivery of multiple A2A messages — aggregates messages for efficient transport.
 	// Kind: producer
 	// Stability: development
 	A2aMessageBatchSpan = "a2a.message.batch"
+	// a2a_message_receive is the span name for "a2a.message.receive".
+	//
+	// Span emitted when an A2A agent receives an incoming message.
+	// Kind: server
+	// Stability: development
+	A2aMessageReceiveSpan = "a2a.message.receive"
 	// a2a_message_route is the span name for "a2a.message.route".
 	//
 	// Routing of an A2A message to the appropriate target agent based on priority and routing rules.
@@ -145,6 +171,12 @@ const (
 	// Kind: internal
 	// Stability: development
 	A2aReputationUpdateSpan = "a2a.reputation.update"
+	// a2a_skill_invoke is the span name for "a2a.skill.invoke".
+	//
+	// Span emitted when an A2A agent dispatches a skill for execution.
+	// Kind: internal
+	// Stability: development
+	A2aSkillInvokeSpan = "a2a.skill.invoke"
 	// a2a_sla_check is the span name for "a2a.sla.check".
 	//
 	// SLA validation for an A2A operation — measures actual latency against deadline.
@@ -157,12 +189,30 @@ const (
 	// Kind: internal
 	// Stability: development
 	A2aSloEvaluateSpan = "a2a.slo.evaluate"
+	// a2a_task_complete is the span name for "a2a.task.complete".
+	//
+	// Span emitted when an A2A task reaches a terminal state (completed or failed).
+	// Kind: internal
+	// Stability: development
+	A2aTaskCompleteSpan = "a2a.task.complete"
+	// a2a_task_create is the span name for "a2a.task.create".
+	//
+	// Span emitted when an A2A task is created via tasks/send.
+	// Kind: server
+	// Stability: development
+	A2aTaskCreateSpan = "a2a.task.create"
 	// a2a_task_delegate is the span name for "a2a.task.delegate".
 	//
 	// Delegation of a task from one agent to another via A2A.
 	// Kind: producer
 	// Stability: development
 	A2aTaskDelegateSpan = "a2a.task.delegate"
+	// a2a_task_update is the span name for "a2a.task.update".
+	//
+	// Span emitted when an A2A task state transitions (e.g., submitted→working).
+	// Kind: internal
+	// Stability: development
+	A2aTaskUpdateSpan = "a2a.task.update"
 	// a2a_trust_evaluate is the span name for "a2a.trust.evaluate".
 	//
 	// Evaluation of an agent's trust score based on reputation history and interaction outcomes.

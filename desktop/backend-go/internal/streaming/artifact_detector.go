@@ -12,18 +12,18 @@ type ArtifactDetector struct {
 	inArtifact     bool
 	artifactBuffer strings.Builder
 	startPattern   *regexp.Regexp
-	
-	inThinking     bool
-	thinkingStart  *regexp.Regexp
-	thinkingEnd    *regexp.Regexp
+
+	inThinking    bool
+	thinkingStart *regexp.Regexp
+	thinkingEnd   *regexp.Regexp
 }
 
 // NewArtifactDetector creates a new artifact detector
 func NewArtifactDetector() *ArtifactDetector {
 	return &ArtifactDetector{
-		startPattern:  regexp.MustCompile("```artifact\\s*\\n?"),
+		startPattern: regexp.MustCompile("```artifact\\s*\\n?"),
 		// Matches <thinking>, <thinkingg>, <thinkingng>, <think> - very permissive
-		thinkingStart: regexp.MustCompile(`<think[a-z]*\s*>`), 
+		thinkingStart: regexp.MustCompile(`<think[a-z]*\s*>`),
 		thinkingEnd:   regexp.MustCompile(`</think[a-z]*\s*>`),
 	}
 }
@@ -119,21 +119,21 @@ func (d *ArtifactDetector) processNormalContent(content string) []StreamEvent {
 // processThinkingContent handles content when inside a thinking block
 func (d *ArtifactDetector) processThinkingContent(chunk string) []StreamEvent {
 	var events []StreamEvent
-	
+
 	// We check for the end tag in the current chunk + potentially what matches end tag
 	// But simpler approach: emit chunk as ThinkingChunk, but buffer check for end tag
-	
-	// Issue: ProcessChunk passes raw chunks. We can't easily detect end tag split across chunks 
+
+	// Issue: ProcessChunk passes raw chunks. We can't easily detect end tag split across chunks
 	// without buffering. But for Thinking, we want to stream chunks ASAP.
-	
+
 	// Strategy: Buffer a small tail to check for end tag. Emit everything before the tail.
 	// But `thinkingEnd` regex needs to match against the stream.
-	
+
 	d.buffer.WriteString(chunk)
 	content := d.buffer.String()
-	
+
 	endLoc := d.thinkingEnd.FindStringIndex(content)
-	
+
 	if endLoc == nil {
 		// No end tag found.
 		// Emit safe content (keep tail in buffer in case end tag is starting)
@@ -148,7 +148,7 @@ func (d *ArtifactDetector) processThinkingContent(chunk string) []StreamEvent {
 		}
 		return events
 	}
-	
+
 	// End tag found
 	// 1. Emit content before end tag
 	if endLoc[0] > 0 {
@@ -160,31 +160,31 @@ func (d *ArtifactDetector) processThinkingContent(chunk string) []StreamEvent {
 			})
 		}
 	}
-	
+
 	// 2. Emit ThinkingEnd
 	events = append(events, StreamEvent{
 		Type: EventTypeThinkingEnd,
 		Data: map[string]interface{}{"step": 1},
 	})
-	
+
 	d.inThinking = false
 	d.buffer.Reset()
-	
+
 	// 3. Process remaining content (after </thinking>) as normal content
 	if endLoc[1] < len(content) {
 		remaining := content[endLoc[1]:]
-		d.buffer.WriteString(remaining) 
-		// We recurse into processNormalContent effectively by returning control to ProcessChunk 
+		d.buffer.WriteString(remaining)
+		// We recurse into processNormalContent effectively by returning control to ProcessChunk
 		// but since ProcessChunk checks state first, we need to handle it here or let next chunk handle it.
 		// However, remaining content might contain artifact start.
 		// Let's call processNormalContent with the remainder
 		d.buffer.Reset() // Reset because processNormalContent expects string input and uses buffer itself (well, it resets buffer)
-						 // Wait, processNormalContent uses d.buffer internally or just input?
-						 // My implementation of processNormalContent uses d.buffer for output buffering.
-						 // It takes `content` string.
+		// Wait, processNormalContent uses d.buffer internally or just input?
+		// My implementation of processNormalContent uses d.buffer for output buffering.
+		// It takes `content` string.
 		events = append(events, d.processNormalContent(remaining)...)
 	}
-	
+
 	return events
 }
 
