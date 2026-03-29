@@ -1,5 +1,9 @@
 # Performance Testing Guide
 
+> **Infrastructure Status:** DOCUMENTATION ONLY - k6 scripts referenced below do not exist yet
+> **Last Updated:** 2026-03-28
+> **Note:** Before implementing these scripts, see VALIDATION_AUDIT.md for infrastructure gaps
+
 **Version:** 1.0.0
 **Last Updated:** 2026-01-26
 **Status:** Production-Ready
