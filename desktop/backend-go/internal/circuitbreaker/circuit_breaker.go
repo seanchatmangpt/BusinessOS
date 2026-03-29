@@ -42,10 +42,10 @@ type CircuitBreaker struct {
 	onTimeout     func()
 
 	// Monitoring
-	totalCalls      int64
-	successfulCalls int64
-	failedCalls     int64
-	timeoutCalls    int64
+	totalCalls      atomic.Int64
+	successfulCalls atomic.Int64
+	failedCalls     atomic.Int64
+	timeoutCalls    atomic.Int64
 }
 
 // Config holds circuit breaker configuration
@@ -92,11 +92,11 @@ func NewCircuitBreaker(config Config) *CircuitBreaker {
 
 // Execute executes a function with circuit breaker protection
 func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
-	cb.totalCalls++
+	cb.totalCalls.Add(1)
 
 	// Check if we should allow the call
 	if !cb.allowCall() {
-		cb.failedCalls++
+		cb.failedCalls.Add(1)
 		if cb.onStateChange != nil {
 			cb.onStateChange(cb.state, cb.state)
 		}
@@ -153,7 +153,7 @@ func (cb *CircuitBreaker) executeWithTimeout(ctx context.Context, fn func() erro
 	case err := <-errChan:
 		return err
 	case <-timeoutCtx.Done():
-		cb.timeoutCalls++
+		cb.timeoutCalls.Add(1)
 		return ErrTimeout
 	}
 }
@@ -172,7 +172,7 @@ func (cb *CircuitBreaker) recordResult(err error) {
 
 // handleSuccess handles successful execution
 func (cb *CircuitBreaker) handleSuccess() {
-	cb.successfulCalls++
+	cb.successfulCalls.Add(1)
 	cb.successCount++
 	cb.consecutiveFailures = 0
 
@@ -189,7 +189,7 @@ func (cb *CircuitBreaker) handleSuccess() {
 
 // handleFailure handles failed execution
 func (cb *CircuitBreaker) handleFailure(err error) {
-	cb.failedCalls++
+	cb.failedCalls.Add(1)
 	cb.consecutiveFailures++
 	cb.lastFailure = time.Now()
 
@@ -231,16 +231,21 @@ func (cb *CircuitBreaker) GetStats() Stats {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
 
+	totalCalls := cb.totalCalls.Load()
+	successfulCalls := cb.successfulCalls.Load()
+	failedCalls := cb.failedCalls.Load()
+	timeoutCalls := cb.timeoutCalls.Load()
+
 	var successRate float64
-	if cb.totalCalls > 0 {
-		successRate = float64(cb.successfulCalls) / float64(cb.totalCalls) * 100
+	if totalCalls > 0 {
+		successRate = float64(successfulCalls) / float64(totalCalls) * 100
 	}
 
 	return Stats{
-		TotalCalls:          cb.totalCalls,
-		SuccessfulCalls:     cb.successfulCalls,
-		FailedCalls:         cb.failedCalls,
-		TimeoutCalls:        cb.timeoutCalls,
+		TotalCalls:          totalCalls,
+		SuccessfulCalls:     successfulCalls,
+		FailedCalls:         failedCalls,
+		TimeoutCalls:        timeoutCalls,
 		SuccessRate:         successRate,
 		State:               cb.state,
 		LastFailure:         cb.lastFailure,
