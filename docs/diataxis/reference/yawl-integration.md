@@ -1,6 +1,7 @@
 # YAWL v6 Integration — Reference
 
-BusinessOS proxies conformance checking, spec management, and workflow simulation to the YAWL v6 engine running at `YAWLV6_URL` (default: `http://localhost:8080`).
+## Overview
+BusinessOS proxies conformance checking, spec management, and workflow simulation to the YAWL v6 engine (Java 25, Tomcat WAR).
 
 ---
 
@@ -19,7 +20,7 @@ All routes live under `/api/yawl`. Authentication: JWT bearer token or static be
 | GET | `/api/yawl/real-data/:name` | Get a specific real event log dataset |
 | POST | `/api/yawl/simulate` | Simulate concurrent workflow execution |
 
-### Authentication
+## Authentication
 
 Two modes, controlled by `YAWLV6_API_TOKEN` env var:
 
@@ -54,7 +55,7 @@ Success:
 
 Engine unreachable:
 ```json
-{"status": "unreachable", "error": "connection refused"}
+{"status": "unreachable", "error": "..."}
 ```
 
 ### Conformance Check
@@ -63,7 +64,7 @@ Engine unreachable:
 curl -s -X POST http://localhost:8001/api/yawl/conformance \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
-  -d '{"spec_xml": "<net>...</net>", "event_log": [...]}' \
+  -d '{"spec_xml": "<net>...</net>", "event_log": [...]}'
 ```
 
 Response:
@@ -94,10 +95,9 @@ curl -s "http://localhost:8001/api/yawl/spec/load?pattern=WCP1" \
 | Component | Path |
 |-----------|------|
 | Route registration | `desktop/backend-go/internal/handlers/routes_yawl.go` |
-| Handler logic | `desktop/backend-go/internal/handlers/yawl.go` |
+| Handler logic | `desktop/backend-go/internal/handlers/yawl_handler.go` |
 | OSA YAWL client | `OSA/lib/optimal_system_agent/yawl/client.ex` |
 | OSA spec builder | `OSA/lib/optimal_system_agent/yawl/spec_builder.ex` |
-| OSA simulator | `OSA/lib/optimal_system_agent/yawl/simulator.ex` |
 
 ---
 
@@ -116,16 +116,11 @@ end
 
 ---
 
-## Docker
-
-YAWL runs in Docker. Start with:
+## Smoke Test
 
 ```bash
-cd /path/to/yawlv6/docker
-docker compose -f docker-compose.simple.yml up -d yawl-engine
+bash scripts/yawl-workflow-smoke-test.sh  # 30/30 PASS
 ```
-
-The container uses `restart: unless-stopped` and exposes port 8080. Health check at `http://localhost:8080/health.jsp`.
 
 ---
 
