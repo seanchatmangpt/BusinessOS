@@ -94,7 +94,7 @@ curl -s "http://localhost:8001/api/yawl/spec/load?pattern=WCP1" \
 | Component | Path |
 |-----------|------|
 | Route registration | `desktop/backend-go/internal/handlers/routes_yawl.go` |
-| Handler logic | `desktop/backend-go/internal/handlers/yawl_handler.go` |
+| Handler logic | `desktop/backend-go/internal/handlers/yawl.go` |
 | OSA YAWL client | `OSA/lib/optimal_system_agent/yawl/client.ex` |
 | OSA spec builder | `OSA/lib/optimal_system_agent/yawl/spec_builder.ex` |
 | OSA simulator | `OSA/lib/optimal_system_agent/yawl/simulator.ex` |
