@@ -1,0 +1,114 @@
+[project]
+name = "businessos"
+version = "1.0.0"
+description = "BusinessOS - Your business, on autopilot"
+
+[ontology]
+source = "/Users/sac/chatmangpt/unrdf/ontologies/disney-governed-universe.ttl"
+format = "turtle"
+
+# Additional ontology sources
+[[ontology.additional]]
+source = "/Users/sac/chatmangpt/BusinessOS/ontologies/fibo-deal-integration.ttl"
+format = "turtle"
+
+[[ontology.additional]]
+source = "/Users/sac/chatmangpt/BusinessOS/ontologies/fibo-deal-examples.ttl"
+format = "turtle"
+
+[generation]
+output_dir = "."
+templates_dir = "/Users/sac/ostar/templates"
+
+# Generate business agent compositions
+[[generation.rules]]
+name = "business-agent-composition"
+description = "Elixir GenServer agents for business domains (finance, operations, sales, hr, legal)"
+query = """
+PREFIX fibo: <https://ontology.businessos.dev/fibo-deals/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?agentId ?domain ?label ?tier ?responsibilities
+WHERE {
+  ?agent a fibo:BusinessOSParty ;
+         fibo:partyIdentifier ?agentId ;
+         rdfs:label ?label .
+  BIND(REPLACE(STR(?agentId), ".*#", "") AS ?domain)
+  BIND("standard" AS ?tier)
+  BIND("Business operations for " AS ?responsibilities)
+}
+ORDER BY ?domain
+"""
+template = "/Users/sac/ostar/templates/decision-record.njk"
+output_file = "docs/generated/agents/{{ domain|snakeCase }}_agent_spec.md"
+enabled = true
+mode = "overwrite"
+
+# Generate MCP tools for business operations
+[[generation.rules]]
+name = "business-mcp-tools"
+description = "MCP tool registration for business operations (create-deal, schedule-meeting, etc.)"
+query = """
+PREFIX fibo: <https://ontology.businessos.dev/fibo-deals/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?toolId ?label ?operation ?inputFormat
+WHERE {
+  ?tool a fibo:BusinessOSOperation ;
+        fibo:operationName ?operation ;
+        fibo:inputFormat ?inputFormat .
+  ?tool rdfs:label ?label .
+  BIND(REPLACE(STR(?tool), ".*#", "") AS ?toolId)
+}
+ORDER BY ?operation
+"""
+template = "/Users/sac/ostar/templates/mcp-tool-registration.njk"
+output_file = "desktop/backend-go/internal/mcp-tools/{{ operation|snakeCase }}_tool.mjs"
+enabled = true
+mode = "overwrite"
+
+# Generate decision records for architecture
+[[generation.rules]]
+name = "business-decision-records"
+description = "Architecture Decision Records for BusinessOS technical decisions"
+query = """
+PREFIX fibo: <https://ontology.businessos.dev/fibo-deals/>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?decisionId ?title ?status
+WHERE {
+  ?adr a fibo:ArchitecturalDecision ;
+       fibo:decisionId ?decisionId ;
+       rdfs:label ?title ;
+       fibo:status ?status .
+}
+ORDER BY ?decisionId
+"""
+template = "/Users/sac/ostar/templates/decision-record.njk"
+output_file = "docs/adr/adr-{{ decisionId }}.md"
+enabled = true
+mode = "overwrite"
+
+# Generate quality metrics for business processes
+[[generation.rules]]
+name = "business-quality-metrics"
+description = "Quality metrics (DPMO, Sigma, SPC) for business processes"
+query = """
+PREFIX fibo: <https://ontology.businessos.dev/fibo-deals/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?metricId ?process ?metricType ?threshold
+WHERE {
+  ?metric a fibo:QualityMetric ;
+           fibo:process ?process ;
+           fibo:metricType ?metricType ;
+           fibo:threshold ?threshold .
+  BIND(CONCAT(?process, "_", ?metricType) AS ?metricId)
+}
+ORDER BY ?process ?metricType
+"""
+template = "/Users/sac/ostar/templates/decision-record.njk"
+output_file = "docs/generated/quality-metrics/{{ process|snakeCase }}_metrics_spec.md"
+enabled = true
+mode = "overwrite"

@@ -2,7 +2,7 @@
 // +build integration
 
 // Package pipeline_test contains E2E integration tests for the full
-// pm4py-rust → BusinessOS pipeline.
+// pm4py-mcp → BusinessOS pipeline.
 //
 //	go test -tags=integration ./tests/pipeline/... -v
 package pipeline_test
@@ -20,13 +20,13 @@ import (
 )
 
 const (
-	pm4pyBase = "http://localhost:8090"
+	pm4pyBase = "http://localhost:7015"
 	bosBase   = "http://localhost:8001"
 )
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
 
-// integrationEventLogMap matches pm4py-rust EventLog JSON (Trace.id, not caseID).
+// integrationEventLogMap matches pm4py-mcp EventLog JSON (Trace.id, not caseID).
 func integrationEventLogMap() map[string]interface{} {
 	return map[string]interface{}{
 		"traces": []map[string]interface{}{
@@ -113,7 +113,7 @@ func writeTempPetriNetJSON(t *testing.T) string {
 
 func isPm4pyRunning(t *testing.T) bool {
 	t.Helper()
-	resp, err := httpClient.Get(pm4pyBase + "/api/health")
+	resp, err := httpClient.Get(pm4pyBase + "/health")
 	if err != nil {
 		return false
 	}
@@ -155,11 +155,11 @@ func postJSON(t *testing.T, url string, body interface{}) (int, map[string]inter
 
 func TestPm4pyDirectHealth(t *testing.T) {
 	if !isPm4pyRunning(t) {
-		t.Skip("Skipping: pm4py-rust not running at " + pm4pyBase)
+		t.Skip("Skipping: pm4py-mcp not running at " + pm4pyBase)
 	}
-	resp, err := httpClient.Get(pm4pyBase + "/api/health")
+	resp, err := httpClient.Get(pm4pyBase + "/health")
 	if err != nil {
-		t.Fatalf("GET %s/api/health: %v", pm4pyBase, err)
+		t.Fatalf("GET %s/health: %v", pm4pyBase, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -191,7 +191,7 @@ func TestBosHealth(t *testing.T) {
 
 func TestPm4pyHealthViaGateway(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: BusinessOS or pm4py-rust not running")
+		t.Skip("Skipping: BusinessOS or pm4py-mcp not running")
 	}
 	resp, err := httpClient.Get(bosBase + "/api/bos/status")
 	if err != nil {
@@ -209,7 +209,7 @@ func TestPm4pyHealthViaGateway(t *testing.T) {
 // TestDiscoveryPipelineE2E uses POST /api/bos/discover with log_path (JSON on disk).
 func TestDiscoveryPipelineE2E(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires both BusinessOS and pm4py-rust running")
+		t.Skip("Skipping: requires both BusinessOS and pm4py-mcp running")
 	}
 	logPath := writeTempEventLogJSON(t)
 	payload := map[string]interface{}{
@@ -235,10 +235,10 @@ func TestDiscoveryPipelineE2E(t *testing.T) {
 // TestDiscoveryPipeline_XES runs discover on a real XES fixture when available (repo-relative).
 func TestDiscoveryPipeline_XES(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires both BusinessOS and pm4py-rust running")
+		t.Skip("Skipping: requires both BusinessOS and pm4py-mcp running")
 	}
-	// tests/pipeline -> ../../../../../pm4py-rust/test_data (repo root)
-	xesPath := filepath.Clean(filepath.Join("..", "..", "..", "..", "..", "pm4py-rust", "test_data", "running-example.xes"))
+	// tests/pipeline -> ../../../../../pm4py-mcp/test_data (repo root)
+	xesPath := filepath.Clean(filepath.Join("..", "..", "..", "..", "..", "pm4py-mcp", "test_data", "running-example.xes"))
 	if _, err := os.Stat(xesPath); err != nil {
 		t.Skip("Skipping: XES fixture not found at " + xesPath)
 	}
@@ -255,7 +255,7 @@ func TestDiscoveryPipeline_XES(t *testing.T) {
 
 func TestStatisticsPipelineE2E(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires both BusinessOS and pm4py-rust running")
+		t.Skip("Skipping: requires both BusinessOS and pm4py-mcp running")
 	}
 	logPath := writeTempEventLogJSON(t)
 	payload := map[string]interface{}{"log_path": logPath}
@@ -277,7 +277,7 @@ func TestStatisticsPipelineE2E(t *testing.T) {
 
 func TestConformancePipelineE2E(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires both BusinessOS and pm4py-rust running")
+		t.Skip("Skipping: requires both BusinessOS and pm4py-mcp running")
 	}
 	logPath := writeTempEventLogJSON(t)
 	modelPath := writeTempPetriNetJSON(t)
@@ -301,7 +301,7 @@ func TestConformancePipelineE2E(t *testing.T) {
 
 func TestPipelineRoundTripLatency(t *testing.T) {
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires both BusinessOS and pm4py-rust running")
+		t.Skip("Skipping: requires both BusinessOS and pm4py-mcp running")
 	}
 	logPath := writeTempEventLogJSON(t)
 	payload := map[string]interface{}{
@@ -328,35 +328,24 @@ func TestPipelineRoundTripLatency(t *testing.T) {
 	}
 }
 
-// TestParseXESOnPM4Py verifies pm4py-rust native XES parse endpoint (used by BOS for .xes paths).
-func TestParseXESOnPM4Py(t *testing.T) {
-	if !isPm4pyRunning(t) {
-		t.Skip("Skipping: pm4py-rust not running")
+// TestParseXESViaBOSGateway verifies XES discovery through BOS Gateway (pm4py-mcp backend).
+func TestParseXESViaBOSGateway(t *testing.T) {
+	if !isBosRunning(t) {
+		t.Skip("Skipping: BusinessOS not running")
 	}
-	xesPath := filepath.Clean(filepath.Join("..", "..", "..", "..", "..", "pm4py-rust", "test_data", "running-example.xes"))
-	raw, err := os.ReadFile(xesPath)
-	if err != nil {
-		t.Skip("Skipping: " + xesPath)
+	xesPath := filepath.Clean(filepath.Join("..", "..", "..", "..", "..", "pm4py-mcp", "test_data", "running-example.xes"))
+	if _, err := os.Stat(xesPath); err != nil {
+		t.Skip("Skipping: XES fixture not found at " + xesPath)
 	}
-	req, err := http.NewRequest(http.MethodPost, pm4pyBase+"/api/io/parse-xes", bytes.NewReader(raw))
-	if err != nil {
-		t.Fatal(err)
+	payload := map[string]interface{}{
+		"log_path":  xesPath,
+		"algorithm": "alpha",
 	}
-	req.Header.Set("Content-Type", "application/xml")
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
+	status, body := postJSON(t, bosBase+"/api/bos/discover", payload)
+	if status < 200 || status >= 300 {
+		t.Fatalf("Expected 2xx from /api/bos/discover (XES via gateway), got %d — body: %v", status, body)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		t.Fatalf("parse-xes: %d %s", resp.StatusCode, string(b))
-	}
-	var v map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := v["traces"]; !ok {
+	if _, ok := body["model_id"]; !ok {
 		t.Fatalf("expected traces in parsed log: %v", v)
 	}
 }
@@ -400,7 +389,7 @@ func TestJaegerQuerySeesBusinessOSTraces(t *testing.T) {
 		t.Skipf("Jaeger /api/services not OK: %d", svcResp.StatusCode)
 	}
 	if !isBosRunning(t) || !isPm4pyRunning(t) {
-		t.Skip("Skipping: requires BusinessOS, pm4py-rust, and Jaeger")
+		t.Skip("Skipping: requires BusinessOS, pm4py-mcp, and Jaeger")
 	}
 	logPath := writeTempEventLogJSON(t)
 	payload := map[string]interface{}{"log_path": logPath, "algorithm": "alpha"}

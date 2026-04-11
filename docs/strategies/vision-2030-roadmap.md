@@ -13,7 +13,7 @@
 Vision 2030 is a 10-wave innovation plan to build Fortune 500-grade autonomous enterprise systems. **Waves 1-8 are complete** (143 verifications, 8433 tests passing). This roadmap defines the remaining journey: **Waves 9-10**, commercialization path, and "complete" criteria.
 
 **Current State:**
-- **Wave 7:** Full 5-system integration (pm4py-rust, BusinessOS, OSA, Canopy, YAWL)
+- **Wave 7:** Full 5-system integration (pm4py-mcp, BusinessOS, OSA, Canopy, YAWL)
 - **Wave 8:** Gap analysis complete (12 critical gaps identified and fixed)
 - **Technical Debt:** XXE vulnerability fixed, Armstrong violations remediated, WvdA soundness verified
 - **Test Coverage:** 8433 OSA tests, 722 pm4py-rust tests, 56 BusinessOS tests (all passing)
@@ -88,7 +88,7 @@ Canopy (nervous system) → OSA (brain) → Groq (cognition) → BusinessOS (bod
 - 143 verifications (108 unit + 19 Go + 16 smoke)
 - 8433 tests (OSA), 722 tests (pm4py-rust), 56 tests (BusinessOS)
 - 35 API endpoints (OSA), 6 compliance endpoints (BusinessOS)
-- Full integration: pm4py-rust (8090) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
+- Full integration: pm4py-mcp (7015) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
 
 ### Remaining Waves (9-10)
 
@@ -454,7 +454,7 @@ Vision 2030 is inherently innovative (Blue Ocean, AGI-level), but enterprise cus
 ### Strategy: "Innovate on the Edges, Stabilize the Core"
 
 **Core (Stability First):**
-- Integration chain (pm4py-rust → BusinessOS → Canopy → OSA)
+- Integration chain (pm4py-mcp → BusinessOS → Canopy → OSA)
 - OTEL tracing (every operation emits a span)
 - Test coverage (10,000+ tests, all passing)
 - Security (penetration tested, zero critical vulns)
@@ -616,7 +616,7 @@ Vision 2030 is inherently innovative (Blue Ocean, AGI-level), but enterprise cus
 
 **Test Coverage:**
 - Target: 10,000+ tests passing
-- Current: 8433 (OSA) + 722 (pm4py-rust) + 56 (BusinessOS) = 9211
+- Current: 8433 (OSA) + 722 (pm4py-mcp) + 56 (BusinessOS) = 9211
 - Gap: 789 tests (8.6% growth needed)
 
 **Code Quality:**

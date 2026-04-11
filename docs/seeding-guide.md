@@ -4,7 +4,7 @@
 **Last Updated:** 2026-03-26
 **Status:** Production-Ready
 
-This guide explains how to seed realistic test data for Fortune 5 systems (BusinessOS, Canopy, OSA, pm4py-rust).
+This guide explains how to seed realistic test data for Fortune 5 systems (BusinessOS, Canopy, OSA, pm4py-mcp).
 
 ---
 

@@ -135,7 +135,7 @@ List all available tools in the registry.
       "name": "Process Mining",
       "category": "data",
       "version": "1.0.0",
-      "endpoint": "http://localhost:8090",
+      "endpoint": "http://localhost:7015",
       "status": "available"
     }
   ],

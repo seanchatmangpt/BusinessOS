@@ -45,19 +45,19 @@ const (
 	BosGapDetectSpan = "bos.gap.detect"
 	// bos_gateway_conformance is the span name for "bos.gateway.conformance".
 	//
-	// BOS gateway conformance — forwards conformance check to pm4py-rust.
+	// BOS gateway conformance — forwards conformance check to pm4py-mcp.
 	// Kind: server
 	// Stability: development
 	BosGatewayConformanceSpan = "bos.gateway.conformance"
 	// bos_gateway_discover is the span name for "bos.gateway.discover".
 	//
-	// BOS gateway discovery — forwards event-log discovery request to pm4py-rust.
+	// BOS gateway discovery — forwards event-log discovery request to pm4py-mcp.
 	// Kind: server
 	// Stability: development
 	BosGatewayDiscoverSpan = "bos.gateway.discover"
 	// bos_gateway_statistics is the span name for "bos.gateway.statistics".
 	//
-	// BOS gateway statistics — forwards log-statistics extraction to pm4py-rust.
+	// BOS gateway statistics — forwards log-statistics extraction to pm4py-mcp.
 	// Kind: server
 	// Stability: development
 	BosGatewayStatisticsSpan = "bos.gateway.statistics"

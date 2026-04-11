@@ -48,7 +48,7 @@ func newTestTracer(t *testing.T) *tracetest.SpanRecorder {
 //	}
 //
 // Using a minimal handler lets us test the span instrumentation logic without
-// wiring the full database / pm4py-rust service stack.
+// wiring the full database / pm4py-mcp service stack.
 func discoverHandlerUnderTest(c *gin.Context) {
 	tracer := otel.Tracer("businessos-gateway")
 	_, span := tracer.Start(c.Request.Context(), semconv.BosGatewayDiscoverSpan)

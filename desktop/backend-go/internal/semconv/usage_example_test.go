@@ -300,7 +300,7 @@ func TestBuildConformanceCheckSpanAttributes(t *testing.T) {
 func TestBuildMcpCallSpanAttributes(t *testing.T) {
 	attrs := []attribute.KeyValue{
 		McpToolName("process_mining_discover"),
-		McpServerName("pm4py-rust-server"),
+		McpServerName("pm4py-mcp-server"),
 		McpProtocol(McpProtocolValues.Stdio),
 		McpToolResultCount(1),
 	}

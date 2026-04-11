@@ -222,7 +222,7 @@ Files: routes.go, registerBOSProgressRoutes, registerOntologyRoutes, registerCom
 
 Special Case - /api/bos/progress:
   - Uses JWT auth (NOT session auth)
-  - Receives progress events from pm4py-rust
+  - Receives progress events from pm4py-mcp
   - Middleware: jwtAuth = middleware.JWTAuth(h.cfg.SecretKey)
   - Purpose: Prevent unauthorized progress event injection
 

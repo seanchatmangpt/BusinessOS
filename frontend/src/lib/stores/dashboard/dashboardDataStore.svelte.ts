@@ -214,7 +214,7 @@ function createDashboardDataStore() {
   async function discoverProcess(eventLog?: unknown): Promise<void> {
     const logToDiscover = eventLog ?? SAMPLE_EVENT_LOG;
     try {
-      // POST /api/v1/pm4py/discover — PM4PyRustHandler proxies to pm4py-rust.
+      // POST /api/pm4py/discover — pm4py-mcp MCP client handles discovery.
       // Response: DiscoveryResponse { petri_net, algorithm, execution_time_ms, ... }
       const result = await discoverProcessMap(logToDiscover);
       if (result?.petri_net) {

@@ -378,10 +378,14 @@ func (s *BackgroundJobsService) GetJobStatus(ctx context.Context, jobID uuid.UUI
 	}
 
 	if len(payloadJSON) > 0 {
-		json.Unmarshal(payloadJSON, &job.Payload)
+		if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+			return nil, fmt.Errorf("unmarshal job payload: %w", err)
+		}
 	}
 	if len(resultJSON) > 0 {
-		json.Unmarshal(resultJSON, &job.Result)
+		if err := json.Unmarshal(resultJSON, &job.Result); err != nil {
+			return nil, fmt.Errorf("unmarshal job result: %w", err)
+		}
 	}
 
 	return &job, nil
@@ -445,18 +449,28 @@ func (s *BackgroundJobsService) ListJobs(ctx context.Context, filters JobListFil
 			&job.AttemptCount, &job.MaxAttempts, &job.LastError, &resultJSON, &job.CreatedAt,
 		)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to scan job", "error", err)
-			continue
+			rows.Close()
+			return nil, fmt.Errorf("scan job row: %w", err)
 		}
 
 		if len(payloadJSON) > 0 {
-			json.Unmarshal(payloadJSON, &job.Payload)
+			if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("unmarshal job payload: %w", err)
+			}
 		}
 		if len(resultJSON) > 0 {
-			json.Unmarshal(resultJSON, &job.Result)
+			if err := json.Unmarshal(resultJSON, &job.Result); err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("unmarshal job result: %w", err)
+			}
 		}
 
 		jobs = append(jobs, job)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate jobs: %w", err)
 	}
 
 	return jobs, nil

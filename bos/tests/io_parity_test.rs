@@ -1,6 +1,6 @@
 /// I/O Format Parity Tests
 ///
-/// These tests validate that pm4py-rust I/O functions
+/// These tests validate that pm4py-mcp I/O functions
 /// produce identical results to Python pm4py implementations.
 ///
 /// FOCUS: JSON format (80% of use cases)
@@ -13,7 +13,7 @@ mod io_parity {
     use serde_json::{json, Value};
 
     /// Build simple test event log in flat JSON array format
-    /// (pm4py-rust expected format for JsonEventLogReader)
+    /// (pm4py-mcp expected format for JsonEventLogReader)
     fn create_flat_json_event_array() -> Value {
         json!([
             // Trace 1: account_0

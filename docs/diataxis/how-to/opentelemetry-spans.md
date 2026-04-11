@@ -134,7 +134,7 @@ On error paths, record the error and set error status before returning:
 ```go
 if err != nil {
     span.RecordError(err)
-    span.SetStatus(codes.Error, "pm4py-rust unavailable")
+    span.SetStatus(codes.Error, "pm4py-mcp unavailable")
     c.JSON(http.StatusServiceUnavailable, gin.H{"error": "upstream error"})
     return
 }
@@ -208,7 +208,7 @@ All spans in BusinessOS must include these attributes when the data is available
 | `chatmangpt.run.correlation_id` | string | When `X-Correlation-ID` header is present |
 | `http.method` | string | HTTP handler spans (set by `TracingMiddleware` automatically) |
 | `http.status_code` | int | HTTP handler spans (set by `TracingMiddleware` automatically) |
-| `bos.latency_ms` | int64 | BOS gateway calls to pm4py-rust |
+| `bos.latency_ms` | int64 | BOS gateway calls to pm4py-mcp |
 
 Use the typed constants from `internal/semconv/` for attribute keys (e.g. `semconv.ChatmangptRunCorrelationIdKey`). This provides compile-time safety: if the schema renames an attribute, the build breaks and forces you to update.
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -228,7 +229,9 @@ func (t *ConfigureDashboardTool) addWidget(ctx context.Context, queries *sqlc.Qu
 	}
 	var defaultConfig map[string]interface{}
 	if widgetType.DefaultConfig != nil {
-		json.Unmarshal(widgetType.DefaultConfig, &defaultConfig)
+		if err := json.Unmarshal(widgetType.DefaultConfig, &defaultConfig); err != nil {
+			slog.Warn("dashboard: failed to unmarshal widget default config", "error", err)
+		}
 		for k, v := range defaultConfig {
 			if _, exists := config[k]; !exists {
 				config[k] = v
@@ -281,7 +284,9 @@ func (t *ConfigureDashboardTool) removeWidget(ctx context.Context, queries *sqlc
 	}
 
 	var layout DashboardLayout
-	json.Unmarshal(dashboard.Layout, &layout)
+	if err := json.Unmarshal(dashboard.Layout, &layout); err != nil {
+		slog.Warn("dashboard: failed to unmarshal layout", "error", err)
+	}
 
 	// Find and remove widget
 	found := false
@@ -334,7 +339,9 @@ func (t *ConfigureDashboardTool) reorderWidgets(ctx context.Context, queries *sq
 	}
 
 	var layout DashboardLayout
-	json.Unmarshal(dashboard.Layout, &layout)
+	if err := json.Unmarshal(dashboard.Layout, &layout); err != nil {
+		slog.Warn("dashboard: failed to unmarshal layout", "error", err)
+	}
 
 	// Create lookup map
 	widgetMap := make(map[string]LayoutWidget)
@@ -387,7 +394,9 @@ func (t *ConfigureDashboardTool) updateWidgetConfig(ctx context.Context, queries
 	}
 
 	var layout DashboardLayout
-	json.Unmarshal(dashboard.Layout, &layout)
+	if err := json.Unmarshal(dashboard.Layout, &layout); err != nil {
+		slog.Warn("dashboard: failed to unmarshal layout", "error", err)
+	}
 
 	// Find and update widget config
 	found := false
@@ -443,7 +452,9 @@ func (t *ConfigureDashboardTool) listDashboards(ctx context.Context, queries *sq
 				defaultMark = " ⭐"
 			}
 			var layout DashboardLayout
-			json.Unmarshal(d.Layout, &layout)
+			if err := json.Unmarshal(d.Layout, &layout); err != nil {
+			slog.Warn("dashboard: failed to unmarshal layout", "error", err)
+		}
 			sb.WriteString(fmt.Sprintf("- **%s**%s (ID: %s) - %d widgets\n", d.Name, defaultMark, uuidToString(d.ID), len(layout.Widgets)))
 		}
 	}
@@ -480,7 +491,9 @@ func (t *ConfigureDashboardTool) getDashboard(ctx context.Context, queries *sqlc
 	}
 
 	var layout DashboardLayout
-	json.Unmarshal(dashboard.Layout, &layout)
+	if err := json.Unmarshal(dashboard.Layout, &layout); err != nil {
+		slog.Warn("dashboard: failed to unmarshal layout", "error", err)
+	}
 
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("## %s\n\n", dashboard.Name))

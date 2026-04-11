@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,29 +16,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 
 	semconv "github.com/rhl/businessos-backend/internal/semconv"
+	"github.com/rhl/businessos-backend/internal/services"
 )
 
-// pm4py-rust HTTP routes (see pm4py-rust/src/http/businessos_api.rs).
-const (
-	pm4pyPathDiscoveryAlpha         = "/api/discovery/alpha"
-	pm4pyPathConformanceTokenReplay = "/api/conformance/token-replay"
-	pm4pyPathStatistics            = "/api/statistics"
-	pm4pyPathParseXES              = "/api/io/parse-xes"
-)
-
-// BOSGatewayHandler handles BOS CLI ↔ BusinessOS API gateway operations.
+// BOSGatewayHandler handles BOS CLI <-> BusinessOS API gateway operations.
 type BOSGatewayHandler struct {
 	pool             *pgxpool.Pool
 	logger           *slog.Logger
 	stats            *GatewayStatistics
 	mu               sync.RWMutex
-	pm4pyURL         string
+	pm4pyMCPClient   services.PM4PyMCPClientInterface
 	canopyWebhookURL string
 	httpClient       *http.Client
 }
@@ -55,15 +46,14 @@ type GatewayStatistics struct {
 }
 
 // NewBOSGatewayHandler creates a new BOS gateway handler.
-// pm4pyURL is loaded from PM4PY_RUST_URL env var, defaults to http://localhost:8090.
+// pm4py-mcp URL is loaded from PM4PY_MCP_URL env var (default: http://localhost:7015).
 func NewBOSGatewayHandler(pool *pgxpool.Pool, logger *slog.Logger) *BOSGatewayHandler {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
-	pm4pyURL := "http://localhost:8090"
-	// Try to load from environment if available
-	if envURL := os.Getenv("PM4PY_RUST_URL"); envURL != "" {
+	pm4pyURL := "http://localhost:7015"
+	if envURL := os.Getenv("PM4PY_MCP_URL"); envURL != "" {
 		pm4pyURL = envURL
 	}
 
@@ -77,16 +67,11 @@ func NewBOSGatewayHandler(pool *pgxpool.Pool, logger *slog.Logger) *BOSGatewayHa
 			StartedAt:     time.Now(),
 			LatencyValues: make([]uint64, 0),
 		},
-		pm4pyURL:         pm4pyURL,
+		pm4pyMCPClient:   services.NewPM4PyMCPClient(pm4pyURL),
 		canopyWebhookURL: canopyWebhookURL,
-		// ## Backpressure: HTTP Client Timeout (WvdA deadlock-free)
-		// 30-second timeout prevents unbounded hangs to pm4py-rust.
-		// otelhttp.NewTransport wraps the default transport so that outbound
-		// requests automatically carry W3C traceparent + tracestate headers,
-		// enabling distributed trace propagation to pm4py-rust.
+		// HTTP client retained for canopy webhook (outbound advisory notification).
 		httpClient: &http.Client{
-			Transport: otelhttp.NewTransport(http.DefaultTransport),
-			Timeout:   30 * time.Second,
+			Timeout: 10 * time.Second,
 		},
 	}
 }
@@ -225,8 +210,7 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 		"algorithm", req.Algorithm,
 	)
 
-	// Read event log (JSON on disk, or XES forwarded to pm4py-rust for parsing).
-	// pm4py-rust expects {event_log: <JSON content>, variant: <string>}.
+	// Read event log (JSON on disk).
 	eventLog, err := h.loadEventLogForGateway(c.Request.Context(), req.LogPath)
 	if err != nil {
 		h.logger.Warn("discover: failed to read event log file",
@@ -238,86 +222,32 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 		return
 	}
 
-	// Call pm4py-rust HTTP API with event log content (not file path).
-	pm4pyPayload := struct {
-		EventLog json.RawMessage `json:"event_log"`
-		Variant  string          `json:"variant"`
-	}{
-		EventLog: eventLog,
-		Variant:  req.Algorithm,
-	}
-	pm4pyReqBody, err := json.Marshal(pm4pyPayload)
+	// Call pm4py-mcp directly via MCP protocol (no HTTP intermediary).
+	result, err := h.pm4pyMCPClient.Discover(c.Request.Context(), eventLog, req.Algorithm)
 	if err != nil {
-		h.logger.Error("discover: failed to marshal pm4py request", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to build pm4py-rust request"})
-		return
-	}
-
-	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+pm4pyPathDiscoveryAlpha, bytes.NewReader(pm4pyReqBody))
-	httpReq.Header.Set("Content-Type", "application/json")
-	// Forward correlation_id to pm4py-rust so the full chain shares one ID.
-	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
-		httpReq.Header.Set("X-Correlation-ID", correlationID)
-	}
-
-	httpResp, err := h.httpClient.Do(httpReq)
-	if err != nil {
-		h.logger.Error("discover: pm4py-rust request failed",
-			"pm4py_url", h.pm4pyURL,
-			"error", err.Error(),
-		)
+		h.logger.Error("discover: pm4py-mcp call failed", "error", err.Error())
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "pm4py-rust unavailable")
+		span.SetStatus(codes.Error, "pm4py-mcp unavailable")
 		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust unavailable"})
-		return
-	}
-	defer httpResp.Body.Close()
-
-	if httpResp.StatusCode != http.StatusOK {
-		h.logger.Warn("discover: pm4py-rust error",
-			"status_code", httpResp.StatusCode,
-		)
-		span.SetStatus(codes.Error, fmt.Sprintf("pm4py-rust returned %d", httpResp.StatusCode))
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust error"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-mcp unavailable"})
 		return
 	}
 
-	// Parse pm4py-rust response
-	var pm4pyResp map[string]interface{}
-	if err := json.NewDecoder(httpResp.Body).Decode(&pm4pyResp); err != nil {
-		h.logger.Error("discover: failed to parse pm4py-rust response", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse pm4py-rust response"})
-		return
-	}
-
-	modelData, _ := json.Marshal(pm4pyResp)
+	// Build response from MCP result.
+	modelData, _ := json.Marshal(result)
 
 	modelID := uuid.New().String()
-	if mid, ok := pm4pyResp["model_id"].(string); ok && mid != "" {
-		modelID = mid
+	if result.ModelID != "" {
+		modelID = result.ModelID
 	}
 	algo := req.Algorithm
-	if a, ok := pm4pyResp["algorithm"].(string); ok && a != "" {
-		algo = a
+	if result.Algorithm != "" {
+		algo = result.Algorithm
 	}
 
-	places, transitions, arcs := 0, 0, 0
-	if pn, ok := pm4pyResp["petri_net"].(map[string]interface{}); ok {
-		if pl, ok := pn["places"].([]interface{}); ok {
-			places = len(pl)
-		}
-		if tr, ok := pn["transitions"].([]interface{}); ok {
-			transitions = len(tr)
-		}
-		if ar, ok := pn["arcs"].([]interface{}); ok {
-			arcs = len(ar)
-		}
-	}
+	places := result.ProcessModel.Places
+	transitions := result.ProcessModel.Transitions
+	arcs := result.ProcessModel.Arcs
 
 	response := BOSDiscoverResponse{
 		ModelID:     modelID,
@@ -334,7 +264,7 @@ func (h *BOSGatewayHandler) Discover(c *gin.Context) {
 	// If connection drops mid-flight or Gin crashes, result recoverable from DB.
 	// Non-fatal failure: continue even if WAL write fails (client gets response).
 	// WvdA soundness: write-ahead log before returning response.
-	// If the client connection drops after pm4py-rust succeeds, the result
+	// If the client connection drops after pm4py-mcp succeeds, the result
 	// is recoverable from the WAL. Cleanup happens after successful response.
 	if err := h.writeAheadLog(modelID, &response); err != nil {
 		h.logger.Warn("discover: WAL write failed (non-fatal, continuing)",
@@ -455,93 +385,23 @@ func (h *BOSGatewayHandler) CheckConformance(c *gin.Context) {
 		}
 	}
 
-	// Build conformance payload for pm4py-rust.
-	// pm4py-rust expects {event_log: <JSON content>, petri_net: <petri net>, method: "token_replay"}.
-	conformancePayload := struct {
-		EventLog json.RawMessage `json:"event_log"`
-		PetriNet json.RawMessage `json:"petri_net,omitempty"`
-		Method   string          `json:"method"`
-	}{
-		EventLog: eventLog,
-		PetriNet: petriNetRaw,
-		Method:   "token_replay",
-	}
-	pm4pyReqBody, err := json.Marshal(conformancePayload)
+	// Call pm4py-mcp directly via MCP protocol.
+	result, err := h.pm4pyMCPClient.Conformance(c.Request.Context(), eventLog, petriNetRaw)
 	if err != nil {
-		h.logger.Error("conformance: failed to marshal pm4py request", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to build pm4py-rust request"})
-		return
-	}
-
-	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+pm4pyPathConformanceTokenReplay, bytes.NewReader(pm4pyReqBody))
-	httpReq.Header.Set("Content-Type", "application/json")
-	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
-		httpReq.Header.Set("X-Correlation-ID", correlationID)
-	}
-
-	httpResp, err := h.httpClient.Do(httpReq)
-	if err != nil {
-		h.logger.Error("conformance: pm4py-rust request failed",
-			"pm4py_url", h.pm4pyURL,
-			"error", err.Error(),
-		)
+		h.logger.Error("conformance: pm4py-mcp call failed", "error", err.Error())
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "pm4py-rust unavailable")
+		span.SetStatus(codes.Error, "pm4py-mcp unavailable")
 		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust unavailable"})
-		return
-	}
-	defer httpResp.Body.Close()
-
-	if httpResp.StatusCode != http.StatusOK {
-		h.logger.Warn("conformance: pm4py-rust error",
-			"status_code", httpResp.StatusCode,
-		)
-		span.SetStatus(codes.Error, fmt.Sprintf("pm4py-rust returned %d", httpResp.StatusCode))
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust error"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-mcp unavailable"})
 		return
 	}
 
-	// Parse pm4py-rust response
-	var pm4pyResp map[string]interface{}
-	if err := json.NewDecoder(httpResp.Body).Decode(&pm4pyResp); err != nil {
-		h.logger.Error("conformance: failed to parse pm4py-rust response", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse pm4py-rust response"})
-		return
-	}
-
-	tracesChecked := uint64(0)
-	if v, ok := pm4pyResp["traces_checked"].(float64); ok {
-		tracesChecked = uint64(v)
-	}
+	tracesChecked := uint64(result.TraceEvents)
 	fittingTraces := uint64(0)
-	if v, ok := pm4pyResp["fitting_traces"].(float64); ok {
-		fittingTraces = uint64(v)
-	}
-	fitness := 0.0
-	if v, ok := pm4pyResp["fitness"].(float64); ok {
-		fitness = v
-	}
-	precision := 0.0
-	if v, ok := pm4pyResp["precision"].(float64); ok {
-		precision = v
-	}
-	generalization := 0.0
-	if v, ok := pm4pyResp["generalization"].(float64); ok {
-		generalization = v
-	}
-	simplicity := 0.0
-	if v, ok := pm4pyResp["simplicity"].(float64); ok {
-		simplicity = v
-	}
-	if isConf, ok := pm4pyResp["is_conformant"].(bool); ok && isConf && fittingTraces == 0 && tracesChecked == 0 {
-		fittingTraces = 1
-		tracesChecked = 1
-	}
+	fitness := result.Fitness
+	precision := result.Precision
+	generalization := result.Generalization
+	simplicity := result.Simplicity
 
 	response := BOSConformanceResponse{
 		TracesChecked:  tracesChecked,
@@ -615,163 +475,38 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 		return
 	}
 
-	// Call pm4py-rust HTTP API with event log content (not file path).
-	// pm4py-rust expects {event_log: <JSON content>, include_variants: bool, ...}.
-	statisticsPayload := struct {
-		EventLog               json.RawMessage `json:"event_log"`
-		IncludeVariants        bool            `json:"include_variants"`
-		IncludeResourceMetrics bool            `json:"include_resource_metrics"`
-		IncludeBottlenecks     bool            `json:"include_bottlenecks"`
-	}{
-		EventLog:               eventLog,
-		IncludeVariants:        true,
-		IncludeResourceMetrics: true,
-		IncludeBottlenecks:     true,
-	}
-	pm4pyReqBody, err := json.Marshal(statisticsPayload)
+	// Call pm4py-mcp directly via MCP protocol (pm4py_full tool).
+	result, err := h.pm4pyMCPClient.Statistics(c.Request.Context(), eventLog)
 	if err != nil {
-		h.logger.Error("statistics: failed to marshal pm4py request", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to build pm4py-rust request"})
-		return
-	}
-
-	httpReq, _ := http.NewRequestWithContext(c.Request.Context(), "POST",
-		h.pm4pyURL+pm4pyPathStatistics, bytes.NewReader(pm4pyReqBody))
-	httpReq.Header.Set("Content-Type", "application/json")
-	if correlationID := c.Request.Header.Get("X-Correlation-ID"); correlationID != "" {
-		httpReq.Header.Set("X-Correlation-ID", correlationID)
-	}
-
-	httpResp, err := h.httpClient.Do(httpReq)
-	if err != nil {
-		h.logger.Error("statistics: pm4py-rust request failed",
-			"pm4py_url", h.pm4pyURL,
-			"error", err.Error(),
-		)
+		h.logger.Error("statistics: pm4py-mcp call failed", "error", err.Error())
 		span.RecordError(err)
-		span.SetStatus(codes.Error, "pm4py-rust unavailable")
+		span.SetStatus(codes.Error, "pm4py-mcp unavailable")
 		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust unavailable"})
-		return
-	}
-	defer httpResp.Body.Close()
-
-	if httpResp.StatusCode != http.StatusOK {
-		h.logger.Warn("statistics: pm4py-rust error",
-			"status_code", httpResp.StatusCode,
-		)
-		span.SetStatus(codes.Error, fmt.Sprintf("pm4py-rust returned %d", httpResp.StatusCode))
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-rust error"})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "pm4py-mcp unavailable"})
 		return
 	}
 
-	// Parse pm4py-rust response
-	var pm4pyResp map[string]interface{}
-	if err := json.NewDecoder(httpResp.Body).Decode(&pm4pyResp); err != nil {
-		h.logger.Error("statistics: failed to parse pm4py-rust response", "error", err.Error())
-		h.recordRequest(false, uint64(time.Since(startTime).Milliseconds()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse pm4py-rust response"})
-		return
-	}
-
+	// Map MCP result to response format.
 	logName := "event_log"
-	if v, ok := pm4pyResp["log_name"].(string); ok && v != "" {
-		logName = v
-	}
-	numTraces := intFromJSONFloat(pm4pyResp["trace_count"], 0)
-	numEvents := intFromJSONFloat(pm4pyResp["event_count"], 0)
-	numUniqueActivities := intFromJSONFloat(pm4pyResp["unique_activities"], 0)
-	if numTraces == 0 {
-		numTraces = intFromJSONFloat(pm4pyResp["num_traces"], 0)
-	}
-	if numEvents == 0 {
-		numEvents = intFromJSONFloat(pm4pyResp["num_events"], 0)
-	}
-	if numUniqueActivities == 0 {
-		numUniqueActivities = intFromJSONFloat(pm4pyResp["num_unique_activities"], 0)
-	}
-	numVariants := intFromJSONFloat(pm4pyResp["variant_count"], 0)
-	if numVariants == 0 {
-		numVariants = intFromJSONFloat(pm4pyResp["num_variants"], 0)
-	}
-	avgTraceLength := 0.0
-	if v, ok := pm4pyResp["avg_trace_length"].(float64); ok {
-		avgTraceLength = v
-	} else if numTraces > 0 {
-		avgTraceLength = float64(numEvents) / float64(numTraces)
-	}
-	minTraceLength := intFromJSONFloat(pm4pyResp["min_trace_length"], 0)
-	maxTraceLength := intFromJSONFloat(pm4pyResp["max_trace_length"], 0)
+	numTraces := result.UniqueTraces
+	numEvents := result.TraceEvents
+	numUniqueActivities := result.UniqueActivities
+	numVariants := len(result.Variants)
 
-	activityFreq := []BOSActivityStatistic{}
-	if freq, ok := pm4pyResp["activity_frequency"].([]interface{}); ok {
-		for _, item := range freq {
-			if m, ok := item.(map[string]interface{}); ok {
-				activity := ""
-				if v, ok := m["activity"].(string); ok {
-					activity = v
-				}
-				frequency := 0
-				if v, ok := m["frequency"].(float64); ok {
-					frequency = int(v)
-				}
-				percentage := 0.0
-				if v, ok := m["percentage"].(float64); ok {
-					percentage = v
-				}
-				activityFreq = append(activityFreq, BOSActivityStatistic{
-					Activity:   activity,
-					Frequency:  frequency,
-					Percentage: percentage,
-				})
-			}
-		}
-	} else if af, ok := pm4pyResp["activity_frequencies"].(map[string]interface{}); ok {
-		total := 0
-		for _, v := range af {
-			if n, ok := v.(float64); ok {
-				total += int(n)
-			}
-		}
-		for act, v := range af {
-			freq := 0
-			if n, ok := v.(float64); ok {
-				freq = int(n)
-			}
-			pct := 0.0
-			if total > 0 {
-				pct = 100.0 * float64(freq) / float64(total)
-			}
-			activityFreq = append(activityFreq, BOSActivityStatistic{
-				Activity:   act,
-				Frequency:  freq,
-				Percentage: pct,
-			})
+	activityFreq := make([]BOSActivityStatistic, len(result.ActivityFrequency))
+	for i, af := range result.ActivityFrequency {
+		activityFreq[i] = BOSActivityStatistic{
+			Activity:   af.Activity,
+			Frequency:  af.Frequency,
+			Percentage: af.Percentage,
 		}
 	}
 
-	// Parse case duration
 	caseDuration := BOSCaseDurationStatistic{
-		MinSeconds:    60,
-		MaxSeconds:    3600,
-		AvgSeconds:    1200.5,
-		MedianSeconds: 900.0,
-	}
-	if cd, ok := pm4pyResp["case_duration"].(map[string]interface{}); ok {
-		if v, ok := cd["min_seconds"].(float64); ok {
-			caseDuration.MinSeconds = int64(v)
-		}
-		if v, ok := cd["max_seconds"].(float64); ok {
-			caseDuration.MaxSeconds = int64(v)
-		}
-		if v, ok := cd["avg_seconds"].(float64); ok {
-			caseDuration.AvgSeconds = v
-		}
-		if v, ok := cd["median_seconds"].(float64); ok {
-			caseDuration.MedianSeconds = v
-		}
+		MinSeconds:    int64(result.CaseDuration.MinSeconds),
+		MaxSeconds:    int64(result.CaseDuration.MaxSeconds),
+		AvgSeconds:    result.CaseDuration.AvgSeconds,
+		MedianSeconds: result.CaseDuration.MedianSeconds,
 	}
 
 	response := BOSStatisticsResponse{
@@ -780,9 +515,6 @@ func (h *BOSGatewayHandler) GetStatistics(c *gin.Context) {
 		NumEvents:           numEvents,
 		NumUniqueActivities: numUniqueActivities,
 		NumVariants:         numVariants,
-		AvgTraceLength:      avgTraceLength,
-		MinTraceLength:      minTraceLength,
-		MaxTraceLength:      maxTraceLength,
 		ActivityFrequency:   activityFreq,
 		CaseDuration:        caseDuration,
 		LatencyMs:           uint64(time.Since(startTime).Milliseconds()),
@@ -898,53 +630,21 @@ func (h *BOSGatewayHandler) sendCanopyWebhook(modelID, algorithm string, activit
 	)
 }
 
-// loadEventLogForGateway loads a JSON event log from disk, or parses .xes via pm4py-rust.
+// loadEventLogForGateway loads a JSON event log from disk.
+// XES parsing via pm4py-mcp not supported — client must convert to JSON first.
 func (h *BOSGatewayHandler) loadEventLogForGateway(ctx context.Context, logPath string) (json.RawMessage, error) {
 	if logPath == "" {
 		return nil, fmt.Errorf("log_path is empty")
 	}
 	if strings.HasSuffix(strings.ToLower(logPath), ".xes") {
-		data, err := os.ReadFile(logPath)
-		if err != nil {
-			return nil, fmt.Errorf("read XES file %q: %w", logPath, err)
-		}
-		parseURL := strings.TrimSuffix(h.pm4pyURL, "/") + pm4pyPathParseXES
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, parseURL, bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		req.Header.Set("Content-Type", "application/xml")
-		resp, err := h.httpClient.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("pm4py XES parse request: %w", err)
-		}
-		defer resp.Body.Close()
-		raw, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("pm4py XES parse returned %d: %s", resp.StatusCode, string(raw))
-		}
-		if !json.Valid(raw) {
-			return nil, fmt.Errorf("pm4py XES parse returned non-JSON")
-		}
-		return json.RawMessage(raw), nil
+		return nil, fmt.Errorf("XES format not supported by pm4py-mcp — convert to JSON first: %s", logPath)
 	}
 	return readEventLog(logPath)
 }
 
-func intFromJSONFloat(v interface{}, def int) int {
-	f, ok := v.(float64)
-	if !ok {
-		return def
-	}
-	return int(f)
-}
-
 // readEventLog reads a file at logPath, validates it is valid JSON, and returns
 // the raw JSON bytes. Returns an error if the file cannot be read or is not
-// valid JSON. This is used before forwarding event log content to pm4py-rust.
+// valid JSON.
 func readEventLog(logPath string) (json.RawMessage, error) {
 	if logPath == "" {
 		return nil, fmt.Errorf("log_path is empty")
@@ -1114,12 +814,12 @@ func (h *BOSGatewayHandler) persistDiscoveryResult(ctx context.Context, modelID,
 	})
 
 	_, err := h.pool.Exec(dbCtx, `
-		INSERT INTO process_discovery_results
-		    (workspace_id, model_id, algorithm, activities_count, fitness, raw_result)
-		VALUES
-		    ('00000000-0000-0000-0000-000000000000'::uuid, $1, $2, $3, -1.0, $4)
-		ON CONFLICT (workspace_id, model_id) DO NOTHING
-	`, modelID, algo, resp.Transitions, json.RawMessage(rawResult))
+			INSERT INTO process_discovery_results
+			    (workspace_id, model_id, algorithm, activities_count, fitness, raw_result)
+			VALUES
+			    ('00000000-0000-0000-0000-000000000000'::uuid, $1, $2, $3, -1.0, $4)
+			ON CONFLICT (workspace_id, model_id) DO NOTHING
+		`, modelID, algo, resp.Transitions, json.RawMessage(rawResult))
 	if err != nil {
 		return fmt.Errorf("persist discovery result: %w", err)
 	}

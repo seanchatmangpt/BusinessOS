@@ -1,7 +1,7 @@
-//! bos-core process mining — pm4py-rust integration for BusinessOS.
+//! bos-core process mining — pm4py-mcp integration for BusinessOS.
 //!
 //! Provides process discovery, conformance checking, and analysis
-//! capabilities using the pm4py-rust library.
+//! capabilities using the pm4py-mcp library.
 
 use anyhow::Result;
 use pm4py::{EventLog, Trace, Event};

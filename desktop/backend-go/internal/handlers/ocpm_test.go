@@ -27,9 +27,9 @@ func newOCPMTestRouter(pm4pyURL, osaURL string) *gin.Engine {
 }
 
 // TestOCPMThroughput_ProxiesRequest verifies that POST /api/ocpm/throughput
-// forwards the body to pm4py-rust and returns its response verbatim.
+// forwards the body to pm4py-mcp and returns its response verbatim.
 func TestOCPMThroughput_ProxiesRequest(t *testing.T) {
-	// Arrange — mock pm4py-rust server.
+	// Arrange — mock pm4py-mcp server.
 	pm4py := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/ocpm/performance/throughput", r.URL.Path)
 		assert.Equal(t, http.MethodPost, r.Method)
@@ -140,7 +140,7 @@ func TestOCPMExportOCEL_ProxiesRequest(t *testing.T) {
 
 // TestOCPMHandler_RegisterRoutes verifies all 4 routes are registered.
 func TestOCPMHandler_RegisterRoutes(t *testing.T) {
-	h := NewOCPMHandler("http://localhost:8090", "http://localhost:8089")
+	h := NewOCPMHandler("http://localhost:7015", "http://localhost:8089")
 	r := gin.New()
 	api := r.Group("/api")
 	h.RegisterRoutes(api)
@@ -157,7 +157,7 @@ func TestOCPMHandler_RegisterRoutes(t *testing.T) {
 	assert.True(t, routeMap["GET:/api/ocpm/export"], "GET /api/ocpm/export must be registered")
 }
 
-// TestOCPMThroughput_Pm4pyUnreachable verifies 502 when pm4py-rust is down.
+// TestOCPMThroughput_Pm4pyUnreachable verifies 502 when pm4py-mcp is down.
 func TestOCPMThroughput_Pm4pyUnreachable(t *testing.T) {
 	// Point at a port that refuses connections.
 	router := newOCPMTestRouter("http://127.0.0.1:19999", "http://osa-not-used")
@@ -172,7 +172,7 @@ func TestOCPMThroughput_Pm4pyUnreachable(t *testing.T) {
 	assert.Equal(t, http.StatusBadGateway, w.Code)
 	var resp map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	assert.Contains(t, resp["error"], "pm4py-rust unreachable")
+	assert.Contains(t, resp["error"], "pm4py-mcp unreachable")
 }
 
 // TestOCPMExportOCEL_OSAUnreachable verifies 502 when OSA is down.
@@ -192,21 +192,21 @@ func TestOCPMExportOCEL_OSAUnreachable(t *testing.T) {
 
 // TestNewOCPMHandler_DefaultURLs verifies env-var fallback defaults.
 func TestNewOCPMHandler_DefaultURLs(t *testing.T) {
-	// Unset both env vars to trigger the hardcoded defaults.
-	t.Setenv("PM4PY_RUST_URL", "")
+	// Unset env vars to trigger the hardcoded defaults.
+	t.Setenv("PM4PY_MCP_URL", "")
 	t.Setenv("OSA_URL", "")
 
 	h := NewOCPMHandler("", "")
-	assert.Equal(t, "http://localhost:8090", h.pm4pyURL)
+	assert.Equal(t, "http://localhost:7015", h.pm4pyURL)
 	assert.Equal(t, "http://localhost:8089", h.osaURL)
 }
 
-// TestNewOCPMHandler_EnvURLs verifies env vars are picked up when no explicit URL given.
+// TestNewOCPMHandler_EnvURLs verifies PM4PY_MCP_URL and OSA_URL env var configuration.
 func TestNewOCPMHandler_EnvURLs(t *testing.T) {
-	t.Setenv("PM4PY_RUST_URL", "http://pm4py-custom:9000")
+	t.Setenv("PM4PY_MCP_URL", "http://pm4py-mcp:7015")
 	t.Setenv("OSA_URL", "http://osa-custom:9001")
 
 	h := NewOCPMHandler("", "")
-	assert.Equal(t, "http://pm4py-custom:9000", h.pm4pyURL)
+	assert.Equal(t, "http://pm4py-mcp:7015", h.pm4pyURL)
 	assert.Equal(t, "http://osa-custom:9001", h.osaURL)
 }

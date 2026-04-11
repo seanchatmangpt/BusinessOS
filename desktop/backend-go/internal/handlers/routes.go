@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rhl/businessos-backend/internal/integrations/pm4py_rust"
 	"github.com/rhl/businessos-backend/internal/middleware"
+	"github.com/rhl/businessos-backend/internal/services"
 	"github.com/rhl/businessos-backend/internal/vision"
 )
 
@@ -25,7 +25,7 @@ func (h *Handlers) RegisterRoutes(api *gin.RouterGroup) {
 	}
 	optionalAuth := middleware.OptionalAuthMiddleware(h.pool) // For dev-friendly routes
 
-	// JWT auth for API-to-API communication (e.g., pm4py-rust to /api/bos/progress)
+	// JWT auth for API-to-API communication (e.g., pm4py-mcp to /api/bos/progress)
 	jwtAuth := middleware.JWTAuth(h.cfg.SecretKey)
 
 	h.registerChatRoutes(api, auth)
@@ -90,15 +90,14 @@ func (h *Handlers) registerBoardRoutes(api *gin.RouterGroup) {
 }
 
 // registerPM4PyDashboardRoutes wires POST /api/pm4py/dashboard-kpi.
-// The pm4py-rust base URL is read from the PM4PY_RUST_URL environment variable
-// (default: http://localhost:8090), consistent with the bos gateway pattern.
+// Uses pm4py-mcp MCP client (reads PM4PY_MCP_URL env var, default: http://localhost:7015).
 func (h *Handlers) registerPM4PyDashboardRoutes(api *gin.RouterGroup, optionalAuth gin.HandlerFunc) {
-	baseURL := os.Getenv("PM4PY_RUST_URL")
+	baseURL := os.Getenv("PM4PY_MCP_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8090"
+		baseURL = "http://localhost:7015"
 	}
-	pm4pyClient := pm4py_rust.NewClient(baseURL)
-	dashHandler := NewPM4PyDashboardHandler(pm4pyClient)
+	mcpClient := services.NewPM4PyMCPClient(baseURL)
+	dashHandler := NewPM4PyDashboardHandler(mcpClient)
 	api.POST("/pm4py/dashboard-kpi", optionalAuth, dashHandler.GetDashboardKPI)
 }
 
@@ -110,9 +109,9 @@ func (h *Handlers) registerVisionRoutes(api *gin.RouterGroup) {
 }
 
 // registerBOSProgressRoutes wires /api/bos/progress route for external progress event reception
-// from pm4py-rust progress events.
+// from pm4py-mcp progress events.
 func (h *Handlers) registerBOSProgressRoutes(api *gin.RouterGroup, jwtAuth gin.HandlerFunc) {
-	// POST /api/bos/progress — receives progress events from pm4py-rust
+	// POST /api/bos/progress — receives progress events from pm4py-mcp
 	// Requires JWT Bearer token in Authorization header to prevent unauthorized progress injection
 	api.POST("/bos/progress", jwtAuth, ReceiveExternalProgressEventHandler)
 }
@@ -127,11 +126,11 @@ func (h *Handlers) registerFIBODealsRoutes(api *gin.RouterGroup, auth gin.Handle
 }
 
 // registerOCPMRoutes wires /api/ocpm routes for Object-Centric Process Mining.
-// Proxies to pm4py-rust (PM4PY_RUST_URL, default http://localhost:8090) and
+// Proxies to pm4py-mcp (PM4PY_MCP_URL, default http://localhost:7015) and
 // OSA (OSA_URL, default http://localhost:8089). No auth required — callers are
 // internal services using bearer tokens at the service boundary.
 func (h *Handlers) registerOCPMRoutes(api *gin.RouterGroup) {
-	ocpmHandler := NewOCPMHandler("", "") // reads PM4PY_RUST_URL and OSA_URL from env
+	ocpmHandler := NewOCPMHandler("", "") // reads PM4PY_MCP_URL and OSA_URL from env
 	ocpmHandler.RegisterRoutes(api)
 }
 

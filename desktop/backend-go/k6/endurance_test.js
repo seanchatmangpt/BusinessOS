@@ -42,7 +42,7 @@ export default function(data) {
   const endpoints = [
     { path: '/healthz', method: 'GET', name: 'Healthz' },
     { path: '/api/yawl/health', method: 'GET', name: 'YAWLHealth' },
-    { path: '/api/pm4py/health', method: 'GET', name: 'Pm4pyHealth' },
+    { path: '/api/pm4py/dashboard-kpi', method: 'POST', name: 'Pm4pyDashboardKPI' },
   ];
 
   const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];

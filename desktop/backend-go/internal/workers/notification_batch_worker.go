@@ -139,7 +139,7 @@ func (w *BatchWorker) dispatchBatch(ctx context.Context, queries *sqlc.Queries, 
 		Metadata:   metadataJSON,
 	})
 	if err != nil {
-		slog.Info("[BatchWorker] Error creating summary notification", "error", err)
+		slog.Error("[BatchWorker] Error creating summary notification", "error", err)
 		// Still mark batch as dispatched to prevent infinite retries
 		_ = queries.MarkBatchDispatched(ctx, batch.ID)
 		return
@@ -150,11 +150,11 @@ func (w *BatchWorker) dispatchBatch(ctx context.Context, queries *sqlc.Queries, 
 
 	// Dispatch through the dispatcher (respects preferences, quiet hours, etc.)
 	if err := w.dispatcher.Dispatch(ctx, notif); err != nil {
-		slog.Info("[BatchWorker] Error dispatching batch", "value", batchID, "error", err)
+		slog.Error("[BatchWorker] Error dispatching batch", "value", batchID, "error", err)
 	}
 
 	if err := queries.MarkBatchDispatched(ctx, batch.ID); err != nil {
-		slog.Info("[BatchWorker] Error marking batch  as dispatched", "value", batchID, "error", err)
+		slog.Error("[BatchWorker] Error marking batch as dispatched", "value", batchID, "error", err)
 	}
 
 	slog.Info("[BatchWorker] Successfully dispatched batch", "value", batchID)
@@ -180,7 +180,9 @@ func generateBatchBody(notifType string, count int) string {
 func mapSqlcToNotification(n sqlc.Notification) *services.Notification {
 	var metadata map[string]interface{}
 	if len(n.Metadata) > 0 {
-		json.Unmarshal(n.Metadata, &metadata)
+		if err := json.Unmarshal(n.Metadata, &metadata); err != nil {
+			slog.Warn("notification: failed to unmarshal metadata", "error", err)
+		}
 	}
 
 	var workspaceID *uuid.UUID

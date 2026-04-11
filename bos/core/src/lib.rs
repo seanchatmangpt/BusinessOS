@@ -39,7 +39,7 @@ pub use streaming::{
     ProgressEvent, MetricsEvent, PartialResultEvent, ErrorEvent,
 };
 
-// Process Mining (pm4py-rust integration)
+// Process Mining (pm4py-mcp integration)
 pub mod process;
 
 // YAWL engine connector (event log import)

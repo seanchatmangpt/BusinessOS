@@ -8,7 +8,7 @@
 
 ## Recent Updates (2026-03-27)
 
-- **BOS Gateway Pattern** — New how-to for routing requests to pm4py-rust, Canopy, and OSA
+- **BOS Gateway Pattern** — New how-to for routing requests to pm4py-mcp, Canopy, and OSA
 - **Circuit Breaker Reference** — New configuration reference for compliance circuit breakers
 - **MCP Server Integration** — New how-to for connecting stdio/HTTP/SSE MCP servers
 - **OpenTelemetry Spans** — New how-to for adding custom OTEL instrumentation
@@ -62,7 +62,7 @@ BusinessOS is a self-hosted AI business OS built on the MIOSA four-layer stack. 
 | [FIBO Deals Go Implementation](./how-to/fibo-deals-go-implementation.md) | Implement FIBO deal types in Go with full type safety | Advanced |
 | [Query Ontology](./how-to/query-ontology.md) | Run SPARQL queries against the BusinessOS ontology layer | Intermediate |
 | [SOX Audit Trail Integration](./how-to/sox-audit-trail-integration.md) | Persist SOX-compliant audit trails via PROV-O | Advanced |
-| [BOS Gateway Pattern](./how-to/bos-gateway-pattern.md) | Route requests to pm4py-rust, Canopy, and OSA via the BOS gateway | Intermediate |
+| [BOS Gateway Pattern](./how-to/bos-gateway-pattern.md) | Route requests to pm4py-mcp, Canopy, and OSA via the BOS gateway | Intermediate |
 | [MCP Server Integration](./how-to/mcp-server-integration.md) | Connect stdio/HTTP/SSE MCP servers to BusinessOS | Intermediate |
 | [OpenTelemetry Spans](./how-to/opentelemetry-spans.md) | Add custom OTEL spans to handlers and services | Intermediate |
 

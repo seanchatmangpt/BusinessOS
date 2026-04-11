@@ -52,21 +52,21 @@ func TestRedisOutage(t *testing.T) {
 	chaos.Run(t)
 }
 
-// TestPm4pyRustOutage tests pm4py-rust container outage scenario
-func TestPm4pyRustOutage(t *testing.T) {
+// TestPm4pyMcpOutage tests pm4py-mcp container outage scenario
+func TestPm4pyMcpOutage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping chaos test in short mode")
 	}
 
 	chaos := &ChaosTest{
-		name: "Pm4pyRust_Container_Outage",
+		name: "Pm4pyMcp_Container_Outage",
 		breakdown: func() error {
-			t.Log("Stopping pm4py-rust container...")
-			return StopService("pm4py-rust")
+			t.Log("Stopping pm4py-mcp container...")
+			return StopService("pm4py-mcp")
 		},
 		recover: func() error {
-			t.Log("Starting pm4py-rust container...")
-			return StartService("pm4py-rust")
+			t.Log("Starting pm4py-mcp container...")
+			return StartService("pm4py-mcp")
 		},
 		maxDetection: 5 * time.Second,
 		maxRecovery:  20 * time.Second,

@@ -1,6 +1,6 @@
 /// Activity Frequency Statistics Parity Test
 ///
-/// Validates that pm4py-rust activity frequency calculation matches expected behavior
+/// Validates that pm4py-mcp activity frequency calculation matches expected behavior
 /// from the Python pm4py implementation.
 ///
 /// This test implements the critical metric that covers 80% of use cases:
@@ -8,7 +8,7 @@
 ///
 /// Test Strategy:
 /// 1. Create a realistic account lifecycle event log (10 accounts, 4 activities each)
-/// 2. Calculate activity frequencies using pm4py-rust
+/// 2. Calculate activity frequencies using pm4py-mcp
 /// 3. Compare against expected frequencies (deterministic based on test data)
 /// 4. Verify all activities have correct counts
 
@@ -94,7 +94,7 @@ fn test_activity_frequency_parity() {
     assert_eq!(log.len(), 10, "Log should contain 10 traces (accounts)");
     assert_eq!(log.num_events(), 40, "Log should contain 40 total events (4 per account)");
 
-    // === STEP 2: Get activity frequency from pm4py-rust ===
+    // === STEP 2: Get activity frequency from pm4py-mcp ===
     let rust_frequencies = activity_occurrence_matrix(&log);
 
     // === STEP 3: Define expected frequencies (from Python pm4py behavior) ===

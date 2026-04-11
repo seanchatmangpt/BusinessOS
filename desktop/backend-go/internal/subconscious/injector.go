@@ -69,7 +69,8 @@ func (p *SubconsciousHintProvider) ActiveHints() string {
 
 // ActiveHintsForUser returns hints scoped to a specific user.
 // Falls back to ActiveHints() if userID is empty.
-func (p *SubconsciousHintProvider) ActiveHintsForUser(userID string) string {
+// Returns ("", error) if user block lookup fails.
+func (p *SubconsciousHintProvider) ActiveHintsForUser(userID string) (string, error) {
 	var sections []string
 
 	// 1. Homeostatic corrections (global, not user-scoped)
@@ -81,16 +82,19 @@ func (p *SubconsciousHintProvider) ActiveHintsForUser(userID string) string {
 
 	// 2. User-scoped subconscious blocks
 	if p.store != nil && userID != "" {
-		blockText := p.formatBlocksForUser(userID)
+		blockText, err := p.formatBlocksForUser(userID)
+		if err != nil {
+			return "", fmt.Errorf("fetch subconscious blocks for user %q: %w", userID, err)
+		}
 		if blockText != "" {
 			sections = append(sections, blockText)
 		}
 	}
 
 	if len(sections) == 0 {
-		return ""
+		return "", nil
 	}
-	return strings.Join(sections, "\n\n")
+	return strings.Join(sections, "\n\n"), nil
 }
 
 // formatBlocks formats blocks without user scoping (uses empty context).
@@ -102,13 +106,11 @@ func (p *SubconsciousHintProvider) formatBlocks() string {
 }
 
 // formatBlocksForUser fetches and formats blocks for a specific user.
-func (p *SubconsciousHintProvider) formatBlocksForUser(userID string) string {
+func (p *SubconsciousHintProvider) formatBlocksForUser(userID string) (string, error) {
 	ctx := context.Background()
 	blocks, err := p.store.GetActiveBlocks(ctx, userID)
 	if err != nil {
-		p.logger.Warn("failed to fetch subconscious blocks",
-			"user_id", userID, "error", err)
-		return ""
+		return "", fmt.Errorf("get active blocks: %w", err)
 	}
 
 	var lines []string
@@ -124,11 +126,11 @@ func (p *SubconsciousHintProvider) formatBlocksForUser(userID string) string {
 	}
 
 	if len(lines) == 0 {
-		return ""
+		return "", nil
 	}
 
 	return fmt.Sprintf("## SUBCONSCIOUS OBSERVATIONS (cross-session patterns)\n\n%s",
-		strings.Join(lines, "\n\n"))
+		strings.Join(lines, "\n\n")), nil
 }
 
 // Actuator returns the wrapped PromptActuator for direct access when needed.

@@ -11,7 +11,7 @@ import (
 	"github.com/rhl/businessos-backend/internal/services"
 )
 
-// ReceiveExternalProgressEventRequest represents an incoming progress event from pm4py-rust
+// ReceiveExternalProgressEventRequest represents an incoming progress event from pm4py-mcp
 type ReceiveExternalProgressEventRequest struct {
 	Progress  uint32 `json:"progress" binding:"required"`
 	Algorithm string `json:"algorithm" binding:"required"`
@@ -38,7 +38,7 @@ func GetGlobalStreamingService() *services.BOSStreamingService {
 	return globalStreamingService
 }
 
-// ReceiveExternalProgressEventHandler handles progress events POSTed from pm4py-rust
+// ReceiveExternalProgressEventHandler handles progress events POSTed from pm4py-mcp
 // POST /api/bos/progress
 //
 // This endpoint receives progress events emitted during discovery/conformance operations

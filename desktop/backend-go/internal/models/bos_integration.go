@@ -1,4 +1,4 @@
-// Package models provides data types and integration layers for BOS (pm4py-rust) ↔ BusinessOS
+// Package models provides data types and integration layers for BOS (pm4py-mcp) ↔ BusinessOS
 //
 // This package defines Go equivalents of Rust BOS types and provides:
 // - Type-safe deserialization from JSON

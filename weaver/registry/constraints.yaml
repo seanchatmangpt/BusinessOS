@@ -1,0 +1,90 @@
+# Semantic Constraints and Invariant Laws
+# Defines the semantic laws that govern cross-system communication
+# These are enforced invariants, not just attributes
+
+groups:
+  - id: registry.chatman.constraints
+    type: constraint_group
+    display_name: Semantic Constraint Laws
+    brief: Invariant laws that govern lawful cross-system communication.
+    stability: experimental
+    constraints:
+      - id: task_propagation
+        type: invariant
+        display_name: Task ID Propagation Invariant
+        brief: task_id must remain constant across an entire interaction_id.
+        law: "∀ interaction_id, ∀ spans s1, s2 in interaction: s1.chatman.comm.task_id == s2.chatman.comm.task_id"
+        violation_severity: error
+        stability: experimental
+
+      - id: case_id_uniqueness
+        type: invariant
+        display_name: Case ID Uniqueness Invariant
+        brief: case_id must be unique within the system across time (no duplicates).
+        law: "∀ case_id, ∃! span1, span2: span1.case_id == span2.case_id ∧ span1 != span2"
+        violation_severity: error
+        stability: experimental
+
+      - id: valid_direction_pairing
+        type: invariant
+        display_name: Valid Direction Pairing Invariant
+        brief: request must be followed by response within the same interaction_id.
+        law: "∀ interaction_id with direction=request: ∃ span with direction=response ∧ index(response) > index(request)"
+        violation_severity: error
+        stability: experimental
+
+      - id: receipt_chain_continuity
+        type: invariant
+        display_name: Receipt Chain Continuity Invariant
+        brief: receipt.previous_hash must exactly match prior receipt.blake3_hash.
+        law: "∀ receipt_i: receipt_i.prev_hash == receipt_{i-1}.blake3_hash"
+        violation_severity: error
+        stability: experimental
+
+      - id: state_machine_lifecycle
+        type: invariant
+        display_name: State Machine Lifecycle Invariant
+        brief: Only legal lifecycle transitions allowed: create → start → complete (or abort).
+        law: "∀ object: transition ∈ {create→start, start→complete, create→abort, start→abort}"
+        violation_severity: error
+        stability: experimental
+
+      - id: closed_loop_requirement
+        type: invariant
+        display_name: Closed Loop Requirement
+        brief: Complete interaction loop required: BusinessOS → Canopy → OSA → BusinessOS.
+        law: "∀ validation_window: ∃ trace: businessos→canopy ∧ canopy→osa ∧ osa→businessos ∧ same(trace_id)"
+        violation_severity: error
+        stability: experimental
+
+      - id: otel_ocel_1to1
+        type: invariant
+        display_name: OTel to OCEL 1:1 Mapping Invariant
+        brief: Every OTel span must map to exactly one OCEL event with no lossy conversion.
+        law: "∀ otel_span: ∃! ocel_event: map(otel_span) == ocel_event ∧ no_data_loss"
+        violation_severity: error
+        stability: experimental
+
+      - id: no_orphan_tasks
+        type: invariant
+        display_name: No Orphan Tasks Invariant
+        brief: Every task created must be completed within the validation window.
+        law: "∀ task: state(task) == created ⇒ ∃ span: state(task) == completed"
+        violation_severity: error
+        stability: experimental
+
+      - id: semantic_replay_determinism
+        type: invariant
+        display_name: Semantic Replay Determinism Invariant
+        brief: Replaying the same input must produce the exact same output hash.
+        law: "∀ receipt_i: replay(input_i) == output_i ∧ hash(output_i) == receipt_i.blake3_hash"
+        violation_severity: error
+        stability: experimental
+
+      - id: minimal_execution
+        type: invariant
+        display_name: Minimal Execution Invariant
+        brief: No redundant execution paths for the same semantic operation.
+        law: "∀ operation: ∃! path1, path2: semantic_equivalent(path1, path2) ∧ path1 ≠ path2"
+        violation_severity: warning
+        stability: experimental

@@ -114,7 +114,9 @@ func (s *JobScheduler) CreateScheduledJob(ctx context.Context, req CreateSchedul
 		return nil, fmt.Errorf("create scheduled job: %w", err)
 	}
 
-	json.Unmarshal(payloadJSON, &job.Payload)
+	if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+		return nil, fmt.Errorf("unmarshal created job payload: %w", err)
+	}
 
 	slog.InfoContext(ctx, "Scheduled job created",
 		"job_id", job.ID,
@@ -148,7 +150,9 @@ func (s *JobScheduler) GetScheduledJob(ctx context.Context, jobID uuid.UUID) (*S
 		return nil, fmt.Errorf("get scheduled job: %w", err)
 	}
 
-	json.Unmarshal(payloadJSON, &job.Payload)
+	if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+		return nil, fmt.Errorf("unmarshal job payload: %w", err)
+	}
 	return &job, nil
 }
 
@@ -180,12 +184,19 @@ func (s *JobScheduler) ListScheduledJobs(ctx context.Context, activeOnly bool) (
 			&job.LastRunAt, &job.NextRunAt, &job.Name, &job.Description, &job.CreatedAt, &job.UpdatedAt,
 		)
 		if err != nil {
-			slog.ErrorContext(ctx, "Failed to scan scheduled job", "error", err)
-			continue
+			rows.Close()
+			return nil, fmt.Errorf("scan scheduled job row: %w", err)
 		}
 
-		json.Unmarshal(payloadJSON, &job.Payload)
+		if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("unmarshal job payload: %w", err)
+		}
 		jobs = append(jobs, job)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate scheduled jobs: %w", err)
 	}
 
 	return jobs, nil
@@ -262,7 +273,9 @@ func (s *JobScheduler) UpdateScheduledJob(ctx context.Context, jobID uuid.UUID, 
 		return nil, fmt.Errorf("update scheduled job: %w", err)
 	}
 
-	json.Unmarshal(payloadJSON, &job.Payload)
+	if err := json.Unmarshal(payloadJSON, &job.Payload); err != nil {
+		return nil, fmt.Errorf("unmarshal updated job payload: %w", err)
+	}
 
 	// Recalculate next run if cron or timezone changed
 	if req.CronExpression != nil || req.Timezone != nil {
@@ -405,8 +418,8 @@ func (s *JobScheduler) processDueJobs(ctx context.Context) error {
 		var payloadJSON []byte
 
 		if err := rows.Scan(&jobID, &jobType, &payloadJSON, &cronExpr, &timezone); err != nil {
-			slog.ErrorContext(ctx, "Failed to scan scheduled job", "error", err)
-			continue
+			rows.Close()
+			return fmt.Errorf("scan due job row: %w", err)
 		}
 
 		// Process this scheduled job
@@ -419,6 +432,10 @@ func (s *JobScheduler) processDueJobs(ctx context.Context) error {
 		}
 
 		jobsProcessed++
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate due jobs: %w", err)
 	}
 
 	if jobsProcessed > 0 {

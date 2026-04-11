@@ -1,6 +1,7 @@
 package terminal
 
 import (
+	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -82,12 +83,14 @@ func NewInputSanitizer(config *SanitizerConfig) *InputSanitizer {
 	s := &InputSanitizer{
 		config: config,
 	}
-	s.compilePatterns()
+	if err := s.compilePatterns(); err != nil {
+		panic(fmt.Errorf("failed to initialize security patterns: %w", err))
+	}
 	return s
 }
 
 // compilePatterns pre-compiles all regex patterns for O(1) lookup
-func (s *InputSanitizer) compilePatterns() {
+func (s *InputSanitizer) compilePatterns() error {
 	// Dangerous command patterns - ordered by severity
 	dangerousCommands := []struct {
 		pattern     string
@@ -137,8 +140,7 @@ func (s *InputSanitizer) compilePatterns() {
 	for _, cmd := range dangerousCommands {
 		compiled, err := regexp.Compile(cmd.pattern)
 		if err != nil {
-			slog.Error("[Sanitizer] Failed to compile pattern", "pattern", cmd.pattern, "error", err)
-			continue
+			return fmt.Errorf("failed to compile pattern %q: %w", cmd.pattern, err)
 		}
 		s.dangerousPatterns = append(s.dangerousPatterns, &dangerousPattern{
 			pattern:     compiled,
@@ -171,13 +173,13 @@ func (s *InputSanitizer) compilePatterns() {
 	for _, pattern := range escapePatterns {
 		compiled, err := regexp.Compile(pattern)
 		if err != nil {
-			slog.Error("[Sanitizer] Failed to compile escape pattern", "pattern", pattern, "error", err)
-			continue
+			return fmt.Errorf("failed to compile escape pattern %q: %w", pattern, err)
 		}
 		s.escapePatterns = append(s.escapePatterns, compiled)
 	}
 
 	slog.Info("[Sanitizer] Initialized", "command_patterns", len(s.dangerousPatterns), "escape_patterns", len(s.escapePatterns))
+	return nil
 }
 
 // ValidateInput checks input and returns a validation result

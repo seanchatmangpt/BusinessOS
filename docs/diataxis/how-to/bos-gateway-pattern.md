@@ -3,7 +3,7 @@ title: "How To: Use the BOS Gateway Pattern"
 type: how-to
 signal: "S=(linguistic, how-to, direct, markdown, numbered-steps)"
 relates_to: [api-endpoints, add-api-endpoint, circuit-breaker-configuration]
-prerequisites: [Go 1.24, BusinessOS backend running on :8001, pm4py-rust on :8090]
+prerequisites: [Go 1.24, BusinessOS backend running on :8001, pm4py-mcp on :7015]
 time: 15 minutes
 difficulty: Intermediate
 version: "1.0.0"
@@ -12,7 +12,7 @@ created: "2026-03-27"
 
 # How To: Use the BOS Gateway Pattern
 
-> **Proxy a request from BusinessOS to a downstream service (pm4py-rust, YAWL, OSA).**
+> **Invoke an MCP tool from BusinessOS via the BOS Gateway (pm4py-mcp, YAWL, OSA).**
 >
 > Problem: You need to forward an incoming HTTP request to an external engine, add OTEL tracing, handle timeouts, and return a structured response — without duplicating boilerplate across every endpoint.
 
@@ -20,7 +20,7 @@ created: "2026-03-27"
 
 ## What is the BOS Gateway?
 
-The BOS Gateway is a thin HTTP proxy layer inside BusinessOS. It accepts a request on `/api/bos/*`, forwards it to a downstream service (e.g., pm4py-rust on `:8090`), records an OTEL span, and returns a normalized JSON response to the caller. The target service URL comes from an environment variable, and the 30-second client timeout prevents unbounded hangs.
+The BOS Gateway invokes MCP tools from downstream services inside BusinessOS. It accepts a request on `/api/bos/*`, calls the appropriate pm4py-mcp tool via MCP protocol (e.g., pm4py-mcp on `:7015`), records an OTEL span, and returns a normalized JSON response to the caller. The target service URL comes from `PM4PY_MCP_URL`, and the 30-second timeout prevents unbounded hangs.
 
 ---
 
@@ -28,7 +28,7 @@ The BOS Gateway is a thin HTTP proxy layer inside BusinessOS. It accepts a reque
 
 Use the BOS Gateway pattern when:
 
-- You need to call **pm4py-rust** (`PM4PY_RUST_URL`) for process mining (discovery, conformance, statistics)
+- You need to call **pm4py-mcp** (`PM4PY_MCP_URL`) for process mining (discovery, conformance, statistics)
 - You need to call **Canopy** (`CANOPY_WEBHOOK_URL`) for workflow notifications
 - You are adding a new downstream engine (YAWL, OSA) that BusinessOS should proxy to
 - You want distributed tracing (W3C `traceparent`) propagated end-to-end to the downstream service
@@ -39,7 +39,7 @@ Do not use it for business logic that lives entirely inside BusinessOS (use a se
 
 ## Quick Start: Call the Existing Gateway
 
-With BusinessOS on `:8001` and pm4py-rust on `:8090`:
+With BusinessOS on `:8001` and pm4py-mcp on `:7015`:
 
 ```bash
 # Check gateway health
@@ -407,4 +407,4 @@ httpReq, _ = http.NewRequestWithContext(ctx, "POST", h.myServiceURL+"/api/proces
 - [`internal/handlers/bos_gateway.go`](../../../desktop/backend-go/internal/handlers/bos_gateway.go) — full source of the gateway
 - [`internal/handlers/routes_bos_gateway.go`](../../../desktop/backend-go/internal/handlers/routes_bos_gateway.go) — route registration
 - [`internal/semconv/bos_span_names.go`](../../../desktop/backend-go/internal/semconv/bos_span_names.go) — OTEL span name constants
-- [BusinessOS CLAUDE.md — BOS Gateway section](../../CLAUDE.md#cross-system-integration-pm4py-rust) — environment variable reference
+- [BusinessOS CLAUDE.md — BOS Gateway section](../../CLAUDE.md#cross-system-integration-pm4py-mcp) — environment variable reference

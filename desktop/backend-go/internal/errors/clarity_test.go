@@ -94,12 +94,12 @@ func TestHintForError_SpecificPatterns(t *testing.T) {
 		},
 		{
 			name:   "connection refused",
-			err:    errors.New("dial tcp 127.0.0.1:8090: connect: connection refused"),
+			err:    errors.New("dial tcp 127.0.0.1:5432: connect: connection refused"),
 			phrase: "Connection refused",
 		},
 		{
 			name:   "connection reset",
-			err:    errors.New("read tcp 127.0.0.1:8090->127.0.0.1:54321: read: connection reset by peer"),
+			err:    errors.New("read tcp 127.0.0.1:5432->127.0.0.1:54321: read: connection reset by peer"),
 			phrase: "Connection reset",
 		},
 		{
@@ -182,7 +182,7 @@ func TestHintForError_CaseInsensitive(t *testing.T) {
 		t.Errorf("case-insensitive match failed: got %q", got)
 	}
 
-	errMixed := errors.New("Connection Refused on port 8090")
+	errMixed := errors.New("Connection Refused on port 5432")
 	got = HintForError(errMixed)
 	if !contains(got, "Connection refused") {
 		t.Errorf("case-insensitive match failed: got %q", got)

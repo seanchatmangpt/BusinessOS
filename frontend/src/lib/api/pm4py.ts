@@ -92,7 +92,7 @@ export const EMPTY_EVENT_LOG = { traces: [] as unknown[] };
  * Discover a process map (Petri net) from an event log.
  * POST /pm4py/discover
  *
- * Calls the PM4PyRustHandler which proxies to pm4py-rust /api/discovery/alpha.
+ * Calls the PM4PyDashboardHandler which proxies to pm4py-mcp via MCP protocol.
  * Accepts { event_log, variant } and returns DiscoveryResponse with petri_net.
  */
 export async function discoverProcessMap(
@@ -109,7 +109,7 @@ export async function discoverProcessMap(
  * Get statistics for an event log.
  * POST /pm4py/statistics
  *
- * Calls the PM4PyRustHandler which proxies to pm4py-rust /api/statistics.
+ * Calls the PM4PyDashboardHandler which proxies to pm4py-mcp via MCP protocol.
  */
 export async function getStatistics(
   eventLog: unknown,

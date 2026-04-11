@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **ProcessMapViewer.svelte** — BFS DAG layout, SVG Petri net rendering, HSL performance overlay, bottleneck pulse animation, pan/zoom
-- **KPI Dashboard Widgets** — ConformanceScore, VariantDistribution, BottleneckHeatmap, CycleTimeTrend — wired to live pm4py-rust API
+- **KPI Dashboard Widgets** — ConformanceScore, VariantDistribution, BottleneckHeatmap, CycleTimeTrend — wired to live pm4py-mcp API
 - **bos-commands crate** (`BusinessOS/bos/src/`) — proper Cargo workspace member with zero file moves
   - `bosctl` binary — 20 clap subcommands
   - 3 gateway commands (discover/conformance/statistics) via async-to-sync Tokio bridge

@@ -20,7 +20,7 @@ const (
 	// Deployment environment for this ChatmanGPT instance.
 	ChatmangptDeploymentKey = attribute.Key("chatmangpt.deployment")
 	// ChatmangptRunCorrelationIdKey is the OTel attribute key for chatmangpt.run.correlation_id.
-	// Shared identifier for a single Weaver live-check or CI run so spans across projects (OSA, Canopy, BusinessOS, pm4py-rust) can be filtered as one audit story.
+	// Shared identifier for a single Weaver live-check or CI run so spans across projects (OSA, Canopy, BusinessOS, pm4py-mcp) can be filtered as one audit story.
 
 	ChatmangptRunCorrelationIdKey = attribute.Key("chatmangpt.run.correlation_id")
 	// ChatmangptServiceTierKey is the OTel attribute key for chatmangpt.service.tier.

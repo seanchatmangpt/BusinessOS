@@ -59,13 +59,13 @@ const (
 	// Process discovery algorithm requested by BOS CLI.
 	BosGatewayAlgorithmKey = attribute.Key("bos.gateway.algorithm")
 	// BosGatewayFitnessKey is the OTel attribute key for bos.gateway.fitness.
-	// Conformance fitness score [0.0, 1.0] from pm4py-rust.
+	// Conformance fitness score [0.0, 1.0] from pm4py-mcp.
 	BosGatewayFitnessKey = attribute.Key("bos.gateway.fitness")
 	// BosGatewayLatencyMsKey is the OTel attribute key for bos.gateway.latency_ms.
 	// Wall-clock latency in milliseconds for the gateway round-trip.
 	BosGatewayLatencyMsKey = attribute.Key("bos.gateway.latency_ms")
 	// BosGatewayModelIdKey is the OTel attribute key for bos.gateway.model_id.
-	// Identifier of the process model returned by pm4py-rust.
+	// Identifier of the process model returned by pm4py-mcp.
 	BosGatewayModelIdKey = attribute.Key("bos.gateway.model_id")
 	// BosGatewayNumTracesKey is the OTel attribute key for bos.gateway.num_traces.
 	// Number of process traces in the event log.

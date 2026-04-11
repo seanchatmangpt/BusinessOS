@@ -155,7 +155,7 @@ fn correlation_id() -> String {
 
 /// Gateway routing: POST discover request to BusinessOS gateway.
 ///
-/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-rust engine.
+/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-mcp engine.
 /// WvdA: 30-second timeout enforces bounded execution.
 /// Armstrong: non-2xx responses bail immediately with a clear error message.
 fn discover_via_gateway(
@@ -202,7 +202,7 @@ fn discover_via_gateway(
 
 /// Gateway routing: POST conform request to BusinessOS gateway.
 ///
-/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-rust engine.
+/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-mcp engine.
 /// WvdA: 30-second timeout enforces bounded execution.
 /// Armstrong: non-2xx responses bail immediately with a clear error message.
 fn conform_via_gateway(
@@ -251,7 +251,7 @@ fn conform_via_gateway(
 
 /// Gateway routing: POST analyze request to BusinessOS gateway.
 ///
-/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-rust engine.
+/// Cloud mode: routes through BusinessOS (http) instead of local pm4py-mcp engine.
 /// WvdA: 30-second timeout enforces bounded execution.
 /// Armstrong: non-2xx responses bail immediately with a clear error message.
 fn analyze_via_gateway(
@@ -319,7 +319,7 @@ fn analyze_via_gateway(
     })
 }
 
-#[noun("pm4py", "Process mining with pm4py-rust — discover, analyze, and check conformance of business processes")]
+#[noun("pm4py", "Process mining with pm4py-mcp — discover, analyze, and check conformance of business processes")]
 
 /// Load an event log from file
 ///
@@ -351,7 +351,7 @@ fn load(source: String) -> Result<LogLoaded> {
 /// Discover a process model from an event log
 ///
 /// Routes through BusinessOS gateway when --gateway / BOS_GATEWAY_URL is set (cloud mode).
-/// Falls back to local pm4py-rust engine when not configured.
+/// Falls back to local pm4py-mcp engine when not configured.
 ///
 /// # Arguments
 /// * `source` - Path to event log file
@@ -404,7 +404,7 @@ fn discover(
 /// Check conformance of log against model
 ///
 /// Routes through BusinessOS gateway when --gateway / BOS_GATEWAY_URL is set (cloud mode).
-/// Falls back to local pm4py-rust engine when not configured.
+/// Falls back to local pm4py-mcp engine when not configured.
 ///
 /// # Arguments
 /// * `log` - Path to event log file
@@ -452,7 +452,7 @@ fn conform(
 /// Analyze event log statistics
 ///
 /// Routes through BusinessOS gateway when --gateway / BOS_GATEWAY_URL is set (cloud mode).
-/// Falls back to local pm4py-rust engine when not configured.
+/// Falls back to local pm4py-mcp engine when not configured.
 ///
 /// # Arguments
 /// * `source` - Path to event log file

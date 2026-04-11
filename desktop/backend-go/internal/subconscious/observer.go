@@ -71,7 +71,13 @@ func (o *Observer) observe(ctx context.Context, input ObserveInput) {
 	// 1. Classify the signal's genre and weight
 	classification := ClassificationResult{}
 	if o.classifier != nil {
-		classification = o.classifier.Classify(ctx, input.SignalLogID, input.UserMessage)
+		result, err := o.classifier.Classify(ctx, input.SignalLogID, input.UserMessage)
+		if err != nil {
+			o.logger.Error("signal classification failed", "error", err)
+			// Continue with default classification
+		} else {
+			classification = result
+		}
 	}
 
 	// 2. Extract patterns (heuristic, no LLM)

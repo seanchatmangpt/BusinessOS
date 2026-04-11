@@ -206,7 +206,7 @@ echo "eyJhbGc..." | jq -R 'split(".")[1] | @base64d | fromjson | .exp'
 3. **Check dependencies:**
    - Database: `GET /health` shows database connected?
    - Redis: Check Redis is running and accessible
-   - External APIs: Google OAuth, pm4py-rust, etc. up?
+   - External APIs: Google OAuth, pm4py-mcp, etc. up?
 4. **Report bug:** Include request ID, request body, and exact error message
 
 **Common Causes:**

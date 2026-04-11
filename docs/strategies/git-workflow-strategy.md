@@ -12,12 +12,12 @@
 
 ChatmanGPT is a **5-project monorepo** with a **linear integration chain**:
 ```
-pm4py-rust (8090) → BusinessOS (8001) → canopy (9089) → OSA (8089) → yawlv6 (8080)
+pm4py-mcp (7015) → BusinessOS (8001) → canopy (9089) → OSA (8089) → yawlv6 (8080)
 ```
 
 **Key Challenges:**
 1. **4 submodules** with separate GitHub repos (BusinessOS, canopy, OSA, yawlv6)
-2. **1 root project** (pm4py-rust) embedded in monorepo
+2. **1 root project** (pm4py-mcp) embedded in monorepo
 3. **A2A cross-stack communication** requiring coordinated changes
 4. **Integration chain dependencies** (breaking changes cascade downstream)
 5. **Weaver automation** requiring synchronized semconv updates
@@ -161,7 +161,7 @@ cd ../canopy && git checkout -b feat/a2a-bidirectional-stream
 cd ../BusinessOS && git checkout -b feat/a2a-bidirectional-stream
 
 # 3. Make changes in dependency order (pm4py → bos → canopy → osa)
-cd ../../pm4py-rust && git commit -am "feat(a2a): add response streaming"
+cd ../../pm4py-mcp && git commit -am "feat(a2a): add response streaming"
 cd ../BusinessOS && git commit -am "feat(a2a): wire response streaming"
 cd ../canopy && git commit -am "feat(a2a): support response streaming"
 cd ../OSA && git commit -am "feat(a2a): consume response streaming"
@@ -171,18 +171,18 @@ git push -u origin feat/a2a-bidirectional-stream # repeat for each
 
 # 5. Update ALL pointers in monorepo
 cd /Users/sac/chatmangpt
-git add OSA canopy BusinessOS pm4py-rust
+git add OSA canopy BusinessOS pm4py-mcp
 git commit -m "chore(submodule): sync pointers for a2a bidirectional streaming
 
 Submodules:
-  - pm4py-rust@<sha>
+  - pm4py-mcp@<sha>
   - BusinessOS@<sha>
   - canopy@<sha>
   - OSA@<sha>
 
 Feature: feat/a2a-bidirectional-stream
 Tests:
-  - pm4py-rust: cargo test (30 passing)
+  - pm4py-mcp: cargo test (30 passing)
   - BusinessOS: go test (48 passing)
   - canopy: mix test (85 passing)
   - OSA: mix test (121 passing)
@@ -277,7 +277,7 @@ Workflow:
 2. Copy semconv to other projects
    - cp -r OSA/semconv canopy/semconv
    - cp -r OSA/semconv BusinessOS/semconv
-   - cp -r OSA/semconv pm4py-rust/semconv
+   - cp -r OSA/semconv pm4py-mcp/semconv
 3. Update all pointers in monorepo
 4. Single PR: chore(semconv): sync weaver schemas across all projects
 ```
@@ -330,7 +330,7 @@ Workflow:
 - PR: seanchatmangpt/BusinessOS#XX
 
 ## Integration Chain Verification
-- [ ] pm4py-rust health: curl http://localhost:8090/api/health
+- [ ] pm4py-mcp health: curl http://localhost:7015/health
 - [ ] BusinessOS health: curl http://localhost:8001/healthz
 - [ ] canopy health: curl http://localhost:9089/health
 - [ ] OSA health: curl http://localhost:8089/health
@@ -545,7 +545,7 @@ jobs:
             echo "WARNING: Submodule pointers ahead of remote"
           fi
 
-  # Job 2: Run pm4py-rust tests
+  # Job 2: Run pm4py-mcp tests
   test-pm4py:
     runs-on: ubuntu-latest
     needs: verify-submodules
@@ -557,7 +557,7 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
       - name: Run tests
         run: |
-          cd pm4py-rust
+          cd pm4py-mcp
           cargo test --verbose
 
   # Job 3: Run BusinessOS tests
@@ -642,7 +642,7 @@ echo "🔍 Running weaver registry check..."
 # Check if semconv changes present
 if git diff --cached --name-only | grep -q "semconv/"; then
   # Run weaver check in each project with semconv
-  for project in OSA canopy BusinessOS pm4py-rust; do
+  for project in OSA canopy BusinessOS pm4py-mcp; do
     if [ -d "$project/semconv" ]; then
       echo "Checking $project/semconv..."
       cd "$project"
@@ -767,7 +767,7 @@ git push origin <branch>
 
 ```bash
 # 1. Identify failing project
-for service in pm4py-rust BusinessOS canopy OSA; do
+for service in pm4py-mcp BusinessOS canopy OSA; do
   curl http://localhost:${PORTS[$service]}/health
 done
 

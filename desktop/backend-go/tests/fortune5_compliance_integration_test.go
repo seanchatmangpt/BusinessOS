@@ -33,7 +33,7 @@ import (
 //   - Oxigraph SPARQL endpoint (http://localhost:6379)
 //   - BusinessOS backend (http://localhost:8001)
 //   - OSA audit trail (http://localhost:8089)
-//   - pm4py-rust (http://localhost:8090)
+//   - pm4py-mcp (http://localhost:7015)
 //   - Canopy (http://localhost:9089)
 //
 // Success criteria:
@@ -53,7 +53,7 @@ var (
 	oxigraphEndpoint = os.Getenv("OXIGRAPH_ENDPOINT")
 	businessOSURL    = os.Getenv("BUSINESSOS_URL")
 	osaURL           = os.Getenv("OSA_URL")
-	pm4pyURL         = os.Getenv("PM4PY_URL")
+	pm4pyURL         = os.Getenv("PM4PY_MCP_URL")
 
 	// Test data
 	fiboTestData  []byte
@@ -73,7 +73,7 @@ func init() {
 		osaURL = "http://localhost:8089"
 	}
 	if pm4pyURL == "" {
-		pm4pyURL = "http://localhost:8090"
+		pm4pyURL = "http://localhost:7015"
 	}
 
 	// Load test data files

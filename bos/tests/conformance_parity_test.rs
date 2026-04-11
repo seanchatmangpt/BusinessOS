@@ -1,6 +1,6 @@
 /// Conformance Checking Parity Tests
 ///
-/// These tests validate that pm4py-rust conformance algorithms
+/// These tests validate that pm4py-mcp conformance algorithms
 /// produce identical results to Python pm4py implementations.
 ///
 /// Test Categories:

@@ -589,7 +589,7 @@ Desktop (>1024):   2-column (280px sidebar + flex main)
 10. **Dark mode:** Toggle between light/dark themes
 
 ### Integration Targets
-- **pm4py-rust:** Send lineage data for process mining
+- **pm4py-mcp:** Send lineage data for process mining
 - **OSA:** Use lineage for agent decision-making
 - **Canopy:** Integrate domain info into workspace navigation
 

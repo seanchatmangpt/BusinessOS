@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,6 +13,8 @@ type SignalHealthResponse struct {
 	Classification ClassifierStatus   `json:"classification"`
 	Metrics        MetricsStatus      `json:"metrics"`
 	FeedbackLoop   FeedbackLoopStatus `json:"feedback_loop"`
+	UptimeMs       int64              `json:"uptime_ms"`
+	LastActivity   string             `json:"last_activity"`
 }
 
 // ClassifierStatus describes the fast signal classifier.
@@ -63,6 +66,8 @@ func (h *Handlers) GetSignalHealth(c *gin.Context) {
 			AlgedonicChannel: true,
 			Interval:         "30s",
 		},
+		UptimeMs:     time.Since(time.Now()).Milliseconds(),
+		LastActivity: time.Now().UTC().Format(time.RFC3339),
 	}
 	c.JSON(http.StatusOK, resp)
 }

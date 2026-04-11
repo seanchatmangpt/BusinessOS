@@ -108,12 +108,14 @@ func NewSanitizedLogger(config *LogConfig) *SanitizedLogger {
 		config: config,
 		output: log.New(os.Stderr, "", 0), // No prefix, we add our own
 	}
-	l.compileSensitivePatterns()
+	if err := l.compileSensitivePatterns(); err != nil {
+		panic(fmt.Errorf("failed to initialize logging patterns: %w", err))
+	}
 	return l
 }
 
 // compileSensitivePatterns creates regex patterns for sensitive data
-func (l *SanitizedLogger) compileSensitivePatterns() {
+func (l *SanitizedLogger) compileSensitivePatterns() error {
 	patterns := []string{
 		// Session IDs (UUID format)
 		`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -133,11 +135,11 @@ func (l *SanitizedLogger) compileSensitivePatterns() {
 	for _, p := range patterns {
 		compiled, err := regexp.Compile(`(?i)` + p)
 		if err != nil {
-			slog.Error("[Logger] Failed to compile pattern", "pattern", p)
-			continue
+			return fmt.Errorf("failed to compile pattern %q: %w", p, err)
 		}
 		l.sensitiveRegex = append(l.sensitiveRegex, compiled)
 	}
+	return nil
 }
 
 // UpdateConfig updates the logger configuration thread-safely
@@ -145,7 +147,10 @@ func (l *SanitizedLogger) UpdateConfig(config *LogConfig) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.config = config
-	l.compileSensitivePatterns()
+	if err := l.compileSensitivePatterns(); err != nil {
+		slog.Error("[Logger] Failed to recompile patterns during config update", "error", err)
+		// Continue with previous regex patterns to avoid leaving logger in broken state
+	}
 }
 
 // Log writes a log entry at the specified level

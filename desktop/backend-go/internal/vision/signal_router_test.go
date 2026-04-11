@@ -44,7 +44,7 @@ func (f *fakeProber) Probe(_ context.Context, url string) (bool, int64, error) {
 func allUpProber() *fakeProber {
 	return &fakeProber{
 		results: map[string]probeResult{
-			"http://localhost:8090/api/health": {healthy: true, latencyMs: 5},
+			"http://localhost:7015/health":    {healthy: true, latencyMs: 5},
 			"http://localhost:8001/healthz":    {healthy: true, latencyMs: 2},
 			"http://localhost:8089/health":     {healthy: true, latencyMs: 8},
 			"http://localhost:9089/health":     {healthy: true, latencyMs: 3},
@@ -56,7 +56,7 @@ func allUpProber() *fakeProber {
 func oneDownProber() *fakeProber {
 	return &fakeProber{
 		results: map[string]probeResult{
-			"http://localhost:8090/api/health": {healthy: true, latencyMs: 5},
+			"http://localhost:7015/health":    {healthy: true, latencyMs: 5},
 			"http://localhost:8001/healthz":    {healthy: true, latencyMs: 2},
 			"http://localhost:8089/health":     {healthy: false, latencyMs: 0, err: fmt.Errorf("connection refused")},
 			"http://localhost:9089/health":     {healthy: true, latencyMs: 3},
@@ -187,13 +187,13 @@ func TestVisionStatusHTTPEndpoint(t *testing.T) {
 }
 
 // TestVisionStatusServiceOrder verifies services are returned in the canonical order:
-// pm4py-rust, BusinessOS, OSA, Canopy.
+// pm4py-mcp, BusinessOS, OSA, Canopy.
 func TestVisionStatusServiceOrder(t *testing.T) {
 	sr := NewSignalRouterWithProber(allUpProber(), nil)
 
 	status := sr.ProbeAll(context.Background())
 
-	expected := []string{"pm4py-rust", "BusinessOS", "OSA", "Canopy"}
+	expected := []string{"pm4py-mcp", "BusinessOS", "OSA", "Canopy"}
 	actual := make([]string, len(status.Services))
 	for i, svc := range status.Services {
 		actual[i] = svc.Name
@@ -208,7 +208,7 @@ func TestVisionStatusPortMapping(t *testing.T) {
 	status := sr.ProbeAll(context.Background())
 
 	expectedPorts := map[string]int{
-		"pm4py-rust": 8090,
+		"pm4py-mcp": 7015,
 		"BusinessOS": 8001,
 		"OSA":        8089,
 		"Canopy":     9089,

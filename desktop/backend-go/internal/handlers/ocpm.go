@@ -1,12 +1,12 @@
 package handlers
 
 // OCPMHandler proxies Object-Centric Process Mining (OCPM) requests to
-// pm4py-rust (port 8090) and OSA (port 8089).
+// pm4py-mcp (port 7015) and OSA (port 8089).
 //
 // Routes:
-//   POST /api/ocpm/throughput   → pm4py-rust /api/ocpm/performance/throughput
-//   POST /api/ocpm/bottleneck   → pm4py-rust /api/ocpm/performance/bottleneck
-//   POST /api/ocpm/query        → pm4py-rust /api/ocpm/llm/query
+//   POST /api/ocpm/throughput   → pm4py-mcp /api/ocpm/performance/throughput
+//   POST /api/ocpm/bottleneck   → pm4py-mcp /api/ocpm/performance/bottleneck
+//   POST /api/ocpm/query        → pm4py-mcp /api/ocpm/llm/query
 //   GET  /api/ocpm/export       → OSA        /api/ocel/export
 //
 // WvdA: every outbound HTTP call uses a shared context timeout (deadlock freedom).
@@ -26,7 +26,7 @@ import (
 
 const ocpmTimeout = 60 * time.Second
 
-// pm4py-rust OCPM endpoint paths.
+// pm4py-mcp OCPM endpoint paths.
 const (
 	pm4pyOCPMThroughput  = "/api/ocpm/performance/throughput"
 	pm4pyOCPMBottleneck  = "/api/ocpm/performance/bottleneck"
@@ -36,7 +36,7 @@ const (
 // OSA OCEL export endpoint path.
 const osaOCELExport = "/api/ocel/export"
 
-// OCPMHandler proxies OCPM requests between BusinessOS, pm4py-rust, and OSA.
+// OCPMHandler proxies OCPM requests between BusinessOS, pm4py-mcp, and OSA.
 type OCPMHandler struct {
 	pm4pyURL string
 	osaURL   string
@@ -45,13 +45,13 @@ type OCPMHandler struct {
 }
 
 // NewOCPMHandler creates an OCPMHandler.
-// pm4pyURL defaults to PM4PY_RUST_URL env var (fallback: http://localhost:8090).
+// pm4pyURL defaults to PM4PY_MCP_URL env var (default: http://localhost:7015).
 // osaURL defaults to OSA_URL env var (fallback: http://localhost:8089).
 func NewOCPMHandler(pm4pyURL, osaURL string) *OCPMHandler {
 	if pm4pyURL == "" {
-		pm4pyURL = os.Getenv("PM4PY_RUST_URL")
+		pm4pyURL = os.Getenv("PM4PY_MCP_URL")
 		if pm4pyURL == "" {
-			pm4pyURL = "http://localhost:8090"
+			pm4pyURL = "http://localhost:7015"
 		}
 	}
 	if osaURL == "" {
@@ -77,19 +77,19 @@ func (h *OCPMHandler) RegisterRoutes(r *gin.RouterGroup) {
 	g.GET("/export", h.ExportOCEL)
 }
 
-// Throughput proxies POST /api/ocpm/throughput → pm4py-rust /api/ocpm/performance/throughput.
+// Throughput proxies POST /api/ocpm/throughput → pm4py-mcp /api/ocpm/performance/throughput.
 // Accepts OCEL 2.0 JSON; returns throughput statistics per object type.
 func (h *OCPMHandler) Throughput(c *gin.Context) {
 	h.proxyPostToPm4py(c, pm4pyOCPMThroughput, "ocpm.throughput")
 }
 
-// Bottleneck proxies POST /api/ocpm/bottleneck → pm4py-rust /api/ocpm/performance/bottleneck.
+// Bottleneck proxies POST /api/ocpm/bottleneck → pm4py-mcp /api/ocpm/performance/bottleneck.
 // Accepts OCEL JSON + optional top_n; returns ranked bottleneck list.
 func (h *OCPMHandler) Bottleneck(c *gin.Context) {
 	h.proxyPostToPm4py(c, pm4pyOCPMBottleneck, "ocpm.bottleneck")
 }
 
-// Query proxies POST /api/ocpm/query → pm4py-rust /api/ocpm/llm/query.
+// Query proxies POST /api/ocpm/query → pm4py-mcp /api/ocpm/llm/query.
 // Accepts {question, ocel, api_key}; returns {answer, grounded}.
 func (h *OCPMHandler) Query(c *gin.Context) {
 	h.proxyPostToPm4py(c, pm4pyOCPMLLMQuery, "ocpm.query")
@@ -150,7 +150,7 @@ func (h *OCPMHandler) ExportOCEL(c *gin.Context) {
 }
 
 // proxyPostToPm4py is a shared helper that reads the raw request body, forwards
-// it to pm4py-rust at targetPath, and writes the response back to the caller.
+// it to pm4py-mcp at targetPath, and writes the response back to the caller.
 // operationName is used only for structured log messages.
 //
 // WvdA: the caller's context carries the request deadline; no secondary timeout
@@ -177,9 +177,9 @@ func (h *OCPMHandler) proxyPostToPm4py(c *gin.Context, targetPath, operationName
 
 	resp, err := h.client.Do(httpReq)
 	if err != nil {
-		h.logger.Warn(operationName+": pm4py-rust unreachable", "pm4py_url", target, "error", err)
+		h.logger.Warn(operationName+": pm4py-mcp unreachable", "pm4py_url", target, "error", err)
 		c.JSON(http.StatusBadGateway, gin.H{
-			"error":      "pm4py-rust unreachable",
+			"error":      "pm4py-mcp unreachable",
 			"pm4py_url":  target,
 		})
 		return

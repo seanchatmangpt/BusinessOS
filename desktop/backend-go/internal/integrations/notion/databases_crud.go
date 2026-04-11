@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 )
 
@@ -36,7 +37,9 @@ func (s *DatabaseService) GetDatabases(ctx context.Context, userID string) ([]*D
 		}
 
 		if len(propertiesJSON) > 0 {
-			json.Unmarshal(propertiesJSON, &db.Properties)
+			if err := json.Unmarshal(propertiesJSON, &db.Properties); err != nil {
+				slog.Warn("notion: failed to unmarshal database properties", "error", err)
+			}
 		}
 
 		databases = append(databases, &db)
@@ -75,7 +78,9 @@ func (s *DatabaseService) GetPages(ctx context.Context, userID, databaseID strin
 		}
 
 		if len(propertiesJSON) > 0 {
-			json.Unmarshal(propertiesJSON, &p.Properties)
+			if err := json.Unmarshal(propertiesJSON, &p.Properties); err != nil {
+				slog.Warn("notion: failed to unmarshal page properties", "error", err)
+			}
 		}
 
 		pages = append(pages, &p)

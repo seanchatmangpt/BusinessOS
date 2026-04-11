@@ -1,17 +1,22 @@
-# BOS Gateway pm4py-rust Integration
+> **DEPRECATED:** This document describes the legacy pm4py-mcp HTTP integration (port 8090).
+> BusinessOS now uses pm4py-mcp via MCP protocol (port 7015). See `docs/BOS_GATEWAY_PM4PY_MCP_INTEGRATION.md` for current architecture.
+>
+> The old HTTP client (`internal/integrations/pm4py_rust/`) and handler (`internal/handlers/pm4py_rust.go`) have been removed.
+
+# BOS Gateway pm4py-mcp Integration
 
 **Date:** March 24, 2026
 **Status:** TDD Implementation Complete
-**Scope:** Wire BusinessOS BOS Gateway to make real HTTP calls to pm4py-rust
+**Scope:** Wire BusinessOS BOS Gateway to make real HTTP calls to pm4py-mcp
 
 ## Overview
 
-The BusinessOS BOS Gateway now makes real HTTP calls to pm4py-rust for three core process mining operations:
+The BusinessOS BOS Gateway now makes real HTTP calls to pm4py-mcp for three core process mining operations:
 1. **Discover** — Process model discovery
 2. **Conformance** — Fitness checking
 3. **Statistics** — Log analysis
 
-Previously these endpoints returned hardcoded stub responses. Now they delegate to pm4py-rust via HTTP.
+Previously these endpoints returned hardcoded stub responses. Now they delegate to pm4py-mcp via HTTP.
 
 ## Architecture
 
@@ -24,9 +29,9 @@ BOS CLI / Desktop Client
          ↓
     BOSGatewayHandler.Discover()
          ↓
-    HTTP POST → pm4py-rust:8090/discover
+    HTTP POST → pm4py-mcp:8090/discover
          ↓
-    Parse JSON response from pm4py-rust
+    Parse JSON response from pm4py-mcp
          ↓
     Transform to BOSDiscoverResponse
          ↓
@@ -36,7 +41,7 @@ BOS CLI / Desktop Client
 ### Handler Configuration
 
 The BOSGatewayHandler now carries:
-- `pm4pyURL` — Base URL to pm4py-rust (default: `http://localhost:8090`)
+- `pm4pyURL` — Base URL to pm4py-mcp (default: `http://localhost:8090`)
 - `httpClient` — HTTP client with 10s timeout
 
 URL is loaded from `PM4PY_RUST_URL` environment variable:
@@ -64,13 +69,13 @@ PM4PyRustURL string `mapstructure:"PM4PY_RUST_URL"`
 }
 ```
 
-**Real HTTP call to pm4py-rust:**
+**Real HTTP call to pm4py-mcp:**
 ```
 POST http://localhost:8090/discover
 Content-Type: application/json
 ```
 
-**pm4py-rust response (mocked in tests):**
+**pm4py-mcp response (mocked in tests):**
 ```json
 {
   "model_id": "petri_net_abc123",
@@ -102,7 +107,7 @@ Content-Type: application/json
 ```
 
 **Replaces stub with:**
-- Real `model_id` from pm4py-rust
+- Real `model_id` from pm4py-mcp
 - Real activity list in `model_data`
 - Actual transitions count
 
@@ -121,7 +126,7 @@ Content-Type: application/json
 POST http://localhost:8090/conformance
 ```
 
-**pm4py-rust response:**
+**pm4py-mcp response:**
 ```json
 {
   "traces_checked": 150,
@@ -133,7 +138,7 @@ POST http://localhost:8090/conformance
 }
 ```
 
-**Output:** Actual metrics from pm4py-rust (no stubs)
+**Output:** Actual metrics from pm4py-mcp (no stubs)
 
 ### 3. POST /api/bos/statistics
 
@@ -144,12 +149,12 @@ POST http://localhost:8090/conformance
 }
 ```
 
-**pm4py-rust response:** Full statistics object with:
+**pm4py-mcp response:** Full statistics object with:
 - `num_traces`, `num_events`, `num_unique_activities`
 - `activity_frequency` — Array of activities with counts
 - `case_duration` — Min/max/avg/median duration
 
-**Output:** Real data parsed from pm4py-rust
+**Output:** Real data parsed from pm4py-mcp
 
 ## Error Handling
 
@@ -157,9 +162,9 @@ All three endpoints handle network failures gracefully:
 
 | Scenario | HTTP Response | Status Code |
 |----------|---------------|-------------|
-| pm4py-rust unreachable | `{"error": "pm4py-rust unavailable"}` | 503 |
-| pm4py-rust timeout | `{"error": "pm4py-rust unavailable"}` | 503 |
-| pm4py-rust invalid JSON | `{"error": "Failed to parse pm4py-rust response"}` | 500 |
+| pm4py-mcp unreachable | `{"error": "pm4py-mcp unavailable"}` | 503 |
+| pm4py-mcp timeout | `{"error": "pm4py-mcp unavailable"}` | 503 |
+| pm4py-mcp invalid JSON | `{"error": "Failed to parse pm4py-mcp response"}` | 500 |
 | Bad request to BOS | `{"error": "Invalid request format"}` | 400 |
 
 Failed requests are recorded in `handler.stats.RequestsFailed`.
@@ -170,7 +175,7 @@ Failed requests are recorded in `handler.stats.RequestsFailed`.
 
 `internal/handlers/bos_gateway_pm4py_test.go` — 15 test cases
 
-**Tests use mock pm4py-rust server** (`startPM4PyMockServer()`):
+**Tests use mock pm4py-mcp server** (`startPM4PyMockServer()`):
 - Runs on random port (not 8090)
 - Configured per test via `setupPM4PyGatewayTest()`
 - Isolation: each test gets independent server instance
@@ -220,9 +225,9 @@ go test ./internal/handlers/... -cover
 
 ### Test Server Behavior
 
-The mock pm4py-rust server in tests simulates:
+The mock pm4py-mcp server in tests simulates:
 - ✓ Valid 200 OK responses with real metrics
-- ✓ Proper JSON structure matching pm4py-rust schema
+- ✓ Proper JSON structure matching pm4py-mcp schema
 - ✓ 400 Bad Request for invalid input
 - ✓ 404 Not Found for unknown endpoints
 
@@ -244,10 +249,10 @@ response := BOSDiscoverResponse{
 
 **After (real):**
 ```go
-// Call pm4py-rust
+// Call pm4py-mcp
 httpResp, err := h.httpClient.Do(httpReq)
 
-// Parse pm4py-rust response
+// Parse pm4py-mcp response
 var pm4pyResp map[string]interface{}
 json.NewDecoder(httpResp.Body).Decode(&pm4pyResp)
 
@@ -256,12 +261,12 @@ transitions := int(pm4pyResp["transitions"].(float64))
 modelData, _ := json.Marshal(pm4pyResp)
 
 response := BOSDiscoverResponse{
-    ModelID:     fmt.Sprintf("%v", pm4pyResp["model_id"]),  // from pm4py-rust
+    ModelID:     fmt.Sprintf("%v", pm4pyResp["model_id"]),  // from pm4py-mcp
     Algorithm:   req.Algorithm,
-    Places:      places,             // from pm4py-rust
-    Transitions: transitions,        // from pm4py-rust
+    Places:      places,             // from pm4py-mcp
+    Transitions: transitions,        // from pm4py-mcp
     Arcs:        transitions + 2,    // derived
-    ModelData:   modelData,          // full pm4py-rust response
+    ModelData:   modelData,          // full pm4py-mcp response
 }
 ```
 
@@ -269,7 +274,7 @@ response := BOSDiscoverResponse{
 
 **Before:** Hardcoded metrics (0.96 fitness, 0.89 precision, etc.)
 
-**After:** Real values from pm4py-rust:
+**After:** Real values from pm4py-mcp:
 - `fitness` — Actual conformance fitness
 - `precision` — Real precision metric
 - `generalization` — Actual generalization value
@@ -279,7 +284,7 @@ response := BOSDiscoverResponse{
 
 **Before:** Hardcoded sample data (500 traces, 8 activities, etc.)
 
-**After:** Real analysis from pm4py-rust:
+**After:** Real analysis from pm4py-mcp:
 - Actual trace/event counts from log
 - Real activity frequency distribution
 - Computed duration statistics
@@ -288,8 +293,8 @@ response := BOSDiscoverResponse{
 ## Verification Checklist
 
 - [x] All stub responses removed from Discover, Conformance, Statistics
-- [x] Real HTTP calls made to pm4py-rust endpoints
-- [x] Response parsing handles pm4py-rust JSON format
+- [x] Real HTTP calls made to pm4py-mcp endpoints
+- [x] Response parsing handles pm4py-mcp JSON format
 - [x] Network failures return 503 ServiceUnavailable
 - [x] Timeouts handled gracefully
 - [x] Environment variable PM4PY_RUST_URL configurable
@@ -297,7 +302,7 @@ response := BOSDiscoverResponse{
 - [x] Latency metrics recorded in stats
 - [x] Failed requests tracked in RequestsFailed counter
 - [x] 15 test cases covering all endpoints + error paths
-- [x] Mock pm4py-rust server in tests
+- [x] Mock pm4py-mcp server in tests
 - [x] No hardcoded responses in implementation code
 
 ## Grep Verification
@@ -323,9 +328,9 @@ Tests 3 endpoints against running BusinessOS instance.
 
 ### Manual Testing
 
-1. **Start pm4py-rust:**
+1. **Start pm4py-mcp:**
    ```bash
-   cd pm4py-rust
+   cd pm4py-mcp
    cargo run --example http_server
    # Listens on :8090
    ```
@@ -346,7 +351,7 @@ Tests 3 endpoints against running BusinessOS instance.
    ```
 
 4. **Verify response contains:**
-   - Real `model_id` from pm4py-rust
+   - Real `model_id` from pm4py-mcp
    - Actual `activities` list in `model_data`
    - Non-stub `transitions` count
 
@@ -384,21 +389,21 @@ No new external dependencies. Uses standard library:
 
 **Rationale:**
 - Signals temporary service unavailability (correct HTTP semantics)
-- BOS CLI can retry or show user "pm4py-rust not available"
+- BOS CLI can retry or show user "pm4py-mcp not available"
 - Distinguishes from 400 (client error) or 500 (server error)
 
 ### 3. Response Transformation
 
-**Decision:** Parse pm4py-rust JSON, transform to BOS schema
+**Decision:** Parse pm4py-mcp JSON, transform to BOS schema
 
 **Rationale:**
-- Decouples BOS API from pm4py-rust schema
+- Decouples BOS API from pm4py-mcp schema
 - Allows BOS to extend/customize response
-- Easier versioning if pm4py-rust changes
+- Easier versioning if pm4py-mcp changes
 
 ### 4. No Caching
 
-**Decision:** Every request hits pm4py-rust live
+**Decision:** Every request hits pm4py-mcp live
 
 **Rationale:**
 - Models may change between calls
@@ -416,6 +421,6 @@ No new external dependencies. Uses standard library:
 
 ## References
 
-- [pm4py-rust HTTP API](../../pm4py-rust/README.md)
+- [pm4py-mcp HTTP API](../../pm4py-mcp/README.md)
 - [BusinessOS BOS Gateway](../internal/handlers/bos_gateway.go)
 - [BOS CLI Integration](../../docs/bos-cli.md)

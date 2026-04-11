@@ -76,15 +76,14 @@ func NewSignalClassifier(cfg *config.Config, pool *pgxpool.Pool, logger *slog.Lo
 }
 
 // Classify determines genre and weight for a user message, then UPDATEs signal_log.
-func (c *SignalClassifier) Classify(ctx context.Context, signalLogID, userMessage string) ClassificationResult {
-	defaults := ClassificationResult{Genre: signal.GenreInform, Weight: 0.5}
-
+// Returns (ClassificationResult, error). On error, returns zero ClassificationResult and non-nil error.
+func (c *SignalClassifier) Classify(ctx context.Context, signalLogID, userMessage string) (ClassificationResult, error) {
 	if c.isInCooldown() {
-		return defaults
+		return ClassificationResult{}, fmt.Errorf("classification service is in cooldown after repeated failures")
 	}
 
 	if c.cfg.GroqAPIKey == "" {
-		return defaults
+		return ClassificationResult{}, fmt.Errorf("groq API key not configured")
 	}
 
 	groq := services.NewGroqService(c.cfg, classifierModel)
@@ -100,8 +99,8 @@ func (c *SignalClassifier) Classify(ctx context.Context, signalLogID, userMessag
 	resp, err := groq.ChatComplete(ctx, messages, classifierSystemPrompt)
 	if err != nil {
 		c.recordFailure()
-		c.logger.Warn("classification failed", "error", err)
-		return defaults
+		c.logger.Error("classification failed", "error", err)
+		return ClassificationResult{}, fmt.Errorf("classification service unavailable: %w", err)
 	}
 
 	result := parseClassification(resp)
@@ -112,7 +111,7 @@ func (c *SignalClassifier) Classify(ctx context.Context, signalLogID, userMessag
 		go c.updateSignalLog(context.Background(), signalLogID, result)
 	}
 
-	return result
+	return result, nil
 }
 
 func (c *SignalClassifier) isInCooldown() bool {

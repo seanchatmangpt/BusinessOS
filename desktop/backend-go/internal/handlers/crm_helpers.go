@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -321,7 +322,9 @@ func crmJsonToMap(b []byte) map[string]interface{} {
 		return nil
 	}
 	var m map[string]interface{}
-	json.Unmarshal(b, &m)
+	if err := json.Unmarshal(b, &m); err != nil {
+		slog.Warn("crm: failed to unmarshal json to map", "error", err)
+	}
 	return m
 }
 
@@ -330,7 +333,9 @@ func crmJsonToSlice(b []byte) []interface{} {
 		return nil
 	}
 	var s []interface{}
-	json.Unmarshal(b, &s)
+	if err := json.Unmarshal(b, &s); err != nil {
+		slog.Warn("crm: failed to unmarshal json to slice", "error", err)
+	}
 	return s
 }
 

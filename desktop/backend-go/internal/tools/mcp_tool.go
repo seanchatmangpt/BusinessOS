@@ -62,18 +62,17 @@ func (t *MCPToolAdapter) Execute(ctx context.Context, input json.RawMessage) (st
 // registers their cached tools into the registry. Tools are namespaced as
 // "<server_name>.<tool_name>" to avoid collisions with built-in tools.
 //
-// This is best-effort: if a server has no cached tools or decryption fails, it
-// is skipped with a warning log. The agent can still use all built-in tools.
-func (r *AgentToolRegistry) RegisterMCPTools(ctx context.Context) {
+// Returns an error if any MCP server fails to load its tools or decrypt credentials.
+// Missing MCP server tools are a functional failure, not a partial success.
+func (r *AgentToolRegistry) RegisterMCPTools(ctx context.Context) error {
 	if r.pool == nil || r.userID == "" {
-		return
+		return nil
 	}
 
 	queries := sqlc.New(r.pool)
 	servers, err := queries.ListEnabledMCPServers(ctx, r.userID)
 	if err != nil {
-		slog.Warn("Failed to load MCP servers for tool registry", "user_id", r.userID, "error", err)
-		return
+		return fmt.Errorf("failed to load MCP servers for tool registry: %w", err)
 	}
 
 	enc := security.GetGlobalEncryption()
@@ -86,8 +85,7 @@ func (r *AgentToolRegistry) RegisterMCPTools(ctx context.Context) {
 		}
 		var cachedTools []services.MCPClientTool
 		if err := json.Unmarshal(srv.ToolsCache, &cachedTools); err != nil {
-			slog.Warn("Failed to parse MCP tools cache", "server", srv.Name, "error", err)
-			continue
+			return fmt.Errorf("failed to parse MCP tools cache for server %q: %w", srv.Name, err)
 		}
 		if len(cachedTools) == 0 {
 			continue
@@ -98,8 +96,7 @@ func (r *AgentToolRegistry) RegisterMCPTools(ctx context.Context) {
 		if srv.AuthTokenEnc != nil && *srv.AuthTokenEnc != "" && enc != nil {
 			decrypted, err := enc.Decrypt(*srv.AuthTokenEnc)
 			if err != nil {
-				slog.Warn("Failed to decrypt MCP server token", "server", srv.Name, "error", err)
-				continue
+				return fmt.Errorf("failed to decrypt MCP server token for %q: %w", srv.Name, err)
 			}
 			authToken = decrypted
 		}
@@ -142,4 +139,5 @@ func (r *AgentToolRegistry) RegisterMCPTools(ctx context.Context) {
 	if registered > 0 {
 		slog.Info("Registered MCP tools", "user_id", r.userID, "tool_count", registered, "server_count", len(servers))
 	}
+	return nil
 }

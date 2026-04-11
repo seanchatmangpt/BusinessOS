@@ -1,9 +1,9 @@
 # =============================================================================
 # BusinessOS — Full Stack Compose (Complete Integration Chain)
-# Chain: pm4py-rust (8090) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
-# Boots: postgres → redis → pm4py-rust → osa → canopy → backend → frontend
+# Chain: pm4py-mcp (7015) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
+# Boots: postgres → redis → pm4py-mcp → osa → canopy → backend → frontend
 # Usage:
-#   First time:  make setup
+#   First time: make setup
 #   Daily:       docker compose up -d
 #   Logs:        docker compose logs -f
 #   Teardown:    docker compose down -v
@@ -69,31 +69,28 @@ services:
       - businessos-network
 
   # ---------------------------------------------------------------------------
-  # pm4py-rust Process Mining Engine (port 8090)
-  # Built from pm4py-rust/ at the repo root. Provides discovery, conformance,
-  # and statistics endpoints consumed by the BusinessOS gateway.
+  # pm4py-mcp Process Mining (MCP protocol, port 7015)
+  # Python MCP server with 27 process mining tools. Replaces pm4py-rust.
   # ---------------------------------------------------------------------------
-  pm4py-rust:
+  pm4py-mcp:
     build:
-      context: ../pm4py-rust
+      context: ../../unrdf/otel/pm4py-mcp
       dockerfile: Dockerfile
-    image: pm4py-rust:local
-    container_name: businessos-pm4py-rust
+    image: pm4py-mcp:local
+    container_name: businessos-pm4py-mcp
     restart: unless-stopped
     ports:
-      - "${PM4PY_RUST_PORT:-8090}:8090"
+      - "${PM4PY_MCP_PORT:-7015}:7015"
     environment:
-      PM4PY_RUST_PORT: "8090"
-      PM4PY_RUST_BUSINESSOS_URL: "http://backend:8001"
-      RUST_LOG: "${RUST_LOG:-info}"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
-      OTEL_SERVICE_NAME: "pm4py-rust"
+      PM4PY_MCP_PORT: "7015"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_SERVICE_NAME: "pm4py-mcp"
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8090/api/health || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:7015/health')\" || exit 1"]
+      interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     networks:
       - businessos-network
 
@@ -115,7 +112,7 @@ services:
       MIX_ENV: prod
       OSA_HTTP_PORT: "8089"
       SECRET_KEY_BASE: ${OSA_SECRET_KEY_BASE:-CHANGE_ME_generate_with_mix_phx_gen_secret}
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "osa"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8089/health || exit 1"]
@@ -150,7 +147,7 @@ services:
         postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev_password_change_in_prod}@postgres:5432/${CANOPY_DB:-canopy_prod}?sslmode=disable
       OSA_URL: "http://osa:8089"
       BUSINESSOS_URL: "http://backend:8001"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "canopy"
     depends_on:
       postgres:
@@ -158,7 +155,7 @@ services:
       osa:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9089/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:9089/api/v1/health"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -197,9 +194,12 @@ services:
       REDIS_TLS_ENABLED: "false"
 
       # ── Security (REQUIRED — set real values in .env for dev, secrets mgr for prod) ──
-      SECRET_KEY: ${SECRET_KEY:-CHANGE_ME_generate_with_openssl_rand_base64_64}
-      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-CHANGE_ME_generate_with_openssl_rand_base64_32}
-      REDIS_KEY_HMAC_SECRET: ${REDIS_KEY_HMAC_SECRET:-CHANGE_ME_generate_with_openssl_rand_base64_32}
+      SECRET_KEY: ${SECRET_KEY:-kVYuRUBkeAaXJhrBicI/Uhekdhksa2DiBT/bsgwc1FOyFUtv7dKp5fBXoKHxsGnE9/SysylRC0q4ZL1KDFUW9g==}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-wQKmz8nNkwVrGt0veeYdWksKHl8NMFgFzfVtIfsWkSY=}
+      REDIS_KEY_HMAC_SECRET: ${REDIS_KEY_HMAC_SECRET:-p9Rb7wqCQwfQX7wq6HWpECngODOaf6uEcTjXafYi0LM=}
+      CANOPY_SECRET_KEY_BASE: ${CANOPY_SECRET_KEY_BASE:-kVYuRUBkeAaXJhrBicI/Uhekdhksa2DiBT/bsgwc1FOyFUtv7dKp5fBXoKHxsGnE9/SysylRC0q4ZL1KDFUW9g==}
+      CANOPY_GUARDIAN_SECRET_KEY: ${CANOPY_GUARDIAN_SECRET_KEY:-wQKmz8nNkwVrGt0veeYdWksKHl8NMFgFzfVtIfsWkSY=}
+      OSA_SECRET_KEY_BASE: ${OSA_SECRET_KEY_BASE:-p9Rb7wqCQwfQX7wq6HWpECngODOaf6uEcTjXafYi0LM=}
 
       # ── AI Provider (defaults to local Ollama — no API key needed) ────────
       AI_PROVIDER: ${AI_PROVIDER:-ollama_local}
@@ -248,8 +248,8 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
 
-      # ── pm4py-rust Integration ────────────────────────────────────────────
-      PM4PY_RUST_URL: "http://pm4py-rust:8090"
+      # ── pm4py-mcp Integration ─────────────────────────────────────────────
+      PM4PY_MCP_URL: "http://pm4py-mcp:7015"
 
       # ── OpenTelemetry ─────────────────────────────────────────────────────
       # otlptracehttp expects host:port (no scheme). Port 4318 = OTLP/HTTP.
@@ -270,8 +270,6 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      pm4py-rust:
         condition: service_healthy
       osa:
         condition: service_healthy

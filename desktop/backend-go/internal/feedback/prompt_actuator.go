@@ -31,7 +31,8 @@ type SignalHintProvider interface {
 type UserScopedHintProvider interface {
 	SignalHintProvider
 	// ActiveHintsForUser returns hints scoped to a specific user.
-	ActiveHintsForUser(userID string) string
+	// Returns ("", error) if user context lookup fails.
+	ActiveHintsForUser(userID string) (string, error)
 }
 
 // PromptActuator implements Actuator (from homeostatic_loop.go) by

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -304,9 +303,8 @@ func (s *CredentialVaultService) GetUserCredentials(ctx context.Context, userID 
 	for _, r := range results {
 		cred, err := s.decryptCredential(r)
 		if err != nil {
-			// Log error but continue - don't fail all if one is corrupted
-			slog.Warn("failed to decrypt credential", "provider_id", r.ProviderID, "error", err)
-			continue
+			// Decryption failure is a critical security event - credential vault must be trustworthy
+			return nil, fmt.Errorf("failed to decrypt credential for provider %q: %w", r.ProviderID, err)
 		}
 		credentials = append(credentials, cred)
 	}

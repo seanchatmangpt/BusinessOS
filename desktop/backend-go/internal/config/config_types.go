@@ -124,8 +124,8 @@ type Config struct {
 	OSARetryDelay   int         `mapstructure:"OSA_RETRY_DELAY"` // seconds
 	OSA             *osa.Config // Built from above fields in Load()
 
-	// pm4py-rust Integration (process mining)
-	PM4PyRustURL string `mapstructure:"PM4PY_RUST_URL"` // Default: http://localhost:8090
+	// pm4py-mcp Integration (process mining via MCP protocol)
+	PM4PYMCPURL string `mapstructure:"PM4PY_MCP_URL"` // Default: http://localhost:7015
 
 	// Internal API Security
 	// CRITICAL: INTERNAL_API_SECRET must be set in production for internal endpoint authentication

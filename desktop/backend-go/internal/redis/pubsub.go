@@ -177,7 +177,12 @@ func (p *PubSub) receiveMessages(channel string, sub *redis.PubSub) {
 			// Parse message
 			var msg Message
 			if err := json.Unmarshal([]byte(redisMsg.Payload), &msg); err != nil {
-				slog.Error("PubSub failed to unmarshal message", "channel", channel, "error", err)
+				slog.Error("PubSub message format error - skipping message",
+					"channel", channel,
+					"payload_len", len(redisMsg.Payload),
+					"error", err)
+				// Skipping individual messages due to format errors is acceptable for PubSub
+				// (transient failures on network), but we log at ERROR level for visibility
 				continue
 			}
 

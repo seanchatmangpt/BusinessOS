@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test pm4py-rust integration with BusinessOS BOS Gateway
-# This script verifies that the gateway correctly calls pm4py-rust endpoints
+# Test pm4py-mcp integration with BusinessOS BOS Gateway
+# This script verifies that the gateway correctly calls pm4py-mcp endpoints
 
 set -e
 
 echo "======================================"
-echo "Testing pm4py-rust BOS Gateway"
+echo "Testing pm4py-mcp BOS Gateway"
 echo "======================================"
 
 # Colors for output
@@ -14,8 +14,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Default pm4py-rust URL
-PM4PY_URL="${PM4PY_RUST_URL:-http://localhost:8090}"
+# Default pm4py-mcp URL
+PM4PY_URL="${PM4PY_MCP_URL:-http://localhost:7015}"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -92,6 +92,6 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "To run integration tests:"
 echo "  1. Start BusinessOS: make dev"
-echo "  2. Start pm4py-rust: cd pm4py-rust && cargo run --example http_server"
+echo "  2. Start pm4py-mcp: cd pm4py-mcp && python -m pm4py_mcp"
 echo "  3. Run smoke tests: bash scripts/test-pm4py-integration.sh"
 echo ""

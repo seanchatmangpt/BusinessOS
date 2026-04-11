@@ -392,12 +392,12 @@ var JtbdScenarioSystemValues = struct {
 	Osa string
 	Businessos string
 	Canopy string
-	Pm4pyRust string
+	Pm4pyMcp string
 }{
 	Osa: "osa",
 	Businessos: "businessos",
 	Canopy: "canopy",
-	Pm4pyRust: "pm4py_rust",
+	Pm4pyMcp: "pm4py_mcp",
 }
 
 // JtbdScenarioWave returns an attribute KeyValue for jtbd.scenario.wave.

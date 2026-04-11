@@ -124,7 +124,9 @@ func (h *A2AHandler) CallAgent(c *gin.Context) {
 	// Check idempotency cache first
 	if found, status, body := h.checkIdempotency(c); found {
 		var result interface{}
-		json.Unmarshal([]byte(body), &result)
+		if err := json.Unmarshal([]byte(body), &result); err != nil {
+			slog.Warn("a2a: failed to unmarshal cached idempotency response", "error", err)
+		}
 		c.JSON(status, result)
 		return
 	}
@@ -190,7 +192,9 @@ func (h *A2AHandler) ExecuteAgentTool(c *gin.Context) {
 	// Check idempotency cache first
 	if found, status, body := h.checkIdempotency(c); found {
 		var result interface{}
-		json.Unmarshal([]byte(body), &result)
+		if err := json.Unmarshal([]byte(body), &result); err != nil {
+			slog.Warn("a2a: failed to unmarshal cached idempotency response", "error", err)
+		}
 		c.JSON(status, result)
 		return
 	}

@@ -44,7 +44,7 @@ export default function(data) {
   const endpoints = [
     { path: '/healthz', weight: 0.4, name: 'Healthz' },
     { path: '/api/yawl/health', weight: 0.3, name: 'YAWLHealth' },
-    { path: '/api/pm4py/health', weight: 0.3, name: 'Pm4pyHealth' },
+    { path: '/api/pm4py/dashboard-kpi', weight: 0.3, name: 'Pm4pyDashboardKPI' },
   ];
 
   // Weighted random selection

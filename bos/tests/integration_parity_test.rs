@@ -1,6 +1,6 @@
 /// Integration Parity Tests
 ///
-/// These tests validate end-to-end workflows where pm4py-rust
+/// These tests validate end-to-end workflows where pm4py-mcp
 /// processes match Python pm4py complete workflows.
 
 #[cfg(test)]

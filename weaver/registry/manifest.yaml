@@ -1,0 +1,10 @@
+# BusinessOS Weaver Registry Manifest
+name: businessos
+description: Semantic conventions for BusinessOS AI agent system
+version: 1.2.0
+schema_url: https://opentelemetry.io/schemas/1.27.0
+registries:
+  - mcp.yaml           # Per-project MCP attributes (connection pool, server, tool)
+  - communication.yaml # Cross-system communication (chatman.comm.*)
+  - validation.yaml    # Validation and conformance proof (chatman.validation.*)
+  - constraints.yaml   # Semantic invariant laws (task_propagation, case_id_uniqueness, etc.)

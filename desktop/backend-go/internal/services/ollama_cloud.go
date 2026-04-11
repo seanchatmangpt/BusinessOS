@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -178,8 +177,8 @@ func (s *OllamaCloudService) StreamChat(ctx context.Context, messages []ChatMess
 
 			var streamResp OllamaCloudResponse
 			if err := json.Unmarshal([]byte(line), &streamResp); err != nil {
-				slog.Warn("ollama cloud: failed to parse stream line", "error", err)
-				continue
+				errs <- fmt.Errorf("ollama cloud: failed to parse stream line: %w", err)
+				return
 			}
 
 			if streamResp.Error != "" {
@@ -279,8 +278,8 @@ func (s *OllamaCloudService) StreamChatWithUsage(ctx context.Context, messages [
 
 			var streamResp OllamaCloudResponse
 			if err := json.Unmarshal([]byte(line), &streamResp); err != nil {
-				slog.Warn("ollama cloud: failed to parse stream line", "error", err)
-				continue
+				errs <- fmt.Errorf("ollama cloud: failed to parse stream line: %w", err)
+				return
 			}
 
 			if streamResp.Error != "" {

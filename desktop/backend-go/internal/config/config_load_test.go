@@ -190,13 +190,13 @@ func TestLoad_DefaultEnableLocalModels(t *testing.T) {
 	}
 }
 
-func TestLoad_DefaultPM4PyRustURL(t *testing.T) {
+func TestLoad_DefaultPM4PyMCPUURL(t *testing.T) {
 	cfg, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.PM4PyRustURL != "http://localhost:8090" {
-		t.Errorf("PM4PyRustURL default = %q, want %q", cfg.PM4PyRustURL, "http://localhost:8090")
+	if cfg.PM4PYMCPURL != "http://localhost:7015" {
+		t.Errorf("PM4PYMCPURL default = %q, want %q", cfg.PM4PYMCPURL, "http://localhost:7015")
 	}
 }
 

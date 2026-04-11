@@ -39,7 +39,7 @@ type AgentListResponse struct {
 type Agent struct {
 	ID            string   `json:"id"`
 	Name          string   `json:"name"`
-	Type          string   `json:"type"` // osa, businessos, canopy, pm4py-rust
+	Type          string   `json:"type"` // osa, businessos, canopy, pm4py-mcp
 	Status        string   `json:"status"`
 	LastHeartbeat string   `json:"last_heartbeat"`
 	Capabilities  []string `json:"capabilities"`

@@ -1,6 +1,6 @@
 /// Advanced Footprints-based Conformance Validation Tests
 ///
-/// These tests validate that pm4py-rust footprints-based conformance checking
+/// These tests validate that pm4py-mcp footprints-based conformance checking
 /// correctly handles advanced scenarios beyond basic sequential processes.
 ///
 /// Test Categories:

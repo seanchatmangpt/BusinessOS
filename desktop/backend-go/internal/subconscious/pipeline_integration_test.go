@@ -73,7 +73,10 @@ func TestFullPipeline(t *testing.T) {
 		}
 
 		// Hints should be empty
-		hints := provider.ActiveHintsForUser("user-1")
+		hints, err := provider.ActiveHintsForUser("user-1")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		if hints != "" {
 			t.Errorf("expected empty hints, got %q", hints)
 		}
@@ -105,7 +108,10 @@ func TestFullPipeline(t *testing.T) {
 		}
 
 		// Now check injection
-		hints := provider.ActiveHintsForUser("user-1")
+		hints, err := provider.ActiveHintsForUser("user-1")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		if !strings.Contains(hints, "Session Patterns") {
 			t.Errorf("expected session patterns in hints, got: %s", hints)
 		}
@@ -127,7 +133,10 @@ func TestFullPipeline(t *testing.T) {
 			t.Errorf("expected preference in block, got: %s", block.Content)
 		}
 
-		hints := provider.ActiveHintsForUser("user-1")
+		hints, err := provider.ActiveHintsForUser("user-1")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		if !strings.Contains(hints, "User Preferences") {
 			t.Errorf("expected user preferences in hints, got: %s", hints)
 		}
@@ -184,7 +193,10 @@ func TestFullPipeline(t *testing.T) {
 		// Trigger a hint in the actuator
 		_ = actuator.Act(ctx, feedback.ActionContextExpansion, "re_encoding_frequency", 0.25, 0.15)
 
-		hints := provider.ActiveHintsForUser("user-1")
+		hints, err := provider.ActiveHintsForUser("user-1")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 		if !strings.Contains(hints, "SIGNAL QUALITY CORRECTIONS") {
 			t.Error("expected actuator corrections in hints")
 		}
@@ -253,8 +265,14 @@ func TestHintProviderUserScoping(t *testing.T) {
 		Weight:    0.7,
 	})
 
-	hintsA := provider.ActiveHintsForUser("user-a")
-	hintsB := provider.ActiveHintsForUser("user-b")
+	hintsA, err := provider.ActiveHintsForUser("user-a")
+	if err != nil {
+		t.Errorf("unexpected error for user-a: %v", err)
+	}
+	hintsB, err := provider.ActiveHintsForUser("user-b")
+	if err != nil {
+		t.Errorf("unexpected error for user-b: %v", err)
+	}
 
 	if !strings.Contains(hintsA, "Go") {
 		t.Error("user-a should see Go preference")

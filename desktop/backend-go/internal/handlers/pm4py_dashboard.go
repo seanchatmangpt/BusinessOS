@@ -1,10 +1,10 @@
 package handlers
 
-// PM4PyDashboardHandler aggregates process mining KPIs from pm4py-rust in a single call.
+// PM4PyDashboardHandler aggregates process mining KPIs from pm4py-mcp in a single call.
 //
 // POST /api/pm4py/dashboard-kpi
 //
-// Calls pm4py-rust /api/statistics and /api/conformance/token-replay concurrently,
+// Calls pm4py-mcp statistics and conformance tools concurrently via MCP protocol,
 // then merges results into a single KPI response for the 4 new KPI dashboard widgets.
 //
 // WvdA: both concurrent calls have a shared 30s context timeout (deadlock freedom).
@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rhl/businessos-backend/internal/integrations/pm4py_rust"
+	"github.com/rhl/businessos-backend/internal/services"
 )
 
 const pm4pyDashboardTimeout = 30 * time.Second
@@ -68,13 +68,13 @@ type BottleneckEntry struct {
 
 // PM4PyDashboardHandler handles POST /api/pm4py/dashboard-kpi.
 type PM4PyDashboardHandler struct {
-	client  *pm4py_rust.Client
+	client  services.PM4PyMCPClientInterface
 	logger  *slog.Logger
 	timeout time.Duration
 }
 
-// NewPM4PyDashboardHandler constructs a handler using an existing pm4py-rust client.
-func NewPM4PyDashboardHandler(client *pm4py_rust.Client) *PM4PyDashboardHandler {
+// NewPM4PyDashboardHandler constructs a handler using a pm4py-mcp client.
+func NewPM4PyDashboardHandler(client services.PM4PyMCPClientInterface) *PM4PyDashboardHandler {
 	return &PM4PyDashboardHandler{
 		client:  client,
 		logger:  slog.Default(),
@@ -84,7 +84,7 @@ func NewPM4PyDashboardHandler(client *pm4py_rust.Client) *PM4PyDashboardHandler 
 
 // NewPM4PyDashboardHandlerWithTimeout constructs a handler with a caller-supplied timeout.
 // Use this in tests or when the deployment environment requires a non-default deadline.
-func NewPM4PyDashboardHandlerWithTimeout(client *pm4py_rust.Client, timeout time.Duration) *PM4PyDashboardHandler {
+func NewPM4PyDashboardHandlerWithTimeout(client services.PM4PyMCPClientInterface, timeout time.Duration) *PM4PyDashboardHandler {
 	return &PM4PyDashboardHandler{
 		client:  client,
 		logger:  slog.Default(),
@@ -93,7 +93,7 @@ func NewPM4PyDashboardHandlerWithTimeout(client *pm4py_rust.Client, timeout time
 }
 
 // GetDashboardKPI handles POST /api/pm4py/dashboard-kpi.
-// It fans out to pm4py-rust statistics + conformance concurrently, then merges results.
+// It fans out to pm4py-mcp statistics + conformance concurrently, then merges results.
 func (h *PM4PyDashboardHandler) GetDashboardKPI(c *gin.Context) {
 	var req ProcessMiningKPIRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,9 +106,9 @@ func (h *PM4PyDashboardHandler) GetDashboardKPI(c *gin.Context) {
 	defer cancel()
 
 	var (
-		statsResult *pm4py_rust.StatisticsResponse
+		statsResult *services.StatisticsResult
 		statsErr    error
-		confResult  *pm4py_rust.ConformanceResponse
+		confResult  *services.ConformanceResult
 		confErr     error
 		wg          sync.WaitGroup
 	)
@@ -130,7 +130,7 @@ func (h *PM4PyDashboardHandler) GetDashboardKPI(c *gin.Context) {
 	// Armstrong: surface stats failure visibly rather than returning partial/corrupt data.
 	if statsErr != nil {
 		h.logger.ErrorContext(ctx, "pm4py dashboard: statistics call failed", "error", statsErr)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "pm4py statistics unavailable"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "pm4py-mcp statistics unavailable"})
 		return
 	}
 
@@ -143,22 +143,18 @@ func (h *PM4PyDashboardHandler) GetDashboardKPI(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// callStatistics requests statistics from pm4py-rust.
+// callStatistics requests statistics from pm4py-mcp.
 // Returns nil+error on failure; caller decides whether to surface as 502.
-func (h *PM4PyDashboardHandler) callStatistics(ctx context.Context, eventLog json.RawMessage) (*pm4py_rust.StatisticsResponse, error) {
+func (h *PM4PyDashboardHandler) callStatistics(ctx context.Context, eventLog json.RawMessage) (*services.StatisticsResult, error) {
 	if h.client == nil {
 		return nil, nil
 	}
-	return h.client.StatisticsRequest(ctx, &pm4py_rust.StatisticsRequest{
-		EventLog:           eventLog,
-		IncludeVariants:    true,
-		IncludeBottlenecks: true,
-	})
+	return h.client.Statistics(ctx, eventLog)
 }
 
-// callConformance requests token-replay conformance from pm4py-rust.
+// callConformance requests conformance from pm4py-mcp.
 // Returns nil+nil when no petri net is supplied (graceful degradation).
-func (h *PM4PyDashboardHandler) callConformance(ctx context.Context, eventLog, petriNet json.RawMessage) (*pm4py_rust.ConformanceResponse, error) {
+func (h *PM4PyDashboardHandler) callConformance(ctx context.Context, eventLog, petriNet json.RawMessage) (*services.ConformanceResult, error) {
 	if h.client == nil {
 		return nil, nil
 	}
@@ -166,22 +162,13 @@ func (h *PM4PyDashboardHandler) callConformance(ctx context.Context, eventLog, p
 		return nil, nil // No petri net — skip conformance gracefully.
 	}
 
-	// Unmarshal the raw PetriNet JSON into the typed struct the client expects.
-	var pn pm4py_rust.PetriNetJSON
-	if err := json.Unmarshal(petriNet, &pn); err != nil {
-		return nil, err
-	}
-
-	return h.client.ConformanceRequest(ctx, &pm4py_rust.ConformanceRequest{
-		EventLog: eventLog,
-		PetriNet: pn,
-	})
+	return h.client.Conformance(ctx, eventLog, petriNet)
 }
 
 // buildResponse merges statistics and (optional) conformance into one KPI payload.
 func (h *PM4PyDashboardHandler) buildResponse(
-	stats *pm4py_rust.StatisticsResponse,
-	conf *pm4py_rust.ConformanceResponse,
+	stats *services.StatisticsResult,
+	conf *services.ConformanceResult,
 ) ProcessMiningKPIResponse {
 
 	resp := ProcessMiningKPIResponse{
@@ -192,37 +179,32 @@ func (h *PM4PyDashboardHandler) buildResponse(
 	}
 
 	if stats != nil {
-		resp.EventCount = stats.EventCount
-		resp.TraceCount = stats.TraceCount
-		resp.VariantCount = stats.VariantCount
+		resp.EventCount = stats.TraceEvents
+		resp.TraceCount = stats.UniqueTraces
+		resp.VariantCount = len(stats.Variants)
 
-		if stats.ActivityFrequencies != nil {
-			resp.ActivityFrequencies = stats.ActivityFrequencies
+		// Build activity frequencies map from structured data.
+		for _, af := range stats.ActivityFrequency {
+			resp.ActivityFrequencies[af.Activity] = af.Frequency
 		}
 
-		// Build top variants list from variant frequencies map.
-		if len(stats.VariantFrequencies) > 0 {
-			totalTraces := stats.TraceCount
-			if totalTraces == 0 {
-				totalTraces = 1 // avoid division by zero
-			}
-			for label, count := range stats.VariantFrequencies {
-				resp.TopVariants = append(resp.TopVariants, VariantEntry{
-					Label:      label,
-					Count:      count,
-					Percentage: float64(count) / float64(totalTraces) * 100.0,
-				})
-			}
+		// Map variant data.
+		for _, v := range stats.Variants {
+			resp.TopVariants = append(resp.TopVariants, VariantEntry{
+				Label:      v.Variant,
+				Count:      v.Count,
+				Percentage: v.Percentage,
+			})
 		}
 
-		// Map bottleneck activity names to BottleneckEntry with frequency.
-		for _, activity := range stats.BottleneckActivities {
+		// Map bottleneck activities.
+		for _, bn := range stats.Bottleneck {
 			freq := 0
-			if stats.ActivityFrequencies != nil {
-				freq = stats.ActivityFrequencies[activity]
+			if resp.ActivityFrequencies != nil {
+				freq = resp.ActivityFrequencies[bn.Activity]
 			}
 			resp.BottleneckActivities = append(resp.BottleneckActivities, BottleneckEntry{
-				Activity:  activity,
+				Activity:  bn.Activity,
 				Frequency: freq,
 			})
 		}
@@ -231,7 +213,7 @@ func (h *PM4PyDashboardHandler) buildResponse(
 	if conf != nil {
 		resp.ConformanceFitness = conf.Fitness
 		resp.ConformancePrecision = conf.Precision
-		resp.IsConformant = conf.IsConformant
+		resp.IsConformant = conf.Fitness >= 1.0
 	}
 
 	return resp

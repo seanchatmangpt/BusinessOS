@@ -542,7 +542,7 @@ Query A2A audit trail for a resource.
 ## BOS Gateway (Process Mining)
 
 Routes are registered at `/api/bos/` (no versioning prefix). CSRF is skipped for this group.
-The gateway proxies requests to pm4py-rust (default: `http://localhost:8090`, override via `PM4PY_RUST_URL`).
+The gateway invokes pm4py-mcp tools via MCP protocol (default: `http://localhost:7015`, override via `PM4PY_MCP_URL`).
 
 ### GET /api/bos/status
 Gateway health and statistics.
@@ -562,7 +562,7 @@ Gateway health and statistics.
 - **Status codes:** `200 OK`
 
 ### POST /api/bos/discover
-Trigger process model discovery on an event log via pm4py-rust.
+Trigger process model discovery on an event log via pm4py-mcp.
 Results are persisted via write-ahead log before the response is returned.
 - **Auth:** None required (CSRF skipped)
 - **Request:**
@@ -589,11 +589,11 @@ Results are persisted via write-ahead log before the response is returned.
     "latency_ms": 310
   }
   ```
-- **Status codes:** `200 OK`, `400 Bad Request` (missing `log_path`), `503 Service Unavailable` (pm4py-rust down), `500 Internal Server Error`
-- **See also:** Process mining guide; pm4py-rust `/api/discovery/alpha`
+- **Status codes:** `200 OK`, `400 Bad Request` (missing `log_path`), `503 Service Unavailable` (pm4py-mcp down), `500 Internal Server Error`
+- **See also:** Process mining guide; pm4py-mcp `pm4py_discover` tool
 
 ### POST /api/bos/conformance
-Check event log conformance against a process model via pm4py-rust.
+Check event log conformance against a process model via pm4py-mcp.
 - **Auth:** None required (CSRF skipped)
 - **Request:**
   ```json
@@ -624,7 +624,7 @@ Check event log conformance against a process model via pm4py-rust.
 - **Status codes:** `200 OK`, `400 Bad Request`, `503 Service Unavailable`, `500 Internal Server Error`
 
 ### POST /api/bos/statistics
-Extract statistics from an event log via pm4py-rust.
+Extract statistics from an event log via pm4py-mcp.
 - **Auth:** None required (CSRF skipped)
 - **Request:**
   ```json
@@ -662,8 +662,8 @@ Extract statistics from an event log via pm4py-rust.
 ## BOS Progress & Streaming
 
 ### POST /api/bos/progress
-Receive progress events from pm4py-rust during discovery/conformance operations.
-Events are broadcast to SSE subscribers. This endpoint is called by pm4py-rust, not browsers.
+Receive progress events from pm4py-mcp during discovery/conformance operations.
+Events are broadcast to SSE subscribers. This endpoint is called by pm4py-mcp, not browsers.
 - **Auth:** JWT Bearer token required (`Authorization: Bearer <token>`)
 - **Request:**
   ```json
@@ -703,7 +703,7 @@ Server-Sent Events stream for real-time discovery progress. Connect from browser
 
 ## BOS Transactions (Two-Phase Commit)
 
-These endpoints implement the prepare/commit/abort protocol for distributed process mining transactions across pm4py-rust participants.
+These endpoints implement the prepare/commit/abort protocol for distributed process mining transactions across pm4py-mcp participants.
 
 ### POST /api/bos/tx/prepare
 Initiate prepare phase. Validates input and locks the transaction participant.
@@ -1019,7 +1019,7 @@ Send OSA configuration (no auth).
 | Code | Meaning |
 |------|---------|
 | `500 Internal Server Error` | Server error, check logs |
-| `503 Service Unavailable` | Service temporarily unavailable (e.g., pm4py-rust down) |
+| `503 Service Unavailable` | Service temporarily unavailable (e.g., pm4py-mcp down) |
 
 ---
 
@@ -1053,4 +1053,4 @@ X-Agent-ID: <calling-agent-id>
 - Error codes & troubleshooting
 - Database schema reference
 - Configuration options reference
-- Process mining guide (BOS Gateway + pm4py-rust)
+- Process mining guide (BOS Gateway + pm4py-mcp)

@@ -1,0 +1,256 @@
+# Cross-System Communication Semantic Conventions
+# Shared registry for BusinessOS, Canopy, OSA, and pm4py-mcp
+# Models communication as a first-class semantic object for process mining
+
+groups:
+  - id: registry.chatman.communication
+    type: attribute_group
+    display_name: Cross-System Communication
+    brief: Attributes for causally correlated communication among BusinessOS, Canopy, OSA, and related systems.
+    stability: experimental
+    attributes:
+      - id: chatman.comm.id
+        type: string
+        brief: Unique identifier for a single communication event.
+        examples: ["comm-01HZX8Y7J4Q9A2"]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.trace_id
+        type: string
+        brief: Explicit trace correlation ID for log/export contexts.
+        examples: ["0af7651916cd43dd8448eb211c80319c"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.interaction_id
+        type: string
+        brief: Stable identifier linking related request/response or handoff events.
+        examples: ["ixn-abc123"]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.source.system
+        type:
+          allow_custom_values: false
+          members:
+            - id: pm4py_mcp
+              value: pm4py-mcp
+              stability: experimental
+            - id: businessos
+              value: BusinessOS
+              stability: experimental
+            - id: canopy
+              value: Canopy
+              stability: experimental
+            - id: osa
+              value: OSA
+              stability: experimental
+        brief: Originating system for the communication event.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.target.system
+        type:
+          allow_custom_values: false
+          members:
+            - id: pm4py_mcp
+              value: pm4py-mcp
+              stability: experimental
+            - id: businessos
+              value: BusinessOS
+              stability: experimental
+            - id: canopy
+              value: Canopy
+              stability: experimental
+            - id: osa
+              value: OSA
+              stability: experimental
+        brief: Destination system for the communication event.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.source.component
+        type: string
+        brief: Originating component within the source system.
+        examples: ["bos-cli", "events.bus", "workspace-router", "ocpm-handler"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.target.component
+        type: string
+        brief: Destination component within the target system.
+        examples: ["scheduler", "agent-loop", "task-router", "query-ocel"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.channel
+        type:
+          allow_custom_values: false
+          members:
+            - id: http
+              value: http
+              stability: experimental
+            - id: websocket
+              value: websocket
+              stability: experimental
+            - id: stdio
+              value: stdio
+              stability: experimental
+            - id: pubsub
+              value: pubsub
+              stability: experimental
+            - id: task
+              value: task
+              stability: experimental
+            - id: scheduler
+              value: scheduler
+              stability: experimental
+            - id: mcp
+              value: mcp
+              stability: experimental
+            - id: workflow
+              value: workflow
+              stability: experimental
+            - id: receipt_sync
+              value: receipt_sync
+              stability: experimental
+        brief: Communication channel or mechanism used.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.operation
+        type: string
+        brief: Logical operation being performed across the boundary.
+        examples: ["delegate_task", "workspace_dispatch", "tool_call", "receipt_emit", "ocpm_query", "ocel_export"]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.direction
+        type:
+          allow_custom_values: false
+          members:
+            - id: request
+              value: request
+              stability: experimental
+            - id: response
+              value: response
+              stability: experimental
+            - id: emit
+              value: emit
+              stability: experimental
+            - id: consume
+              value: consume
+              stability: experimental
+            - id: handoff
+              value: handoff
+              stability: experimental
+            - id: sync
+              value: sync
+              stability: experimental
+        brief: Directional semantics of the communication event.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.status
+        type:
+          allow_custom_values: false
+          members:
+            - id: success
+              value: success
+              stability: experimental
+            - id: failure
+              value: failure
+              stability: experimental
+            - id: timeout
+              value: timeout
+              stability: experimental
+            - id: rejected
+              value: rejected
+              stability: experimental
+            - id: retry
+              value: retry
+              stability: experimental
+            - id: dropped
+              value: dropped
+              stability: experimental
+        brief: Outcome of the communication act.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.comm.retry_count
+        type: int
+        brief: Number of retry attempts for this communication event.
+        examples: [0, 1, 3]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.latency_ms
+        type: int
+        brief: End-to-end latency of the communication act in milliseconds.
+        examples: [5, 50, 500]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.case_id
+        type: string
+        brief: Process or case identifier used for event-log / OCEL transformation.
+        examples: ["trace-6f1a", "case-42", "ORD-001"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.task_id
+        type: string
+        brief: Task identifier propagated across systems when work is delegated.
+        examples: ["task-901"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.workflow_id
+        type: string
+        brief: Workflow or process identifier associated with the communication act.
+        examples: ["wf-sales-engine-01", "order-to-cash"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.payload.type
+        type: string
+        brief: Semantic type of payload transmitted across the boundary.
+        examples: ["task", "signal", "workflow_spec", "receipt", "tool_result", "policy_decision", "ocel_event"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.payload.bytes
+        type: int
+        brief: Payload size in bytes.
+        examples: [128, 2048]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.receipt.hash
+        type: string
+        brief: Receipt or provenance hash (BLAKE3) associated with the communication event.
+        examples: ["blake3:abcd1234efgh5678"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.receipt.previous_hash
+        type: string
+        brief: Previous receipt hash in the provenance chain.
+        examples: ["blake3:wxyz9876uvst5432"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.guard.applied
+        type: boolean
+        brief: Whether ingress or policy guards were applied to this communication.
+        examples: [true, false]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.comm.policy.result
+        type: string
+        brief: Result of policy evaluation for the communication act.
+        examples: ["allowed", "blocked", "requires_approval"]
+        requirement_level: recommended
+        stability: experimental

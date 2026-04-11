@@ -188,11 +188,12 @@ openssl rand -base64 32
 
 ---
 
-## Process Mining (pm4py-rust Integration)
+## Process Mining (pm4py-mcp Integration)
 
 | Variable | Type | Default | Purpose |
 |----------|------|---------|---------|
-| `PM4PY_RUST_URL` | string | `http://localhost:8090` | pm4py-rust gateway URL |
+| `PM4PY_MCP_URL` | string | `http://localhost:7015` | pm4py-mcp service URL |
+| `PM4PY_RUST_URL` | string | `http://localhost:8090` | **DEPRECATED** — fallback for backward compatibility |
 
 ---
 
@@ -241,8 +242,8 @@ openssl rand -base64 32
 
 | Variable | Type | Default | Purpose |
 |----------|------|---------|---------|
-| `MAX_CONCURRENT_PM4PY_REQUESTS` | int | `10` | Semaphore limit for pm4py-rust requests |
-| `PM4PY_CONNECTION_POOL_SIZE` | int | `100` | HTTP connection pool size |
+| `MAX_CONCURRENT_PM4PY_REQUESTS` | int | `10` | Semaphore limit for pm4py-mcp requests |
+| `PM4PY_CONNECTION_POOL_SIZE` | int | `100` | MCP connection pool size |
 | `MAX_SSE_SUBSCRIBERS` | int | `1000` | Max concurrent SSE stream subscribers |
 | `REQUEST_TIMEOUT_SECONDS` | int | `30` | HTTP request timeout |
 | `DATABASE_MAX_OPEN_CONNS` | int | `25` | PostgreSQL connection pool size |
@@ -285,7 +286,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-3-sonnet-20240229
 
 # Process Mining
-PM4PY_RUST_URL=http://pm4py-rust:8090
+PM4PY_MCP_URL=http://pm4py-mcp:7015
 
 # Logging
 LOG_LEVEL=info

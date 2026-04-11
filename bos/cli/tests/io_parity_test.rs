@@ -1,6 +1,6 @@
 /// I/O Format Parity Tests
 ///
-/// These tests validate that pm4py-rust I/O functions
+/// These tests validate that pm4py-mcp I/O functions
 /// produce identical results to Python pm4py implementations.
 ///
 /// FOCUS: JSON format (80% of use cases)
@@ -13,7 +13,7 @@ mod io_parity {
     use serde_json::{json, Value};
 
     /// Build simple test event log in flat JSON array format
-    /// (pm4py-rust expected format for JsonEventLogReader)
+    /// (pm4py-mcp expected format for JsonEventLogReader)
     fn create_flat_json_event_array() -> Value {
         json!([
             // Trace 1: account_0
@@ -227,7 +227,7 @@ mod io_parity {
     }
 
     #[test]
-    #[ignore = "awaiting pm4py-rust XES support"]
+    #[ignore = "awaiting pm4py-mcp XES support"]
     fn test_xes_read_write_parity() {
         // TODO: Implement after XES reader/writer are available
         // This is a specialized XML format used by ProM tool
@@ -235,7 +235,7 @@ mod io_parity {
     }
 
     #[test]
-    #[ignore = "awaiting pm4py-rust CSV support"]
+    #[ignore = "awaiting pm4py-mcp CSV support"]
     fn test_csv_read_write_parity() {
         // TODO: Implement after CSV reader/writer are available
         // CSV is simpler than JSON but less powerful for attributes
@@ -243,7 +243,7 @@ mod io_parity {
     }
 
     #[test]
-    #[ignore = "awaiting pm4py-rust PNML support"]
+    #[ignore = "awaiting pm4py-mcp PNML support"]
     fn test_pnml_read_write_parity() {
         // TODO: Implement after PNML reader/writer are available
         // PNML is XML-based, specialized for Petri nets

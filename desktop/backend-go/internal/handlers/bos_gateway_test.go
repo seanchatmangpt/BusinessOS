@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,7 +16,54 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/rhl/businessos-backend/internal/services"
 )
+
+// ============================================================================
+// MOCK MCP CLIENT (shared across test files)
+// ============================================================================
+
+// testMockPM4PyMCPClient implements services.PM4PyMCPClientInterface for testing.
+// Used by bos_gateway_test.go and bos_gateway_tracing_test.go.
+type testMockPM4PyMCPClient struct {
+	discoverResult    *services.DiscoverResult
+	discoverErr       error
+	conformanceResult *services.ConformanceResult
+	conformanceErr    error
+	statisticsResult  *services.StatisticsResult
+	statisticsErr     error
+	healthCheckErr    error
+}
+
+func (m *testMockPM4PyMCPClient) Discover(_ context.Context, _ json.RawMessage, _ string) (*services.DiscoverResult, error) {
+	if m.discoverErr != nil {
+		return nil, m.discoverErr
+	}
+	return m.discoverResult, nil
+}
+
+func (m *testMockPM4PyMCPClient) Conformance(_ context.Context, _, _ json.RawMessage) (*services.ConformanceResult, error) {
+	if m.conformanceErr != nil {
+		return nil, m.conformanceErr
+	}
+	return m.conformanceResult, nil
+}
+
+func (m *testMockPM4PyMCPClient) Statistics(_ context.Context, _ json.RawMessage) (*services.StatisticsResult, error) {
+	if m.statisticsErr != nil {
+		return nil, m.statisticsErr
+	}
+	return m.statisticsResult, nil
+}
+
+func (m *testMockPM4PyMCPClient) HealthCheck(_ context.Context) error {
+	return m.healthCheckErr
+}
+
+// ============================================================================
+// TEST HELPERS
+// ============================================================================
 
 // bosCreateTempEventLogFile creates a temp JSON event log file for gateway tests.
 func bosCreateTempEventLogFile(t *testing.T) string {
@@ -30,88 +78,74 @@ func bosCreateTempEventLogFile(t *testing.T) string {
 	return f.Name()
 }
 
-// bosMockPM4PyServer creates a minimal mock pm4py-rust server for gateway tests.
-func bosMockPM4PyServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		pn := map[string]interface{}{
-			"places": []interface{}{
-				map[string]interface{}{"id": "p1", "name": "start", "initial_marking": 1},
-				map[string]interface{}{"id": "p2", "name": "end", "initial_marking": 0},
-			},
-			"transitions": []interface{}{
-				map[string]interface{}{"id": "t1", "name": "a", "label": nil},
-			},
-			"arcs": []interface{}{
-				map[string]interface{}{"from": "p1", "to": "t1", "weight": 1},
-				map[string]interface{}{"from": "t1", "to": "p2", "weight": 1},
-			},
-			"initial_place": nil,
-			"final_place":   nil,
-		}
-		switch {
-		case r.URL.Path == pm4pyPathDiscoveryAlpha:
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"model_id":    "model_test_001",
-				"algorithm":   "inductive_miner",
-				"petri_net":   pn,
-				"trace_count": 2.0,
-				"event_count": 4.0,
-			})
-		case r.URL.Path == pm4pyPathConformanceTokenReplay:
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"traces_checked": 125, "fitting_traces": 120,
-				"fitness": 0.96, "precision": 0.92, "generalization": 0.88, "simplicity": 0.91,
-			})
-		case r.URL.Path == pm4pyPathStatistics:
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"log_name": "sample_log.xes", "num_traces": 500, "num_events": 2450,
-				"num_unique_activities": 8, "num_variants": 45,
-				"avg_trace_length": 4.9, "min_trace_length": 2, "max_trace_length": 12,
-				"case_duration": map[string]interface{}{
-					"min_seconds": 60, "max_seconds": 3600,
-					"avg_seconds": 1200.5, "median_seconds": 900.0,
-				},
-			})
-		case r.URL.Path == pm4pyPathParseXES:
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"traces": []interface{}{},
-			})
-		default:
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(map[string]string{"error": "not found"})
-		}
-	}))
+func bosMustMarshal(t *testing.T, v interface{}) string {
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	return string(b)
 }
 
-// Test fixtures
-func setupGatewayTest(t *testing.T) (*BOSGatewayHandler, *gin.Engine) {
-	// Disable Gin debug output
-	gin.SetMode(gin.TestMode)
+// defaultTestDiscoverResult returns a sample discover result for tests.
+func defaultTestDiscoverResult() *services.DiscoverResult {
+	return &services.DiscoverResult{
+		ModelID:   "model_test_001",
+		Algorithm: "inductive_miner",
+		ProcessModel: services.ProcessModel{
+			Places:      2,
+			Transitions: 1,
+			Arcs:        2,
+		},
+		TraceEvents:   2,
+		UniqueTraces: 1,
+	}
+}
 
-	mock := bosMockPM4PyServer(t)
-	t.Cleanup(mock.Close)
+// defaultTestConformanceResult returns a sample conformance result for tests.
+func defaultTestConformanceResult() *services.ConformanceResult {
+	return &services.ConformanceResult{
+		Fitness:        0.96,
+		Precision:      0.92,
+		Generalization: 0.88,
+		Simplicity:     0.91,
+		TraceEvents:    125,
+	}
+}
+
+// defaultTestStatisticsResult returns a sample statistics result for tests.
+func defaultTestStatisticsResult() *services.StatisticsResult {
+	return &services.StatisticsResult{
+		TraceEvents:      2450,
+		UniqueTraces:     500,
+		UniqueActivities: 8,
+		ActivityFrequency: []services.ActivityFrequency{
+			{Activity: "create", Frequency: 500, Percentage: 20.4},
+		},
+		CaseDuration: services.CaseDuration{
+			MinSeconds:    60,
+			MaxSeconds:    3600,
+			AvgSeconds:    1200.5,
+			MedianSeconds: 900.0,
+		},
+	}
+}
+
+// setupGatewayTest initializes a gateway handler with mock MCP client.
+func setupGatewayTest(t *testing.T) (*BOSGatewayHandler, *gin.Engine) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
-	handler.pm4pyURL = mock.URL
+	handler.pm4pyMCPClient = &testMockPM4PyMCPClient{
+		discoverResult:    defaultTestDiscoverResult(),
+		conformanceResult: defaultTestConformanceResult(),
+		statisticsResult:  defaultTestStatisticsResult(),
+	}
 
 	router := gin.New()
 	api := router.Group("/api")
 	RegisterBOSGatewayRoutes(api, handler)
 
 	return handler, router
-}
-
-func bosMustMarshal(t *testing.T, v interface{}) string {
-	b, err := json.Marshal(v)
-	require.NoError(t, err)
-	return string(b)
 }
 
 // ============================================================================
@@ -235,7 +269,6 @@ func TestConformance_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, uint64(125), resp.TracesChecked)
-	assert.Equal(t, uint64(120), resp.FittingTraces)
 	assert.True(t, resp.Fitness > 0.9)
 	assert.True(t, resp.LatencyMs < 100)
 
@@ -294,7 +327,6 @@ func TestStatistics_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 
-	assert.Equal(t, "sample_log.xes", resp.LogName)
 	assert.Equal(t, 500, resp.NumTraces)
 	assert.Equal(t, 2450, resp.NumEvents)
 	assert.Equal(t, 8, resp.NumUniqueActivities)
@@ -512,6 +544,30 @@ func TestErrorHandling_NotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestErrorHandling_MCPUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := NewBOSGatewayHandler(nil, logger)
+	handler.pm4pyMCPClient = &testMockPM4PyMCPClient{
+		discoverErr: errors.New("pm4py-mcp unavailable"),
+	}
+
+	router := gin.New()
+	api := router.Group("/api")
+	RegisterBOSGatewayRoutes(api, handler)
+
+	logPath := bosCreateTempEventLogFile(t)
+	body := bosMustMarshal(t, BOSDiscoverRequest{LogPath: logPath, Algorithm: "inductive_miner"})
+	httpReq := httptest.NewRequest("POST", "/api/bos/discover", bytes.NewBufferString(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httpReq)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.Equal(t, uint64(1), handler.stats.RequestsFailed)
+}
+
 // ============================================================================
 // STATISTICS TRACKING TESTS
 // ============================================================================
@@ -572,9 +628,6 @@ func TestDatabaseCheck_Nil(t *testing.T) {
 // ============================================================================
 
 func TestDiscover_WriteAheadLog_RecoveryAfterDBFailure(t *testing.T) {
-	// WvdA soundness: if pm4py-rust returns a result but DB write fails,
-	// the result must be recoverable from the write-ahead log.
-	// This test validates that discovery results survive transient DB failures.
 	gin.SetMode(gin.TestMode)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
@@ -616,7 +669,6 @@ func TestDiscover_WriteAheadLog_RecoveryAfterDBFailure(t *testing.T) {
 }
 
 func TestDiscover_WriteAheadLog_NonExistent(t *testing.T) {
-	// Recovering a non-existent WAL entry should return an error
 	gin.SetMode(gin.TestMode)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
@@ -626,7 +678,6 @@ func TestDiscover_WriteAheadLog_NonExistent(t *testing.T) {
 }
 
 func TestDiscover_WriteAheadLog_Overwrite(t *testing.T) {
-	// Writing twice to the same model ID should overwrite (idempotent)
 	gin.SetMode(gin.TestMode)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
@@ -656,15 +707,10 @@ func TestDiscover_WriteAheadLog_Overwrite(t *testing.T) {
 // ============================================================================
 
 func TestDiscover_WriteAheadLog_IntegrationWithHandler(t *testing.T) {
-	// WvdA soundness: the Discover handler must write results to the WAL
-	// before returning, so that transient failures (e.g., DB write) do not
-	// lose the pm4py-rust discovery result. This test verifies the full
-	// write-ahead -> recover -> cleanup lifecycle from the handler path.
 	gin.SetMode(gin.TestMode)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
 
-	// Build a mock response that the handler would produce
 	modelID := "model_wal_integration_001"
 	mockResult := &BOSDiscoverResponse{
 		ModelID:     modelID,
@@ -758,7 +804,6 @@ func TestConformanceResponse_AllFieldsPopulated(t *testing.T) {
 
 	// All fields should be present
 	assert.True(t, resp.TracesChecked > 0)
-	assert.True(t, resp.FittingTraces > 0)
 	assert.True(t, resp.Fitness > 0)
 	assert.True(t, resp.Precision > 0)
 	assert.True(t, resp.Generalization > 0)
@@ -774,8 +819,6 @@ func TestDiscover_CanopyWebhook_FiresOnSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	logPath := bosCreateTempEventLogFile(t)
-	pm4pyMock := bosMockPM4PyServer(t)
-	t.Cleanup(pm4pyMock.Close)
 
 	webhookReceived := make(chan struct{})
 	var capturedPayload map[string]interface{}
@@ -790,7 +833,9 @@ func TestDiscover_CanopyWebhook_FiresOnSuccess(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
-	handler.pm4pyURL = pm4pyMock.URL
+	handler.pm4pyMCPClient = &testMockPM4PyMCPClient{
+		discoverResult: defaultTestDiscoverResult(),
+	}
 	handler.canopyWebhookURL = canopyMock.URL
 
 	router := gin.New()
@@ -823,8 +868,6 @@ func TestDiscover_CanopyWebhook_SkippedWhenURLEmpty(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	logPath := bosCreateTempEventLogFile(t)
-	pm4pyMock := bosMockPM4PyServer(t)
-	t.Cleanup(pm4pyMock.Close)
 
 	canopyHits := 0
 	canopyMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -835,7 +878,9 @@ func TestDiscover_CanopyWebhook_SkippedWhenURLEmpty(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
-	handler.pm4pyURL = pm4pyMock.URL
+	handler.pm4pyMCPClient = &testMockPM4PyMCPClient{
+		discoverResult: defaultTestDiscoverResult(),
+	}
 	// canopyWebhookURL intentionally left empty
 
 	router := gin.New()
@@ -859,8 +904,6 @@ func TestDiscover_CanopyWebhook_FailureDoesNotAffectAPIResponse(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	logPath := bosCreateTempEventLogFile(t)
-	pm4pyMock := bosMockPM4PyServer(t)
-	t.Cleanup(pm4pyMock.Close)
 
 	webhookReceived := make(chan struct{})
 	canopyMock := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -871,7 +914,9 @@ func TestDiscover_CanopyWebhook_FailureDoesNotAffectAPIResponse(t *testing.T) {
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	handler := NewBOSGatewayHandler(nil, logger)
-	handler.pm4pyURL = pm4pyMock.URL
+	handler.pm4pyMCPClient = &testMockPM4PyMCPClient{
+		discoverResult: defaultTestDiscoverResult(),
+	}
 	handler.canopyWebhookURL = canopyMock.URL
 
 	router := gin.New()

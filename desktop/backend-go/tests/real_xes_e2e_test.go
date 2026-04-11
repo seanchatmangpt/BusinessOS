@@ -3,12 +3,12 @@
 // Real XES End-to-End Integration Test
 //
 // This test closes the critical gap: real XES event log files exist but were
-// never used in a live integration test against pm4py-rust.
+// never used in a live integration test against pm4py-mcp.
 //
-// Requires: pm4py-rust running at http://localhost:8090
+// Requires: pm4py-mcp running at http://localhost:7015 (or BusinessOS BOS Gateway at http://localhost:8001)
 // Run with: go test -tags=integration -v ./tests/ -run TestRealXES
 //
-// Uses: pm4py-rust/test_data/running-example.xes (Fluxicon Nitro benchmark)
+// Uses: pm4py/tests/input_data/running-example.xes (Fluxicon Nitro benchmark)
 // — 6 traces, 42 events, 8 unique activities (insurance claim handling)
 package tests
 
@@ -57,13 +57,13 @@ type xesDate struct {
 	Value string `xml:"value,attr"`
 }
 
-// pm4pyDiscoveryRequest matches the pm4py-rust /api/discovery/alpha endpoint
+// pm4pyDiscoveryRequest matches the pm4py-mcp /api/discovery/alpha endpoint
 type pm4pyDiscoveryRequest struct {
 	EventLog json.RawMessage `json:"event_log"`
 	Variant  string          `json:"variant,omitempty"`
 }
 
-// pm4pyDiscoveryResponse matches the pm4py-rust discovery response
+// pm4pyDiscoveryResponse matches the pm4py-mcp discovery response
 type pm4pyDiscoveryResponse struct {
 	PetriNet struct {
 		Places []struct {
@@ -90,22 +90,23 @@ type pm4pyDiscoveryResponse struct {
 	TraceCount    int    `json:"trace_count"`
 }
 
-const pm4pyBaseURL = "http://localhost:8090"
+const pm4pyBaseURL = "http://localhost:7015"
 
 // findRunningExampleXES locates the running-example.xes file relative to this
 // test file, which lives in BusinessOS/desktop/backend-go/tests/.
 func findRunningExampleXES(t *testing.T) string {
 	t.Helper()
 
-	// Navigate from this test file up to the repo root, then into pm4py-rust/test_data
+	// Navigate from this test file up to the repo root, then into pm4py/tests/input_data
 	_, thisFile, _, ok := runtime.Caller(0)
 	require.True(t, ok, "runtime.Caller failed")
 
 	// thisFile = .../BusinessOS/desktop/backend-go/tests/real_xes_e2e_test.go
 	repoRoot := filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "..")
 	candidates := []string{
-		filepath.Join(repoRoot, "pm4py-rust", "test_data", "running-example.xes"),
-		"/Users/sac/chatmangpt/pm4py-rust/test_data/running-example.xes",
+		filepath.Join(repoRoot, "pm4py", "tests", "input_data", "running-example.xes"),
+		filepath.Join(repoRoot, "pictl", "wasm4pm", "tests", "fixtures", "running-example.xes"),
+		"/Users/sac/chatmangpt/pm4py/tests/input_data/running-example.xes",
 	}
 
 	for _, path := range candidates {
@@ -118,13 +119,13 @@ func findRunningExampleXES(t *testing.T) string {
 	return ""
 }
 
-// isPM4PyRunning checks if pm4py-rust is healthy at localhost:8090
+// isPM4PyRunning checks if pm4py-mcp is healthy at localhost:7015
 func isPM4PyRunning(t *testing.T) bool {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", pm4pyBaseURL+"/api/health", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", pm4pyBaseURL+"/health", nil)
 	if err != nil {
 		return false
 	}
@@ -138,7 +139,7 @@ func isPM4PyRunning(t *testing.T) bool {
 }
 
 // xesToEventLogJSON converts a real XES file to the JSON event log format
-// that pm4py-rust's /api/discovery/alpha endpoint expects.
+// that pm4py-mcp's /api/discovery/alpha endpoint expects.
 // The format must match pm4py::log::EventLog serde deserialization:
 //
 //	{"traces": [{"id": "...", "events": [{"activity": "...", "timestamp": "..."}]}]}
@@ -302,9 +303,9 @@ func TestRealXES_ConvertToEventLogJSON(t *testing.T) {
 		len(events), firstEvent["activity"])
 }
 
-func TestRealXES_DiscoverPetriNetFromPM4PyRust(t *testing.T) {
+func TestRealXES_DiscoverPetriNetViaBOSGateway(t *testing.T) {
 	if !isPM4PyRunning(t) {
-		t.Skip("pm4py-rust not running at localhost:8090 — skipping live integration test")
+		t.Skip("pm4py-mcp not running at localhost:7015 — skipping live integration test")
 	}
 
 	xesPath := findRunningExampleXES(t)
@@ -356,7 +357,7 @@ func TestRealXES_DiscoverPetriNetFromPM4PyRust(t *testing.T) {
 	assert.Equal(t, "alpha_miner", discoveryResp.Algorithm)
 
 	t.Logf("╔═══════════════════════════════════════════════════╗")
-	t.Logf("║  REAL XES → pm4py-rust DISCOVERY E2E RESULTS     ║")
+	t.Logf("║  REAL XES → pm4py-mcp DISCOVERY E2E RESULTS     ║")
 	t.Logf("╠═══════════════════════════════════════════════════╣")
 	t.Logf("║  Algorithm:     %s", discoveryResp.Algorithm)
 	t.Logf("║  Traces:        %d", discoveryResp.TraceCount)
@@ -370,13 +371,13 @@ func TestRealXES_DiscoverPetriNetFromPM4PyRust(t *testing.T) {
 
 func TestRealXES_HealthCheckBeforeDiscovery(t *testing.T) {
 	if !isPM4PyRunning(t) {
-		t.Skip("pm4py-rust not running at localhost:8090 — skipping")
+		t.Skip("pm4py-mcp not running at localhost:7015 — skipping")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", pm4pyBaseURL+"/api/health", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", pm4pyBaseURL+"/health", nil)
 	require.NoError(t, err)
 
 	resp, err := http.DefaultClient.Do(req)

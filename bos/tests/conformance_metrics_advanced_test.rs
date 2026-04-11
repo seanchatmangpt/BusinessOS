@@ -19,7 +19,7 @@
 ///    Measures: via cross-validation (k-fold) or train/test split
 ///    Example: Well-generalized model → score>0.7, Overfitted → score<0.5
 ///
-/// All metrics are based on pm4py-rust implementations and follow academic standards
+/// All metrics are based on pm4py-mcp implementations and follow academic standards
 /// for process model quality assessment as defined in:
 /// - Aalst, W. M. P. van der. (2016). "Process Mining: Data Science in Action"
 /// - Janssenswillen, G., Depaire, B., & Jouck, T. (2016). "Discovering Hierarchical
@@ -213,7 +213,7 @@ mod advanced_conformance_metrics {
         assert_eq!(perfect_log.len(), 3, "Perfect log should have exactly 3 traces");
 
         // Step 2: Discover a Petri net model from the perfect log
-        // Alpha Miner is used both in Python pm4py and pm4py-rust for consistency
+        // Alpha Miner is used both in Python pm4py and pm4py-mcp for consistency
         let miner = AlphaMiner::new();
         let net = miner.discover(&perfect_log);
         println!("[FITNESS TEST] Discovered model from {} traces", perfect_log.len());

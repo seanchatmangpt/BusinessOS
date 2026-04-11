@@ -10,7 +10,7 @@
 
 This runbook provides step-by-step instructions for handling network partitions between services. Network partitions occur when services cannot communicate due to network failures, causing timeouts and cascading failures.
 
-**Risk Level:** HIGH - Network partition disrupts all inter-service communication (BusinessOS ↔ OSA ↔ Canopy ↔ pm4py-rust).
+**Risk Level:** HIGH - Network partition disrupts all inter-service communication (BusinessOS ↔ OSA ↔ Canopy ↔ pm4py-mcp).
 
 **Business Impact:** Agent orchestration fails, cross-system integration broken, board intelligence unavailable. Partial functionality may remain if services cache data locally.
 
@@ -54,7 +54,7 @@ This runbook provides step-by-step instructions for handling network partitions 
 curl -v http://localhost:8001/healthz      # BusinessOS
 curl -v http://localhost:8089/health        # OSA
 curl -v http://localhost:9089/health        # Canopy
-curl -v http://localhost:8090/api/health    # pm4py-rust
+curl -v http://localhost:7015/health        # pm4py-mcp
 
 # Check Docker network
 docker network inspect businessos_default
@@ -366,7 +366,7 @@ docker compose up -d --force-recreate
 lsof -i :8001  # BusinessOS
 lsof -i :8089  # OSA
 lsof -i :9089  # Canopy
-lsof -i :8090  # pm4py-rust
+lsof -i :7015  # pm4py-mcp
 
 # 2. Kill conflicting processes
 kill -9 <PID>
@@ -396,7 +396,7 @@ docker compose restart
 curl -f http://localhost:8001/healthz      # BusinessOS
 curl -f http://localhost:8089/health        # OSA
 curl -f http://localhost:9089/health        # Canopy
-curl -f http://localhost:8090/api/health    # pm4py-rust
+curl -f http://localhost:7015/health        # pm4py-mcp
 ```
 
 ### Step 2: Inter-Service Connectivity
@@ -408,8 +408,8 @@ docker exec businessos-backend curl -f http://businessos-osa:8089/health
 # Test OSA -> Canopy
 docker exec businessos-osa curl -f http://businessos-canopy:9089/health
 
-# Test BusinessOS -> pm4py-rust
-docker exec businessos-backend curl -f http://businessos-pm4py-rust:8090/api/health
+# Test BusinessOS -> pm4py-mcp
+docker exec businessos-backend curl -f http://businessos-pm4py-mcp:7015/health
 ```
 
 ### Step 3: End-to-End Integration

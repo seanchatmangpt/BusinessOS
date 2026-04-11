@@ -9,7 +9,7 @@ These tests verify:
 1. Account process discovery (learning process model from account event logs)
 2. Account process conformance (validating accounts follow expected workflows)
 3. Account statistics and analytics (cycle times, bottlenecks, performance)
-4. BOS CLI integration with pm4py-rust
+4. BOS CLI integration with pm4py-mcp
 
 Uses Chicago TDD methodology (no mocks, real data structures).
 
@@ -27,9 +27,9 @@ from pathlib import Path
 import tempfile
 import os
 
-# Try to import pm4py-rust bindings if available
+# Try to import pm4py-mcp bindings if available
 try:
-    from pm4py_rust import (
+    from pm4py_mcp import (
         EventLog, Event, Trace,
         AlphaMiner, InductiveMiner, HeuristicMiner,
         FootprintsConformanceChecker,
@@ -274,7 +274,7 @@ class AccountEventLogGenerator:
 # TEST CLASSES
 # ============================================================================
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestAccountProcessDiscovery:
     """
     Test discovery algorithms on account lifecycle workflows.
@@ -371,7 +371,7 @@ class TestAccountProcessDiscovery:
         pass
 
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestAccountLifecycleConformance:
     """
     Test conformance checking on account workflows.
@@ -458,7 +458,7 @@ class TestAccountLifecycleConformance:
         pass
 
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestAccountProcessStatistics:
     """
     Test statistics and analytics on account workflows.
@@ -574,7 +574,7 @@ class TestAccountProcessStatistics:
         pass
 
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestAccountFileRepresentation:
     """
     Test account event log file formats and I/O.
@@ -645,10 +645,10 @@ class TestAccountFileRepresentation:
         pass
 
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestBOSCLIIntegration:
     """
-    Test BOS CLI integration with pm4py-rust process mining.
+    Test BOS CLI integration with pm4py-mcp process mining.
 
     Commands tested:
     - bos discover --input accounts.json --algorithm alpha
@@ -694,7 +694,7 @@ class TestBOSCLIIntegration:
 # INTEGRATION TEST CLASS
 # ============================================================================
 
-@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_rust bindings not available")
+@pytest.mark.skipif(not BINDINGS_AVAILABLE, reason="pm4py_mcp bindings not available")
 class TestAccountProcessMiningIntegration:
     """
     Integration tests combining discovery, conformance, and statistics.

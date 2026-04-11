@@ -1,0 +1,110 @@
+# Validation and Conformance Proof Semantic Conventions
+# Shared registry for OCEL, OTel, receipt, and multi-system proof gates
+# Used by the Van der Aalst OCEL Proof Gate validation system
+
+groups:
+  - id: registry.chatman.validation
+    type: attribute_group
+    display_name: Validation and Conformance Proof
+    brief: Attributes for OCEL, OTel, receipt, and multi-system proof gates.
+    stability: experimental
+    attributes:
+      - id: chatman.validation.run_id
+        type: string
+        brief: Unique validation run identifier.
+        examples: ["9bf51e526429"]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.pipeline_id
+        type: string
+        brief: Pipeline identifier for the validation run.
+        examples: ["vander-aalst-proof"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.window_seconds
+        type: int
+        brief: Continuous validation window duration in seconds.
+        examples: [300]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.iteration
+        type: int
+        brief: Current iteration number within the validation window.
+        examples: [1, 150, 299]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.ocel.pass
+        type: boolean
+        brief: Whether OCEL validation passed for the associated run.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.ocel.conformance_score
+        type: double
+        brief: OCEL conformance score (0.0-1.0) for the associated system.
+        examples: [0.85, 0.92, 1.0]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.otel.pass
+        type: boolean
+        brief: Whether OTel correlation and span visibility checks passed.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.cross_system.pass
+        type: boolean
+        brief: Whether cross-system interaction was proven for the associated run.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.cross_system.direction
+        type: string
+        brief: Direction of cross-system interaction observed.
+        examples: ["businessos→canopy", "canopy→osa", "osa→businessos"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.receipt.pass
+        type: boolean
+        brief: Whether receipt/provenance verification passed.
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.receipt.hash
+        type: string
+        brief: BLAKE3 hash of the receipt for this validation iteration.
+        examples: ["e3875610a3910573..."]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.systems_observed
+        type: string[]
+        brief: Systems observed during the validation run.
+        examples: [["BusinessOS", "Canopy", "OSA"]]
+        requirement_level: required
+        stability: experimental
+
+      - id: chatman.validation.target_system
+        type: string
+        brief: The specific target system being validated.
+        examples: ["businessos", "canopy", "osa"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.gate
+        type: string
+        brief: Which proof gate this span represents.
+        examples: ["weaver", "ocel", "otel", "receipt", "sustained", "cross_system"]
+        requirement_level: recommended
+        stability: experimental
+
+      - id: chatman.validation.complete_loop
+        type: boolean
+        brief: Whether the complete interaction loop (BusinessOS→Canopy→OSA→BusinessOS) was observed.
+        requirement_level: recommended
+        stability: experimental

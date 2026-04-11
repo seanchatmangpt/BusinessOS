@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -39,7 +40,9 @@ func TransformTeamMember(m sqlc.TeamMember) TeamMemberResponse {
 
 	var skills []string
 	if m.Skills != nil {
-		json.Unmarshal(m.Skills, &skills)
+		if err := json.Unmarshal(m.Skills, &skills); err != nil {
+			slog.Warn("workspace: failed to unmarshal skills", "error", err)
+		}
 	}
 	if skills == nil {
 		skills = []string{}
@@ -160,7 +163,9 @@ func TransformProject(p sqlc.Project) ProjectResponse {
 
 	var metadata map[string]interface{}
 	if p.ProjectMetadata != nil {
-		json.Unmarshal(p.ProjectMetadata, &metadata)
+		if err := json.Unmarshal(p.ProjectMetadata, &metadata); err != nil {
+			slog.Warn("workspace: failed to unmarshal project metadata", "error", err)
+		}
 	}
 
 	return ProjectResponse{
@@ -249,22 +254,30 @@ func TransformContext(ctx sqlc.Context) ContextResponse {
 
 	var structuredData map[string]interface{}
 	if ctx.StructuredData != nil {
-		json.Unmarshal(ctx.StructuredData, &structuredData)
+		if err := json.Unmarshal(ctx.StructuredData, &structuredData); err != nil {
+			slog.Warn("workspace: failed to unmarshal structured data", "error", err)
+		}
 	}
 
 	var blocks []map[string]interface{}
 	if ctx.Blocks != nil {
-		json.Unmarshal(ctx.Blocks, &blocks)
+		if err := json.Unmarshal(ctx.Blocks, &blocks); err != nil {
+			slog.Warn("workspace: failed to unmarshal blocks", "error", err)
+		}
 	}
 
 	var propertySchema []map[string]interface{}
 	if ctx.PropertySchema != nil {
-		json.Unmarshal(ctx.PropertySchema, &propertySchema)
+		if err := json.Unmarshal(ctx.PropertySchema, &propertySchema); err != nil {
+			slog.Warn("workspace: failed to unmarshal property schema", "error", err)
+		}
 	}
 
 	var properties map[string]interface{}
 	if ctx.Properties != nil {
-		json.Unmarshal(ctx.Properties, &properties)
+		if err := json.Unmarshal(ctx.Properties, &properties); err != nil {
+			slog.Warn("workspace: failed to unmarshal properties", "error", err)
+		}
 	}
 
 	return ContextResponse{
@@ -347,7 +360,9 @@ func TransformNode(n sqlc.Node) NodeResponse {
 
 	var thisWeekFocus []string
 	if n.ThisWeekFocus != nil {
-		json.Unmarshal(n.ThisWeekFocus, &thisWeekFocus)
+		if err := json.Unmarshal(n.ThisWeekFocus, &thisWeekFocus); err != nil {
+			slog.Warn("workspace: failed to unmarshal this week focus", "error", err)
+		}
 	}
 	if thisWeekFocus == nil {
 		thisWeekFocus = []string{}
@@ -355,7 +370,9 @@ func TransformNode(n sqlc.Node) NodeResponse {
 
 	var decisionQueue []string
 	if n.DecisionQueue != nil {
-		json.Unmarshal(n.DecisionQueue, &decisionQueue)
+		if err := json.Unmarshal(n.DecisionQueue, &decisionQueue); err != nil {
+			slog.Warn("workspace: failed to unmarshal decision queue", "error", err)
+		}
 	}
 	if decisionQueue == nil {
 		decisionQueue = []string{}
@@ -363,7 +380,9 @@ func TransformNode(n sqlc.Node) NodeResponse {
 
 	var delegationReady []string
 	if n.DelegationReady != nil {
-		json.Unmarshal(n.DelegationReady, &delegationReady)
+		if err := json.Unmarshal(n.DelegationReady, &delegationReady); err != nil {
+			slog.Warn("workspace: failed to unmarshal delegation ready", "error", err)
+		}
 	}
 	if delegationReady == nil {
 		delegationReady = []string{}

@@ -27,7 +27,7 @@ import (
 // The header must be tolerated by all middleware layers in the gateway.
 func TestGatewayPropagatesCorrelationId(t *testing.T) {
 	if !isPm4pyRunning(t) {
-		t.Skip("Skipping: pm4py-rust not running at " + pm4pyBase)
+		t.Skip("Skipping: pm4py-mcp not running at " + pm4pyBase)
 	}
 	if !isBosRunning(t) {
 		t.Skip("Skipping: BusinessOS not running at " + bosBase)
@@ -67,7 +67,7 @@ func TestGatewayPropagatesCorrelationId(t *testing.T) {
 // This ensures the gateway middleware does not reject valid OTEL trace context.
 func TestGatewayPropagatesTraceparent(t *testing.T) {
 	if !isPm4pyRunning(t) {
-		t.Skip("Skipping: pm4py-rust not running at " + pm4pyBase)
+		t.Skip("Skipping: pm4py-mcp not running at " + pm4pyBase)
 	}
 	if !isBosRunning(t) {
 		t.Skip("Skipping: BusinessOS not running at " + bosBase)

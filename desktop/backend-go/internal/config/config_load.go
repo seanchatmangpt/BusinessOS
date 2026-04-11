@@ -91,8 +91,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("LINEAR_REDIRECT_URI", "http://localhost:8001/api/integrations/linear/callback")
 	viper.SetDefault("LINEAR_WEBHOOK_SECRET", "")
 
-	// pm4py-rust Integration (process mining engine)
-	viper.SetDefault("PM4PY_RUST_URL", "http://localhost:8090")
+	// pm4py-mcp Integration (process mining via MCP protocol)
+	viper.SetDefault("PM4PY_MCP_URL", "http://localhost:7015")
 
 	// OSA Integration
 	viper.SetDefault("OSA_ENABLED", true)

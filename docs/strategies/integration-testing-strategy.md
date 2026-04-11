@@ -3,7 +3,7 @@
 **Status:** DRAFT — **Plan Mode Active**
 **Author:** Systems Integration Analysis
 **Date:** 2026-03-28
-**Scope:** 5-project monorepo (BusinessOS, Canopy, OSA, pm4py-rust, yawlv6)
+**Scope:** 5-project monorepo (BusinessOS, Canopy, OSA, pm4py-mcp, yawlv6)
 
 ---
 
@@ -12,7 +12,7 @@
 ChatmanGPT is a Fortune 500-grade AI system spanning **5 programming languages** (Go, Elixir, Rust, Java, TypeScript) with **4 build systems** (mvnd, mix, cargo, go, npm). The integration chain is:
 
 ```
-pm4py-rust (8090) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
+pm4py-mcp (7015) → BusinessOS (8001) → Canopy (9089) → OSA (8089)
               ↓
          YAWL v6 (8080)
 ```
@@ -40,7 +40,7 @@ This strategy balances **speed** (fast feedback for daily dev) with **thoroughne
 
 | Project | Command | Test Count | Runtime |
 |---------|---------|------------|---------|
-| **pm4py-rust** | `cargo test` | 722 tests | ~30s |
+| **pm4py-mcp** | `cargo test` | 722 tests | ~30s |
 | **BusinessOS** | `go test ./...` (from desktop/backend-go/) | ~150 tests | ~20s |
 | **Canopy** | `mix test` (from backend/) | 85 tests | ~15s |
 | **OSA** | `mix test` | 8433 tests | ~45s |
@@ -84,14 +84,14 @@ make test-unit-fast  # Runs only fast unit tests (< 5s total)
 | **Database** | Repository CRUD tests | PostgreSQL, SQLite |
 | **Cache** | Redis pub/sub tests | Redis |
 | **LLM APIs** | Groq chat completion | Groq API (secret required) |
-| **File I/O** | XES parsing in pm4py-rust | Local filesystem |
+| **File I/O** | XES parsing in pm4py-mcp | Local filesystem |
 | **HTTP** | Webhook handlers | Mock HTTP servers |
 
 **Per-Project Commands:**
 
 | Project | Command | Notes |
 |---------|---------|-------|
-| **pm4py-rust** | `cargo test --test '*' --features integration` | Real XES files, OCEL |
+| **pm4py-mcp** | `cargo test --test '*' --features integration` | Real XES files, OCEL |
 | **BusinessOS** | `go test -tags integration ./...` | Requires PostgreSQL + Redis containers |
 | **Canopy** | `mix test --include integration` | Requires PostgreSQL |
 | **OSA** | `mix test --include integration` | Requires SQLite + PostgreSQL |
@@ -120,8 +120,8 @@ make test-unit-fast  # Runs only fast unit tests (< 5s total)
 
 | Scenario | Systems Involved | Script |
 |----------|------------------|--------|
-| **A2A message flow** | Canopy → OSA → BusinessOS → pm4py-rust | `scripts/a2a-cross-stack-smoke-test.sh` |
-| **E2E transaction** | pm4py-rust → BusinessOS → Canopy → OSA | `scripts/e2e-chain-smoke-test.sh` |
+| **A2A message flow** | Canopy → OSA → BusinessOS → pm4py-mcp | `scripts/a2a-cross-stack-smoke-test.sh` |
+| **E2E transaction** | pm4py-mcp → BusinessOS → Canopy → OSA | `scripts/e2e-chain-smoke-test.sh` |
 | **YAWL workflow** | YAWL v6 ← OSA ← BusinessOS ← Canopy | `scripts/yawl-workflow-smoke-test.sh` |
 | **Vision 2030 agents** | All 5 systems | `scripts/vision-2030-gate.sh` |
 
@@ -142,9 +142,9 @@ make test-unit-fast  # Runs only fast unit tests (< 5s total)
 #!/usr/bin/env bash
 # scripts/a2a-cross-stack-smoke-test.sh (16 tests, 5-10 min)
 
-# T01-T04: Agent card discovery (Canopy, OSA, BusinessOS, pm4py-rust)
-# T05-T07: JSON-RPC message/send (Canopy, OSA, pm4py-rust)
-# T08-T10: Task status queries (OSA, BusinessOS, pm4py-rust)
+# T01-T04: Agent card discovery (Canopy, OSA, BusinessOS, pm4py-mcp)
+# T05-T07: JSON-RPC message/send (Canopy, OSA, pm4py-mcp)
+# T08-T10: Task status queries (OSA, BusinessOS, pm4py-mcp)
 # T11-T13: Error handling (timeout, invalid JSON, 404)
 # T14-T16: Conway/Little's Law violations (board intelligence)
 
@@ -166,7 +166,7 @@ make test-unit-fast  # Runs only fast unit tests (< 5s total)
 | Scenario | Workflow | Tools |
 |----------|----------|-------|
 | **User signup + login** | SvelteKit UI → Go backend → PostgreSQL | Playwright |
-| **Process mining** | Upload XES → pm4py-rust discovery → Petri net viz | Selenium |
+| **Process mining** | Upload XES → pm4py-mcp discovery → Petri net viz | Selenium |
 | **Agent dispatch** | Canopy heartbeat → OSA agent execution → LLM API | Custom test harness |
 | **Compliance audit** | BusinessOS rules engine → SOC2 check → report generation | Postman + CLI |
 
@@ -256,7 +256,7 @@ make smoke-full  # Alias to existing 'make vision'
 **Bootstrapping:**
 ```bash
 # Start all services before running cross-stack tests
-make dev  # Docker Compose up (pm4py-rust, BusinessOS, Canopy, OSA, OTEL, Jaeger)
+make dev  # Docker Compose up (pm4py-mcp, BusinessOS, Canopy, OSA, OTEL, Jaeger)
 sleep 10  # Wait for health checks
 
 # Run cross-stack tests
@@ -340,7 +340,7 @@ fi
 ### 4.2 Pipeline Stages
 
 **Stage 1: Quick Feedback (Unit Tests)**
-- Parallel jobs: pm4py-rust, BusinessOS, Canopy, OSA, yawlv6
+- Parallel jobs: pm4py-mcp, BusinessOS, Canopy, OSA, yawlv6
 - Runtime: ~3 minutes total
 - Fail fast: Cancel remaining jobs if any fail
 
@@ -487,7 +487,7 @@ curl -s "http://localhost:16686/api/traces?service=osa&operation=healing.diagnos
 **What it checks:**
 - OTEL Collector is reachable (`http://localhost:4317`)
 - Jaeger UI is reachable (`http://localhost:16686`)
-- Sample spans exist for each service (osa, businessos, canopy, pm4py-rust)
+- Sample spans exist for each service (osa, businessos, canopy, pm4py-mcp)
 - Spans have required attributes (service.name, span.name, status)
 - Spans have valid trace_id (64-bit hex)
 
@@ -584,7 +584,7 @@ curl -s "http://localhost:16686/api/traces?service=osa&operation=healing.diagnos
 # Run all unit tests across all projects (parallel)
 test-unit:
 	@echo "Running unit tests across all projects..."
-	@cd "$(ROOT)/pm4py-rust" && cargo test --quiet &
+	@cd "$(ROOT)/pm4py-mcp" && cargo test --quiet &
 	@cd "$(ROOT)/BusinessOS/desktop/backend-go" && go test ./... -count=1 &
 	@cd "$(ROOT)/canopy/backend" && mix test --exclude integration &
 	@cd "$(ROOT)/OSA" && mix test --exclude integration --exclude requires_application &
@@ -599,7 +599,7 @@ test-integration:
 		echo "ERROR: PostgreSQL not running. Start with 'make dev' first."; \
 		exit 1; \
 	fi
-	@cd "$(ROOT)/pm4py-rust" && cargo test --test '*' --features integration
+	@cd "$(ROOT)/pm4py-mcp" && cargo test --test '*' --features integration
 	@cd "$(ROOT)/BusinessOS/desktop/backend-go" && go test -tags integration ./...
 	@cd "$(ROOT)/canopy/backend" && mix test --include integration
 	@cd "$(ROOT)/OSA" && mix test --include integration
@@ -620,7 +620,7 @@ smoke-fast:
 	@cd "$(ROOT)/OSA" && mix compile --warnings-as-errors
 	@cd "$(ROOT)/canopy/backend" && mix compile --warnings-as-errors
 	@cd "$(ROOT)/BusinessOS/desktop/backend-go" && go vet ./...
-	@cd "$(ROOT)/pm4py-rust" && cargo clippy --quiet
+	@cd "$(ROOT)/pm4py-mcp" && cargo clippy --quiet
 	@echo "Fast smoke tests passed."
 
 # Medium smoke test (< 5 minutes) — alias to 'make verify'

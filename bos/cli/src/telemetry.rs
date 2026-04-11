@@ -20,7 +20,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 /// Holds the active tracer provider so that `Drop` can flush spans.
 pub struct OtelGuard {
     /// Present only when WEAVER_LIVE_CHECK is enabled.
-    provider: Option<sdktrace::SdkTracerProvider>,
+    provider: Option<sdktrace::TracerProvider>,
 }
 
 impl OtelGuard {
@@ -69,7 +69,7 @@ pub fn init_otel() -> OtelGuard {
             .build()
             .expect("failed to build OTLP exporter");
 
-        let provider = sdktrace::SdkTracerProvider::builder()
+        let provider = sdktrace::TracerProvider::builder()
             .with_batch_exporter(exporter, runtime::Tokio)
             .with_resource(resource)
             .build();

@@ -21,8 +21,8 @@ bos-core = { path = "../core" }
 bos-ingest = { path = "../ingest" }
 bos-config = { path = "../config" }
 
-# Process Mining (pm4py-rs)
-pm4py-rs = "2026.3.28"
+# Process Mining (pm4py-mcp, local path)
+pm4py = { path = "../../../pm4py-mcp" }
 
 clap = { workspace = true }
 clap_complete = { workspace = true }

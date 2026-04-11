@@ -331,7 +331,7 @@ All tests generate **XES (eXtensible Event Stream)** format logs:
 - [x] XES generation working
 - [x] Documentation complete
 
-**Pending:** pm4py-rust compilation fixes (not caused by this test suite)
+**Pending:** pm4py-rust compilation fixes (not caused by this test suite — Rust crate dependency)
 
 ---
 

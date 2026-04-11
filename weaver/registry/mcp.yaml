@@ -1,0 +1,105 @@
+# BusinessOS MCP Semantic Conventions
+# Generated from desktop/backend-go/internal/semconv/mcp_attributes.go
+
+groups:
+  - id: registry.businessos.mcp.connection_pool
+    type: attribute_group
+    display_name: MCP Connection Pool
+    brief: Attributes for MCP connection pool management
+    stability: experimental
+    attributes:
+      - id: mcp.connection.pool.active_count
+        type: int
+        brief: Number of currently active connections in the pool
+        stability: experimental
+        examples: [0, 3, 10]
+        requirement_level: required
+
+      - id: mcp.connection.pool.idle_count
+        type: int
+        brief: Number of idle connections available in the pool
+        stability: experimental
+        examples: [0, 2, 5]
+        requirement_level: required
+
+      - id: mcp.connection.pool.size
+        type: int
+        brief: Total size (max connections) of the MCP connection pool
+        stability: experimental
+        examples: [5, 10, 50]
+        requirement_level: required
+
+      - id: mcp.connection.pool.wait_ms
+        type: int
+        brief: Time in milliseconds the request waited to acquire a connection
+        stability: experimental
+        examples: [0, 5, 50]
+        requirement_level: required
+
+  - id: registry.businessos.mcp.connection
+    type: attribute_group
+    display_name: MCP Connection Details
+    brief: Attributes for individual MCP connections
+    stability: experimental
+    attributes:
+      - id: mcp.connection.id
+        type: string
+        brief: Unique identifier for this MCP client-server connection
+        stability: experimental
+        examples: ["conn-abc123", "conn-def456"]
+        requirement_level: required
+
+      - id: mcp.connection.transport
+        type:
+          allow_custom_values: false
+          members:
+            - id: stdio
+              value: stdio
+              stability: experimental
+            - id: websocket
+              value: websocket
+              stability: experimental
+        brief: Transport protocol used for this MCP connection
+        stability: experimental
+        examples: ["stdio", "websocket"]
+        requirement_level: required
+
+  - id: registry.businessos.mcp.server
+    type: attribute_group
+    display_name: MCP Server Health
+    brief: Attributes for MCP server health and operations
+    stability: experimental
+    attributes:
+      - id: mcp.server.health.check_duration_ms
+        type: int
+        brief: Duration of the health check in milliseconds
+        stability: experimental
+        examples: [10, 50, 200]
+        requirement_level: required
+
+  - id: registry.businessos.mcp.tool
+    type: attribute_group
+    display_name: MCP Tool Operations
+    brief: Attributes for MCP tool execution
+    stability: experimental
+    attributes:
+      - id: mcp.tool.name
+        type: string
+        brief: Name of the MCP tool being executed
+        stability: experimental
+        examples: ["generate_powl", "validate_model", "analyze_structure"]
+        requirement_level: required
+
+      - id: mcp.tool.duration_ms
+        type: int
+        brief: Duration of the MCP tool execution in milliseconds
+        stability: experimental
+        examples: [100, 500, 5000]
+        requirement_level: required
+
+      - id: mcp.tool.success
+        type: boolean
+        brief: Whether the MCP tool execution succeeded
+        stability: experimental
+        examples: [true, false]
+        requirement_level: required

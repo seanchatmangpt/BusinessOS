@@ -520,7 +520,10 @@ func (h *CustomModulesHandler) ImportModule(c *gin.Context) {
 		return
 	}
 	if configData != nil {
-		json.Unmarshal(configData, &config)
+		if err := json.Unmarshal(configData, &config); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid config JSON"})
+			return
+		}
 	}
 
 	// Create module

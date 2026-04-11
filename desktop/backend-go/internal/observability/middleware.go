@@ -45,7 +45,7 @@ func TracingMiddleware() gin.HandlerFunc {
 		correlationID := c.Request.Header.Get("X-Correlation-ID")
 		if correlationID != "" {
 			span.SetAttributes(attribute.String("chatmangpt.run.correlation_id", correlationID))
-			// Store in context so gateway handlers can forward it to pm4py-rust.
+			// Store in context so gateway handlers can forward it to pm4py-mcp.
 			ctx = context.WithValue(ctx, correlationIDContextKey{}, correlationID)
 		}
 

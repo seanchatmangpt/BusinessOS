@@ -19,7 +19,7 @@ RED := \033[31m
 help: ## Show this help message
 	@printf '$(BOLD)BusinessOS — available targets:$(RESET)\n\n'
 	@printf '$(YELLOW)Setup:$(RESET)\n'
-	@awk 'BEGIN {FS = ":.*##"} /^setup|^up|^down|^restart/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"} /^setup|^up|^down|^restart|^doctor/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\n$(YELLOW)Development:$(RESET)\n'
 	@awk 'BEGIN {FS = ":.*##"} /^dev|^build|^rebuild/ { printf "  $(CYAN)%-20s$(RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf '\n$(YELLOW)Testing:$(RESET)\n'
@@ -132,6 +132,29 @@ debug: ## Open a bash shell in the running backend container
 .PHONY: profile
 profile: ## Show CPU/memory usage of running services
 	@docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}"
+
+# =============================================================================
+# Environment
+# =============================================================================
+
+.PHONY: doctor
+doctor: ## Check prerequisites, ports, and Docker status
+	@printf '$(BOLD)BusinessOS Environment Check$(RESET)\n\n'
+	@printf '$(YELLOW)Prerequisites:$(RESET)\n'
+	@command -v go >/dev/null 2>&1 && printf "  $(GREEN)Go:$(RESET) $$(go version | awk '{print $$3}')\n" || printf "  $(RED)Go: MISSING (brew install go)$(RESET)\n"
+	@command -v docker >/dev/null 2>&1 && printf "  $(GREEN)Docker:$(RESET) $$(docker --version)\n" || printf "  $(RED)Docker: MISSING$(RESET)\n"
+	@command -v node >/dev/null 2>&1 && printf "  $(GREEN)Node.js:$(RESET) $$(node --version)\n" || printf "  $(RED)Node.js: MISSING$(RESET)\n"
+	@command -v npm >/dev/null 2>&1 && printf "  $(GREEN)npm:$(RESET) $$(npm --version)\n" || printf "  $(RED)npm: MISSING$(RESET)\n"
+	@printf '\n$(YELLOW)Docker Compose:$(RESET)\n'
+	@docker compose version 2>/dev/null && printf "  $(GREEN)Docker Compose:$(RESET) available\n" || printf "  $(RED)Docker Compose: MISSING$(RESET)\n"
+	@printf '\n$(YELLOW)Port Availability:$(RESET)\n'
+	@lsof -ti:8001 >/dev/null 2>&1 && printf "  $(GREEN)8001:$(RESET) IN USE (backend)\n" || printf "  8001: free\n"
+	@lsof -ti:5173 >/dev/null 2>&1 && printf "  $(GREEN)5173:$(RESET) IN USE (frontend dev)\n" || printf "  5173: free\n"
+	@lsof -ti:5432 >/dev/null 2>&1 && printf "  $(GREEN)5432:$(RESET) IN USE (PostgreSQL)\n" || printf "  5432: free\n"
+	@lsof -ti:6379 >/dev/null 2>&1 && printf "  $(GREEN)6379:$(RESET) IN USE (Redis)\n" || printf "  6379: free\n"
+	@printf '\n$(YELLOW)Go Vet:$(RESET)\n'
+	@cd desktop/backend-go && go vet ./... 2>&1 | head -5 || printf "  $(RED)go vet: issues found$(RESET)\n"
+	@printf '\n'
 
 # =============================================================================
 # Testing

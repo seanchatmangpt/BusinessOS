@@ -35,7 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_process_handoffs_workspace ON process_handoffs (w
 CREATE INDEX IF NOT EXISTS idx_process_handoffs_source    ON process_handoffs (source_department);
 CREATE INDEX IF NOT EXISTS idx_process_handoffs_created   ON process_handoffs (created_at);
 
--- Discovery results from pm4py-rust / BusinessOS BOS engine
+-- Discovery results from pm4py-mcp / BusinessOS BOS engine
 -- One row per (workspace_id, model_id) — updated after each conformance run.
 CREATE TABLE IF NOT EXISTS process_discovery_results (
     id                      UUID          PRIMARY KEY DEFAULT gen_random_uuid(),

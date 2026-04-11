@@ -55,7 +55,7 @@ jobs:
           curl -f http://localhost:8001/healthz || exit 1
           curl -f http://localhost:8089/health || exit 1
           curl -f http://localhost:9089/health || exit 1
-          curl -f http://localhost:8090/api/health || exit 1
+          curl -f http://localhost:7015/health || exit 1
 
       - name: Run chaos tests - OSA Outage
         if: inputs.test_scenario == '' || inputs.test_scenario == 'OSA_OUTAGE'

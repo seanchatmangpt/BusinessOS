@@ -1,0 +1,46 @@
+# BusinessOS Configuration for Ostar
+# Validated against docker-compose.yml, otel-collector-config.yaml, Go backend
+
+[project]
+name = "businessos"
+version = "1.0.0"
+
+[llm.models]
+proposer = "groq/openai/gpt-oss-20b"
+judge = "groq/openai/gpt-oss-20b"
+arbiter = "groq/openai/gpt-oss-120b"
+
+[llm]
+temperature = 0.7
+max_tokens = 4096
+timeout_ms = 30000
+cache_enabled = true
+cache_dir = ".cache/ostar"
+
+[cache]
+enabled = true
+dir = ".cache/ostar"
+
+[mcp]
+transport = "stdio"
+
+[pm4py]
+# pm4py-mcp process mining engine (port 7015)
+url = "http://localhost:7015"
+context_timeout_ms = 1500
+
+[pipeline]
+max_generations = 15
+patience = 5
+fitness_threshold = 0.8
+use_two_phase_judging = true
+
+[paths]
+artifacts_dir = ".ostar/artifacts"
+receipts_dir = ".ostar/receipts"
+cache_dir = ".cache/ostar"
+
+[observability]
+# BusinessOS has no Tempo — uses Jaeger for traces
+# Go backend exports OTLP/HTTP to otel-collector:4318
+tempo_url = ""

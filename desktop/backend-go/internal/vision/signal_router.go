@@ -65,7 +65,7 @@ type serviceSpec struct {
 // defaultServices returns the 4-project integration chain service specs.
 func defaultServices() []serviceSpec {
 	return []serviceSpec{
-		{Name: "pm4py-rust", Port: 8090, HealthURL: "http://localhost:8090/api/health"},
+		{Name: "pm4py-mcp", Port: 7015, HealthURL: "http://localhost:7015/health"},
 		{Name: "BusinessOS", Port: 8001, HealthURL: "http://localhost:8001/healthz"},
 		{Name: "OSA", Port: 8089, HealthURL: "http://localhost:8089/health"},
 		{Name: "Canopy", Port: 9089, HealthURL: "http://localhost:9089/health"},

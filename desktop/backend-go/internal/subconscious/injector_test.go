@@ -20,9 +20,12 @@ func TestSubconsciousHintProviderEmpty(t *testing.T) {
 		t.Errorf("expected empty hints, got %q", hints)
 	}
 
-	hints = provider.ActiveHintsForUser("user1")
-	if hints != "" {
-		t.Errorf("expected empty hints for user, got %q", hints)
+	hintsUser, err := provider.ActiveHintsForUser("user1")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if hintsUser != "" {
+		t.Errorf("expected empty hints for user, got %q", hintsUser)
 	}
 }
 
@@ -41,7 +44,10 @@ func TestSubconsciousHintProviderWithBlocks(t *testing.T) {
 		Weight:    0.7,
 	})
 
-	hints := provider.ActiveHintsForUser("user1")
+	hints, err := provider.ActiveHintsForUser("user1")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	if !strings.Contains(hints, "SUBCONSCIOUS OBSERVATIONS") {
 		t.Error("expected subconscious header in hints")
 	}
@@ -68,7 +74,10 @@ func TestSubconsciousHintProviderSilencePolicy(t *testing.T) {
 		Weight:    0.1,
 	})
 
-	hints := provider.ActiveHintsForUser("user1")
+	hints, err := provider.ActiveHintsForUser("user1")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	if hints != "" {
 		t.Errorf("expected empty hints for low-weight block, got %q", hints)
 	}
@@ -91,7 +100,10 @@ func TestSubconsciousHintProviderComposesActuator(t *testing.T) {
 		Weight:    0.5,
 	})
 
-	hints := provider.ActiveHintsForUser("user1")
+	hints, err := provider.ActiveHintsForUser("user1")
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 
 	// Should contain both actuator hints AND subconscious blocks
 	if !strings.Contains(hints, "SIGNAL QUALITY CORRECTIONS") {

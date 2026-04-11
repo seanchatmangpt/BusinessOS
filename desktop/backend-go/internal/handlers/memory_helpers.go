@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,11 +69,15 @@ func scanMemoryRow(rows pgx.Rows) (MemoryResponse, error) {
 		m.ExpiresAt = &s
 	}
 
-	json.Unmarshal(tags, &m.Tags)
+	if err := json.Unmarshal(tags, &m.Tags); err != nil {
+		slog.Warn("memory: failed to unmarshal tags", "error", err)
+	}
 	if m.Tags == nil {
 		m.Tags = []string{}
 	}
-	json.Unmarshal(metadata, &m.Metadata)
+	if err := json.Unmarshal(metadata, &m.Metadata); err != nil {
+		slog.Warn("memory: failed to unmarshal metadata", "error", err)
+	}
 	if m.Metadata == nil {
 		m.Metadata = make(map[string]interface{})
 	}
@@ -126,11 +131,15 @@ func scanMemoryRowSingle(row pgx.Row) (MemoryResponse, error) {
 		m.ExpiresAt = &s
 	}
 
-	json.Unmarshal(tags, &m.Tags)
+	if err := json.Unmarshal(tags, &m.Tags); err != nil {
+		slog.Warn("memory: failed to unmarshal tags", "error", err)
+	}
 	if m.Tags == nil {
 		m.Tags = []string{}
 	}
-	json.Unmarshal(metadata, &m.Metadata)
+	if err := json.Unmarshal(metadata, &m.Metadata); err != nil {
+		slog.Warn("memory: failed to unmarshal metadata", "error", err)
+	}
 	if m.Metadata == nil {
 		m.Metadata = make(map[string]interface{})
 	}
@@ -185,11 +194,15 @@ func scanMemoryRowWithExtra(rows pgx.Rows, extra *float64) (MemoryResponse, erro
 		m.ExpiresAt = &s
 	}
 
-	json.Unmarshal(tags, &m.Tags)
+	if err := json.Unmarshal(tags, &m.Tags); err != nil {
+		slog.Warn("memory: failed to unmarshal tags", "error", err)
+	}
 	if m.Tags == nil {
 		m.Tags = []string{}
 	}
-	json.Unmarshal(metadata, &m.Metadata)
+	if err := json.Unmarshal(metadata, &m.Metadata); err != nil {
+		slog.Warn("memory: failed to unmarshal metadata", "error", err)
+	}
 	if m.Metadata == nil {
 		m.Metadata = make(map[string]interface{})
 	}

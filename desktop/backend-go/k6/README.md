@@ -36,7 +36,7 @@ k6 run k6/load_test_hybrid.js        # Hybrid load test (17 min)
 **Endpoints tested:**
 - GET /healthz (BusinessOS liveness)
 - GET /api/yawl/health (YAWL engine)
-- GET /api/pm4py/health (pm4py-rust process mining)
+- POST /api/pm4py/dashboard-kpi (pm4py-mcp process mining KPIs via BOS Gateway)
 
 ---
 
@@ -84,7 +84,7 @@ k6 run k6/load_test_hybrid.js        # Hybrid load test (17 min)
 **Traffic split:**
 - 40% /healthz (BusinessOS core)
 - 30% /api/yawl/health (YAWL workflow engine)
-- 30% /api/pm4py/health (pm4py-rust process mining)
+- 30% /api/pm4py/dashboard-kpi (pm4py-mcp process mining KPIs)
 
 **Thresholds (RED phase - will FAIL initially):**
 - Error rate < 1% (per endpoint)

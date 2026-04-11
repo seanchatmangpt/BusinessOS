@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// a2aTasksSend builds a pm4py-rust A2A tasks/send JSON-RPC body.
+// a2aTasksSend builds a pm4py-mcp A2A tasks/send JSON-RPC body.
 func a2aTasksSend(taskID, tool string, args map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -74,9 +74,9 @@ func a2aPostJSON(t *testing.T, server *httptest.Server, path string, body interf
 	return out
 }
 
-// TestA2APm4pyWork verifies BusinessOS can delegate process mining work to pm4py-rust via A2A.
+// TestA2APm4pyWork verifies BusinessOS can delegate process mining work to pm4py-mcp via A2A.
 func TestA2APm4pyWork(t *testing.T) {
-	// Mock pm4py-rust at /a2a
+	// Mock pm4py-mcp at /a2a
 	pm4pyServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/a2a" {
 			http.Error(w, "not found", http.StatusNotFound)
@@ -163,7 +163,7 @@ func TestA2APm4pyWork(t *testing.T) {
 		cardServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			if err := json.NewEncoder(w).Encode(map[string]interface{}{
-				"name":            "pm4py-rust",
+				"name":            "pm4py-mcp",
 				"protocolVersion": "0.2.1",
 				"skills":          []interface{}{},
 			}); err != nil {

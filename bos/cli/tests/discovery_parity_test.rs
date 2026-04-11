@@ -1,6 +1,6 @@
 /// Discovery Algorithm Parity Tests
 ///
-/// These tests validate that pm4py-rust discovery algorithms
+/// These tests validate that pm4py-mcp discovery algorithms
 /// produce identical results to Python pm4py implementations.
 ///
 /// Critical Algorithms (80% of value):
@@ -13,7 +13,7 @@
 ///
 /// Test Strategy:
 /// 1. Create simple account event log (same data for all tests)
-/// 2. Run discovery via pm4py-rust
+/// 2. Run discovery via pm4py-mcp
 /// 3. Verify DFG structure: nodes, edges, start/end activities
 /// 4. Assert Rust output matches expected structure (Python equivalent)
 
