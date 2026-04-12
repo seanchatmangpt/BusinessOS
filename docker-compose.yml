@@ -74,7 +74,7 @@ services:
   # ---------------------------------------------------------------------------
   pm4py-mcp:
     build:
-      context: ../../unrdf/otel/pm4py-mcp
+      context: ./extern/pm4py-mcp
       dockerfile: Dockerfile
     image: pm4py-mcp:local
     container_name: businessos-pm4py-mcp
@@ -83,6 +83,8 @@ services:
       - "${PM4PY_MCP_PORT:-7015}:7015"
     environment:
       PM4PY_MCP_PORT: "7015"
+      OTLP_ENDPOINT: "http://tempo:4318"
+      LOKI_ENDPOINT: "http://loki:3100"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "pm4py-mcp"
     healthcheck:
