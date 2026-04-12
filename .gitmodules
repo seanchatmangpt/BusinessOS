@@ -1,0 +1,3 @@
+[submodule "extern/pm4py-mcp"]
+	path = extern/pm4py-mcp
+	url = https://github.com/seanchatmangpt/pm4py-mcp.git
