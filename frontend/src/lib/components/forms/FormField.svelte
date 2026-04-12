@@ -163,6 +163,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	.form-control {
 		@apply mb-4;
 	}

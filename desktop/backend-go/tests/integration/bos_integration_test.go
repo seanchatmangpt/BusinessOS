@@ -544,6 +544,9 @@ func TestBOSHealthcareSchemaImport(t *testing.T) {
 func TestBOSTimingAssertions(t *testing.T) {
 	schema := createFIBOSchema()
 
+	// Ensure query endpoint is registered
+	requireRoute(t, "POST", "/api/bos/schema/query")
+
 	timings := map[string]int64{
 		"import": 500, // ms
 		"export": 200, // ms

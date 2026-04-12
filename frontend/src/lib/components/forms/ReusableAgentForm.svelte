@@ -214,6 +214,7 @@
 </form>
 
 <style>
+	@reference 'tailwindcss';
 	form {
 		@apply max-w-2xl;
 	}

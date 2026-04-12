@@ -51,7 +51,7 @@
 					<div class="score-number">{Math.round(quality.overall)}</div>
 					<div class="score-label">Overall Quality</div>
 				</div>
-				<div class="score-status" class={getColorClass(quality.overall)}>
+				<div class="score-status {getColorClass(quality.overall)}">
 					{getStatusLabel(quality.overall)}
 				</div>
 			</div>

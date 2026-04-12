@@ -86,7 +86,11 @@ func TestSchemaImport_MissingBody_Returns400(t *testing.T) {
 func TestSchemaExport_ReturnsOK(t *testing.T) {
 	router := setupBOSSchemaRouter()
 
+	// Pre-populate the global store with test data (simulates a prior import).
 	schemaID := "test-schema-id-123"
+	testData := []byte(`{"schema_name":"test","tables":[]}`)
+	GlobalSchemaStore.Store(schemaID, testData)
+
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/api/bos/schema/export/"+schemaID+"?format=json", nil)
 	router.ServeHTTP(w, req)

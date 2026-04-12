@@ -21,6 +21,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	.form-section {
 		@apply space-y-4;
 	}

@@ -114,6 +114,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	/* Ensures audit log is accessible and readable */
 	:global(.access-log-table) {
 		@apply w-full table-fixed;

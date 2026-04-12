@@ -124,6 +124,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	/* Ensure accessibility with proper contrast */
 	:global(.hipaa-card) {
 		@apply border-l-4 border-l-blue-500;

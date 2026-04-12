@@ -29,6 +29,7 @@ func (h *Handlers) registerBOSGatewayRoutes(api *gin.RouterGroup) {
 	schema.GET("/export/:schema_id", bosHandler.SchemaExport)
 	schema.POST("/validate/:schema_id", bosHandler.SchemaValidate)
 	schema.POST("/update", bosHandler.SchemaUpdate)
+	schema.POST("/query", bosHandler.SchemaQuery)
 }
 
 // registerLinkedInRoutes wires /api/linkedin routes for ICP scoring and outreach.

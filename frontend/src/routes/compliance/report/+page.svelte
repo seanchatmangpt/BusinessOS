@@ -180,7 +180,8 @@
 			</div>
 
 			<!-- Framework Scores -->
-			<Card class="p-6 mb-8" in:fly={{ y: 20, duration: 400, delay: 100 }}>
+			<div in:fly={{ y: 20, duration: 400, delay: 100 }}>
+			<Card class="p-6 mb-8">
 				<h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
 					<BarChart3 class="w-6 h-6" />
 					Framework Scores
@@ -208,9 +209,11 @@
 					{/each}
 				</div>
 			</Card>
+			</div>
 
 			<!-- Score History Timeline -->
-			<Card class="p-6 mb-8" in:fly={{ y: 20, duration: 400, delay: 150 }}>
+			<div in:fly={{ y: 20, duration: 400, delay: 150 }}>
+			<Card class="p-6 mb-8">
 				<h2 class="text-2xl font-bold text-gray-900 mb-6">Score History (Last 30 Days)</h2>
 				<div class="space-y-6">
 					{#each ['soc2', 'gdpr', 'hipaa', 'sox'] as framework (framework)}
@@ -233,9 +236,11 @@
 					{/each}
 				</div>
 			</Card>
+			</div>
 
 			<!-- Detailed Controls -->
-			<Card class="p-6" in:fly={{ y: 20, duration: 400, delay: 200 }}>
+			<div in:fly={{ y: 20, duration: 400, delay: 200 }}>
+			<Card class="p-6">
 				<h2 class="text-2xl font-bold text-gray-900 mb-6">Control Details</h2>
 				<div class="space-y-4">
 					{#each ['soc2', 'gdpr', 'hipaa', 'sox'] as framework (framework)}
@@ -278,6 +283,7 @@
 					{/each}
 				</div>
 			</Card>
+			</div>
 		{/if}
 	</div>
 </div>

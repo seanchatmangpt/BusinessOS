@@ -88,7 +88,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "pm4py-mcp"
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:7015/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import socket; s=socket.socket(); s.settimeout(2); s.connect(('localhost',7015)); s.close()\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -151,6 +151,10 @@ services:
       BUSINESSOS_URL: "http://backend:8001"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "canopy"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     depends_on:
       postgres:
         condition: service_healthy

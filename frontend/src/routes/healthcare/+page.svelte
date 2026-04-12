@@ -88,7 +88,7 @@
 					type="text"
 					placeholder="Search by Patient ID or name..."
 					bind:value={searchQuery}
-					on:keydown={(e) => e.key === 'Enter' && handleSearch()}
+					onkeydown={(e) => e.key === 'Enter' && handleSearch()}
 					class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none"
 				/>
 				<button
@@ -243,6 +243,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	:global(body) {
 		@apply bg-gray-50;
 	}

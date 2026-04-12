@@ -287,6 +287,7 @@
 </div>
 
 <style>
+	@reference 'tailwindcss';
 	:global(body) {
 		@apply bg-gradient-to-br from-slate-50 to-slate-100;
 	}

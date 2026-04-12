@@ -6,11 +6,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// GlobalSchemaStore is a package-level store that persists schema data
+// across all handler instances. Required because Gin creates a new
+// BOSGatewayHandler per request context — instance-level sync.Map data
+// is lost between import and export calls.
+var GlobalSchemaStore sync.Map // schemaID (string) -> []byte
 
 // ============================================================================
 // REQUEST / RESPONSE TYPES
@@ -82,6 +89,11 @@ func (h *BOSGatewayHandler) SchemaImport(c *gin.Context) {
 	var rawBytes []byte
 	if req.Data != "" {
 		rawBytes = []byte(req.Data)
+		previewLen := 100
+		if len(rawBytes) < 100 {
+			previewLen = len(rawBytes)
+		}
+		h.logger.Info("schema/import: using data field", "bytes_length", len(rawBytes), "first_100_chars", string(rawBytes[:previewLen]))
 	} else {
 		var err error
 		rawBytes, err = json.Marshal(req.Schema)
@@ -90,16 +102,26 @@ func (h *BOSGatewayHandler) SchemaImport(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process schema"})
 			return
 		}
+		previewLen := 100
+		if len(rawBytes) < 100 {
+			previewLen = len(rawBytes)
+		}
+		h.logger.Info("schema/import: marshaled schema", "bytes_length", len(rawBytes), "first_100_chars", string(rawBytes[:previewLen]))
 	}
 
 	// Compute a stable SHA-256 content hash for round-trip integrity checks.
 	sum := sha256.Sum256(rawBytes)
 	contentHash := fmt.Sprintf("%x", sum)
+	h.logger.Info("schema/import: computed hash", "content_hash", contentHash)
 
 	// Count tables_imported from the structured schema if available.
 	tablesImported := countTablesInSchema(req.Schema)
 
 	schemaID := uuid.New().String()
+
+	// Store the original schema bytes for round-trip verification
+	GlobalSchemaStore.Store(schemaID, rawBytes)
+
 	durationMs := time.Since(startTime).Milliseconds()
 
 	h.logger.Info("schema/import: completed",
@@ -134,16 +156,15 @@ func (h *BOSGatewayHandler) SchemaExport(c *gin.Context) {
 
 	format := c.DefaultQuery("format", "json")
 
-	// Build a minimal exported payload that round-trips cleanly.
-	exported := map[string]interface{}{
-		"schema_id": schemaID,
-		"format":    format,
-		"exported_at": time.Now().UTC().Format(time.RFC3339),
-	}
-	exportedBytes, err := json.Marshal(exported)
-	if err != nil {
-		h.logger.Error("schema/export: failed to marshal export payload", "error", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to build export payload"})
+	// Retrieve the original schema bytes for round-trip verification
+	var dataBytes []byte
+	if stored, ok := GlobalSchemaStore.Load(schemaID); ok {
+		// Use the originally imported schema data for round-trip integrity
+		dataBytes = stored.([]byte)
+	} else {
+		// Schema not found in store (shouldn't happen in normal flow)
+		h.logger.Warn("schema/export: schema not found in store", "schema_id", schemaID)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Schema not found"})
 		return
 	}
 
@@ -159,10 +180,10 @@ func (h *BOSGatewayHandler) SchemaExport(c *gin.Context) {
 		Status:      "ok",
 		SchemaID:    schemaID,
 		Format:      format,
-		ContentSize: int64(len(exportedBytes)),
+		ContentSize: int64(len(dataBytes)),
 		DurationMs:  durationMs,
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		Data:        string(exportedBytes),
+		Data:        string(dataBytes),
 	})
 }
 
@@ -231,6 +252,15 @@ func (h *BOSGatewayHandler) SchemaUpdate(c *gin.Context) {
 		TablesImported: tablesImported,
 		DurationMs:     durationMs,
 		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// SchemaQuery handles POST /api/bos/schema/query
+//
+// STUB: Not yet implemented. Returns 501 Not Implemented.
+func (h *BOSGatewayHandler) SchemaQuery(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{
+		"error": "Schema query not yet implemented",
 	})
 }
 
