@@ -346,7 +346,7 @@ func TestParseXESViaBOSGateway(t *testing.T) {
 		t.Fatalf("Expected 2xx from /api/bos/discover (XES via gateway), got %d — body: %v", status, body)
 	}
 	if _, ok := body["model_id"]; !ok {
-		t.Fatalf("expected traces in parsed log: %v", v)
+		t.Fatalf("expected traces in parsed log: %v", body)
 	}
 }
 
