@@ -76,6 +76,7 @@ export const widgetAnalytics: Record<WidgetType, WidgetAnalyticsEntry> = {
       { label: "Feedback Loop", value: "Active" },
     ],
   },
+<<<<<<< HEAD
   process_map: {
     title: "Process Map Analytics",
     stats: [
@@ -114,6 +115,15 @@ export const widgetAnalytics: Record<WidgetType, WidgetAnalyticsEntry> = {
       { label: "Total Cases", value: "—" },
       { label: "Total Events", value: "—" },
       { label: "Variants", value: "—" },
+=======
+  "analytics-overview": {
+    title: "Analytics Overview",
+    stats: [
+      { label: "Tasks This Week", value: 23, trend: "+18%" },
+      { label: "Focus Rate", value: "78%", trend: "+12%" },
+      { label: "Active Projects", value: 3 },
+      { label: "Day Streak", value: "7 days" },
+>>>>>>> upstream/main
     ],
   },
 };

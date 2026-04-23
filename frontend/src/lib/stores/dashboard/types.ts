@@ -13,11 +13,15 @@ export type WidgetType =
   | "activity"
   | "metric"
   | "signal"
+<<<<<<< HEAD
   | "process_map"
   | "conformance_score"
   | "variant_distribution"
   | "bottleneck_heatmap"
   | "cycle_time_trend";
+=======
+  | "analytics-overview";
+>>>>>>> upstream/main
 
 export type WidgetSize = "small" | "medium" | "large";
 

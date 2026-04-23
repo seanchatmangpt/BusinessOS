@@ -77,6 +77,7 @@ export const availableWidgets: {
     icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6",
   },
   {
+<<<<<<< HEAD
     type: "process_map",
     title: "Process Map",
     description: "Petri net process visualization",
@@ -106,6 +107,13 @@ export const availableWidgets: {
     description: "Average case duration distribution",
     icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
   },
+=======
+    type: "analytics-overview",
+    title: "Analytics Overview",
+    description: "Key metrics at a glance",
+    icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
+  },
+>>>>>>> upstream/main
 ];
 
 /** Widget types that may only exist once on the dashboard at a time. */
@@ -133,11 +141,11 @@ export function getAccentColorClass(colorValue: string): string {
 export function getWidgetGridClass(size: WidgetSize): string {
   switch (size) {
     case "small":
-      return "col-span-1";
+      return "dw-widget-sm";
     case "medium":
-      return "col-span-1 lg:col-span-1";
+      return "dw-widget-md";
     case "large":
-      return "col-span-1 lg:col-span-2";
+      return "dw-widget-lg";
   }
 }
 
@@ -163,21 +171,25 @@ export function getAccentBorderClass(color?: string): string {
 function createDashboardLayoutStore() {
   // ── Widget list ──────────────────────────────────────────────────────────────
   let widgets = $state<Widget[]>([
-    { id: "w1", type: "focus", title: "Today's Focus", size: "medium" },
+    { id: "w1", type: "focus", title: "Today's Focus", size: "small" },
     { id: "w2", type: "quick-actions", title: "Quick Actions", size: "small" },
-    { id: "w3", type: "projects", title: "Active Projects", size: "medium" },
-    { id: "w4", type: "tasks", title: "My Tasks", size: "medium" },
-    { id: "w5", type: "activity", title: "Recent Activity", size: "large" },
+    { id: "w3", type: "projects", title: "Active Projects", size: "small" },
+    { id: "w4", type: "tasks", title: "My Tasks", size: "small" },
+    { id: "w5", type: "activity", title: "Recent Activity", size: "medium" },
   ]);
 
   // ── Edit mode ────────────────────────────────────────────────────────────────
   let isEditMode = $state(false);
   let draggedWidget = $state<string | null>(null);
+  let dragOverWidget = $state<string | null>(null);
 
   // ── Widget picker ────────────────────────────────────────────────────────────
   let showWidgetPicker = $state(false);
   let selectedWidgetIndex = $state(-1);
   let pickerSelectedSize = $state<WidgetSize>("medium");
+
+  // ── Right panel ─────────────────────────────────────────────────────────────
+  let showRightPanel = $state(false);
 
   // ── Undo ─────────────────────────────────────────────────────────────────────
   let undoStack = $state<UndoEntry[]>([]);
@@ -334,10 +346,29 @@ function createDashboardLayoutStore() {
 
   function handleDragOver(e: DragEvent): void {
     e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  function handleDragEnter(e: DragEvent, targetId: string): void {
+    e.preventDefault();
+    if (draggedWidget && draggedWidget !== targetId) {
+      dragOverWidget = targetId;
+    }
+  }
+
+  function handleDragLeave(e: DragEvent): void {
+    const relatedTarget = e.relatedTarget as Node | null;
+    const currentTarget = e.currentTarget as Node | null;
+    if (currentTarget && relatedTarget && currentTarget.contains(relatedTarget))
+      return;
+    dragOverWidget = null;
   }
 
   function handleDrop(e: DragEvent, targetId: string): void {
     e.preventDefault();
+    dragOverWidget = null;
     if (!draggedWidget || draggedWidget === targetId) return;
 
     const fromIndex = widgets.findIndex((w) => w.id === draggedWidget);
@@ -350,6 +381,7 @@ function createDashboardLayoutStore() {
 
   function handleDragEnd(): void {
     draggedWidget = null;
+    dragOverWidget = null;
   }
 
   // ── Keyboard ─────────────────────────────────────────────────────────────────
@@ -432,6 +464,13 @@ function createDashboardLayoutStore() {
       draggedWidget = v;
     },
 
+    get dragOverWidget() {
+      return dragOverWidget;
+    },
+    set dragOverWidget(v: string | null) {
+      dragOverWidget = v;
+    },
+
     get showWidgetPicker() {
       return showWidgetPicker;
     },
@@ -467,6 +506,13 @@ function createDashboardLayoutStore() {
       showUndoToast = v;
     },
 
+    get showRightPanel() {
+      return showRightPanel;
+    },
+    set showRightPanel(v: boolean) {
+      showRightPanel = v;
+    },
+
     // Derived
     get addedUniqueTypes() {
       return addedUniqueTypes;
@@ -485,6 +531,8 @@ function createDashboardLayoutStore() {
     moveWidget,
     handleDragStart,
     handleDragOver,
+    handleDragEnter,
+    handleDragLeave,
     handleDrop,
     handleDragEnd,
     handleKeydown,

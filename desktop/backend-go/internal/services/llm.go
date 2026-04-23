@@ -126,6 +126,21 @@ type LLMService interface {
 	GetOptions() LLMOptions
 }
 
+// ToolCallingService is implemented by LLM providers that support native tool/function calling.
+// Providers that don't support this will fall back to prompt-based tool descriptions.
+type ToolCallingService interface {
+	LLMService
+	ChatWithTools(ctx context.Context, messages []ChatMessage, systemPrompt string, tools []ToolDefinition) (*ChatWithToolsResponse, error)
+	ContinueWithToolResults(ctx context.Context, messages []ChatMessage, systemPrompt string, toolResults map[string]string) (string, error)
+}
+
+// AsToolCallingService checks if an LLMService supports tool calling and returns the
+// ToolCallingService interface if so. Returns (nil, false) for providers without tool support.
+func AsToolCallingService(llm LLMService) (ToolCallingService, bool) {
+	tc, ok := llm.(ToolCallingService)
+	return tc, ok
+}
+
 // ExtendedThinkingService interface for providers that support native extended thinking
 type ExtendedThinkingService interface {
 	LLMService

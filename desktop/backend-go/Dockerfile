@@ -53,6 +53,10 @@ ENV SERVER_PORT=8001
 EXPOSE 8001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+<<<<<<< HEAD
   CMD curl -f http://localhost:8001/healthz || exit 1
+=======
+  CMD curl -f http://localhost:${SERVER_PORT:-8080}/health || exit 1
+>>>>>>> upstream/main
 
 CMD ["/app/server"]

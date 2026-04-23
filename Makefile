@@ -39,6 +39,7 @@ help: ## Show this help message
 # =============================================================================
 
 .PHONY: setup
+<<<<<<< HEAD
 setup: ## First-time setup: copy .env files, pull images, start stack
 	@echo ""
 	@printf '$(BOLD)Setting up BusinessOS...$(RESET)\n'
@@ -63,6 +64,10 @@ setup: ## First-time setup: copy .env files, pull images, start stack
 	@docker compose up -d --build frontend
 	@echo ""
 	@bash scripts/print-urls.sh
+=======
+setup: ## First-time setup: auto-generate secrets, pull images, start stack
+	@bash scripts/setup.sh
+>>>>>>> upstream/main
 
 .PHONY: dev
 dev: ## Start all services (build if needed), follow logs

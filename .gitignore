@@ -126,5 +126,14 @@ osa
 
 # Internal/private docs (never commit)
 .internal/
+<<<<<<< HEAD
 # Test output
 bos/core/DISTRIBUTED_TEST_RESULTS.txt
+=======
+
+# Merge/backup artifacts
+*.bak
+*.merged
+*.pre-merge-bak
+*.pre-widget-bak
+>>>>>>> upstream/main

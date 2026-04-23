@@ -124,4 +124,8 @@ require (
 
 replace github.com/docker/docker => github.com/docker/docker v27.4.1+incompatible
 
+<<<<<<< HEAD
 replace github.com/Miosa-osa/sdk-go => ./internal/osasdk
+=======
+replace github.com/Miosa-osa/sdk-go => ./stub/miosa-sdk-go
+>>>>>>> upstream/main
