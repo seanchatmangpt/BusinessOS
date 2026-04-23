@@ -149,6 +149,7 @@ services:
         postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-dev_password_change_in_prod}@postgres:5432/${CANOPY_DB:-canopy_prod}?sslmode=disable
       OSA_URL: "http://osa:8089"
       BUSINESSOS_URL: "http://backend:8001"
+      BOS_URL: "http://backend:8001"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
       OTEL_SERVICE_NAME: "canopy"
     deploy:
@@ -394,18 +395,13 @@ services:
 
   # ---------------------------------------------------------------------------
   # BusinessOS Frontend (SvelteKit adapter-node, port 3000)
-  # Dockerfile: frontend/Dockerfile (multi-stage, node:20-alpine final image)
-  # PUBLIC_API_URL is baked at build time via ARG; override via env at runtime.
+  # Dockerfile: frontend/Dockerfile (copies pre-built output from host)
+  # Build locally: cd frontend && npm install && PUBLIC_API_URL=http://localhost:8001 npm run build
   # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        # Baked into the Vite bundle at build time — must point to the host's
-        # externally-reachable backend (not the docker-internal hostname).
-        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8001}
-        PUBLIC_ENVIRONMENT: ${ENVIRONMENT:-development}
     image: businessos-frontend:local
     container_name: businessos-frontend
     restart: unless-stopped
